@@ -1,31 +1,32 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "../components/Button";
-import { CalendarIcon, ChartIcon, PumpIcon } from "../components/icons";
+import { FillupPreview, StatsPreview, VehiclePreview } from "../components/Previews";
 
 const SLIDES = [
   {
-    Icon: PumpIcon,
     title: "רישום תדלוק ב־15 שניות",
     body: "הכול ממולא מראש — תאריך, מחיר ותחנה. נשאר רק להקליד קילומטראז׳ וליטרים.",
+    Preview: FillupPreview,
   },
   {
-    Icon: ChartIcon,
-    title: "חישובי צריכה וגרפים",
-    body: "צריכה אמיתית בקמ״ל אחרי כל תדלוק, מגמות לאורך זמן והשוואה לנתוני היצרן.",
+    title: "צריכה אמיתית, לא הבטחות",
+    body: "אחרי כל תדלוק תדעו בדיוק כמה קמ״ל אתם עושים באמת, ואיך זה מול הממוצע שלכם ומול היצרן.",
+    Preview: StatsPreview,
   },
   {
-    Icon: CalendarIcon,
-    title: "מחיר הדלק מתעדכן אוטומטית",
-    body: "המחיר הרשמי נטען בתחילת כל חודש, כולל התאמה אישית להנחה בתחנה שלכם.",
+    title: "מזהים את הרכב לפי הלוחית",
+    body: "מספר רישוי אחד מספיק — יצרן, דגם, שנה וצריכה מוצהרת נמשכים ממאגרי משרד התחבורה.",
+    Preview: VehiclePreview,
   },
 ];
 
-/** Onboarding carousel (designs 02–04), shown once per device. */
+/** Onboarding carousel — each slide previews the actual screen it describes. */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [index, setIndex] = useState(0);
   const slide = SLIDES[index];
   const isLast = index === SLIDES.length - 1;
-  const { Icon } = slide;
+  const { Preview } = slide;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg px-6 pb-8 pt-safe">
@@ -40,19 +41,20 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center gap-7 text-center">
-        <span className="flex size-[112px] items-center justify-center rounded-[32px] bg-accent-soft text-accent">
-          <Icon size={52} />
-        </span>
+        {/* Keyed so each slide's preview animates in rather than swapping. */}
+        <div key={index} className="tm-fade-in flex w-full justify-center">
+          <Preview />
+        </div>
 
-        <div className="flex flex-col gap-3">
-          <h1 className="text-[24px] font-bold leading-tight text-ink">{slide.title}</h1>
-          <p className="mx-auto max-w-[300px] text-[15px] leading-relaxed text-muted">
+        <div className="flex flex-col gap-2.5">
+          <h1 className="text-[23px] font-bold leading-tight text-ink">{slide.title}</h1>
+          <p className="mx-auto max-w-[310px] text-[14.5px] leading-relaxed text-muted">
             {slide.body}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         <div className="flex justify-center gap-2" aria-hidden="true">
           {SLIDES.map((item, i) => (
             <span
@@ -67,6 +69,18 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         <Button full onClick={() => (isLast ? onDone() : setIndex(index + 1))}>
           {isLast ? "מתחילים" : "הבא"}
         </Button>
+
+        <p className="text-center text-[11.5px] text-muted/80">
+          בהמשך תתבקשו להתחבר. קראו את{" "}
+          <Link to="/legal/terms" className="font-semibold text-accent">
+            תנאי השימוש
+          </Link>{" "}
+          ואת{" "}
+          <Link to="/legal/privacy" className="font-semibold text-accent">
+            מדיניות הפרטיות
+          </Link>
+          .
+        </p>
       </div>
     </div>
   );

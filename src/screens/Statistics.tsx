@@ -14,11 +14,12 @@ import {
   YAxis,
 } from "recharts";
 import { useData } from "../context/DataContext";
+import { useBenchmark } from "../hooks/useBenchmark";
 import { computeStats, filterByRange } from "../lib/stats";
 import { Card, Label, Skeleton } from "../components/Card";
 import { Segmented } from "../components/Segmented";
 import { Num } from "../components/Num";
-import { ChartIcon } from "../components/icons";
+import { ChartIcon, UserIcon } from "../components/icons";
 import {
   consumption,
   dayMonthShort,
@@ -56,6 +57,7 @@ export function Statistics() {
 
   const units = settings.units;
   const average = consumption(stats.avgKmPerLiter, units);
+  const { comparison } = useBenchmark(stats);
 
   const consumptionData = useMemo(
     () =>
@@ -311,6 +313,10 @@ export function Statistics() {
               </Card>
             ) : null}
 
+            {/* Peer comparison lives at the very bottom on purpose: this is
+                your log first, and the community angle is a footnote. */}
+            {comparison ? <PeerCard comparison={comparison} units={units} /> : null}
+
             {stats.stationStats.length > 1 ? (
               <Card className="flex flex-col gap-2.5 p-4">
                 <Label>השוואת תחנות · מחיר ממוצע לליטר</Label>
@@ -335,6 +341,67 @@ export function Statistics() {
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * Peer comparison.
+ *
+ * Shown only when there are enough comparable drivers for the number to mean
+ * anything, and phrased as an observation rather than a scoreboard — the
+ * point is context, not competition.
+ */
+function PeerCard({
+  comparison,
+  units,
+}: {
+  comparison: import("../lib/benchmarks").BenchmarkComparison;
+  units: "kmPerLiter" | "litersPer100";
+}) {
+  const yours = consumption(comparison.yourAverage, units);
+  const peers = consumption(comparison.peerAverage, units);
+  const ahead = comparison.percentile >= 50;
+
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <div className="flex items-center justify-between gap-2">
+        <Label>מול נהגים דומים</Label>
+        <span className="flex items-center gap-1 text-[11.5px] text-muted">
+          <UserIcon size={13} />
+          <Num>{comparison.peers}</Num> נהגים
+        </span>
+      </div>
+
+      <div className="flex items-baseline gap-2">
+        <Num className="text-[28px] font-bold leading-none text-accent">
+          {comparison.percentile}%
+        </Num>
+        <span className="text-[13.5px] leading-snug text-ink/80">
+          {ahead ? "מהנהגים צורכים יותר מכם" : "מהנהגים צורכים פחות מכם"}
+        </span>
+      </div>
+
+      {/* A single track beats a chart here — it is one number, not a series. */}
+      <div className="relative h-2 w-full overflow-hidden rounded-pill bg-surface-2">
+        <span
+          className="absolute inset-y-0 end-0 rounded-pill bg-accent transition-[width]"
+          style={{ width: `${Math.max(3, Math.min(100, comparison.percentile))}%` }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between text-[12.5px] text-muted">
+        <span>
+          שלכם: <Num className="font-bold text-ink">{yours.value}</Num> {yours.unit}
+        </span>
+        <span>
+          ממוצע הקבוצה: <Num className="font-bold text-ink">{peers.value}</Num> {peers.unit}
+        </span>
+      </div>
+
+      <span className="text-[11.5px] leading-relaxed text-muted/85">
+        מבוסס על {comparison.label} · נתונים אנונימיים בלבד
+      </span>
+    </Card>
   );
 }
 

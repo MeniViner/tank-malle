@@ -16,12 +16,17 @@ import { History } from "./screens/History";
 import { Settings } from "./screens/Settings";
 import { Profile } from "./screens/Profile";
 import { VehicleManager } from "./screens/VehicleManager";
+import { Legal } from "./screens/Legal";
 
 // Recharts is by far the heaviest dependency and is only needed on one tab,
 // so it is split out of the initial bundle.
 const Statistics = lazy(() =>
   import("./screens/Statistics").then((m) => ({ default: m.Statistics })),
 );
+
+// Admin is a rarely used, read-heavy screen — no reason to ship it to
+// everyone's first paint.
+const Admin = lazy(() => import("./screens/Admin").then((m) => ({ default: m.Admin })));
 
 const ONBOARDING_KEY = "tm.onboarded";
 
@@ -60,6 +65,19 @@ function Shell() {
 
   if (loading || !splashDone) return <Splash />;
 
+  // The legal pages must be reachable before signing in — that is exactly
+  // when someone wants to read them.
+  if (location.pathname.startsWith("/legal")) {
+    return (
+      <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
+        <Routes>
+          <Route path="/legal/:doc" element={<Legal />} />
+          <Route path="*" element={<Navigate to="/legal/terms" replace />} />
+        </Routes>
+      </div>
+    );
+  }
+
   if (!user) {
     if (!onboarded) {
       return (
@@ -80,17 +98,22 @@ function Shell() {
 
   if (!ready) return <Splash />;
 
-  // A signed-in user with no vehicle at all goes straight to the wizard.
-  const needsFirstVehicle = vehicles.length === 0;
-  if (needsFirstVehicle && location.pathname !== "/vehicles/new") {
-    return <VehicleWizard firstRun />;
-  }
+  // A signed-in user with no vehicle at all goes straight to the wizard —
+  // except on routes that are meaningful without one (admin, legal, profile),
+  // which must stay reachable.
+  const ALWAYS_REACHABLE = ["/vehicles/new", "/admin", "/legal", "/settings/profile"];
+  const needsFirstVehicle =
+    vehicles.length === 0 &&
+    !ALWAYS_REACHABLE.some((path) => location.pathname.startsWith(path));
+
+  if (needsFirstVehicle) return <VehicleWizard firstRun />;
 
   // Full-screen flows (the fill-up form, the vehicle wizard) replace the tab
   // bar rather than sitting under it.
   const showTabBar =
     !location.pathname.startsWith("/fillup/") &&
-    !location.pathname.startsWith("/vehicles/new");
+    !location.pathname.startsWith("/vehicles/new") &&
+    !location.pathname.startsWith("/legal");
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
@@ -108,6 +131,15 @@ function Shell() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/profile" element={<Profile />} />
         <Route path="/settings/vehicles" element={<VehicleManager />} />
+        <Route path="/legal/:doc" element={<Legal />} />
+        <Route
+          path="/admin"
+          element={
+            <Suspense fallback={<StatsFallback />}>
+              <Admin />
+            </Suspense>
+          }
+        />
         <Route path="/vehicles/new" element={<VehicleWizard />} />
         <Route path="/fillup/new" element={<FillupForm />} />
         <Route path="/fillup/:fillupId" element={<FillupForm />} />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
@@ -18,9 +18,17 @@ import {
   relativeDate,
   time,
   timeAgo,
-  toDateTimeLocal,
   vehicleShort,
 } from "../lib/format";
+import {
+  distanceMeters,
+  formatDistance,
+  loadStationCatalog,
+  locateStations,
+  searchStations,
+  toStation,
+  type GeoResult,
+} from "../lib/stations";
 import type { Station } from "../lib/types";
 import { Button } from "../components/Button";
 import { Field, InfoStrip, SoftWarningBanner } from "../components/Field";
@@ -28,30 +36,16 @@ import { Card, Label, IconTile } from "../components/Card";
 import { Toggle } from "../components/Segmented";
 import { Sheet, ConfirmDialog } from "../components/Sheet";
 import { Num } from "../components/Num";
+import { DateTimePicker } from "../components/DateTimePicker";
 import { ScreenHeader } from "../components/AppHeader";
 import {
   CalendarIcon,
   CheckIcon,
   ChevronStart,
   PinIcon,
+  SearchIcon,
   TrashIcon,
 } from "../components/icons";
-
-/** Suggest a past station when the device is within this radius. */
-const STATION_RADIUS_M = 300;
-
-function distanceMeters(a: Station, b: { lat: number; lng: number }): number {
-  if (a.lat === undefined || a.lng === undefined) return Number.POSITIVE_INFINITY;
-  const R = 6_371_000;
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLng = toRad(b.lng - a.lng);
-  const lat1 = toRad(a.lat);
-  const lat2 = toRad(b.lat);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.sin(dLng / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
-  return 2 * R * Math.asin(Math.sqrt(h));
-}
 
 /**
  * Add / edit fill-up (designs 10–13).
@@ -127,6 +121,9 @@ export function FillupForm() {
 
   /* ---------- geolocation → station suggestion ---------- */
 
+  // Stations the user has actually used, most recent first. These win over a
+  // catalog match at the same spot because they carry the name the user
+  // recognises.
   const pastStations = useMemo(() => {
     const map = new Map<string, Station>();
     for (const fillup of [...fillups].sort((a, b) => b.date - a.date)) {
@@ -136,36 +133,48 @@ export function FillupForm() {
     return [...map.values()];
   }, [fillups]);
 
+  const [geo, setGeo] = useState<GeoResult>({ status: "idle", position: null, nearby: [] });
   const geoRequested = useRef(false);
+
+  const detectStation = useCallback(
+    async (manual = false) => {
+      if (!manual && geoRequested.current) return;
+      geoRequested.current = true;
+      setGeo((current) => ({ ...current, status: "locating" }));
+
+      const result = await locateStations();
+      setGeo(result);
+      if (result.status !== "ok" || result.position === null) return;
+
+      // Prefer a previously used station within range — same place, familiar
+      // name — and otherwise take the nearest one from the public register.
+      const here = result.position;
+      let bestPast: Station | null = null;
+      let bestPastDistance = Number.POSITIVE_INFINITY;
+      for (const candidate of pastStations) {
+        if (candidate.lat === undefined || candidate.lng === undefined) continue;
+        const distance = distanceMeters(
+          { lat: candidate.lat, lng: candidate.lng },
+          here,
+        );
+        if (distance < bestPastDistance) {
+          bestPastDistance = distance;
+          bestPast = candidate;
+        }
+      }
+
+      const chosen =
+        bestPast && bestPastDistance <= 300 ? bestPast : toStation(result.nearby[0]);
+      setStation(chosen);
+      setStationAuto(true);
+    },
+    [pastStations],
+  );
+
   useEffect(() => {
-    if (isEdit || geoRequested.current || station || !navigator.geolocation) return;
-    geoRequested.current = true;
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const here = { lat: position.coords.latitude, lng: position.coords.longitude };
-        let closest: Station | null = null;
-        let closestDistance = Number.POSITIVE_INFINITY;
-
-        for (const candidate of pastStations) {
-          const distance = distanceMeters(candidate, here);
-          if (distance < closestDistance) {
-            closestDistance = distance;
-            closest = candidate;
-          }
-        }
-
-        if (closest && closestDistance <= STATION_RADIUS_M) {
-          setStation(closest);
-          setStationAuto(true);
-        }
-      },
-      () => {
-        /* permission denied or unavailable — the field stays empty */
-      },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 120_000 },
-    );
-  }, [isEdit, station, pastStations]);
+    if (isEdit || station) return;
+    void detectStation();
+  }, [isEdit, station, detectStation]);
 
   /* ---------- paired liters ⇄ total ---------- */
 
@@ -517,6 +526,9 @@ export function FillupForm() {
         open={stationSheetOpen}
         onClose={() => setStationSheetOpen(false)}
         stations={pastStations}
+        nearby={geo.nearby}
+        geoStatus={geo.status}
+        onLocate={() => void detectStation(true)}
         current={station}
         onPick={(next) => {
           setStation(next);
@@ -554,20 +566,38 @@ function StationSheet({
   open,
   onClose,
   stations,
+  nearby,
+  geoStatus,
+  onLocate,
   current,
   onPick,
 }: {
   open: boolean;
   onClose: () => void;
   stations: Station[];
+  nearby: GeoResult["nearby"];
+  geoStatus: GeoResult["status"];
+  onLocate: () => void;
   current: Station | null;
   onPick: (station: Station | null) => void;
 }) {
-  const [custom, setCustom] = useState("");
+  const [query, setQuery] = useState("");
+  const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
 
   useEffect(() => {
-    if (open) setCustom("");
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    void loadStationCatalog().then(setCatalog);
   }, [open]);
+
+  const matches = useMemo(
+    () => searchStations(catalog, query),
+    [catalog, query],
+  );
+
+  const trimmed = query.trim();
 
   return (
     <Sheet
@@ -575,47 +605,106 @@ function StationSheet({
       onClose={onClose}
       title={<h2 className="text-[17px] font-bold text-ink">תחנת דלק</h2>}
     >
-      <div className="flex max-h-[62vh] flex-col gap-3">
-        <div className="flex gap-2">
+      <div className="flex max-h-[64vh] flex-col gap-3">
+        <div className="flex min-h-[48px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5">
+          <SearchIcon size={17} className="text-muted" />
           <input
-            value={custom}
-            onChange={(event) => setCustom(event.target.value)}
-            placeholder="שם תחנה חדשה…"
-            className="min-h-[48px] min-w-0 flex-1 rounded-[14px] border border-line bg-surface px-3.5 text-[15px] outline-none focus:border-accent"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="חיפוש מתוך 1,250 תחנות…"
+            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
           />
-          <button
-            type="button"
-            disabled={!custom.trim()}
-            onClick={() => onPick({ name: custom.trim() })}
-            className="min-h-[48px] flex-none rounded-[14px] bg-accent px-4 text-[14px] font-bold text-accent-contrast disabled:opacity-40"
-          >
-            שמירה
-          </button>
         </div>
 
         <div className="no-scrollbar flex flex-col overflow-y-auto">
-          {stations.map((entry) => (
-            <button
-              key={entry.name}
-              type="button"
-              onClick={() => onPick(entry)}
-              className="flex min-h-[52px] items-center gap-3 border-b border-line px-2 text-start last:border-b-0 active:bg-surface-2"
-            >
-              <PinIcon size={17} className="flex-none text-muted" />
-              <span className="flex-1 truncate text-[15px] font-semibold text-ink">
-                {entry.name}
-              </span>
-              {current?.name === entry.name ? (
-                <CheckIcon size={18} className="flex-none text-accent" />
+          {trimmed.length >= 2 ? (
+            matches.length > 0 ? (
+              matches.map((entry) => (
+                <StationRow
+                  key={`${entry.n}-${entry.lat}`}
+                  label={entry.n}
+                  meta={entry.a ?? undefined}
+                  selected={current?.name === entry.n}
+                  onClick={() => onPick(toStation(entry))}
+                />
+              ))
+            ) : (
+              <div className="flex flex-col gap-2 py-5">
+                <p className="text-center text-[13.5px] text-muted">
+                  לא נמצאה תחנה בשם הזה
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onPick({ name: trimmed })}
+                  className="min-h-[46px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent"
+                >
+                  שמירה בשם „{trimmed}״
+                </button>
+              </div>
+            )
+          ) : (
+            <>
+              {/* Nearby first — it is almost always what the user wants. */}
+              <SheetGroupLabel>
+                בקרבתי
+                {geoStatus === "locating" ? " · מאתר…" : ""}
+              </SheetGroupLabel>
+
+              {geoStatus === "denied" || geoStatus === "unavailable" ? (
+                <button
+                  type="button"
+                  onClick={onLocate}
+                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[13.5px] font-semibold text-accent"
+                >
+                  {geoStatus === "denied"
+                    ? "הרשאת מיקום נדחתה — נסו שוב"
+                    : "איתור מיקום אינו זמין — נסו שוב"}
+                </button>
+              ) : geoStatus === "none" ? (
+                <p className="px-2 py-3 text-[13px] text-muted">
+                  לא נמצאה תחנה במרחק של 400 מ׳ מכאן.
+                </p>
+              ) : nearby.length === 0 && geoStatus !== "locating" ? (
+                <button
+                  type="button"
+                  onClick={onLocate}
+                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[13.5px] font-semibold text-accent"
+                >
+                  איתור תחנות בקרבת מקום
+                </button>
+              ) : (
+                nearby.map((entry) => (
+                  <StationRow
+                    key={`near-${entry.n}-${entry.lat}`}
+                    label={entry.n}
+                    meta={`${formatDistance(entry.distance)}${entry.a ? ` · ${entry.a}` : ""}`}
+                    selected={current?.name === entry.n}
+                    onClick={() => onPick(toStation(entry))}
+                  />
+                ))
+              )}
+
+              {stations.length > 0 ? (
+                <>
+                  <SheetGroupLabel>תחנות שתדלקתי בהן</SheetGroupLabel>
+                  {stations.map((entry) => (
+                    <StationRow
+                      key={`past-${entry.name}`}
+                      label={entry.name}
+                      selected={current?.name === entry.name}
+                      onClick={() => onPick(entry)}
+                    />
+                  ))}
+                </>
               ) : null}
-            </button>
-          ))}
+            </>
+          )}
         </div>
 
         <button
           type="button"
           onClick={() => onPick(null)}
-          className="min-h-[48px] rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted"
+          className="min-h-[48px] flex-none rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted"
         >
           ללא מיקום
         </button>
@@ -624,7 +713,40 @@ function StationSheet({
   );
 }
 
-/* ---------------- date picker ---------------- */
+function SheetGroupLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="px-1 pb-1 pt-2 text-[12px] font-semibold tracking-[0.02em] text-muted">
+      {children}
+    </span>
+  );
+}
+
+function StationRow({
+  label,
+  meta,
+  selected,
+  onClick,
+}: {
+  label: string;
+  meta?: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 text-start last:border-b-0 active:bg-surface-2"
+    >
+      <PinIcon size={17} className="flex-none text-muted" />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
+        {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
+      </span>
+      {selected ? <CheckIcon size={18} className="flex-none text-accent" /> : null}
+    </button>
+  );
+}
 
 function DateSheet({
   open,
@@ -646,17 +768,7 @@ function DateSheet({
       title={<h2 className="text-[17px] font-bold text-ink">תאריך ושעה</h2>}
     >
       <div className="flex flex-col gap-3">
-        <input
-          type="datetime-local"
-          dir="ltr"
-          value={toDateTimeLocal(value)}
-          max={toDateTimeLocal(Date.now())}
-          onChange={(event) => {
-            const next = new Date(event.target.value).getTime();
-            if (Number.isFinite(next)) onChange(next);
-          }}
-          className="num min-h-[52px] rounded-[14px] border border-line bg-surface px-3.5 text-[16px] font-semibold outline-none focus:border-accent"
-        />
+        <DateTimePicker value={value} onChange={onChange} maxDate={Date.now()} />
 
         {bounds.min !== null || bounds.max !== null ? (
           <InfoStrip>

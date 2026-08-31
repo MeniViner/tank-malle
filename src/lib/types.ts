@@ -14,6 +14,8 @@ export interface UserSettings {
   units: Units;
   activeVehicleId?: string | null;
   onboardingDone?: boolean;
+  /** Publish one anonymous economy summary for the peer comparison. */
+  shareBenchmarks?: boolean;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   units: "kmPerLiter",
   activeVehicleId: null,
   onboardingDone: false,
+  shareBenchmarks: true,
 };
 
 export interface UserProfile {
@@ -63,4 +66,7 @@ export interface PlateLookupResult {
   engineVolume?: number | null;
   /** Human-readable category, e.g. "רכב פרטי · בנזין". */
   category?: string;
+  /** Registry codes, used to join the WLTP spec register exactly. */
+  tozeretCd?: number | null;
+  degemCd?: number | null;
 }

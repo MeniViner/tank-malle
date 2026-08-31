@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { ScreenHeader } from "../components/AppHeader";
-import { Card, IconTile, Label } from "../components/Card";
-import { Button } from "../components/Button";
+import { Card, IconTile, Label, Skeleton } from "../components/Card";
+import { Button, Spinner } from "../components/Button";
 import { Field } from "../components/Field";
 import { Sheet, ConfirmDialog } from "../components/Sheet";
 import {
@@ -15,14 +15,22 @@ import {
   RestoreIcon,
   TrashIcon,
 } from "../components/icons";
-import { FUEL_TYPE_SHORT, formatPlate, parseDecimal, vehicleLabel } from "../lib/format";
-import type { Vehicle } from "../lib/types";
+import {
+  FUEL_TYPE_LABELS,
+  FUEL_TYPE_SHORT,
+  formatPlate,
+  parseDecimal,
+  vehicleLabel,
+} from "../lib/format";
+import { lookupPlate } from "../lib/plateLookup";
+import { fetchVehicleSpecs } from "../lib/vehicleSpecs";
+import type { FuelType, Vehicle } from "../lib/types";
 
 /** Vehicle management & archive (design 20). */
 export function VehicleManager() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { vehicles, activeVehicle, setVehicleArchived, deleteVehicle, updateVehicle } =
+  const { vehicles, activeVehicle, setVehicleArchived, deleteVehicle, updateVehicle, ready } =
     useData();
 
   const [editing, setEditing] = useState<Vehicle | null>(null);
@@ -50,6 +58,13 @@ export function VehicleManager() {
       <ScreenHeader title="ניהול רכבים" onBack={() => navigate(-1)} />
 
       <div className="flex flex-col gap-4 px-5">
+        {!ready && vehicles.length === 0 ? (
+          <>
+            <Skeleton className="h-[152px] rounded-card" />
+            <Skeleton className="h-[152px] rounded-card" />
+          </>
+        ) : null}
+
         {active.map((vehicle) => (
           <VehicleCard
             key={vehicle.id}
@@ -223,6 +238,7 @@ function CardAction({
   );
 }
 
+/** Full editor — every stored field, including the plate number. */
 function EditVehicleSheet({
   vehicle,
   onClose,
@@ -232,17 +248,68 @@ function EditVehicleSheet({
   onClose: () => void;
   onSave: (patch: Partial<Vehicle>) => void;
 }) {
+  const [make, setMake] = useState("");
+  const [model, setModel] = useState("");
+  const [year, setYear] = useState("");
+  const [plate, setPlate] = useState("");
+  const [fuelType, setFuelType] = useState<FuelType>("95");
   const [nickname, setNickname] = useState("");
   const [tankLiters, setTankLiters] = useState("");
   const [declared, setDeclared] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshNote, setRefreshNote] = useState<string | null>(null);
 
   // Re-seed whenever a different vehicle is opened.
   const [lastId, setLastId] = useState<string | null>(null);
   if (vehicle && vehicle.id !== lastId) {
     setLastId(vehicle.id);
+    setMake(vehicle.make);
+    setModel(vehicle.model);
+    setYear(vehicle.year ? String(vehicle.year) : "");
+    setPlate(vehicle.plateNumber ?? "");
+    setFuelType(vehicle.fuelType);
     setNickname(vehicle.nickname ?? "");
     setTankLiters(vehicle.tankLiters ? String(vehicle.tankLiters) : "");
     setDeclared(vehicle.declaredKmPerLiter ? String(vehicle.declaredKmPerLiter) : "");
+    setRefreshNote(null);
+  }
+
+  /** Re-run the plate lookup and refresh every registry-derived field. */
+  async function refreshFromRegistry() {
+    const digits = plate.replace(/\D/g, "");
+    if (digits.length < 5) {
+      setRefreshNote("יש להזין מספר רכב תקין לפני האיתור");
+      return;
+    }
+    setRefreshing(true);
+    setRefreshNote(null);
+    try {
+      const found = await lookupPlate(digits);
+      if (!found.found) {
+        setRefreshNote("הרכב לא נמצא במאגר משרד התחבורה");
+        return;
+      }
+      if (found.make) setMake(found.make);
+      if (found.model) setModel(found.model);
+      if (found.year) setYear(String(found.year));
+      if (found.fuelType) setFuelType(found.fuelType);
+
+      const specs = await fetchVehicleSpecs({
+        tozeretCd: found.tozeretCd,
+        degemCd: found.degemCd,
+        year: found.year,
+        fuelType: found.fuelType,
+      });
+      if (specs.declaredKmPerLiter) setDeclared(String(specs.declaredKmPerLiter));
+      if (specs.estimatedTankLiters && !tankLiters) {
+        setTankLiters(String(specs.estimatedTankLiters));
+      }
+      setRefreshNote("הפרטים עודכנו ממאגר משרד התחבורה");
+    } catch {
+      setRefreshNote("לא הצלחנו להתחבר למאגר כרגע");
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   return (
@@ -251,7 +318,71 @@ function EditVehicleSheet({
       onClose={onClose}
       title={<h2 className="text-[17px] font-bold text-ink">עריכת רכב</h2>}
     >
-      <div className="flex flex-col gap-3.5">
+      <div className="no-scrollbar flex max-h-[68vh] flex-col gap-3.5 overflow-y-auto">
+        <Field
+          label="מספר רכב"
+          inputMode="numeric"
+          value={plate}
+          onChange={(event) => setPlate(event.target.value.replace(/\D/g, "").slice(0, 8))}
+          placeholder="31245678"
+          hint={plate ? formatPlate(plate) : "משמש לאיתור אוטומטי בלבד"}
+        />
+
+        <button
+          type="button"
+          onClick={() => void refreshFromRegistry()}
+          disabled={refreshing}
+          className="flex min-h-[46px] items-center justify-center gap-2 rounded-pill bg-surface-2 text-[14px] font-semibold text-accent disabled:opacity-50"
+        >
+          {refreshing ? <Spinner size={17} /> : <RestoreIcon size={17} />}
+          עדכון פרטים ממאגר משרד התחבורה
+        </button>
+
+        {refreshNote ? (
+          <p className="text-[12.5px] text-muted">{refreshNote}</p>
+        ) : null}
+
+        <Field
+          label="יצרן"
+          dir="rtl"
+          value={make}
+          onChange={(event) => setMake(event.target.value)}
+        />
+        <Field
+          label="דגם"
+          dir="rtl"
+          value={model}
+          onChange={(event) => setModel(event.target.value)}
+        />
+        <Field
+          label="שנת ייצור"
+          inputMode="numeric"
+          value={year}
+          onChange={(event) => setYear(event.target.value.replace(/\D/g, "").slice(0, 4))}
+        />
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-semibold tracking-[0.02em] text-muted">
+            סוג דלק
+          </span>
+          <div className="grid grid-cols-2 gap-2">
+            {(["95", "98", "diesel", "other"] as FuelType[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setFuelType(option)}
+                className={`min-h-[46px] rounded-[14px] border px-3 text-[14px] font-semibold transition-colors ${
+                  fuelType === option
+                    ? "border-accent bg-accent-soft text-accent"
+                    : "border-line bg-surface text-muted"
+                }`}
+              >
+                {FUEL_TYPE_LABELS[option]}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Field
           label="כינוי לרכב"
           dir="rtl"
@@ -278,8 +409,14 @@ function EditVehicleSheet({
 
         <Button
           full
+          disabled={!make.trim()}
           onClick={() =>
             onSave({
+              make: make.trim(),
+              model: model.trim(),
+              year: year ? Number.parseInt(year, 10) : null,
+              plateNumber: plate.replace(/\D/g, "") || null,
+              fuelType,
               nickname: nickname.trim() || null,
               tankLiters: tankLiters ? parseDecimal(tankLiters) : null,
               declaredKmPerLiter: declared ? parseDecimal(declared) : null,

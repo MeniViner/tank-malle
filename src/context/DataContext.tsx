@@ -20,6 +20,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { clearCache, pruneOldCaches, readCache, writeCache } from "../lib/cache";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 import {
@@ -40,6 +41,8 @@ interface DataContextValue {
   prices: FuelPrices | null;
   /** True while the initial fill-up snapshot is still loading. */
   loadingFillups: boolean;
+  /** True when the current view came from the local cache, not the server. */
+  fromCache: boolean;
   /** Firestore is serving from cache because the network is unavailable. */
   offline: boolean;
 
@@ -95,6 +98,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [loadingFillups, setLoadingFillups] = useState(true);
   const [offline, setOffline] = useState(!navigator.onLine);
+  const [fromCache, setFromCache] = useState(false);
+
+  useEffect(() => {
+    pruneOldCaches();
+  }, []);
+
+  // Paint the last-known view immediately, before Firestore has connected.
+  useEffect(() => {
+    if (!user) return;
+    const cachedSettings = readCache<UserSettings>(user.uid, "settings");
+    const cachedVehicles = readCache<Vehicle[]>(user.uid, "vehicles");
+    const cachedPrices = readCache<FuelPrices>(user.uid, "prices");
+
+    if (cachedSettings) setSettings({ ...DEFAULT_SETTINGS, ...cachedSettings });
+    if (cachedVehicles?.length) {
+      setVehicles(cachedVehicles);
+      setFromCache(true);
+    }
+    if (cachedPrices) setPrices(cachedPrices);
+    if (cachedSettings || cachedVehicles?.length) setReady(true);
+  }, [user]);
 
   useEffect(() => {
     const online = () => setOffline(false);
@@ -144,6 +168,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const data = snapshot.data();
         const next: UserSettings = { ...DEFAULT_SETTINGS, ...(data.settings ?? {}) };
         setSettings(next);
+        writeCache(user.uid, "settings", next);
         setReady(true);
       },
       () => setReady(true),
@@ -180,10 +205,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
           nickname: data.nickname ?? null,
           archived: Boolean(data.archived),
           createdAt: toMillis(data.createdAt),
+          tozeretCd: toNumberOrNull(data.tozeretCd),
+          degemCd: toNumberOrNull(data.degemCd),
         } satisfies Vehicle;
       });
       list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
       setVehicles(list);
+      writeCache(user.uid, "vehicles", list);
+      if (!snapshot.metadata.fromCache) setFromCache(false);
     });
   }, [user]);
 
@@ -205,13 +234,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setLoadingFillups(true);
+    // Hydrate from cache first so the dashboard has numbers on it instantly.
+    const cached = readCache<Fillup[]>(user.uid, `fillups.${activeVehicle.id}`);
+    if (cached) {
+      setFillups(cached);
+      setLoadingFillups(false);
+    } else {
+      setLoadingFillups(true);
+    }
+
     const path = collection(db, "users", user.uid, "vehicles", activeVehicle.id, "fillups");
 
     return onSnapshot(
       path,
       (snapshot) => {
-        setFillups(
+        const list =
           snapshot.docs.map((entry) => {
             const data = entry.data();
             return {
@@ -226,8 +263,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
               notes: data.notes ?? null,
               createdAt: toMillis(data.createdAt),
             } satisfies Fillup;
-          }),
-        );
+          });
+
+        setFillups(list);
+        writeCache(user.uid, `fillups.${activeVehicle.id}`, list);
         setLoadingFillups(false);
       },
       () => setLoadingFillups(false),
@@ -246,7 +285,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return;
         }
         const data = snapshot.data();
-        setPrices({
+        const next: FuelPrices = {
           current: data.current
             ? {
                 pricePerLiter: Number(data.current.pricePerLiter),
@@ -257,7 +296,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
               }
             : null,
           history: (data.history ?? {}) as Record<string, number>,
-        });
+        };
+        setPrices(next);
+        writeCache(user.uid, "prices", next);
       },
       () => setPrices(null),
     );
@@ -421,6 +462,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     await deleteDoc(doc(db, "users", user.uid));
+    clearCache(user.uid);
     await user.delete();
   }, [user]);
 
@@ -434,6 +476,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fillups,
       prices,
       loadingFillups,
+      fromCache,
       offline,
       updateSettings,
       setActiveVehicle,
@@ -456,6 +499,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       fillups,
       prices,
       loadingFillups,
+      fromCache,
       offline,
       updateSettings,
       setActiveVehicle,

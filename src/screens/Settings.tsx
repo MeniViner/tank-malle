@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../context/ToastContext";
-import { Card, IconTile, Label } from "../components/Card";
-import { Segmented } from "../components/Segmented";
+import { Card, IconTile, Label, Skeleton } from "../components/Card";
+import { Segmented, Toggle } from "../components/Segmented";
 import { RowButton } from "../components/Button";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
@@ -17,9 +17,11 @@ import {
   MoonIcon,
   PaletteIcon,
   PlusIcon,
+  ShieldIcon,
   SunIcon,
   UserIcon,
 } from "../components/icons";
+import { useAuth } from "../context/AuthContext";
 import {
   FUEL_TYPE_SHORT,
   dayMonthShort,
@@ -46,6 +48,7 @@ const UNIT_OPTIONS: { value: Units; label: string }[] = [
 export function Settings() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { isAdmin } = useAuth();
   const { theme, setTheme, accent, accentId, accents, setAccent } = useTheme();
   const {
     settings,
@@ -56,6 +59,7 @@ export function Settings() {
     updateVehicle,
     prices,
     fillups,
+    ready,
   } = useData();
 
   const [accentSheetOpen, setAccentSheetOpen] = useState(false);
@@ -73,6 +77,12 @@ export function Settings() {
         <section className="flex flex-col gap-2">
           <Label>רכבים</Label>
           <Card className="overflow-hidden">
+            {!ready && activeVehicles.length === 0 ? (
+              <div className="flex flex-col gap-3 p-4">
+                <Skeleton className="h-9 w-full" />
+                <Skeleton className="h-9 w-2/3" />
+              </div>
+            ) : null}
             {activeVehicles.map((vehicle, index) => (
               <button
                 key={vehicle.id}
@@ -249,6 +259,54 @@ export function Settings() {
               }
               title="פרופיל וחשבון"
               onClick={() => navigate("/settings/profile")}
+            />
+          </Card>
+        </section>
+
+        {/* Peer comparison — one anonymous row, opt-out at any time. */}
+        <section className="flex flex-col gap-2">
+          <Label>קהילה</Label>
+          <Card className="flex items-center gap-3 p-4">
+            <span className="flex flex-1 flex-col gap-0.5">
+              <span className="text-[15px] font-semibold text-ink">השוואה אנונימית</span>
+              <span className="text-[12.5px] leading-relaxed text-muted">
+                משתף ממוצע צריכה ודגם בלבד — ללא שם, מיקום או קילומטראז׳ — כדי להציג לכם
+                איפה אתם מול נהגים דומים.
+              </span>
+            </span>
+            <Toggle
+              checked={settings.shareBenchmarks !== false}
+              onChange={(next) => void updateSettings({ shareBenchmarks: next })}
+              ariaLabel="השוואה אנונימית"
+            />
+          </Card>
+        </section>
+
+        {isAdmin ? (
+          <section className="flex flex-col gap-2">
+            <Label>ניהול</Label>
+            <Card className="overflow-hidden">
+              <RowButton
+                icon={
+                  <IconTile>
+                    <ShieldIcon size={18} />
+                  </IconTile>
+                }
+                title="לוח בקרה"
+                subtitle="משתמשים, סטטיסטיקות ומחיר דלק"
+                onClick={() => navigate("/admin")}
+              />
+            </Card>
+          </section>
+        ) : null}
+
+        <section className="flex flex-col gap-2">
+          <Label>מידע משפטי</Label>
+          <Card className="overflow-hidden">
+            <RowButton title="תנאי שימוש" onClick={() => navigate("/legal/terms")} />
+            <RowButton
+              title="מדיניות פרטיות"
+              onClick={() => navigate("/legal/privacy")}
             />
           </Card>
         </section>

@@ -23,8 +23,13 @@ interface AuthContextValue {
   loading: boolean;
   signingIn: boolean;
   error: string | null;
+  /** Mirrors the signed `admin` custom claim on the ID token. */
+  isAdmin: boolean;
+  /** False until the token claims have been read at least once. */
+  claimsLoaded: boolean;
   signIn: () => Promise<void>;
   signOutUser: () => Promise<void>;
+  refreshClaims: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -43,6 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [claimsLoaded, setClaimsLoaded] = useState(false);
 
   useEffect(() => {
     // Pick up a completed redirect sign-in before settling the auth state.
@@ -55,9 +62,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (nextUser) => {
         setUser(nextUser);
         setLoading(false);
+
+        if (!nextUser) {
+          setIsAdmin(false);
+          setClaimsLoaded(true);
+          return;
+        }
+        // The claim lives in the signed token, so the rules and the UI agree
+        // on it by construction.
+        nextUser
+          .getIdTokenResult()
+          .then((result) => setIsAdmin(result.claims.admin === true))
+          .catch(() => setIsAdmin(false))
+          .finally(() => setClaimsLoaded(true));
       },
-      () => setLoading(false),
+      () => {
+        setLoading(false);
+        setClaimsLoaded(true);
+      },
     );
+  }, []);
+
+  /** Force a token refresh — used right after a claim is granted. */
+  const refreshClaims = useCallback(async () => {
+    if (!auth.currentUser) return;
+    const result = await auth.currentUser.getIdTokenResult(true);
+    setIsAdmin(result.claims.admin === true);
   }, []);
 
   const signIn = useCallback(async () => {
@@ -98,8 +128,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, loading, signingIn, error, signIn, signOutUser }),
-    [user, loading, signingIn, error, signIn, signOutUser],
+    () => ({
+      user,
+      loading,
+      signingIn,
+      error,
+      isAdmin,
+      claimsLoaded,
+      signIn,
+      signOutUser,
+      refreshClaims,
+    }),
+    [user, loading, signingIn, error, isAdmin, claimsLoaded, signIn, signOutUser, refreshClaims],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -44,6 +44,9 @@ export interface Vehicle {
   nickname?: string | null;
   archived: boolean;
   createdAt?: number;
+  /** Registry codes, kept so the WLTP spec register can be re-queried. */
+  tozeretCd?: number | null;
+  degemCd?: number | null;
 }
 
 export interface FuelPrices {

@@ -1,0 +1,534 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  collection,
+  collectionGroup,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  query,
+  serverTimestamp,
+  setDoc,
+} from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { useAuth } from "../context/AuthContext";
+import { computeStats, type Fillup } from "../lib/stats";
+import { ScreenHeader } from "../components/AppHeader";
+import { Card, IconTile, Label, ListCard, Skeleton } from "../components/Card";
+import { Num } from "../components/Num";
+import { Avatar } from "../components/Avatar";
+import { Segmented } from "../components/Segmented";
+import { Button } from "../components/Button";
+import { Field } from "../components/Field";
+import { useToast } from "../context/ToastContext";
+import { CarIcon, ChartIcon, PumpIcon, ShieldIcon, UserIcon } from "../components/icons";
+import { dayMonthShort, num, parseDecimal, price, shekel, timeAgo } from "../lib/format";
+import { monthKey } from "../lib/stats";
+
+/**
+ * Admin dashboard.
+ *
+ * Read-only by construction: the security rules give admins `read` on user
+ * documents and never `write`, so nothing here can modify somebody else's
+ * account. Every figure is computed from raw fill-ups with the same engine
+ * the user's own screens use.
+ */
+
+interface AdminUser {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+  photoURL: string | null;
+  createdAt: number | null;
+  isAdmin: boolean;
+  vehicles: number;
+  fillups: number;
+  totalLiters: number;
+  totalCost: number;
+  totalKm: number;
+  avgKmPerLiter: number | null;
+  lastFillup: number | null;
+}
+
+type SortKey = "recent" | "activity" | "joined";
+
+export function Admin() {
+  const navigate = useNavigate();
+  const { user, isAdmin, claimsLoaded } = useAuth();
+
+  const [users, setUsers] = useState<AdminUser[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [sort, setSort] = useState<SortKey>("recent");
+
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const usersSnapshot = await getDocs(query(collection(db, "users"), limit(500)));
+
+      const rows = await Promise.all(
+        usersSnapshot.docs.map(async (userDoc) => {
+          const data = userDoc.data();
+          const vehiclesSnapshot = await getDocs(collection(userDoc.ref, "vehicles"));
+
+          let fillups: Fillup[] = [];
+          let bestAvg: number | null = null;
+
+          for (const vehicleDoc of vehiclesSnapshot.docs) {
+            const fillupsSnapshot = await getDocs(collection(vehicleDoc.ref, "fillups"));
+            const list = fillupsSnapshot.docs.map((entry) => {
+              const raw = entry.data();
+              return {
+                id: entry.id,
+                date: raw.date?.toMillis?.() ?? 0,
+                odometer: Number(raw.odometer ?? 0),
+                liters: Number(raw.liters ?? 0),
+                pricePerLiter: Number(raw.pricePerLiter ?? 0),
+                totalCost: Number(raw.totalCost ?? 0),
+                isFullTank: raw.isFullTank !== false,
+              } satisfies Fillup;
+            });
+            fillups = fillups.concat(list);
+
+            const stats = computeStats(list);
+            if (stats.avgKmPerLiter !== null) {
+              bestAvg = bestAvg === null ? stats.avgKmPerLiter : (bestAvg + stats.avgKmPerLiter) / 2;
+            }
+          }
+
+          const totals = fillups.reduce(
+            (acc, entry) => {
+              acc.liters += entry.liters;
+              acc.cost += entry.totalCost;
+              acc.last = Math.max(acc.last, entry.date);
+              return acc;
+            },
+            { liters: 0, cost: 0, last: 0 },
+          );
+
+          const combined = computeStats(fillups);
+
+          return {
+            uid: userDoc.id,
+            displayName: data.displayName ?? null,
+            email: data.email ?? null,
+            photoURL: data.photoURL ?? null,
+            createdAt: data.createdAt?.toMillis?.() ?? null,
+            isAdmin: Boolean(data.isAdmin),
+            vehicles: vehiclesSnapshot.size,
+            fillups: fillups.length,
+            totalLiters: Math.round(totals.liters * 10) / 10,
+            totalCost: Math.round(totals.cost * 100) / 100,
+            totalKm: combined.records.totalKm,
+            avgKmPerLiter: bestAvg === null ? null : Math.round(bestAvg * 100) / 100,
+            lastFillup: totals.last || null,
+          } satisfies AdminUser;
+        }),
+      );
+
+      setUsers(rows);
+    } catch (caught) {
+      setError(
+        (caught as { code?: string }).code === "permission-denied"
+          ? "אין הרשאת אדמין לחשבון הזה. התנתקו והתחברו מחדש כדי לרענן את ההרשאות."
+          : "טעינת הנתונים נכשלה.",
+      );
+      setUsers([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (claimsLoaded && isAdmin) void load();
+  }, [claimsLoaded, isAdmin, load]);
+
+  const sorted = useMemo(() => {
+    if (!users) return [];
+    const copy = [...users];
+    if (sort === "recent") copy.sort((a, b) => (b.lastFillup ?? 0) - (a.lastFillup ?? 0));
+    else if (sort === "activity") copy.sort((a, b) => b.fillups - a.fillups);
+    else copy.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+    return copy;
+  }, [users, sort]);
+
+  const totals = useMemo(() => {
+    if (!users) return null;
+    const active = users.filter(
+      (entry) => entry.lastFillup && Date.now() - entry.lastFillup < 30 * 86_400_000,
+    ).length;
+    const withData = users.filter((entry) => entry.avgKmPerLiter !== null);
+    return {
+      users: users.length,
+      active,
+      vehicles: users.reduce((sum, entry) => sum + entry.vehicles, 0),
+      fillups: users.reduce((sum, entry) => sum + entry.fillups, 0),
+      liters: users.reduce((sum, entry) => sum + entry.totalLiters, 0),
+      cost: users.reduce((sum, entry) => sum + entry.totalCost, 0),
+      avgKmPerLiter:
+        withData.length > 0
+          ? withData.reduce((sum, entry) => sum + (entry.avgKmPerLiter ?? 0), 0) /
+            withData.length
+          : null,
+    };
+  }, [users]);
+
+  if (!claimsLoaded) {
+    return (
+      <main className="flex flex-1 flex-col gap-3 px-5 pb-[104px] pt-safe">
+        <Skeleton className="mt-6 h-8 w-40" />
+        <Skeleton className="h-[92px] rounded-card" />
+        <Skeleton className="h-[260px] rounded-card" />
+      </main>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <main className="flex flex-1 flex-col pb-[104px] pt-safe">
+        <ScreenHeader title="ניהול" onBack={() => navigate("/")} />
+        <div className="px-5">
+          <Card className="flex flex-col items-center gap-3 px-7 py-12 text-center">
+            <IconTile tone="danger">
+              <ShieldIcon size={18} />
+            </IconTile>
+            <span className="text-[17px] font-bold text-ink">אין גישה</span>
+            <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
+              האזור הזה פתוח למנהלי מערכת בלבד.
+              {user ? " אם קיבלתם הרשאה זה עתה, התנתקו והתחברו מחדש." : ""}
+            </span>
+          </Card>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="flex flex-1 flex-col pb-[104px] pt-safe">
+      <ScreenHeader
+        title="ניהול"
+        onBack={() => navigate("/settings")}
+        trailing={
+          <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-[11.5px] font-bold text-accent">
+            אדמין
+          </span>
+        }
+      />
+
+      <div className="flex flex-col gap-4 px-5">
+        {error ? (
+          <Card className="px-4 py-4 text-center text-[13.5px] text-danger-ink">{error}</Card>
+        ) : null}
+
+        {!users ? (
+          <>
+            <Skeleton className="h-[92px] rounded-card" />
+            <Skeleton className="h-[92px] rounded-card" />
+            <Skeleton className="h-[280px] rounded-card" />
+          </>
+        ) : (
+          <>
+            <section className="flex flex-col gap-2">
+              <Label>סקירה כללית</Label>
+              <div className="flex gap-3">
+                <StatTile
+                  icon={<UserIcon size={17} />}
+                  label="משתמשים"
+                  value={num(totals?.users ?? 0, 0)}
+                  meta={`${num(totals?.active ?? 0, 0)} פעילים החודש`}
+                />
+                <StatTile
+                  icon={<CarIcon size={17} />}
+                  label="רכבים"
+                  value={num(totals?.vehicles ?? 0, 0)}
+                />
+              </div>
+              <div className="flex gap-3">
+                <StatTile
+                  icon={<PumpIcon size={17} />}
+                  label="תדלוקים"
+                  value={num(totals?.fillups ?? 0, 0)}
+                  meta={`${num(totals?.liters ?? 0, 0)} ליטר`}
+                />
+                <StatTile
+                  icon={<ChartIcon size={17} />}
+                  label="צריכה ממוצעת"
+                  value={totals?.avgKmPerLiter ? num(totals.avgKmPerLiter, 1) : "—"}
+                  meta="קמ״ל בכל המשתמשים"
+                  accent
+                />
+              </div>
+              <Card className="flex items-center justify-between px-4 py-3">
+                <span className="text-[14px] font-semibold text-ink">סך ההוצאה שתועדה</span>
+                <Num className="text-[17px] font-bold text-ink">
+                  {shekel(totals?.cost ?? 0)}
+                </Num>
+              </Card>
+            </section>
+
+            <section className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <Label>משתמשים</Label>
+                <span className="text-[12px] text-muted">
+                  <Num>{sorted.length}</Num>
+                </span>
+              </div>
+
+              <Segmented
+                size="sm"
+                value={sort}
+                onChange={setSort}
+                ariaLabel="מיון משתמשים"
+                options={[
+                  { value: "recent", label: "פעילות אחרונה" },
+                  { value: "activity", label: "הכי פעילים" },
+                  { value: "joined", label: "הצטרפות" },
+                ]}
+              />
+
+              {sorted.length === 0 ? (
+                <Card className="px-6 py-10 text-center text-[14px] text-muted">
+                  אין עדיין משתמשים
+                </Card>
+              ) : (
+                <ListCard>
+                  {sorted.map((entry) => (
+                    <div key={entry.uid} className="flex flex-col gap-2 px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          name={entry.displayName}
+                          photoURL={entry.photoURL}
+                          size={38}
+                        />
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate text-[15px] font-semibold text-ink">
+                              {entry.displayName ?? "ללא שם"}
+                            </span>
+                            {entry.isAdmin ? (
+                              <span className="flex-none rounded-pill bg-accent-soft px-2 py-0.5 text-[10.5px] font-bold text-accent">
+                                אדמין
+                              </span>
+                            ) : null}
+                          </span>
+                          <span dir="ltr" className="truncate text-[12px] text-muted">
+                            {entry.email ?? "—"}
+                          </span>
+                        </div>
+                        <span className="flex-none text-[11.5px] text-muted">
+                          {entry.lastFillup ? timeAgo(entry.lastFillup) : "לא תדלק"}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 ps-[50px]">
+                        <MiniStat label="רכבים" value={num(entry.vehicles, 0)} />
+                        <MiniStat label="תדלוקים" value={num(entry.fillups, 0)} />
+                        <MiniStat
+                          label="קמ״ל"
+                          value={entry.avgKmPerLiter ? num(entry.avgKmPerLiter, 1) : "—"}
+                        />
+                        <MiniStat label="הוצאה" value={shekel(entry.totalCost)} />
+                        <MiniStat
+                          label="הצטרף"
+                          value={entry.createdAt ? dayMonthShort(entry.createdAt) : "—"}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </ListCard>
+              )}
+            </section>
+
+            <FuelPriceEditor />
+
+            <BenchmarkPool />
+
+            <p className="pb-2 text-center text-[11.5px] leading-relaxed text-muted/80">
+              תצוגה לקריאה בלבד. חוקי האבטחה מעניקים לאדמין הרשאת קריאה בלבד —
+              אין אפשרות לשנות נתונים של משתמש אחר.
+            </p>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
+
+/**
+ * In-app control for the official price.
+ *
+ * Until the scheduled function can run (Blaze), this is the fastest correct
+ * path: an admin sees the live value, its age, and can set it in one tap —
+ * no service-account key, no terminal.
+ */
+function FuelPriceEditor() {
+  const { showToast } = useToast();
+  const [current, setCurrent] = useState<{ value: number; updatedAt: number | null } | null>(
+    null,
+  );
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    const snapshot = await getDoc(doc(db, "appConfig", "fuelPrices"));
+    if (!snapshot.exists()) {
+      setCurrent(null);
+      return;
+    }
+    const data = snapshot.data();
+    const value = Number(data.current?.pricePerLiter);
+    setCurrent({
+      value,
+      updatedAt: data.current?.updatedAt?.toMillis?.() ?? null,
+    });
+    setDraft(Number.isFinite(value) ? String(value) : "");
+  }, []);
+
+  useEffect(() => {
+    void load().catch(() => undefined);
+  }, [load]);
+
+  const parsed = parseDecimal(draft);
+  const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
+  const changed = valid && parsed !== current?.value;
+
+  const stale =
+    current?.updatedAt !== null &&
+    current?.updatedAt !== undefined &&
+    Date.now() - current.updatedAt > 40 * 86_400_000;
+
+  async function save() {
+    if (!changed) return;
+    setSaving(true);
+    try {
+      const now = new Date();
+      await setDoc(
+        doc(db, "appConfig", "fuelPrices"),
+        {
+          current: {
+            pricePerLiter: parsed,
+            effectiveFrom: new Date(now.getFullYear(), now.getMonth(), 1),
+            updatedAt: serverTimestamp(),
+          },
+          history: { [monthKey(now.getTime())]: parsed },
+          source: "admin",
+        },
+        { merge: true },
+      );
+      // serverTimestamp() resolves only after the server acks, and the local
+      // cache would report it as null in the meantime — so reflect the new
+      // value directly instead of re-reading.
+      setCurrent({ value: parsed, updatedAt: Date.now() });
+      showToast({ tone: "success", title: "מחיר הדלק עודכן" });
+    } catch {
+      showToast({ tone: "error", title: "עדכון המחיר נכשל" });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="flex flex-col gap-2">
+      <Label>מחיר דלק רשמי</Label>
+      <Card className="flex flex-col gap-3 p-4">
+        <div className="flex items-center justify-between">
+          <span className="flex flex-col">
+            <span className="text-[14px] font-semibold text-ink">המחיר הפעיל כעת</span>
+            <span className="text-[12px] text-muted">
+              {current?.updatedAt
+                ? `עודכן ${dayMonthShort(current.updatedAt)}`
+                : "טרם עודכן"}
+            </span>
+          </span>
+          <Num className="text-[20px] font-bold text-ink">
+            {current ? price(current.value) : "—"}
+          </Num>
+        </div>
+
+        {stale ? (
+          <div className="rounded-[12px] bg-warning-soft px-3 py-2.5 text-[12.5px] text-warning-ink">
+            המחיר לא עודכן מעל חודש. תדלוקים חדשים ממולאים לפי הערך הזה.
+          </div>
+        ) : null}
+
+        <Field
+          label="מחיר חדש לליטר"
+          inputMode="decimal"
+          suffix="₪"
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="8.10"
+          hint="נשמר גם בהיסטוריית החודש הנוכחי, כדי שתדלוקים בתאריך עבר ימשיכו לקבל את המחיר הנכון."
+        />
+
+        <Button full disabled={!changed} loading={saving} onClick={() => void save()}>
+          עדכון המחיר לכל המשתמשים
+        </Button>
+      </Card>
+    </section>
+  );
+}
+
+/** The anonymous pool that powers the peer comparison, shown for auditing. */
+function BenchmarkPool() {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    getDocs(query(collectionGroup(db, "benchmarks"), limit(500)))
+      .then((snapshot) => setCount(snapshot.size))
+      .catch(() =>
+        getDocs(query(collection(db, "benchmarks"), limit(500)))
+          .then((snapshot) => setCount(snapshot.size))
+          .catch(() => setCount(null)),
+      );
+  }, []);
+
+  return (
+    <section className="flex flex-col gap-2">
+      <Label>מאגר ההשוואה האנונימי</Label>
+      <Card className="flex items-center justify-between px-4 py-3.5">
+        <span className="flex flex-col">
+          <span className="text-[14px] font-semibold text-ink">רשומות משתתפות</span>
+          <span className="text-[12px] text-muted">
+            סיכום צריכה אנונימי — ללא שם, מייל, מיקום או קילומטראז׳
+          </span>
+        </span>
+        <Num className="text-[17px] font-bold text-ink">{count ?? "—"}</Num>
+      </Card>
+    </section>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+  meta,
+  accent = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  meta?: string;
+  accent?: boolean;
+}) {
+  return (
+    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+      <span className="flex items-center gap-2 text-muted">
+        {icon}
+        <Label className="text-[12.5px]">{label}</Label>
+      </span>
+      <Num className={`text-[22px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
+        {value}
+      </Num>
+      {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
+    </Card>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <span className="flex items-center gap-1 rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px]">
+      <span className="text-muted">{label}</span>
+      <Num className="font-bold text-ink">{value}</Num>
+    </span>
+  );
+}

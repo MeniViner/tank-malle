@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { lookupPlate } from "../lib/plateLookup";
+import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
 import { FUEL_TYPE_LABELS, formatPlate, parseDecimal } from "../lib/format";
 import type { FuelType, PlateLookupResult, Vehicle } from "../lib/types";
 import { Button, Spinner } from "../components/Button";
@@ -27,6 +28,8 @@ interface Draft {
   plateNumber: string;
   category?: string;
   fromRegistry: boolean;
+  tozeretCd?: number | null;
+  degemCd?: number | null;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -36,6 +39,8 @@ const EMPTY_DRAFT: Draft = {
   fuelType: "95",
   plateNumber: "",
   fromRegistry: false,
+  tozeretCd: null,
+  degemCd: null,
 };
 
 /**
@@ -60,6 +65,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   const [tankLiters, setTankLiters] = useState("");
   const [declaredKmPerLiter, setDeclaredKmPerLiter] = useState("");
   const [nickname, setNickname] = useState("");
+  const [specs, setSpecs] = useState<VehicleSpecs | null>(null);
+  const [loadingSpecs, setLoadingSpecs] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -84,8 +91,34 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           plateNumber: result.plateNumber,
           category: result.category,
           fromRegistry: true,
+          tozeretCd: result.tozeretCd ?? null,
+          degemCd: result.degemCd ?? null,
         });
         setStep("confirm");
+
+        // Second hop: the certified CO₂ figure for this exact model, which
+        // gives the manufacturer's declared consumption for free.
+        setLoadingSpecs(true);
+        fetchVehicleSpecs(
+          {
+            tozeretCd: result.tozeretCd,
+            degemCd: result.degemCd,
+            year: result.year,
+            fuelType: result.fuelType ?? "95",
+          },
+          controller.signal,
+        )
+          .then((found) => {
+            setSpecs(found);
+            if (found.declaredKmPerLiter) {
+              setDeclaredKmPerLiter(String(found.declaredKmPerLiter));
+            }
+            if (found.estimatedTankLiters) {
+              setTankLiters(String(found.estimatedTankLiters));
+            }
+          })
+          .catch(() => undefined)
+          .finally(() => setLoadingSpecs(false));
       } else {
         setLookupError("הרכב לא נמצא במאגר. אפשר לבחור מהרשימה או להזין ידנית.");
       }
@@ -118,6 +151,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         manualPricePerLiter: null,
         nickname: nickname.trim() || null,
         archived: false,
+        tozeretCd: draft.tozeretCd ?? null,
+        degemCd: draft.degemCd ?? null,
       };
       await addVehicle(vehicle);
       showToast({ tone: "success", title: "הרכב נוסף", detail: "אפשר להתחיל לתעד תדלוקים" });
@@ -172,6 +207,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           setDeclaredKmPerLiter={setDeclaredKmPerLiter}
           nickname={nickname}
           setNickname={setNickname}
+          specs={specs}
+          loadingSpecs={loadingSpecs}
           saving={saving}
           onSave={save}
         />
@@ -622,6 +659,8 @@ function ExtrasStep({
   setDeclaredKmPerLiter,
   nickname,
   setNickname,
+  specs,
+  loadingSpecs,
   saving,
   onSave,
 }: {
@@ -631,9 +670,13 @@ function ExtrasStep({
   setDeclaredKmPerLiter: (value: string) => void;
   nickname: string;
   setNickname: (value: string) => void;
+  specs: VehicleSpecs | null;
+  loadingSpecs: boolean;
   saving: boolean;
   onSave: () => void;
 }) {
+  const autoFilled = Boolean(specs?.declaredKmPerLiter || specs?.estimatedTankLiters);
+
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
@@ -643,8 +686,21 @@ function ExtrasStep({
             רשות
           </span>
         </div>
-        <p className="text-[14.5px] text-muted">אפשר לדלג ולהשלים מאוחר יותר בהגדרות.</p>
+        <p className="text-[14.5px] text-muted">
+          {loadingSpecs
+            ? "מושכים את נתוני היצרן…"
+            : autoFilled
+              ? "מילאנו מראש לפי נתוני היצרן. אפשר לשנות הכול."
+              : "אפשר לדלג ולהשלים מאוחר יותר בהגדרות."}
+        </p>
       </div>
+
+      {loadingSpecs ? (
+        <div className="flex items-center gap-2.5 rounded-[14px] bg-surface-2 px-3.5 py-3 text-muted">
+          <Spinner size={17} />
+          <span className="text-[13px]">מאתרים נתוני צריכה רשמיים לדגם…</span>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-3.5">
         <Field
@@ -654,6 +710,11 @@ function ExtrasStep({
           value={tankLiters}
           onChange={(event) => setTankLiters(event.target.value)}
           placeholder="51"
+          hint={
+            specs?.estimatedTankLiters && tankLiters === String(specs.estimatedTankLiters)
+              ? "הערכה לפי סוג הרכב — כדאי לאמת במדריך למשתמש"
+              : "משמש לחישוב טווח הנסיעה המשוער"
+          }
         />
         <Field
           label="צריכה מוצהרת"
@@ -662,7 +723,12 @@ function ExtrasStep({
           value={declaredKmPerLiter}
           onChange={(event) => setDeclaredKmPerLiter(event.target.value)}
           placeholder="16.2"
-          hint="לפי נתוני היצרן — נשווה אליה את הצריכה בפועל"
+          hint={
+            specs?.consumptionIsOfficial &&
+            declaredKmPerLiter === String(specs.declaredKmPerLiter)
+              ? `לפי נתוני זיהום רשמיים (${specs.co2WltpGramsPerKm} גר׳ CO₂ לק״מ)`
+              : "לפי נתוני היצרן — נשווה אליה את הצריכה בפועל"
+          }
         />
         <Field
           label="כינוי לרכב"
@@ -677,7 +743,7 @@ function ExtrasStep({
 
       <div className="flex flex-col gap-2">
         <Button full onClick={onSave} loading={saving}>
-          סיום והתחלה
+          שמירת הרכב
         </Button>
         <button
           type="button"
@@ -685,7 +751,7 @@ function ExtrasStep({
           disabled={saving}
           className="min-h-[48px] text-[14px] font-semibold text-muted disabled:opacity-50"
         >
-          דילוג בינתיים
+          אשלים מאוחר יותר
         </button>
       </div>
     </div>

@@ -3,8 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    // Granted as a custom claim by scripts/grantAdmin.mjs. Claims are signed
+    // by Firebase, so this cannot be spoofed from the client.
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
     }
 
     // `math.isInfinite` does not exist in the rules language, so infinity is
@@ -24,13 +34,14 @@ service cloud.firestore {
         && isNumber(data.totalCost) && data.totalCost >= 0
         && data.isFullTank is bool
         && data.date is timestamp
-        && (!('notes' in data) || data.notes == null || data.notes is string)
+        && (!('notes' in data) || data.notes == null
+            || (data.notes is string && data.notes.size() <= 500))
         && (!('station' in data) || data.station == null || data.station is map);
     }
 
     function validVehicle(data) {
-      return data.make is string && data.make.size() > 0
-        && data.model is string
+      return data.make is string && data.make.size() > 0 && data.make.size() <= 60
+        && data.model is string && data.model.size() <= 80
         && data.fuelType in ['95', '98', 'diesel', 'other']
         && data.archived is bool
         && isNumber(data.priceAdjustment)
@@ -41,31 +52,68 @@ service cloud.firestore {
         && (!('manualPricePerLiter' in data) || data.manualPricePerLiter == null
             || (isNumber(data.manualPricePerLiter) && data.manualPricePerLiter >= 0))
         && (!('year' in data) || data.year == null
-            || (isNumber(data.year) && data.year >= 1900 && data.year <= 2100));
+            || (isNumber(data.year) && data.year >= 1900 && data.year <= 2100))
+        && (!('tozeretCd' in data) || data.tozeretCd == null || isNumber(data.tozeretCd))
+        && (!('degemCd' in data) || data.degemCd == null || isNumber(data.degemCd))
+        && (!('plateNumber' in data) || data.plateNumber == null
+            || (data.plateNumber is string && data.plateNumber.size() <= 12))
+        && (!('nickname' in data) || data.nickname == null
+            || (data.nickname is string && data.nickname.size() <= 60));
+    }
+
+    // An anonymous economy summary. Deliberately narrow: anything that could
+    // identify a person or a place is rejected outright, so a compromised
+    // client cannot turn this collection into a tracking log.
+    function validBenchmark(data) {
+      return data.keys().hasOnly([
+             'modelKey', 'fuelType', 'year', 'avgKmPerLiter',
+             'segments', 'avgPricePerLiter', 'updatedAt'
+           ])
+        && data.modelKey is string && data.modelKey.size() <= 80
+        && data.fuelType in ['95', '98', 'diesel', 'other']
+        && isNumber(data.avgKmPerLiter)
+        && data.avgKmPerLiter > 0 && data.avgKmPerLiter < 100
+        && isNumber(data.segments) && data.segments >= 0
+        && (data.year == null
+            || (isNumber(data.year) && data.year >= 1900 && data.year <= 2100))
+        && (data.avgPricePerLiter == null
+            || (isNumber(data.avgPricePerLiter) && data.avgPricePerLiter >= 0));
     }
 
     match /users/{uid} {
-      allow read: if isOwner(uid);
+      // Admins get read-only visibility for the /admin dashboard; they can
+      // never write to another person's account.
+      allow read: if isOwner(uid) || isAdmin();
       allow create, update: if isOwner(uid)
         && (!('settings' in request.resource.data) || request.resource.data.settings is map);
       allow delete: if isOwner(uid);
 
       match /vehicles/{vehicleId} {
-        allow read, delete: if isOwner(uid);
+        allow read: if isOwner(uid) || isAdmin();
+        allow delete: if isOwner(uid);
         allow create, update: if isOwner(uid) && validVehicle(request.resource.data);
 
         match /fillups/{fillupId} {
-          allow read, delete: if isOwner(uid);
+          allow read: if isOwner(uid) || isAdmin();
+          allow delete: if isOwner(uid);
           allow create, update: if isOwner(uid) && validFillup(request.resource.data);
         }
       }
     }
 
-    // Global fuel prices: readable by any signed-in user, written only by the
-    // scheduled Cloud Function / admin seed script (both bypass these rules).
+    // Anonymous community benchmarks: any signed-in user may read the pool,
+    // but may only ever write the single document keyed by their own uid.
+    match /benchmarks/{uid} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(uid) && validBenchmark(request.resource.data);
+      allow delete: if isOwner(uid) || isAdmin();
+    }
+
+    // Global config: readable by any signed-in user; written by the scheduled
+    // function, the admin seed script (both bypass rules), or a signed-in admin.
     match /appConfig/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if false;
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     match /{document=**} {

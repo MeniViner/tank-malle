@@ -99,6 +99,10 @@ function parseRow(row: Row, dataset: Dataset, plate: string): PlateLookupResult 
     fuelType: mapFuelType(fuelLabel),
     engineVolume,
     category: [dataset.label, fuelLabel].filter(Boolean).join(" · "),
+    // Carried through so the WLTP spec register can be joined exactly,
+    // rather than by fuzzy-matching manufacturer and model names.
+    tozeretCd: int(row, "tozeret_cd"),
+    degemCd: int(row, "degem_cd"),
   };
 }
 

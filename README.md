@@ -57,6 +57,8 @@ the admin scripts below, and only via `GOOGLE_APPLICATION_CREDENTIALS`.
 | `npm run emulators`                    | Auth + Firestore emulator suite (needs Java)     |
 | `node scripts/generateIcons.mjs`       | Regenerate PWA icons from the inline SVG mark    |
 | `node scripts/buildVehicleCatalog.mjs` | Rebuild the make/model catalog from data.gov.il  |
+| `node scripts/buildStationCatalog.mjs` | Rebuild the fuel-station catalog with coordinates |
+| `node scripts/grantAdmin.mjs <email>`  | Grant (or `--revoke`) the admin custom claim     |
 
 To develop against the emulator suite, set `VITE_USE_EMULATORS=1` in `.env` and
 run `npm run emulators` alongside `npm run dev`.
@@ -155,6 +157,34 @@ Weakest to strongest: official monthly price → `+ vehicle.priceAdjustment` →
 `history`, falling back to the latest known price — and the UI says which,
 rather than claiming a month it has no record for.
 
+### Admin area
+
+`/admin` is gated by a Firebase **custom claim**, not a database flag — claims
+are signed into the ID token, so `request.auth.token.admin` in the rules cannot
+be forged by a client. Admins get `read` on user documents and never `write`,
+so the dashboard is read-only by construction.
+
+```bash
+GOOGLE_APPLICATION_CREDENTIALS=… node scripts/grantAdmin.mjs you@gmail.com
+```
+
+The user must sign in once first, and must sign out and back in afterwards for
+the new token to take effect. The dashboard also carries an **in-app fuel-price
+editor**, which is the practical replacement for the scheduled function while
+the project is on Spark.
+
+### Community benchmarks
+
+Each user publishes exactly one anonymous document to `benchmarks/{uid}`:
+model key, fuel type, year, average km/l, segment count and average price paid.
+No name, email, plate, odometer, date, station or note ever leaves the account —
+and the rules enforce that with `hasOnly`, so it is a structural guarantee
+rather than a promise.
+
+The comparison appears at the bottom of Statistics, only once at least four
+comparable drivers exist, and phrased as context rather than a scoreboard.
+Publishing is opt-out in Settings; opting out deletes the document immediately.
+
 ### Vehicle lookup, in three tiers
 
 1. **Plate number** against the Ministry of Transport registry on data.gov.il
@@ -164,6 +194,30 @@ rather than claiming a month it has no record for.
    and 2,196 models distilled from the same registry, so the names are Hebrew
    and limited to the Israeli market. Lazy-loaded and cached.
 3. **Free text.** Nothing ever blocks creating a vehicle.
+
+Once a model is identified, its **certified CO₂ figure** is pulled from the
+Ministry of Transport's WLTP register and converted into the manufacturer's
+declared consumption. CO₂ per km is a direct function of fuel burnt per km
+(petrol ≈ 2,392 g CO₂ per litre), so this recovers the real figure rather than
+guessing it. Tank capacity is not published anywhere, so it is estimated from
+body style and displacement and clearly labelled as an estimate.
+
+### Station detection
+
+The public register of ≈1,250 petrol stations ships as a static JSON. Naming
+the station you are standing at is therefore a **local** computation: the
+browser's coordinates are matched against the catalog on-device, so your
+location never reaches our servers, and it still works with no signal at the
+pump. Stations you have used before win over a catalog match at the same spot,
+because they carry the name you recognise.
+
+### Offline and first paint
+
+Firestore's own persistence only comes online after the SDK boots and auth
+resolves — exactly the window where a cold start would show empty skeletons.
+The resolved view is therefore mirrored into `localStorage` (versioned,
+per-user, 30-day TTL), so a returning user sees real content on the first
+frame. Skeletons appear only when there is genuinely nothing cached.
 
 ### Theming
 
@@ -196,10 +250,10 @@ and the range filter.
 
 - **Cloud Functions are not deployed.** The project is on the Spark plan, so the
   scheduled price updater and the lookup proxy are written but undeployed. Until
-  a Blaze upgrade, `scripts/seedFuelPrice.mjs` plus the manual price field in
-  Settings cover the same ground. The plate lookup is unaffected — data.gov.il
-  sends `Access-Control-Allow-Origin: *`, so the browser calls it directly and
-  the proxy is only a safety net.
+  a Blaze upgrade, the admin price editor at `/admin`, `scripts/seedFuelPrice.mjs`
+  and the per-vehicle manual override cover the same ground. The plate lookup is
+  unaffected — data.gov.il sends `Access-Control-Allow-Origin: *`, so the browser
+  calls it directly and the proxy is only a safety net.
 - **No first-party feed for the official pump price.** The Ministry of Energy
   publishes it behind Cloudflare with no JSON API, and `data.gov.il` only
   carries refinery-gate prices. The scheduled function tries the gov.il pages
@@ -207,3 +261,6 @@ and the range filter.
   place rather than writing something wrong.
 - **The motorcycle registry dataset** rejects the catalog query (HTTP 409), so
   two-wheelers fall back to tiers 2 and 3.
+- **Tank capacity is an estimate.** No Israeli open dataset publishes it. The
+  value is derived from body style and engine displacement, shown as an
+  estimate, and only ever feeds the range figure.
