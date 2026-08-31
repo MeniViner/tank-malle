@@ -343,7 +343,7 @@ export function FillupForm() {
           <button
             type="button"
             onClick={() => setDateSheetOpen(true)}
-            className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start active:bg-surface-2"
+            className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
           >
             <IconTile>
               <CalendarIcon size={18} />
@@ -366,7 +366,7 @@ export function FillupForm() {
           <button
             type="button"
             onClick={() => setStationSheetOpen(true)}
-            className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start active:bg-surface-2"
+            className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
           >
             <IconTile>
               <PinIcon size={18} />
@@ -407,7 +407,7 @@ export function FillupForm() {
               aria-label="מחיר לליטר"
               value={pricePerLiter}
               onChange={(event) => onPriceChange(event.target.value)}
-              className="num w-[86px] flex-none rounded-[10px] border border-line bg-surface px-2 py-2 text-center text-[16px] font-bold text-ink outline-none focus:border-accent"
+              className="num min-h-[44px] w-[88px] flex-none rounded-[11px] border border-line bg-surface px-2 text-center text-[16px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
             />
           </div>
         </Card>
@@ -704,7 +704,7 @@ function StationSheet({
         <button
           type="button"
           onClick={() => onPick(null)}
-          className="min-h-[48px] flex-none rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted"
+          className="min-h-[48px] flex-none rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.97]"
         >
           ללא מיקום
         </button>
@@ -736,7 +736,7 @@ function StationRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 text-start last:border-b-0 active:bg-surface-2"
+      className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
     >
       <PinIcon size={17} className="flex-none text-muted" />
       <span className="flex min-w-0 flex-1 flex-col">
@@ -784,14 +784,14 @@ function DateSheet({
           <button
             type="button"
             onClick={() => onChange(Date.now())}
-            className="min-h-[46px] flex-1 rounded-pill bg-surface-2 text-[14px] font-semibold text-ink"
+            className="min-h-[46px] flex-1 rounded-pill bg-surface-2 text-[14px] font-semibold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
           >
             עכשיו
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[46px] flex-1 rounded-pill bg-accent text-[14px] font-bold text-accent-contrast"
+            className="min-h-[46px] flex-1 rounded-pill bg-accent text-[14px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97] active:brightness-[0.97]"
           >
             אישור
           </button>

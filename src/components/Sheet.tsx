@@ -126,7 +126,7 @@ export function ConfirmDialog({
         role="alertdialog"
         aria-modal="true"
         aria-label={title}
-        className="tm-fade-in relative w-full max-w-[340px] rounded-[22px] border border-line bg-surface p-5 text-center shadow-sheet"
+        className="tm-pop relative w-full max-w-[340px] rounded-[26px] border border-line bg-surface p-5 text-center shadow-raised"
       >
         <h2 className="text-[17px] font-bold text-ink">{title}</h2>
         <div className="mt-2 text-[14px] leading-relaxed text-muted">{body}</div>
@@ -134,10 +134,8 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onConfirm}
-            className={`min-h-[48px] rounded-pill text-[15px] font-bold ${
-              tone === "danger"
-                ? "bg-danger text-white"
-                : "bg-accent text-accent-contrast"
+            className={`min-h-[48px] rounded-pill text-[15px] font-bold transition-[filter,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:brightness-[0.97] ${
+              tone === "danger" ? "bg-danger text-white" : "bg-accent text-accent-contrast"
             }`}
           >
             {confirmLabel}
@@ -145,7 +143,7 @@ export function ConfirmDialog({
           <button
             type="button"
             onClick={onCancel}
-            className="min-h-[48px] rounded-pill text-[15px] font-semibold text-muted"
+            className="min-h-[48px] rounded-pill text-[15px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
           >
             {cancelLabel}
           </button>

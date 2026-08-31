@@ -109,6 +109,36 @@ service cloud.firestore {
       allow delete: if isOwner(uid) || isAdmin();
     }
 
+    // Product feedback. A user may file and read back their own notes; only
+    // admins can read the whole pile. Nothing here is ever editable after the
+    // fact, so a submission cannot be quietly rewritten.
+    function validFeedback(data) {
+      return data.keys().hasOnly([
+             'uid', 'displayName', 'email', 'message', 'sentiment',
+             'appVersion', 'screen', 'createdAt'
+           ])
+        && data.uid == request.auth.uid
+        && data.message is string
+        && data.message.size() > 0 && data.message.size() <= 2000
+        && (!('sentiment' in data) || data.sentiment == null
+            || data.sentiment in ['good', 'idea', 'bug'])
+        && (!('displayName' in data) || data.displayName == null
+            || (data.displayName is string && data.displayName.size() <= 100))
+        && (!('email' in data) || data.email == null
+            || (data.email is string && data.email.size() <= 200))
+        && (!('appVersion' in data) || data.appVersion == null
+            || (data.appVersion is string && data.appVersion.size() <= 20))
+        && (!('screen' in data) || data.screen == null
+            || (data.screen is string && data.screen.size() <= 60));
+    }
+
+    match /feedback/{entryId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn() && validFeedback(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
     // Global config: readable by any signed-in user; written by the scheduled
     // function, the admin seed script (both bypass rules), or a signed-in admin.
     match /appConfig/{document=**} {

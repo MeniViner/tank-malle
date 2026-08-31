@@ -36,7 +36,7 @@ export function Toaster() {
         return (
           <div
             key={toast.id}
-            className="tm-toast-in pointer-events-auto flex w-full max-w-[390px] items-center gap-3 rounded-[18px] border border-line bg-surface p-3 shadow-[0_18px_40px_-16px_rgb(13_35_28/0.4)]"
+            className="tm-toast-in pointer-events-auto flex w-full max-w-[390px] items-center gap-3 rounded-[20px] border border-line bg-surface p-3 shadow-raised"
           >
             <span
               className={`flex size-9 flex-none items-center justify-center rounded-tile ${tone.ring}`}
@@ -58,7 +58,7 @@ export function Toaster() {
                   void toast.onUndo?.();
                   dismissToast(toast.id);
                 }}
-                className="min-h-[36px] flex-none rounded-pill bg-surface-2 px-3.5 text-[13px] font-bold text-accent"
+                className="min-h-[40px] flex-none rounded-pill bg-surface-2 px-3.5 text-[13px] font-bold text-accent transition-[background-color,scale] duration-200 active:scale-[0.96]"
               >
                 {toast.undoLabel ?? "ביטול"}
               </button>
@@ -67,7 +67,7 @@ export function Toaster() {
                 type="button"
                 aria-label="סגירה"
                 onClick={() => dismissToast(toast.id)}
-                className="flex size-9 flex-none items-center justify-center rounded-pill text-muted"
+                className="flex size-10 flex-none items-center justify-center rounded-pill text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
               >
                 <CloseIcon size={16} />
               </button>

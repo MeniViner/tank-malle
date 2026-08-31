@@ -28,7 +28,7 @@ export function TabBar({ canAddFillup }: { canAddFillup: boolean }) {
             onClick={() => navigate("/fillup/new")}
             disabled={!canAddFillup}
             aria-label="תדלוק חדש"
-            className="-mt-[38px] flex size-[58px] items-center justify-center rounded-full bg-accent text-accent-contrast shadow-fab ring-[5px] ring-bg transition-transform active:scale-95 disabled:opacity-45"
+            className="-mt-[38px] flex size-[58px] items-center justify-center rounded-full bg-accent text-accent-contrast shadow-fab ring-[5px] ring-bg transition-[scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:brightness-[0.97] disabled:pointer-events-none disabled:opacity-45"
           >
             <PumpIcon size={26} />
           </button>
@@ -59,7 +59,7 @@ function Tab({
       to={to}
       end={end}
       className={({ isActive }) =>
-        `flex min-h-[52px] flex-1 flex-col items-center gap-[3px] pb-1 ${
+        `flex min-h-[52px] flex-1 flex-col items-center gap-[3px] pb-1 transition-[color,scale] duration-200 active:scale-[0.96] ${
           isActive ? "text-accent" : "text-muted"
         }`
       }

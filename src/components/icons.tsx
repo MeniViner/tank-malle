@@ -289,6 +289,33 @@ export const CloudOffIcon = (props: IconProps) => (
   </Svg>
 );
 
+export const HeartIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.8} {...props}>
+    <path d="M12 20s-7.2-4.4-7.2-9.4A4.3 4.3 0 0 1 12 8.2a4.3 4.3 0 0 1 7.2 2.4c0 5-7.2 9.4-7.2 9.4z" />
+  </Svg>
+);
+
+export const LightbulbIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.8} {...props}>
+    <path d="M9.2 17.2a6 6 0 1 1 5.6 0" />
+    <path d="M9.6 17.4h4.8" />
+    <path d="M10.4 20.2h3.2" />
+  </Svg>
+);
+
+export const MessageIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.8} {...props}>
+    <path d="M20.2 12.4c0 3.8-3.7 6.9-8.2 6.9a9.7 9.7 0 0 1-2.6-.35L4.8 20.2l1.3-3.4a6.6 6.6 0 0 1-2.3-4.9c0-3.8 3.7-6.9 8.2-6.9s8.2 3.1 8.2 6.9z" />
+  </Svg>
+);
+
+export const SparkleIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.7} {...props}>
+    <path d="M12 3.4l1.9 5.1 5.1 1.9-5.1 1.9-1.9 5.1-1.9-5.1L5 10.4l5.1-1.9z" />
+    <path d="M18.6 16.4l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z" />
+  </Svg>
+);
+
 export const GoogleMark = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
     <path

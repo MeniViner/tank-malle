@@ -228,7 +228,7 @@ function CardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-pill text-[13.5px] font-semibold ${
+      className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-pill text-[13.5px] font-semibold transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
         tone === "danger" ? "bg-danger-soft text-danger-ink" : "bg-surface-2 text-ink"
       }`}
     >
@@ -332,7 +332,7 @@ function EditVehicleSheet({
           type="button"
           onClick={() => void refreshFromRegistry()}
           disabled={refreshing}
-          className="flex min-h-[46px] items-center justify-center gap-2 rounded-pill bg-surface-2 text-[14px] font-semibold text-accent disabled:opacity-50"
+          className="flex min-h-[46px] items-center justify-center gap-2 rounded-pill bg-surface-2 text-[14px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
         >
           {refreshing ? <Spinner size={17} /> : <RestoreIcon size={17} />}
           עדכון פרטים ממאגר משרד התחבורה

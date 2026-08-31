@@ -43,7 +43,7 @@ export function Field({
       </label>
 
       <div
-        className={`flex items-center gap-2.5 rounded-[14px] border bg-surface px-3.5 transition-colors ${
+        className={`flex items-center gap-2.5 rounded-[14px] border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)] ${
           big ? "min-h-[58px]" : "min-h-[50px]"
         } ${
           error

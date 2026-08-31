@@ -1,16 +1,19 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 export function Card({
   children,
   className = "",
+  style,
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
   as?: "div" | "section";
 }) {
   return (
     <Tag
+      style={style}
       className={`rounded-card border border-line bg-surface shadow-card ${className}`}
     >
       {children}
@@ -54,18 +57,21 @@ export function SectionTitle({
 export function IconTile({
   children,
   tone = "accent",
+  className = "",
 }: {
   children: ReactNode;
-  tone?: "accent" | "muted" | "danger";
+  tone?: "accent" | "muted" | "danger" | "success";
+  className?: string;
 }) {
   const tones = {
     accent: "bg-accent-soft text-accent",
     muted: "bg-surface-2 text-muted",
     danger: "bg-danger-soft text-danger",
+    success: "bg-success-soft text-success-ink",
   };
   return (
     <span
-      className={`flex size-9 flex-none items-center justify-center rounded-tile ${tones[tone]}`}
+      className={`flex size-9 flex-none items-center justify-center rounded-tile ${tones[tone]} ${className}`}
     >
       {children}
     </span>
@@ -102,12 +108,15 @@ export function Chip({
 export function ListCard({
   children,
   className = "",
+  style,
 }: {
   children: ReactNode;
   className?: string;
+  style?: CSSProperties;
 }) {
   return (
     <div
+      style={style}
       className={`overflow-hidden rounded-card border border-line bg-surface shadow-card [&>*+*]:border-t [&>*+*]:border-line ${className}`}
     >
       {children}
@@ -119,6 +128,17 @@ export function Divider() {
   return <div className="h-px bg-line" />;
 }
 
-export function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`tm-skeleton rounded-lg ${className}`} />;
+export function Skeleton({
+  className = "",
+  delay = 0,
+}: {
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <div
+      className={`tm-skeleton rounded-[12px] ${className}`}
+      style={delay ? { animationDelay: `${delay}ms` } : undefined}
+    />
+  );
 }

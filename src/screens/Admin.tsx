@@ -7,6 +7,7 @@ import {
   getDoc,
   getDocs,
   limit,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -22,7 +23,17 @@ import { Segmented } from "../components/Segmented";
 import { Button } from "../components/Button";
 import { Field } from "../components/Field";
 import { useToast } from "../context/ToastContext";
-import { CarIcon, ChartIcon, PumpIcon, ShieldIcon, UserIcon } from "../components/icons";
+import {
+  CarIcon,
+  ChartIcon,
+  HeartIcon,
+  LightbulbIcon,
+  MessageIcon,
+  PumpIcon,
+  ShieldIcon,
+  UserIcon,
+  WarningIcon,
+} from "../components/icons";
 import { dayMonthShort, num, parseDecimal, price, shekel, timeAgo } from "../lib/format";
 import { monthKey } from "../lib/stats";
 
@@ -337,6 +348,8 @@ export function Admin() {
               )}
             </section>
 
+            <FeedbackInbox />
+
             <FuelPriceEditor />
 
             <BenchmarkPool />
@@ -349,6 +362,135 @@ export function Admin() {
         )}
       </div>
     </main>
+  );
+}
+
+interface FeedbackEntry {
+  id: string;
+  message: string;
+  sentiment: "good" | "idea" | "bug" | null;
+  displayName: string | null;
+  email: string | null;
+  appVersion: string | null;
+  createdAt: number | null;
+}
+
+const SENTIMENT = {
+  good: { label: "מחמאה", Icon: HeartIcon, tone: "success" as const },
+  idea: { label: "רעיון", Icon: LightbulbIcon, tone: "accent" as const },
+  bug: { label: "תקלה", Icon: WarningIcon, tone: "danger" as const },
+};
+
+/** Everything users sent through Settings → משוב, newest first. */
+function FeedbackInbox() {
+  const [entries, setEntries] = useState<FeedbackEntry[] | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      // orderBy needs an index the first time; fall back to client sorting.
+      try {
+        const snapshot = await getDocs(
+          query(collection(db, "feedback"), orderBy("createdAt", "desc"), limit(200)),
+        );
+        return snapshot;
+      } catch {
+        return getDocs(query(collection(db, "feedback"), limit(200)));
+      }
+    };
+
+    void load()
+      .then((snapshot) => {
+        const rows = snapshot.docs.map((entry) => {
+          const data = entry.data();
+          return {
+            id: entry.id,
+            message: String(data.message ?? ""),
+            sentiment: (data.sentiment ?? null) as FeedbackEntry["sentiment"],
+            displayName: data.displayName ?? null,
+            email: data.email ?? null,
+            appVersion: data.appVersion ?? null,
+            createdAt: data.createdAt?.toMillis?.() ?? null,
+          } satisfies FeedbackEntry;
+        });
+        rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+        setEntries(rows);
+      })
+      .catch(() => setEntries([]));
+  }, []);
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label>משוב ממשתמשים</Label>
+        {entries ? (
+          <span className="text-[12px] text-muted">
+            <Num>{entries.length}</Num>
+          </span>
+        ) : null}
+      </div>
+
+      {!entries ? (
+        <Skeleton className="h-[120px] rounded-card" />
+      ) : entries.length === 0 ? (
+        <Card className="flex flex-col items-center gap-2 px-6 py-8 text-center">
+          <IconTile tone="muted">
+            <MessageIcon size={18} />
+          </IconTile>
+          <span className="text-[14px] text-muted">עוד לא התקבל משוב</span>
+        </Card>
+      ) : (
+        <ListCard>
+          {entries.map((entry) => {
+            const meta = entry.sentiment ? SENTIMENT[entry.sentiment] : null;
+            const isOpen = expanded === entry.id;
+            const isLong = entry.message.length > 150;
+
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => setExpanded(isOpen ? null : entry.id)}
+                className="flex w-full flex-col gap-2 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
+              >
+                <div className="flex items-center gap-2.5">
+                  {meta ? (
+                    <IconTile tone={meta.tone} className="size-7 rounded-[9px]">
+                      <meta.Icon size={15} />
+                    </IconTile>
+                  ) : null}
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-[14px] font-semibold text-ink">
+                      {entry.displayName ?? "משתמש"}
+                    </span>
+                    <span dir="ltr" className="truncate text-[11.5px] text-muted">
+                      {entry.email ?? "—"}
+                    </span>
+                  </span>
+                  <span className="flex-none text-[11px] text-muted">
+                    {entry.createdAt ? timeAgo(entry.createdAt) : "—"}
+                  </span>
+                </div>
+
+                <p
+                  className={`whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink/85 ${
+                    isOpen ? "" : "line-clamp-3"
+                  }`}
+                >
+                  {entry.message}
+                </p>
+
+                {isLong ? (
+                  <span className="text-[11.5px] font-semibold text-accent">
+                    {isOpen ? "הצג פחות" : "הצג הכול"}
+                  </span>
+                ) : null}
+              </button>
+            );
+          })}
+        </ListCard>
+      )}
+    </section>
   );
 }
 

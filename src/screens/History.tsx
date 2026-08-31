@@ -166,7 +166,7 @@ export function History() {
                         key={fillup.id}
                         type="button"
                         onClick={() => setSelected(fillup)}
-                        className={`flex min-h-[66px] w-full items-center gap-3 px-3.5 py-3 text-start active:bg-surface-2 ${
+                        className={`flex min-h-[66px] w-full items-center gap-3 px-3.5 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 ${
                           index > 0 ? "border-t border-line" : ""
                         }`}
                       >
@@ -263,7 +263,7 @@ export function History() {
           <button
             type="button"
             onClick={() => setSelected(null)}
-            className="mt-2 min-h-[52px] rounded-pill bg-surface-2 text-[15px] font-bold text-ink"
+            className="mt-2 min-h-[52px] rounded-pill bg-surface-2 text-[15px] font-bold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
           >
             סגירה
           </button>
@@ -297,7 +297,7 @@ function SheetAction({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[56px] items-center gap-3 border-b border-line px-2 text-start last:border-b-0 active:bg-surface-2"
+      className="flex min-h-[56px] items-center gap-3 rounded-[12px] border-b border-line px-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
     >
       <span className={tone === "danger" ? "text-danger" : "text-muted"}>{icon}</span>
       <span

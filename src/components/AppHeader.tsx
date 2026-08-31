@@ -24,7 +24,7 @@ export function AppHeader() {
         <button
           type="button"
           onClick={() => activeVehicles.length > 1 && setSwitcherOpen(true)}
-          className="flex min-h-[42px] items-center gap-2.5 rounded-pill border border-line bg-surface px-3.5 py-2 active:bg-surface-2"
+          className="flex min-h-[42px] items-center gap-2.5 rounded-pill border border-line bg-surface px-3.5 py-2 shadow-card transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
           aria-label="החלפת רכב פעיל"
         >
           <CarIcon size={18} className="text-accent" />
@@ -49,7 +49,7 @@ export function AppHeader() {
         <button
           type="button"
           onClick={() => navigate("/vehicles/new")}
-          className="flex min-h-[42px] items-center gap-2 rounded-pill border border-line bg-surface px-3.5 text-[14.5px] font-semibold text-accent"
+          className="flex min-h-[42px] items-center gap-2 rounded-pill border border-line bg-surface px-3.5 text-[14.5px] font-semibold text-accent shadow-card transition-[background-color,scale] duration-200 active:scale-[0.97] active:bg-surface-2"
         >
           <PlusIcon size={17} />
           הוספת רכב
@@ -88,7 +88,7 @@ export function AppHeader() {
                 void setActiveVehicle(vehicle.id);
                 setSwitcherOpen(false);
               }}
-              className="flex min-h-[56px] items-center gap-3 rounded-2xl px-3 text-start active:bg-surface-2"
+              className="flex min-h-[56px] items-center gap-3 rounded-[16px] px-3 text-start transition-[background-color,scale] duration-200 active:scale-[0.98] active:bg-surface-2"
             >
               <span className="flex size-9 flex-none items-center justify-center rounded-tile bg-accent-soft text-accent">
                 <CarIcon size={18} />
@@ -108,7 +108,7 @@ export function AppHeader() {
               setSwitcherOpen(false);
               navigate("/vehicles/new");
             }}
-            className="mt-1 flex min-h-[52px] items-center justify-center gap-2 rounded-pill bg-surface-2 text-[15px] font-bold text-accent"
+            className="mt-1 flex min-h-[52px] items-center justify-center gap-2 rounded-pill bg-surface-2 text-[15px] font-bold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97]"
           >
             <PlusIcon size={18} />
             הוספת רכב
@@ -138,7 +138,7 @@ export function ScreenHeader({
           type="button"
           onClick={onBack}
           aria-label="סגירה"
-          className="flex size-[38px] flex-none items-center justify-center rounded-full border border-line bg-surface text-ink active:bg-surface-2"
+          className="flex size-[40px] flex-none items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
         >
           <CloseGlyph />
         </button>

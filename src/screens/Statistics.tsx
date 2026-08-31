@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ReferenceLine,
@@ -20,6 +21,7 @@ import { Card, Label, Skeleton } from "../components/Card";
 import { Segmented } from "../components/Segmented";
 import { Num } from "../components/Num";
 import { ChartIcon, UserIcon } from "../components/icons";
+import { InfoTip } from "../components/InfoTip";
 import {
   consumption,
   dayMonthShort,
@@ -130,7 +132,7 @@ export function Statistics() {
         ) : (
           <>
             {/* Summary strip */}
-            <div className="flex gap-3">
+            <div className="tm-rise flex gap-3">
               <SummaryCard
                 label="ממוצע צריכה"
                 value={average.value}
@@ -143,7 +145,7 @@ export function Statistics() {
               />
             </div>
 
-            <div className="flex gap-3">
+            <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
               <SummaryCard
                 label="ק״מ בחודש"
                 value={stats.kmPerMonth !== null ? num(stats.kmPerMonth, 0) : "—"}
@@ -313,10 +315,6 @@ export function Statistics() {
               </Card>
             ) : null}
 
-            {/* Peer comparison lives at the very bottom on purpose: this is
-                your log first, and the community angle is a footnote. */}
-            {comparison ? <PeerCard comparison={comparison} units={units} /> : null}
-
             {stats.stationStats.length > 1 ? (
               <Card className="flex flex-col gap-2.5 p-4">
                 <Label>השוואת תחנות · מחיר ממוצע לליטר</Label>
@@ -337,6 +335,8 @@ export function Statistics() {
                 </div>
               </Card>
             ) : null}
+
+            {comparison ? <PeerSection comparison={comparison} units={units} /> : null}
           </>
         )}
       </div>
@@ -347,11 +347,11 @@ export function Statistics() {
 /**
  * Peer comparison.
  *
- * Shown only when there are enough comparable drivers for the number to mean
- * anything, and phrased as an observation rather than a scoreboard — the
- * point is context, not competition.
+ * Placed last on purpose: this is your log first, and the community angle is
+ * context rather than a scoreboard. Everything here is derived from anonymous
+ * summaries — see the explainer tip.
  */
-function PeerCard({
+function PeerSection({
   comparison,
   units,
 }: {
@@ -362,46 +362,170 @@ function PeerCard({
   const peers = consumption(comparison.peerAverage, units);
   const ahead = comparison.percentile >= 50;
 
+  const distribution = comparison.distribution.map((bucket) => ({
+    label: bucket.bucket,
+    count: bucket.count,
+    isYou: bucket.isYou,
+  }));
+
+  const versus = [
+    { label: "שלכם", value: comparison.yourAverage, isYou: true },
+    { label: "ממוצע הקבוצה", value: comparison.peerAverage, isYou: false },
+    { label: "הטוב ביותר", value: comparison.best, isYou: false },
+  ];
+
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <div className="flex items-center justify-between gap-2">
-        <Label>מול נהגים דומים</Label>
+    <section className="flex flex-col gap-3 pt-1">
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-0.5">
+          <Label>מול נהגים דומים</Label>
+          <InfoTip label="מה זו השוואה אנונימית" align="start">
+            <b className="text-ink">השוואה אנונימית</b> מציגה איפה אתם עומדים מול נהגים
+            עם רכב דומה.
+            <br />
+            <br />
+            כל משתמש מפרסם רשומה אחת שכוללת <b className="text-ink">רק</b> דגם, סוג דלק,
+            שנה וממוצע צריכה — בלי שם, מייל, מספר רישוי, קילומטראז׳, תאריכים או מיקום.
+            <br />
+            <br />
+            אפשר לכבות בכל רגע בהגדרות ← קהילה, והרשומה תימחק מיד.
+          </InfoTip>
+        </div>
         <span className="flex items-center gap-1 text-[11.5px] text-muted">
           <UserIcon size={13} />
           <Num>{comparison.peers}</Num> נהגים
         </span>
       </div>
 
-      <div className="flex items-baseline gap-2">
-        <Num className="text-[28px] font-bold leading-none text-accent">
-          {comparison.percentile}%
-        </Num>
-        <span className="text-[13.5px] leading-snug text-ink/80">
-          {ahead ? "מהנהגים צורכים יותר מכם" : "מהנהגים צורכים פחות מכם"}
-        </span>
-      </div>
+      {/* Headline percentile */}
+      <Card className="flex flex-col gap-3 p-4">
+        <div className="flex items-baseline gap-2">
+          <Num className="text-[30px] font-bold leading-none text-accent">
+            {comparison.percentile}%
+          </Num>
+          <span className="text-[13.5px] leading-snug text-ink/80">
+            {ahead ? "מהנהגים צורכים יותר מכם" : "מהנהגים צורכים פחות מכם"}
+          </span>
+        </div>
 
-      {/* A single track beats a chart here — it is one number, not a series. */}
-      <div className="relative h-2 w-full overflow-hidden rounded-pill bg-surface-2">
-        <span
-          className="absolute inset-y-0 end-0 rounded-pill bg-accent transition-[width]"
-          style={{ width: `${Math.max(3, Math.min(100, comparison.percentile))}%` }}
-        />
-      </div>
+        <div className="relative h-2.5 w-full overflow-hidden rounded-pill bg-surface-2">
+          <span
+            className="absolute inset-y-0 end-0 rounded-pill bg-accent transition-[width] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ width: `${Math.max(3, Math.min(100, comparison.percentile))}%` }}
+          />
+        </div>
 
-      <div className="flex items-center justify-between text-[12.5px] text-muted">
-        <span>
-          שלכם: <Num className="font-bold text-ink">{yours.value}</Num> {yours.unit}
-        </span>
-        <span>
-          ממוצע הקבוצה: <Num className="font-bold text-ink">{peers.value}</Num> {peers.unit}
-        </span>
-      </div>
+        <div className="flex items-center justify-between text-[12.5px] text-muted">
+          <span>
+            שלכם: <Num className="font-bold text-ink">{yours.value}</Num> {yours.unit}
+          </span>
+          <span>
+            ממוצע הקבוצה: <Num className="font-bold text-ink">{peers.value}</Num>
+          </span>
+        </div>
+      </Card>
 
-      <span className="text-[11.5px] leading-relaxed text-muted/85">
+      {/* Where you sit inside the pack */}
+      <ChartCard
+        title="התפלגות הצריכה בקבוצה"
+        legend={<LegendDot color="var(--accent)" label="אתם" swatch="block" />}
+      >
+        <BarChart data={distribution} margin={CHART_MARGIN}>
+          <CartesianGrid stroke="var(--line)" vertical={false} />
+          <XAxis {...xAxis} />
+          <YAxis {...yAxis} width={28} allowDecimals={false} />
+          <Tooltip content={<ChartTooltip suffix=" נהגים" digits={0} />} />
+          <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+            {distribution.map((bucket, index) => (
+              <Cell
+                key={index}
+                fill={bucket.isYou ? "var(--accent)" : "var(--surface-2)"}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ChartCard>
+
+      {/* Direct side-by-side */}
+      <ChartCard title={units === "litersPer100" ? "השוואה · ל׳/100 ק״מ" : "השוואה · קמ״ל"}>
+        <BarChart data={versus} layout="vertical" margin={{ ...CHART_MARGIN, left: 8 }}>
+          <CartesianGrid stroke="var(--line)" horizontal={false} />
+          <XAxis type="number" {...yAxis} orientation="bottom" />
+          <YAxis
+            type="category"
+            dataKey="label"
+            orientation="right"
+            tick={{ fill: "var(--muted)", fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+            width={78}
+          />
+          <Tooltip content={<ChartTooltip suffix=" קמ״ל" />} />
+          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22}>
+            {versus.map((row, index) => (
+              <Cell key={index} fill={row.isYou ? "var(--accent)" : "var(--surface-2)"} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ChartCard>
+
+      {/* Price is the other half of the story */}
+      {comparison.peerAvgPrice !== null && comparison.yourAvgPrice !== null ? (
+        <Card className="flex flex-col gap-2.5 p-4">
+          <Label>מחיר ממוצע לליטר</Label>
+          <div className="flex items-end gap-3">
+            <PriceBar
+              label="שלכם"
+              value={comparison.yourAvgPrice}
+              max={Math.max(comparison.yourAvgPrice, comparison.peerAvgPrice)}
+              accent
+            />
+            <PriceBar
+              label="הקבוצה"
+              value={comparison.peerAvgPrice}
+              max={Math.max(comparison.yourAvgPrice, comparison.peerAvgPrice)}
+            />
+          </div>
+          <span className="text-[11.5px] leading-relaxed text-muted">
+            {comparison.yourAvgPrice <= comparison.peerAvgPrice
+              ? `אתם משלמים ${price(comparison.peerAvgPrice - comparison.yourAvgPrice)} פחות לליטר מהממוצע`
+              : `אתם משלמים ${price(comparison.yourAvgPrice - comparison.peerAvgPrice)} יותר לליטר מהממוצע`}
+          </span>
+        </Card>
+      ) : null}
+
+      <p className="px-1 text-[11px] leading-relaxed text-muted/80">
         מבוסס על {comparison.label} · נתונים אנונימיים בלבד
-      </span>
-    </Card>
+      </p>
+    </section>
+  );
+}
+
+function PriceBar({
+  label,
+  value,
+  max,
+  accent = false,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  accent?: boolean;
+}) {
+  const height = Math.max(18, Math.round((value / max) * 78));
+  return (
+    <span className="flex flex-1 flex-col items-center gap-1.5">
+      <Num className={`text-[14px] font-bold ${accent ? "text-accent" : "text-ink"}`}>
+        {price(value)}
+      </Num>
+      <span
+        className={`w-full rounded-t-[8px] transition-[height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          accent ? "bg-accent" : "bg-surface-2"
+        }`}
+        style={{ height }}
+      />
+      <span className="text-[11.5px] text-muted">{label}</span>
+    </span>
   );
 }
 
@@ -458,18 +582,23 @@ function LegendDot({
   color,
   label,
   dashed = false,
+  swatch = "line",
 }: {
   color: string;
   label: string;
   dashed?: boolean;
+  /** Match the mark to the series: a line for lines, a block for bars. */
+  swatch?: "line" | "block";
 }) {
   return (
     <span className="flex items-center gap-1.5 text-[11.5px] text-muted">
       <span
-        className="h-0.5 w-3.5 rounded-full"
+        className={swatch === "block" ? "size-2.5 rounded-[3px]" : "h-0.5 w-3.5 rounded-full"}
         style={
           dashed
-            ? { backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 4px, transparent 4px 7px)` }
+            ? {
+                backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 4px, transparent 4px 7px)`,
+              }
             : { background: color }
         }
       />
@@ -484,12 +613,14 @@ function ChartTooltip({
   label,
   suffix = "",
   currency = false,
+  digits = 1,
 }: {
   active?: boolean;
   payload?: { value?: number | string; dataKey?: string | number; name?: string }[];
   label?: string;
   suffix?: string;
   currency?: boolean;
+  digits?: number;
 }) {
   if (!active || !payload?.length) return null;
 
@@ -504,7 +635,7 @@ function ChartTooltip({
         if (!Number.isFinite(value)) return null;
         return (
           <div key={index} className="text-[13.5px] font-bold text-ink">
-            <Num>{currency ? shekel(value, 2) : `${num(value, 1)}${suffix}`}</Num>
+            <Num>{currency ? shekel(value, 2) : `${num(value, digits)}${suffix}`}</Num>
           </div>
         );
       })}

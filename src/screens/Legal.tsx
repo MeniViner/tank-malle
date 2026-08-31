@@ -50,7 +50,7 @@ export function Legal() {
           <button
             type="button"
             onClick={() => navigate(isPrivacy ? "/legal/terms" : "/legal/privacy")}
-            className="min-h-[48px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent"
+            className="min-h-[48px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97]"
           >
             {isPrivacy ? "מעבר לתנאי השימוש" : "מעבר למדיניות הפרטיות"}
           </button>

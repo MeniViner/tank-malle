@@ -7,6 +7,7 @@ import { Card, IconTile, Label, Skeleton } from "../components/Card";
 import { Segmented, Toggle } from "../components/Segmented";
 import { RowButton } from "../components/Button";
 import { Sheet } from "../components/Sheet";
+import { InfoTip } from "../components/InfoTip";
 import { Num } from "../components/Num";
 import {
   CarIcon,
@@ -16,6 +17,7 @@ import {
   DownloadIcon,
   MoonIcon,
   PaletteIcon,
+  MessageIcon,
   PlusIcon,
   ShieldIcon,
   SunIcon,
@@ -31,6 +33,7 @@ import {
   vehicleLabel,
 } from "../lib/format";
 import { downloadFillupsCsv } from "../lib/csv";
+import { APP_VERSION } from "../lib/version";
 import type { ThemeSetting, Units } from "../lib/types";
 
 const THEME_OPTIONS: { value: ThemeSetting; label: string; icon: React.ReactNode }[] = [
@@ -88,7 +91,7 @@ export function Settings() {
                 key={vehicle.id}
                 type="button"
                 onClick={() => void setActiveVehicle(vehicle.id)}
-                className={`flex min-h-[58px] w-full items-center gap-3 px-4 py-3 text-start active:bg-surface-2 ${
+                className={`flex min-h-[58px] w-full items-center gap-3 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 ${
                   index > 0 ? "border-t border-line" : ""
                 }`}
               >
@@ -199,7 +202,7 @@ export function Settings() {
             <button
               type="button"
               onClick={() => setAccentSheetOpen(true)}
-              className="flex min-h-[48px] items-center gap-3 text-start"
+              className="flex min-h-[48px] items-center gap-3 rounded-[12px] text-start transition-[background-color] duration-150 active:bg-surface-2"
             >
               <IconTile>
                 <PaletteIcon size={18} />
@@ -266,12 +269,25 @@ export function Settings() {
         {/* Peer comparison — one anonymous row, opt-out at any time. */}
         <section className="flex flex-col gap-2">
           <Label>קהילה</Label>
-          <Card className="flex items-center gap-3 p-4">
+          <Card className="flex items-center gap-2 p-4 pe-3">
             <span className="flex flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-semibold text-ink">השוואה אנונימית</span>
+              <span className="flex items-center gap-0.5">
+                <span className="text-[15px] font-semibold text-ink">השוואה אנונימית</span>
+                <InfoTip label="מה זו השוואה אנונימית" align="start">
+                  <b className="text-ink">מה משותף:</b> דגם הרכב, שנה, סוג דלק, ממוצע
+                  צריכה ומחיר ממוצע ששולם.
+                  <br />
+                  <br />
+                  <b className="text-ink">מה לא:</b> שם, כתובת מייל, מספר רישוי,
+                  קילומטראז׳, תאריכים, שמות תחנות ומיקום.
+                  <br />
+                  <br />
+                  חוקי האבטחה של מסד הנתונים אוכפים את המבנה הזה טכנית. כיבוי מוחק את
+                  הרשומה מיידית.
+                </InfoTip>
+              </span>
               <span className="text-[12.5px] leading-relaxed text-muted">
-                משתף ממוצע צריכה ודגם בלבד — ללא שם, מיקום או קילומטראז׳ — כדי להציג לכם
-                איפה אתם מול נהגים דומים.
+                מציג לכם איפה אתם עומדים מול נהגים עם רכב דומה.
               </span>
             </span>
             <Toggle
@@ -300,6 +316,24 @@ export function Settings() {
           </section>
         ) : null}
 
+        {/* Small, low-key, and right where someone lands after poking around. */}
+        <section className="flex flex-col gap-2">
+          <Label>עזרה ומשוב</Label>
+          <Card className="overflow-hidden">
+            <RowButton
+              icon={
+                <IconTile>
+                  <MessageIcon size={18} />
+                </IconTile>
+              }
+              title="שליחת משוב"
+              subtitle="רעיון, תקלה או מחמאה — נשמח לשמוע"
+              trailing={<ChevronStart size={17} className="text-muted" />}
+              onClick={() => navigate("/feedback")}
+            />
+          </Card>
+        </section>
+
         <section className="flex flex-col gap-2">
           <Label>מידע משפטי</Label>
           <Card className="overflow-hidden">
@@ -312,7 +346,7 @@ export function Settings() {
         </section>
 
         <p className="pb-2 text-center text-[12px] text-muted/70">
-          טנק מלא · גרסה <Num>1.0.0</Num>
+          טנק מלא · גרסה <Num>{APP_VERSION}</Num>
         </p>
       </div>
 
@@ -332,10 +366,10 @@ export function Settings() {
                   setAccent(option.id);
                   void updateSettings({ accentColor: option.id });
                 }}
-                className="flex flex-col items-center gap-1.5"
+                className="flex flex-col items-center gap-1.5 transition-transform duration-200 active:scale-[0.96]"
               >
                 <span
-                  className="flex size-12 items-center justify-center rounded-full border-2 transition-transform active:scale-95"
+                  className="flex size-12 items-center justify-center rounded-full border-2 transition-[border-color] duration-200"
                   style={{
                     background: option.light,
                     borderColor: accentId === option.id ? "var(--ink)" : "transparent",
@@ -467,7 +501,7 @@ function NumberSheet({
                 onSave(0);
                 onClose();
               }}
-              className="min-h-[50px] flex-1 rounded-pill bg-surface-2 text-[15px] font-semibold text-muted"
+              className="min-h-[50px] flex-1 rounded-pill bg-surface-2 text-[15px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.97]"
             >
               כיבוי
             </button>
@@ -479,7 +513,7 @@ function NumberSheet({
               if (Number.isFinite(parsed) && (allowNegative || parsed >= 0)) onSave(parsed);
               onClose();
             }}
-            className="min-h-[50px] flex-1 rounded-pill bg-accent text-[15px] font-bold text-accent-contrast"
+            className="min-h-[50px] flex-1 rounded-pill bg-accent text-[15px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97] active:brightness-[0.97]"
           >
             שמירה
           </button>

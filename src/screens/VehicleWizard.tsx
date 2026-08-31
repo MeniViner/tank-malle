@@ -178,7 +178,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           }}
           disabled={step === "plate" && !canExit}
           aria-label="חזרה"
-          className="flex size-[38px] items-center justify-center rounded-full border border-line bg-surface text-ink disabled:opacity-0"
+          className="flex size-[40px] items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2 disabled:opacity-0"
         >
           <ChevronStart size={18} />
         </button>
@@ -347,8 +347,8 @@ function Key({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className={`num min-h-[52px] rounded-[14px] border border-line text-[20px] font-semibold transition-colors active:bg-surface-2 ${
-        muted ? "bg-surface-2 text-muted text-[15px]" : "bg-surface text-ink"
+      className={`num min-h-[54px] rounded-[14px] border border-line text-[20px] font-semibold transition-[background-color,scale] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:bg-surface-2 ${
+        muted ? "bg-surface-2 text-[15px] text-muted" : "bg-surface text-ink shadow-card"
       }`}
     >
       {children}
@@ -431,7 +431,7 @@ function ConfirmStep({
                 key={option}
                 type="button"
                 onClick={() => setDraft({ ...draft, fuelType: option })}
-                className={`min-h-[48px] rounded-[14px] border px-3 text-[14px] font-semibold transition-colors ${
+                className={`min-h-[48px] rounded-[14px] border px-3 text-[14px] font-semibold transition-[background-color,border-color,color,scale] duration-200 active:scale-[0.96] ${
                   draft.fuelType === option
                     ? "border-accent bg-accent-soft text-accent"
                     : "border-line bg-surface text-muted"

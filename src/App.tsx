@@ -17,6 +17,7 @@ import { Settings } from "./screens/Settings";
 import { Profile } from "./screens/Profile";
 import { VehicleManager } from "./screens/VehicleManager";
 import { Legal } from "./screens/Legal";
+import { Feedback } from "./screens/Feedback";
 
 // Recharts is by far the heaviest dependency and is only needed on one tab,
 // so it is split out of the initial bundle.
@@ -132,6 +133,7 @@ function Shell() {
         <Route path="/settings/profile" element={<Profile />} />
         <Route path="/settings/vehicles" element={<VehicleManager />} />
         <Route path="/legal/:doc" element={<Legal />} />
+        <Route path="/feedback" element={<Feedback />} />
         <Route
           path="/admin"
           element={

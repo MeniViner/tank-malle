@@ -181,9 +181,25 @@ No name, email, plate, odometer, date, station or note ever leaves the account �
 and the rules enforce that with `hasOnly`, so it is a structural guarantee
 rather than a promise.
 
-The comparison appears at the bottom of Statistics, only once at least four
-comparable drivers exist, and phrased as context rather than a scoreboard.
-Publishing is opt-out in Settings; opting out deletes the document immediately.
+The comparison lives at the bottom of Statistics — a percentile headline, a
+histogram of where you sit in the pack, a direct you-vs-group-vs-best bar, and
+a price comparison. It appears only once at least four comparable drivers
+exist, and is phrased as context rather than a scoreboard. An `InfoTip` next to
+the heading spells out exactly what is and is not shared. Publishing is opt-out
+in Settings; opting out deletes the document immediately.
+
+### Consent
+
+Sign-in requires an explicit ticked checkbox before the Google button becomes
+active — an affirmative act, not a passive footnote. Tapping the button while
+unticked shakes the row and says why, rather than silently doing nothing.
+
+### Feedback
+
+Settings → משוב opens a single-field form. Submissions land in `feedback/`,
+which is append-only: `allow update: if false`, so a note cannot be quietly
+rewritten after the fact. A user can read back their own; only admins see the
+whole pile, in the `/admin` inbox.
 
 ### Vehicle lookup, in three tiers
 

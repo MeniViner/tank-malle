@@ -42,11 +42,11 @@ export function Segmented<T extends string>({
             aria-checked={selected}
             id={`${groupId}-${option.value}`}
             onClick={() => onChange(option.value)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-pill font-semibold transition-colors ${
-              size === "sm" ? "min-h-[34px] text-[13px]" : "min-h-[40px] text-[14px]"
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-pill font-semibold transition-[background-color,color,box-shadow,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] ${
+              size === "sm" ? "min-h-[36px] text-[13px]" : "min-h-[42px] text-[14px]"
             } ${
               selected
-                ? "bg-surface text-ink shadow-[0_1px_3px_rgb(13_35_28/0.10)]"
+                ? "bg-surface text-ink shadow-[0_1px_1px_rgb(13_35_28/0.04),0_2px_6px_-2px_rgb(13_35_28/0.10)]"
                 : "text-muted"
             }`}
           >
@@ -75,12 +75,12 @@ export function Toggle({
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
-      className={`relative h-[31px] w-[51px] flex-none rounded-pill transition-colors ${
-        checked ? "bg-accent" : "bg-surface-2 border border-line"
+      className={`relative h-[31px] w-[51px] flex-none rounded-pill transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
+        checked ? "bg-accent" : "border border-line bg-surface-2"
       }`}
     >
       <span
-        className={`absolute top-1/2 size-[27px] -translate-y-1/2 rounded-full bg-white shadow-[0_2px_4px_rgb(13_35_28/0.25)] transition-[inset-inline-start] ${
+        className={`absolute top-1/2 size-[27px] -translate-y-1/2 rounded-full bg-white shadow-[0_1px_1px_rgb(13_35_28/0.10),0_2px_5px_rgb(13_35_28/0.22)] transition-[inset-inline-start] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
           checked ? "start-[22px]" : "start-[2px]"
         }`}
       />

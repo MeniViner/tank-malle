@@ -60,7 +60,12 @@ export function useBenchmark(stats: Stats): {
     setLoading(true);
     fetchComparison(user.uid, activeVehicle, stats.avgKmPerLiter)
       .then((result) => {
-        if (!cancelled) setComparison(result);
+        if (cancelled) return;
+        // The price you paid is local knowledge; splice it in here rather
+        // than round-tripping it through the anonymous pool.
+        setComparison(
+          result ? { ...result, yourAvgPrice: stats.avgPricePaid } : null,
+        );
       })
       .catch(() => {
         if (!cancelled) setComparison(null);
@@ -72,7 +77,7 @@ export function useBenchmark(stats: Stats): {
     return () => {
       cancelled = true;
     };
-  }, [user, activeVehicle, stats.avgKmPerLiter]);
+  }, [user, activeVehicle, stats.avgKmPerLiter, stats.avgPricePaid]);
 
   return { comparison, loading };
 }

@@ -103,7 +103,7 @@ export function DateTimePicker({
           onClick={() =>
             setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))
           }
-          className="flex size-10 items-center justify-center rounded-full text-muted active:bg-surface-2 disabled:opacity-30"
+          className="flex size-10 items-center justify-center rounded-full text-muted transition-[background-color,scale] duration-200 active:scale-[0.94] active:bg-surface-2 disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronEnd size={18} />
         </button>
@@ -119,7 +119,7 @@ export function DateTimePicker({
           onClick={() =>
             setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))
           }
-          className="flex size-10 items-center justify-center rounded-full text-muted active:bg-surface-2 disabled:opacity-30"
+          className="flex size-10 items-center justify-center rounded-full text-muted transition-[background-color,scale] duration-200 active:scale-[0.94] active:bg-surface-2 disabled:pointer-events-none disabled:opacity-30"
         >
           <ChevronStart size={18} />
         </button>
@@ -148,7 +148,7 @@ export function DateTimePicker({
               disabled={disabled}
               onClick={() => pickDay(day)}
               aria-pressed={isSelected}
-              className={`num flex h-11 items-center justify-center rounded-[12px] text-[15px] transition-colors disabled:opacity-25 ${
+              className={`num flex h-11 items-center justify-center rounded-[12px] text-[15px] transition-[background-color,color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.92] disabled:pointer-events-none disabled:opacity-25 ${
                 isSelected
                   ? "bg-accent font-bold text-accent-contrast"
                   : isToday
@@ -223,7 +223,7 @@ function Stepper({
         type="button"
         aria-label={`${label} — הגדלה`}
         onClick={() => onChange(value + step >= max ? 0 : value + step)}
-        className="flex h-7 w-12 items-center justify-center rounded-t-[10px] text-muted active:bg-surface"
+        className="flex h-8 w-12 items-center justify-center rounded-t-[10px] text-muted transition-[background-color,scale] duration-150 active:scale-[0.92] active:bg-surface"
       >
         <Caret up />
       </button>
@@ -234,7 +234,7 @@ function Stepper({
         type="button"
         aria-label={`${label} — הקטנה`}
         onClick={() => onChange(value - step < 0 ? max - step : value - step)}
-        className="flex h-7 w-12 items-center justify-center rounded-b-[10px] text-muted active:bg-surface"
+        className="flex h-8 w-12 items-center justify-center rounded-b-[10px] text-muted transition-[background-color,scale] duration-150 active:scale-[0.92] active:bg-surface"
       >
         <Caret />
       </button>

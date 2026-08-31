@@ -47,7 +47,7 @@ export function Home() {
         ) : (
           <>
             {/* Hero: last segment's consumption vs. the vehicle average. */}
-            <Card className="flex flex-col gap-2 rounded-hero p-[17px_18px_15px]">
+            <Card className="tm-rise flex flex-col gap-2 rounded-hero p-[17px_18px_15px]">
               <span className="flex items-center justify-between">
                 <Label>צריכה אחרונה</Label>
                 <InfoIcon size={16} className="text-muted/70" />
@@ -88,7 +88,7 @@ export function Home() {
               </span>
             </Card>
 
-            <div className="flex gap-3">
+            <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
               <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
                 <Label className="text-[12.5px]">הוצאה החודש</Label>
                 <Num className="text-[24px] font-bold leading-tight text-ink">
@@ -124,6 +124,7 @@ export function Home() {
               <NextPriceStrip />
             )}
 
+            <div className="tm-rise" style={{ animationDelay: "170ms" }} />
             <SectionTitle
               action={
                 fillups.length > 0 ? (
@@ -147,7 +148,7 @@ export function Home() {
                 </span>
               </Card>
             ) : (
-              <ListCard>
+              <ListCard className="tm-rise" style={{ animationDelay: "210ms" }}>
                 {recent.map((fillup) => {
                   const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
                   const formatted = consumption(kmPerLiter, units);
@@ -155,7 +156,7 @@ export function Home() {
                     <Link
                       key={fillup.id}
                       to={`/fillup/${fillup.id}`}
-                      className="flex min-h-[58px] items-center justify-between gap-3 px-4 py-3 active:bg-surface-2"
+                      className="flex min-h-[58px] items-center justify-between gap-3 px-4 py-3 transition-[background-color] duration-150 active:bg-surface-2"
                     >
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span className="truncate text-[15px] font-semibold text-ink">
