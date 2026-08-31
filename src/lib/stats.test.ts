@@ -507,12 +507,14 @@ describe("resolvePricePerLiter", () => {
 
   it("uses the official price of the fill-up's own month", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), null, prices);
-    expect(result).toEqual({ price: 7.12, source: "official" });
+    expect(result).toEqual({ price: 7.12, source: "official", fromHistory: true });
   });
 
   it("falls back to the current price for a month with no history", () => {
     const result = resolvePricePerLiter(new Date("2026-05-15").getTime(), null, prices);
     expect(result.price).toBe(7.31);
+    // The caller uses this to avoid claiming a month it has no record for.
+    expect(result.fromHistory).toBe(false);
   });
 
   it("applies the vehicle's fixed station discount", () => {
@@ -520,7 +522,7 @@ describe("resolvePricePerLiter", () => {
       priceAdjustment: -0.05,
       manualPricePerLiter: null,
     }, prices);
-    expect(result).toEqual({ price: 7.07, source: "adjusted" });
+    expect(result).toEqual({ price: 7.07, source: "adjusted", fromHistory: true });
   });
 
   it("lets a vehicle-level manual price override the official chain", () => {
@@ -528,11 +530,23 @@ describe("resolvePricePerLiter", () => {
       priceAdjustment: -0.05,
       manualPricePerLiter: 6.8,
     }, prices);
-    expect(result).toEqual({ price: 6.8, source: "manual" });
+    expect(result).toEqual({ price: 6.8, source: "manual", fromHistory: false });
+  });
+
+  it("never returns a negative price from a large discount", () => {
+    const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), {
+      priceAdjustment: -99,
+      manualPricePerLiter: null,
+    }, prices);
+    expect(result.price).toBe(0);
   });
 
   it("reports 'none' when no price is known at all", () => {
-    expect(resolvePricePerLiter(base, null, null)).toEqual({ price: null, source: "none" });
+    expect(resolvePricePerLiter(base, null, null)).toEqual({
+      price: null,
+      source: "none",
+      fromHistory: false,
+    });
   });
 });
 

@@ -15,9 +15,13 @@
   --muted: #63756d;
   --line: #e3eae5;
 
-  --accent: #0e7a6b;
-  --accent-contrast: #ffffff;
-  --accent-soft: #e3f0ed;
+  /* The accent is user-selectable. `--accent-l` / `--accent-d` are the two
+     theme variants; ThemeProvider sets them on <html> and each theme block
+     below picks the right one, so a custom accent still swaps with the theme
+     instead of being pinned by an inline style. */
+  --accent: var(--accent-l, #0e7a6b);
+  --accent-contrast: var(--accent-contrast-l, #ffffff);
+  --accent-soft: var(--accent-soft-l, #e3f0ed);
 
   --success: #2e9e5b;
   --success-soft: #e1f3e7;
@@ -45,9 +49,9 @@
     --muted: #8fa298;
     --line: #273129;
 
-    --accent: #3fbfa8;
-    --accent-contrast: #0b1613;
-    --accent-soft: #123a34;
+    --accent: var(--accent-d, #3fbfa8);
+    --accent-contrast: var(--accent-contrast-d, #0b1613);
+    --accent-soft: var(--accent-soft-d, #123a34);
 
     --success: #58c98b;
     --success-soft: #12331f;
@@ -74,9 +78,9 @@
   --muted: #8fa298;
   --line: #273129;
 
-  --accent: #3fbfa8;
-  --accent-contrast: #0b1613;
-  --accent-soft: #123a34;
+  --accent: var(--accent-d, #3fbfa8);
+  --accent-contrast: var(--accent-contrast-d, #0b1613);
+  --accent-soft: var(--accent-soft-d, #123a34);
 
   --success: #58c98b;
   --success-soft: #12331f;
@@ -155,6 +159,8 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overscroll-behavior-y: none;
+    /* The layout is column-constrained; nothing should ever scroll sideways. */
+    overflow-x: hidden;
   }
 
   button,

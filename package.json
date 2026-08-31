@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "emulators": "firebase emulators:start --only auth,firestore"
   },
   "dependencies": {
     "firebase": "^11.10.0",
@@ -24,7 +25,9 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.1.0",
+    "firebase-admin": "^14.3.0",
     "oxlint": "^1.79.0",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.2.2",

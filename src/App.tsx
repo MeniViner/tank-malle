@@ -1,122 +1,137 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { lazy, Suspense, useEffect, useState } from "react";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { useAuth } from "./context/AuthContext";
+import { useData } from "./context/DataContext";
+import { Toaster } from "./components/Toaster";
+import { TabBar } from "./components/TabBar";
+import { UpdatePrompt } from "./components/UpdatePrompt";
+import { Skeleton } from "./components/Card";
+import { Splash } from "./screens/Splash";
+import { Onboarding } from "./screens/Onboarding";
+import { SignIn } from "./screens/SignIn";
+import { VehicleWizard } from "./screens/VehicleWizard";
+import { Home } from "./screens/Home";
+import { FillupForm } from "./screens/FillupForm";
+import { History } from "./screens/History";
+import { Settings } from "./screens/Settings";
+import { Profile } from "./screens/Profile";
+import { VehicleManager } from "./screens/VehicleManager";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Recharts is by far the heaviest dependency and is only needed on one tab,
+// so it is split out of the initial bundle.
+const Statistics = lazy(() =>
+  import("./screens/Statistics").then((m) => ({ default: m.Statistics })),
+);
 
+const ONBOARDING_KEY = "tm.onboarded";
+
+export default function App() {
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <Shell />
+      {/* Mounted unconditionally: this is what registers the service worker,
+          so the app is installable and offline-capable before sign-in too. */}
+      <UpdatePrompt />
+      <Toaster />
     </>
-  )
+  );
 }
 
-export default App
+function Shell() {
+  const { user, loading } = useAuth();
+  const { ready, activeVehicles, vehicles } = useData();
+  const location = useLocation();
+
+  const [onboarded, setOnboarded] = useState(() => {
+    try {
+      return localStorage.getItem(ONBOARDING_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+
+  // Hold the splash for a beat so the app never flashes between states on a
+  // fast connection.
+  const [splashDone, setSplashDone] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashDone(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading || !splashDone) return <Splash />;
+
+  if (!user) {
+    if (!onboarded) {
+      return (
+        <Onboarding
+          onDone={() => {
+            try {
+              localStorage.setItem(ONBOARDING_KEY, "1");
+            } catch {
+              /* storage unavailable */
+            }
+            setOnboarded(true);
+          }}
+        />
+      );
+    }
+    return <SignIn />;
+  }
+
+  if (!ready) return <Splash />;
+
+  // A signed-in user with no vehicle at all goes straight to the wizard.
+  const needsFirstVehicle = vehicles.length === 0;
+  if (needsFirstVehicle && location.pathname !== "/vehicles/new") {
+    return <VehicleWizard firstRun />;
+  }
+
+  // Full-screen flows (the fill-up form, the vehicle wizard) replace the tab
+  // bar rather than sitting under it.
+  const showTabBar =
+    !location.pathname.startsWith("/fillup/") &&
+    !location.pathname.startsWith("/vehicles/new");
+
+  return (
+    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/history" element={<History />} />
+        <Route
+          path="/stats"
+          element={
+            <Suspense fallback={<StatsFallback />}>
+              <Statistics />
+            </Suspense>
+          }
+        />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/settings/profile" element={<Profile />} />
+        <Route path="/settings/vehicles" element={<VehicleManager />} />
+        <Route path="/vehicles/new" element={<VehicleWizard />} />
+        <Route path="/fillup/new" element={<FillupForm />} />
+        <Route path="/fillup/:fillupId" element={<FillupForm />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {showTabBar ? <TabBar canAddFillup={activeVehicles.length > 0} /> : null}
+    </div>
+  );
+}
+
+function StatsFallback() {
+  return (
+    <main className="flex flex-1 flex-col gap-3 px-5 pb-[104px] pt-safe">
+      <div className="pb-1 pt-4">
+        <Skeleton className="h-7 w-36" />
+      </div>
+      <Skeleton className="h-[46px] rounded-pill" />
+      <div className="flex gap-3">
+        <Skeleton className="h-[84px] flex-1 rounded-card" />
+        <Skeleton className="h-[84px] flex-1 rounded-card" />
+      </div>
+      <Skeleton className="h-[214px] rounded-card" />
+      <Skeleton className="h-[214px] rounded-card" />
+    </main>
+  );
+}

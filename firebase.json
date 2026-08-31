@@ -16,10 +16,6 @@
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {
-        "source": "/api/vehicle-lookup",
-        "function": "vehicleLookup"
-      },
-      {
         "source": "**",
         "destination": "/index.html"
       }

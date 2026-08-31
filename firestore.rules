@@ -7,8 +7,13 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    // `math.isInfinite` does not exist in the rules language, so infinity is
+    // excluded with an explicit bound instead.
     function isNumber(value) {
-      return value is number && !math.isNaN(value) && !math.isInfinite(value);
+      return value is number
+        && !math.isNaN(value)
+        && value > -9999999999
+        && value < 9999999999;
     }
 
     // Only raw fill-up data is ever stored — no derived fields to validate.
@@ -53,11 +58,6 @@ service cloud.firestore {
           allow read, delete: if isOwner(uid);
           allow create, update: if isOwner(uid) && validFillup(request.resource.data);
         }
-      }
-
-      // Any future per-user subcollection stays owner-scoped by default.
-      match /{document=**} {
-        allow read, write: if isOwner(uid);
       }
     }
 

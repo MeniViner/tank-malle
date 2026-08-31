@@ -652,19 +652,38 @@ export function resolvePricePerLiter(
   date: number,
   vehicle: Pick<Vehicle, "priceAdjustment" | "manualPricePerLiter"> | null | undefined,
   prices: FuelPrices | null | undefined,
-): { price: number | null; source: "manual" | "official" | "adjusted" | "none" } {
+): {
+  price: number | null;
+  source: "manual" | "official" | "adjusted" | "none";
+  /** True when the official figure came from that month's own record rather
+   *  than falling back to the latest known price. */
+  fromHistory: boolean;
+} {
   if (vehicle?.manualPricePerLiter && vehicle.manualPricePerLiter > 0) {
-    return { price: round(vehicle.manualPricePerLiter, 3), source: "manual" };
+    return {
+      price: round(vehicle.manualPricePerLiter, 3),
+      source: "manual",
+      fromHistory: false,
+    };
   }
 
-  const official = prices?.history?.[monthKey(date)] ?? prices?.current?.pricePerLiter ?? null;
-  if (official === null || !Number.isFinite(official)) return { price: null, source: "none" };
+  const historic = prices?.history?.[monthKey(date)];
+  const fromHistory = typeof historic === "number" && Number.isFinite(historic);
+  const official = fromHistory ? historic : (prices?.current?.pricePerLiter ?? null);
+
+  if (official === null || !Number.isFinite(official)) {
+    return { price: null, source: "none", fromHistory: false };
+  }
 
   const adjustment = vehicle?.priceAdjustment ?? 0;
   if (adjustment !== 0) {
-    return { price: round(Math.max(0, official + adjustment), 3), source: "adjusted" };
+    return {
+      price: round(Math.max(0, official + adjustment), 3),
+      source: "adjusted",
+      fromHistory,
+    };
   }
-  return { price: round(official, 3), source: "official" };
+  return { price: round(official, 3), source: "official", fromHistory };
 }
 
 /** Restrict a fill-up list to a trailing window, for the stats range control. */
