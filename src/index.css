@@ -1,0 +1,286 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------
+   Design tokens — see DESIGN_NOTES.md
+   Light palette lives on bare :root. Dark is applied either
+   explicitly ([data-theme="dark"]) or, when the user's setting is
+   "system" (no attribute stamped), via prefers-color-scheme.
+   --------------------------------------------------------------- */
+
+:root {
+  --bg: #f3f6f4;
+  --surface: #ffffff;
+  --surface-2: #e9efea;
+  --ink: #16211c;
+  --muted: #63756d;
+  --line: #e3eae5;
+
+  --accent: #0e7a6b;
+  --accent-contrast: #ffffff;
+  --accent-soft: #e3f0ed;
+
+  --success: #2e9e5b;
+  --success-soft: #e1f3e7;
+  --success-ink: #1d7a43;
+  --warning: #b45309;
+  --warning-soft: #fdf0dc;
+  --warning-ink: #8a4008;
+  --danger: #cc3d2e;
+  --danger-soft: #fce7e3;
+  --danger-ink: #a93226;
+
+  --shadow-card: 0 1px 2px rgb(13 35 28 / 0.04);
+  --shadow-fab: 0 12px 24px -8px color-mix(in srgb, var(--accent) 60%, transparent);
+  --shadow-sheet: 0 -12px 40px -12px rgb(13 35 28 / 0.22);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    --bg: #0e1512;
+    --surface: #182019;
+    --surface-2: #22322b;
+    --ink: #e9f0ea;
+    --muted: #8fa298;
+    --line: #273129;
+
+    --accent: #3fbfa8;
+    --accent-contrast: #0b1613;
+    --accent-soft: #123a34;
+
+    --success: #58c98b;
+    --success-soft: #12331f;
+    --success-ink: #8fe3b0;
+    --warning: #e5a54c;
+    --warning-soft: #3a2a11;
+    --warning-ink: #f0c88a;
+    --danger: #ef7a69;
+    --danger-soft: #3a1a16;
+    --danger-ink: #f5a99c;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / 0.5);
+
+    color-scheme: dark;
+  }
+}
+
+[data-theme="dark"] {
+  --bg: #0e1512;
+  --surface: #182019;
+  --surface-2: #22322b;
+  --ink: #e9f0ea;
+  --muted: #8fa298;
+  --line: #273129;
+
+  --accent: #3fbfa8;
+  --accent-contrast: #0b1613;
+  --accent-soft: #123a34;
+
+  --success: #58c98b;
+  --success-soft: #12331f;
+  --success-ink: #8fe3b0;
+  --warning: #e5a54c;
+  --warning-soft: #3a2a11;
+  --warning-ink: #f0c88a;
+  --danger: #ef7a69;
+  --danger-soft: #3a1a16;
+  --danger-ink: #f5a99c;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / 0.5);
+
+  color-scheme: dark;
+}
+
+/* Map semantic tokens into Tailwind's theme. `inline` keeps the var()
+   reference in the generated utilities, so switching theme or accent is a
+   pure CSS variable swap — no rebuild, no per-component dark: variants. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-soft: var(--accent-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-ink: var(--success-ink);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-ink: var(--warning-ink);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+
+  --font-sans: "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-card: 18px;
+  --radius-hero: 20px;
+  --radius-tile: 11px;
+  --radius-sheet: 28px;
+  --radius-pill: 99px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-fab: var(--shadow-fab);
+  --shadow-sheet: var(--shadow-sheet);
+}
+
+/* ---------------------------------------------------------------
+   Base
+   --------------------------------------------------------------- */
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    height: 100%;
+    background: var(--bg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+}
+
+/* ---------------------------------------------------------------
+   Utilities
+   --------------------------------------------------------------- */
+
+@utility num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@keyframes tm-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes tm-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tm-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes tm-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.tm-sheet-in {
+  animation: tm-sheet-in 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tm-fade-in {
+  animation: tm-fade-in 0.2s ease-out;
+}
+
+.tm-toast-in {
+  animation: tm-toast-in 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.tm-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    color-mix(in srgb, var(--surface-2) 55%, var(--surface)) 37%,
+    var(--surface-2) 63%
+  );
+  background-size: 200% 100%;
+  animation: tm-shimmer 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
