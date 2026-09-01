@@ -11,6 +11,7 @@ import {
   type Fillup,
 } from "../lib/stats";
 import {
+  FUEL_TYPE_SHORT,
   heMonthName,
   num,
   parseDecimal,
@@ -446,17 +447,9 @@ export function FillupForm() {
             </IconTile>
             <span className="flex flex-1 flex-col gap-0.5">
               <Label className="text-[12.5px]">מחיר לליטר</Label>
-              <span className="text-[12px] text-muted">
-                {resolved.source === "manual"
-                  ? "מחיר ידני מהגדרות הרכב"
-                  : resolved.source === "none"
-                    ? "לא נמצא מחיר רשמי — הזינו ידנית"
-                    : resolved.fromHistory
-                      ? `${resolved.source === "adjusted" ? "מחיר רשמי + התאמה · " : "מחיר רשמי · "}${heMonthName(new Date(date).getMonth() + 1)}`
-                      : resolved.source === "adjusted"
-                        ? "מחיר רשמי אחרון + התאמה אישית"
-                        : "המחיר הרשמי האחרון הידוע"}
-              </span>
+              {/* What this number IS, stated every time. A legacy vehicle-wide
+                  override used to set the price silently and permanently. */}
+              <span className="text-[12px] text-muted">{priceSourceText(resolved, date)}</span>
             </span>
             <input
               dir="ltr"
@@ -985,4 +978,35 @@ function savedMessage(
     title: "התדלוק נשמר. הליטרים ייכללו בחישוב במילוי הבא עד מלא.",
     detail: `נשמרו ${liters} ל׳ במקטע הפתוח · ${undo}`,
   };
+}
+
+
+/**
+ * Name the source of the suggested price.
+ *
+ * The regulated maximum applies to 95-octane self-service only, so a diesel or
+ * 98 vehicle is told there is no official figure rather than being handed the
+ * 95 one. A legacy vehicle-wide override is named as such every time it is
+ * used, so it cannot go on quietly setting prices after being forgotten.
+ */
+function priceSourceText(
+  resolved: ReturnType<typeof resolvePricePerLiter>,
+  date: number,
+): string {
+  switch (resolved.source) {
+    case "legacyManual":
+      return "מחיר קבוע שהוגדר ברכב · ניתן לשינוי בהגדרות הרכב";
+    case "unsupportedFuelType":
+      return `אין מחיר מרבי מפוקח ל${FUEL_TYPE_SHORT[resolved.fuelType] ?? "סוג דלק זה"} — הזינו את המחיר ששילמתם`;
+    case "none":
+      return "לא הוזן מחיר מרבי מפוקח — הזינו את המחיר ששילמתם";
+    case "legacyAdjusted":
+      return resolved.fromHistory
+        ? `מחיר מרבי מפוקח + התאמה קבועה · ${heMonthName(new Date(date).getMonth() + 1)}`
+        : "מחיר מרבי מפוקח אחרון + התאמה קבועה";
+    case "regulatedMax":
+      return resolved.fromHistory
+        ? `מחיר מרבי מפוקח לבנזין 95 · ${heMonthName(new Date(date).getMonth() + 1)}`
+        : "המחיר המרבי המפוקח האחרון הידוע";
+  }
 }

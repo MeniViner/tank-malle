@@ -507,7 +507,12 @@ describe("resolvePricePerLiter", () => {
 
   it("uses the official price of the fill-up's own month", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), null, prices);
-    expect(result).toEqual({ price: 7.12, source: "official", fromHistory: true });
+    expect(result).toEqual({
+      price: 7.12,
+      source: "regulatedMax",
+      fromHistory: true,
+      fuelType: "95",
+    });
   });
 
   it("falls back to the current price for a month with no history", () => {
@@ -521,22 +526,35 @@ describe("resolvePricePerLiter", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), {
       priceAdjustment: -0.05,
       manualPricePerLiter: null,
+      fuelType: "95",
     }, prices);
-    expect(result).toEqual({ price: 7.07, source: "adjusted", fromHistory: true });
+    expect(result).toEqual({
+      price: 7.07,
+      source: "legacyAdjusted",
+      fromHistory: true,
+      fuelType: "95",
+    });
   });
 
   it("lets a vehicle-level manual price override the official chain", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), {
       priceAdjustment: -0.05,
       manualPricePerLiter: 6.8,
+      fuelType: "95",
     }, prices);
-    expect(result).toEqual({ price: 6.8, source: "manual", fromHistory: false });
+    expect(result).toEqual({
+      price: 6.8,
+      source: "legacyManual",
+      fromHistory: false,
+      fuelType: "95",
+    });
   });
 
   it("never returns a negative price from a large discount", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), {
       priceAdjustment: -99,
       manualPricePerLiter: null,
+      fuelType: "95",
     }, prices);
     expect(result.price).toBe(0);
   });
@@ -546,7 +564,41 @@ describe("resolvePricePerLiter", () => {
       price: null,
       source: "none",
       fromHistory: false,
+      fuelType: "95",
     });
+  });
+
+  it("refuses to hand the 95 figure to a diesel vehicle", () => {
+    // The regulated maximum in Israel covers 95 self-service and nothing else.
+    const result = resolvePricePerLiter(
+      new Date("2026-01-15").getTime(),
+      { priceAdjustment: 0, manualPricePerLiter: null, fuelType: "diesel" },
+      prices,
+    );
+    expect(result.price).toBeNull();
+    expect(result.source).toBe("unsupportedFuelType");
+    expect(result.fuelType).toBe("diesel");
+  });
+
+  it("refuses to hand the 95 figure to a 98 vehicle", () => {
+    const result = resolvePricePerLiter(
+      new Date("2026-01-15").getTime(),
+      { priceAdjustment: 0, manualPricePerLiter: null, fuelType: "98" },
+      prices,
+    );
+    expect(result.price).toBeNull();
+    expect(result.source).toBe("unsupportedFuelType");
+  });
+
+  it("still honours an explicit manual price for a diesel vehicle", () => {
+    // The user's own figure is knowledge we have; the 95 ceiling is not.
+    const result = resolvePricePerLiter(
+      new Date("2026-01-15").getTime(),
+      { priceAdjustment: 0, manualPricePerLiter: 6.4, fuelType: "diesel" },
+      prices,
+    );
+    expect(result.price).toBe(6.4);
+    expect(result.source).toBe("legacyManual");
   });
 });
 

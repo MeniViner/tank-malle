@@ -831,48 +831,82 @@ export function hardBlock(
 }
 
 /**
- * Resolve the price per liter for a fill-up, weakest source first:
- *   1. official monthly price for the fill-up's month
- *   2. + the vehicle's fixed adjustment (station discount)
- *   3. the vehicle's manual override replaces 1+2 entirely
- *   4. a per-fill-up manual edit always wins (handled by the caller)
+ * Suggest a price per litre for a fill-up form.
+ *
+ * This is a SUGGESTION for a field the user can overwrite — not a claim about
+ * what any station charges. The sources, weakest first:
+ *
+ *   1. the regulated maximum for the vehicle's OWN fuel type
+ *   2. + the vehicle's legacy fixed adjustment
+ *   3. the vehicle's legacy manual override, replacing 1 and 2
+ *   4. a per-fill-up edit, which always wins (handled by the caller)
+ *
+ * The fuel type is the change that matters. The regulated maximum in Israel
+ * covers 95-octane self-service and nothing else, so a diesel or 98 vehicle now
+ * gets `source: "unsupportedFuelType"` and no number, where it previously got
+ * the 95 figure presented as its own.
+ *
+ * `priceAdjustment` and `manualPricePerLiter` are retained exactly as stored,
+ * but they are reported as LEGACY sources so the UI can name them rather than
+ * letting a forgotten override quietly set every future price.
  */
 export function resolvePricePerLiter(
   date: number,
-  vehicle: Pick<Vehicle, "priceAdjustment" | "manualPricePerLiter"> | null | undefined,
+  vehicle:
+    | Pick<Vehicle, "priceAdjustment" | "manualPricePerLiter" | "fuelType">
+    | null
+    | undefined,
   prices: FuelPrices | null | undefined,
 ): {
   price: number | null;
-  source: "manual" | "official" | "adjusted" | "none";
-  /** True when the official figure came from that month's own record rather
-   *  than falling back to the latest known price. */
+  source:
+    | "legacyManual"
+    | "regulatedMax"
+    | "legacyAdjusted"
+    | "unsupportedFuelType"
+    | "none";
+  /** True when the figure came from that month's own record rather than
+   *  falling back to the latest known price. */
   fromHistory: boolean;
+  /** The fuel type the figure applies to, so a caller cannot misattribute it. */
+  fuelType: FuelType;
 } {
+  const fuelType = vehicle?.fuelType ?? "95";
+
   if (vehicle?.manualPricePerLiter && vehicle.manualPricePerLiter > 0) {
     return {
       price: round(vehicle.manualPricePerLiter, 3),
-      source: "manual",
+      source: "legacyManual",
       fromHistory: false,
+      fuelType,
     };
+  }
+
+  // The regulated maximum is published for 95 self-service only. There is no
+  // authoritative Israeli figure for 98 or diesel, and substituting the 95 one
+  // would be a fabrication — so the honest answer is "we do not know".
+  if (fuelType !== "95") {
+    return { price: null, source: "unsupportedFuelType", fromHistory: false, fuelType };
   }
 
   const historic = prices?.history?.[monthKey(date)];
   const fromHistory = typeof historic === "number" && Number.isFinite(historic);
-  const official = fromHistory ? historic : (prices?.current?.pricePerLiter ?? null);
+  const regulated = fromHistory ? historic : (prices?.current?.pricePerLiter ?? null);
 
-  if (official === null || !Number.isFinite(official)) {
-    return { price: null, source: "none", fromHistory: false };
+  if (regulated === null || !Number.isFinite(regulated)) {
+    return { price: null, source: "none", fromHistory: false, fuelType };
   }
 
   const adjustment = vehicle?.priceAdjustment ?? 0;
   if (adjustment !== 0) {
     return {
-      price: round(Math.max(0, official + adjustment), 3),
-      source: "adjusted",
+      price: round(Math.max(0, regulated + adjustment), 3),
+      source: "legacyAdjusted",
       fromHistory,
+      fuelType,
     };
   }
-  return { price: round(official, 3), source: "official", fromHistory };
+  return { price: round(regulated, 3), source: "regulatedMax", fromHistory, fuelType };
 }
 
 /** Restrict a fill-up list to a trailing window, for the stats range control. */
