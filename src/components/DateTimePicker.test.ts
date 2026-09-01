@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTypedTime } from "./DateTimePicker";
+import { parseTypedTime } from "../lib/format";
 import { parseDate } from "../lib/import/normalize";
 
 describe("typed time entry", () => {

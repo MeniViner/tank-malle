@@ -262,6 +262,42 @@ export function parseDecimal(value: string): number {
   return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
+/**
+ * Parse a typed clock time at ONE-MINUTE precision.
+ *
+ * Accepts "18:47", "18.47", "1847" and "847". 24-hour only — an Israeli user
+ * writing a fill-up time is not using AM/PM, and guessing would be worse than
+ * rejecting. Every minute from 00 to 59 is valid; the old picker only offered
+ * multiples of five, so 18:47 was simply not expressible.
+ */
+export function parseTypedTime(raw: string): { hours: number; minutes: number } | null {
+  const text = raw.trim();
+  if (text === "") return null;
+
+  const separated = text.match(/^(\d{1,2})[:.](\d{1,2})$/);
+  const compact = text.replace(/\D/g, "");
+
+  let hours: number;
+  let minutes: number;
+
+  if (separated) {
+    hours = Number(separated[1]);
+    minutes = Number(separated[2]);
+  } else if (/^\d{4}$/.test(text)) {
+    hours = Number(compact.slice(0, 2));
+    minutes = Number(compact.slice(2));
+  } else if (/^\d{3}$/.test(text)) {
+    hours = Number(compact.slice(0, 1));
+    minutes = Number(compact.slice(1));
+  } else {
+    return null;
+  }
+
+  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null;
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+  return { hours, minutes };
+}
+
 /** Value for an <input type="datetime-local">, in local time. */
 export function toDateTimeLocal(date: Date | number): string {
   const d = new Date(date);

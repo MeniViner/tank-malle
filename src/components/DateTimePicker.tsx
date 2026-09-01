@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarIcon, ChevronEnd, ChevronStart, ClockIcon } from "./icons";
 import { Num } from "./Num";
-import { heMonthName } from "../lib/format";
+import { heMonthName, parseTypedTime } from "../lib/format";
 // The same date parser the importer uses. One implementation, so what the user
 // can type into this field and what a CSV may contain never drift apart.
 import { parseDate } from "../lib/import/normalize";
@@ -27,46 +27,10 @@ import { parseDate } from "../lib/import/normalize";
  * why, rather than snapping the field back and losing their work.
  */
 
+const WEEKDAYS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
+
 /** Years offered in the jump control: a sensible span around today. */
 const YEAR_SPAN_BACK = 25;
-
-/**
- * Parse a typed clock time at ONE-MINUTE precision.
- *
- * Accepts "18:47", "18.47", "1847" and "847". 24-hour only — an Israeli user
- * writing a fill-up time is not using AM/PM, and guessing would be worse than
- * rejecting. Every minute from 00 to 59 is valid; the old picker only offered
- * multiples of five, so 18:47 was simply not expressible.
- */
-export function parseTypedTime(raw: string): { hours: number; minutes: number } | null {
-  const text = raw.trim();
-  if (text === "") return null;
-
-  const separated = text.match(/^(\d{1,2})[:.](\d{1,2})$/);
-  const compact = text.replace(/\D/g, "");
-
-  let hours: number;
-  let minutes: number;
-
-  if (separated) {
-    hours = Number(separated[1]);
-    minutes = Number(separated[2]);
-  } else if (/^\d{4}$/.test(text)) {
-    hours = Number(compact.slice(0, 2));
-    minutes = Number(compact.slice(2));
-  } else if (/^\d{3}$/.test(text)) {
-    hours = Number(compact.slice(0, 1));
-    minutes = Number(compact.slice(1));
-  } else {
-    return null;
-  }
-
-  if (!Number.isInteger(hours) || !Number.isInteger(minutes)) return null;
-  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
-  return { hours, minutes };
-}
-
-const WEEKDAYS = ["א", "ב", "ג", "ד", "ה", "ו", "ש"];
 
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());

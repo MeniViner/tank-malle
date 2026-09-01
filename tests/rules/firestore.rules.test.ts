@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+// No `expect` here on purpose: assertSucceeds/assertFails ARE the assertions —
+// they resolve or reject, and vitest fails the test on a rejection.
+import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 import {
   assertFails,
   assertSucceeds,
