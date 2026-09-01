@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
-import { lookupPlate } from "../lib/plateLookup";
+import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
 import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
 import { FUEL_TYPE_LABELS, formatPlate, parseDecimal } from "../lib/format";
 import type { FuelType, PlateLookupResult, Vehicle } from "../lib/types";
@@ -53,12 +54,15 @@ const EMPTY_DRAFT: Draft = {
 export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   const navigate = useNavigate();
   const { addVehicle, vehicles } = useData();
+  const { user } = useAuth();
   const { showToast } = useToast();
 
   const [step, setStep] = useState<Step>("plate");
   const [plate, setPlate] = useState("");
   const [looking, setLooking] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
+  /** Only a temporary failure is worth retrying; a confirmed miss is not. */
+  const [canRetryLookup, setCanRetryLookup] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
 
@@ -81,8 +85,34 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     abortRef.current = controller;
 
     try {
-      const result: PlateLookupResult = await lookupPlate(plate, controller.signal);
-      if (result.found) {
+      const outcome = await lookupPlate(plate, {
+        signal: controller.signal,
+        uid: user?.uid ?? null,
+      });
+
+      // Three distinct outcomes. A registry outage must never be reported as
+      // "this vehicle does not exist" — and when we hold a previous good
+      // answer for the same plate, it is offered rather than discarded.
+      if (outcome.status === "unavailable") {
+        setLookupError(
+          outcome.cached ? LOOKUP_MESSAGES.cachedFallback : LOOKUP_MESSAGES.unavailable,
+        );
+        setCanRetryLookup(true);
+        if (!outcome.cached) return;
+      } else if (outcome.status === "not-found") {
+        setLookupError(LOOKUP_MESSAGES.notFound);
+        setCanRetryLookup(false);
+        return;
+      } else {
+        setCanRetryLookup(false);
+      }
+
+      const result: PlateLookupResult =
+        outcome.status === "found"
+          ? outcome.vehicle
+          : (outcome.cached as PlateLookupResult);
+
+      {
         setDraft({
           make: result.make ?? "",
           model: result.model ?? "",
@@ -119,12 +149,12 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           })
           .catch(() => undefined)
           .finally(() => setLoadingSpecs(false));
-      } else {
-        setLookupError("הרכב לא נמצא במאגר. אפשר לבחור מהרשימה או להזין ידנית.");
       }
     } catch (error) {
       if ((error as Error).name === "AbortError") return;
-      setLookupError("לא הצלחנו להתחבר למאגר. אפשר להמשיך בהזנה ידנית.");
+      // Anything that escapes the classifier is still an outage, not an answer.
+      setLookupError(LOOKUP_MESSAGES.unavailable);
+      setCanRetryLookup(true);
     } finally {
       setLooking(false);
     }
@@ -194,6 +224,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           setPlate={setPlate}
           looking={looking}
           error={lookupError}
+          canRetry={canRetryLookup}
           onLookup={runLookup}
           onManual={goManual}
         />
@@ -224,6 +255,7 @@ function PlateStep({
   setPlate,
   looking,
   error,
+  canRetry,
   onLookup,
   onManual,
 }: {
@@ -231,6 +263,8 @@ function PlateStep({
   setPlate: (value: string) => void;
   looking: boolean;
   error: string | null;
+  /** True only for a temporary failure — a confirmed miss is not retryable. */
+  canRetry: boolean;
   onLookup: () => void;
   onManual: () => void;
 }) {
@@ -273,7 +307,19 @@ function PlateStep({
       {error ? (
         <div className="mt-4 flex items-start gap-2.5 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
           <WarningIcon size={17} className="mt-px flex-none" />
-          <span className="text-[13px] leading-relaxed">{error}</span>
+          <span className="flex flex-col items-start gap-1.5">
+            <span className="text-[13px] leading-relaxed">{error}</span>
+            {canRetry ? (
+              <button
+                type="button"
+                onClick={onLookup}
+                disabled={looking}
+                className="min-h-[32px] text-[13px] font-bold underline underline-offset-2"
+              >
+                נסו שוב
+              </button>
+            ) : null}
+          </span>
         </div>
       ) : null}
 

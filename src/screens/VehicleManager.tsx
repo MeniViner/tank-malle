@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { ScreenHeader } from "../components/AppHeader";
@@ -22,7 +23,7 @@ import {
   parseDecimal,
   vehicleLabel,
 } from "../lib/format";
-import { lookupPlate } from "../lib/plateLookup";
+import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
 import { fetchVehicleSpecs } from "../lib/vehicleSpecs";
 import type { FuelType, Vehicle } from "../lib/types";
 
@@ -248,6 +249,7 @@ function EditVehicleSheet({
   onClose: () => void;
   onSave: (patch: Partial<Vehicle>) => void;
 }) {
+  const { user } = useAuth();
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
@@ -284,11 +286,22 @@ function EditVehicleSheet({
     setRefreshing(true);
     setRefreshNote(null);
     try {
-      const found = await lookupPlate(digits);
-      if (!found.found) {
-        setRefreshNote("הרכב לא נמצא במאגר משרד התחבורה");
+      const outcome = await lookupPlate(digits, { uid: user?.uid ?? null });
+
+      // An outage is not a verdict on whether the vehicle exists.
+      if (outcome.status === "unavailable") {
+        setRefreshNote(
+          outcome.cached ? LOOKUP_MESSAGES.cachedFallback : LOOKUP_MESSAGES.unavailable,
+        );
+        if (!outcome.cached) return;
+      } else if (outcome.status === "not-found") {
+        setRefreshNote(LOOKUP_MESSAGES.notFound);
         return;
       }
+
+      const found =
+        outcome.status === "found" ? outcome.vehicle : outcome.cached!;
+
       if (found.make) setMake(found.make);
       if (found.model) setModel(found.model);
       if (found.year) setYear(String(found.year));
@@ -304,9 +317,11 @@ function EditVehicleSheet({
       if (specs.estimatedTankLiters && !tankLiters) {
         setTankLiters(String(specs.estimatedTankLiters));
       }
-      setRefreshNote("הפרטים עודכנו ממאגר משרד התחבורה");
+      if (outcome.status === "found") {
+        setRefreshNote("הפרטים עודכנו ממאגר משרד התחבורה");
+      }
     } catch {
-      setRefreshNote("לא הצלחנו להתחבר למאגר כרגע");
+      setRefreshNote(LOOKUP_MESSAGES.unavailable);
     } finally {
       setRefreshing(false);
     }
