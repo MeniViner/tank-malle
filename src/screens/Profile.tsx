@@ -11,11 +11,12 @@ import { ConfirmDialog } from "../components/Sheet";
 import { downloadFillupsCsv } from "../lib/csv";
 import { Num } from "../components/Num";
 import { computeStats } from "../lib/stats";
-import { fullDate, num, shekel, timeAgo } from "../lib/format";
+import { fullDate, loginMoment, num, shekel, timeAgo } from "../lib/format";
 import {
   CarIcon,
   DownloadIcon,
   LogoutIcon,
+  UsersIcon,
   PumpIcon,
   ShieldIcon,
   TrashIcon,
@@ -24,8 +25,9 @@ import {
 /** Profile & account (design 19). */
 export function Profile() {
   const navigate = useNavigate();
-  const { user, signOutUser, isAdmin } = useAuth();
-  const { fillups, activeVehicle, vehicles, deleteAccount, settings } = useData();
+  const { user, signOutUser, isAdmin, previousLoginAt } = useAuth();
+  const { fillups, activeVehicle, vehicles, deleteAccount, settings, writes, switchAccount } =
+    useData();
   const stats = useMemo(
     () => computeStats(fillups, activeVehicle),
     [fillups, activeVehicle],
@@ -36,26 +38,48 @@ export function Profile() {
   const joinedAt = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).getTime()
     : null;
-  const lastSignIn = user?.metadata?.lastSignInTime
-    ? new Date(user.metadata.lastSignInTime).getTime()
-    : null;
+  // NOT metadata.lastSignInTime: once signed in, that IS the current session,
+  // so showing it as "last login" always reported "now". previousLoginAt is
+  // rotated once per authentication event and is genuinely the one before.
   const { showToast } = useToast();
 
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   // Account deletion is irreversible, so it takes two separate confirmations.
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [confirmSwitch, setConfirmSwitch] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   async function reallyDelete() {
     setDeleting(true);
     try {
-      await deleteAccount();
-      showToast({ tone: "success", title: "החשבון נמחק" });
+      const result = await deleteAccount();
+
+      // Reauthentication is proved BEFORE anything is deleted, so this branch
+      // means nothing was touched — the user can simply try again.
+      if (result.needsReauth) {
+        showToast({
+          tone: "info",
+          title: "נדרשת התחברות מחדש לפני המחיקה",
+          detail: "לא נמחק דבר. התחברו שוב ונסו שנית.",
+        });
+        return;
+      }
+
+      if (result.ok) {
+        showToast({ tone: "success", title: "החשבון וכל הנתונים נמחקו" });
+      } else {
+        // Never report a clean sweep that did not happen.
+        showToast({
+          tone: "error",
+          title: "המחיקה הושלמה חלקית",
+          detail: `לא נמחקו: ${result.failed.join(", ")}. פנו אלינו כדי להשלים.`,
+        });
+      }
     } catch {
       showToast({
         tone: "error",
         title: "מחיקת החשבון נכשלה",
-        detail: "ייתכן שנדרשת התחברות מחדש לפני המחיקה",
+        detail: "לא בוצע שינוי. נסו שוב בעוד רגע.",
       });
     } finally {
       setDeleting(false);
@@ -121,8 +145,14 @@ export function Profile() {
               meta={joinedAt ? timeAgo(joinedAt) : undefined}
             />
             <DetailRow
-              label="התחברות אחרונה"
-              value={lastSignIn ? timeAgo(lastSignIn) : "—"}
+              label="התחברות קודמת"
+              value={
+                previousLoginAt === undefined
+                  ? "—"
+                  : previousLoginAt === null
+                    ? "אין עדיין התחברות קודמת"
+                    : loginMoment(previousLoginAt)
+              }
             />
             <DetailRow
               label="שיטת התחברות"
@@ -182,6 +212,24 @@ export function Profile() {
             title="התנתקות"
             onClick={() => setConfirmSignOut(true)}
           />
+          {/* An explicit switch, so nobody has to reach for browser settings.
+              State from the outgoing account is discarded before the next one
+              attaches; the only thing worth pausing for is a write the server
+              has not confirmed yet. */}
+          <RowButton
+            icon={
+              <IconTile tone="muted">
+                <UsersIcon size={18} />
+              </IconTile>
+            }
+            title="החלפת חשבון"
+            subtitle={
+              writes.pending.length > 0
+                ? "יש שמירות שטרם אושרו בשרת — נמתין להן רגע"
+                : undefined
+            }
+            onClick={() => setConfirmSwitch(true)}
+          />
           <RowButton
             icon={
               <IconTile tone="danger">
@@ -219,6 +267,23 @@ export function Profile() {
         </button>
         .
       </p>
+
+      <ConfirmDialog
+        open={confirmSwitch}
+        title="להחליף חשבון?"
+        body={
+          writes.pending.length > 0
+            ? "יש שמירות שעדיין ממתינות לאישור מהשרת. נמתין להן לרגע לפני היציאה."
+            : "נצא מהחשבון הנוכחי כדי שתוכלו להתחבר עם חשבון אחר. אין צורך למחוק נתוני דפדפן."
+        }
+        confirmLabel="החלפת חשבון"
+        tone="accent"
+        onConfirm={() => {
+          setConfirmSwitch(false);
+          void switchAccount();
+        }}
+        onCancel={() => setConfirmSwitch(false)}
+      />
 
       <ConfirmDialog
         open={confirmSignOut}

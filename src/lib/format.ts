@@ -170,6 +170,28 @@ export function timeAgo(date: Date | number, now: Date | number = Date.now()): s
   return years === 1 ? "לפני שנה" : `לפני ${years} שנים`;
 }
 
+/**
+ * A past login, as a day reference plus a clock time.
+ *
+ * "היום, 16:42" · "אתמול, 23:18" · "30 באוג׳, 09:11" · "12 בינו׳ 2025, 08:00"
+ *
+ * Never "עכשיו": this describes the login BEFORE the current session, so a
+ * relative phrase that could read as the current one is wrong by construction.
+ * Rendered in the device's timezone from a UTC timestamp.
+ */
+export function loginMoment(date: Date | number, now: Date | number = Date.now()): string {
+  const d = new Date(date);
+  const today = new Date(now);
+  const startOf = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diffDays = Math.round((startOf(today) - startOf(d)) / 86_400_000);
+  const clock = time(d);
+
+  if (diffDays === 0) return `היום, ${clock}`;
+  if (diffDays === 1) return `אתמול, ${clock}`;
+  if (d.getFullYear() === today.getFullYear()) return `${dayMonthShort(d)}, ${clock}`;
+  return `${dayMonthShort(d)} ${d.getFullYear()}, ${clock}`;
+}
+
 /** Consumption formatted in the user's chosen unit. */
 export function consumption(
   kmPerLiter: number | null,

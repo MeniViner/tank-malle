@@ -230,6 +230,16 @@ export const LogoutIcon = (props: IconProps) => (
   </Svg>
 );
 
+/** Two figures — the account switcher. */
+export const UsersIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.8} {...props}>
+    <path d="M15.6 20.4v-1.7a3.4 3.4 0 0 0-3.4-3.4H6.6a3.4 3.4 0 0 0-3.4 3.4v1.7" />
+    <circle cx="9.4" cy="7.9" r="3.4" />
+    <path d="M20.8 20.4v-1.7a3.4 3.4 0 0 0-2.5-3.3" />
+    <path d="M15.6 4.7a3.4 3.4 0 0 1 0 6.6" />
+  </Svg>
+);
+
 export const ShieldIcon = (props: IconProps) => (
   <Svg strokeWidth={1.8} {...props}>
     <path d="M12 3.6 19 6v5.4c0 4.2-2.9 7.6-7 8.9-4.1-1.3-7-4.7-7-8.9V6z" />

@@ -26,17 +26,76 @@ service cloud.firestore {
         && value < 9999999999;
     }
 
+    function isString(value, maxLength) {
+      return value is string && value.size() <= maxLength;
+    }
+
+    function optionalString(data, field, maxLength) {
+      return !(field in data) || data[field] == null || isString(data[field], maxLength);
+    }
+
+    function optionalNumber(data, field) {
+      return !(field in data) || data[field] == null || isNumber(data[field]);
+    }
+
+    function optionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    // A station reference. stationId is the stable identity; the rest are
+    // snapshots taken at the time of the fill-up.
+    function validStation(station) {
+      return station.keys().hasOnly(['name', 'lat', 'lng', 'stationId', 'brand'])
+        && isString(station.name, 120)
+        && optionalNumber(station, 'lat')
+        && optionalNumber(station, 'lng')
+        && optionalString(station, 'stationId', 64)
+        && optionalString(station, 'brand', 60);
+    }
+
     // Only raw fill-up data is ever stored — no derived fields to validate.
+    // A strict field whitelist: an unrecognised key is rejected rather than
+    // silently persisted, so a compromised client cannot smuggle arbitrary
+    // nested data into a user's records.
     function validFillup(data) {
-      return isNumber(data.odometer) && data.odometer > 0
-        && isNumber(data.liters) && data.liters > 0
-        && isNumber(data.pricePerLiter) && data.pricePerLiter >= 0
-        && isNumber(data.totalCost) && data.totalCost >= 0
+      return data.keys().hasOnly([
+             'date', 'odometer', 'liters', 'pricePerLiter', 'totalCost',
+             'isFullTank', 'station', 'notes', 'createdAt',
+             'continuityBreakBefore', 'fullTankSource', 'postedPricePerLiter',
+             'fuelType', 'importSource', 'importBatchId', 'importRowHash',
+             'schemaVersion'
+           ])
+        && isNumber(data.odometer) && data.odometer > 0 && data.odometer < 3000000
+        && isNumber(data.liters) && data.liters > 0 && data.liters <= 500
+        && isNumber(data.pricePerLiter) && data.pricePerLiter >= 0 && data.pricePerLiter <= 100
+        && isNumber(data.totalCost) && data.totalCost >= 0 && data.totalCost <= 50000
         && data.isFullTank is bool
         && data.date is timestamp
-        && (!('notes' in data) || data.notes == null
-            || (data.notes is string && data.notes.size() <= 500))
-        && (!('station' in data) || data.station == null || data.station is map);
+        // Liters x paid price should reconcile with the total. pricePerLiter is
+        // the price actually PAID, so a discount is already inside it and only
+        // pump rounding and small manual edits need room. The tolerance is the
+        // larger of 5 shekels and 5%, so the check stays meaningful on a small
+        // fill-up without rejecting a large legitimate one. A zero total is
+        // left alone rather than forced to reconcile.
+        && (data.totalCost == 0
+            || (data.totalCost <= data.liters * data.pricePerLiter + 5
+                  + data.liters * data.pricePerLiter * 0.05
+                && data.totalCost >= data.liters * data.pricePerLiter - 5
+                  - data.liters * data.pricePerLiter * 0.05))
+        && optionalBool(data, 'continuityBreakBefore')
+        && (!('fullTankSource' in data)
+            || data.fullTankSource in ['user', 'legacy-assumption'])
+        && (!('postedPricePerLiter' in data) || data.postedPricePerLiter == null
+            || (isNumber(data.postedPricePerLiter)
+                && data.postedPricePerLiter >= 0 && data.postedPricePerLiter <= 100))
+        && (!('fuelType' in data) || data.fuelType == null
+            || data.fuelType in ['95', '98', 'diesel', 'other'])
+        && optionalString(data, 'importSource', 60)
+        && optionalString(data, 'importBatchId', 64)
+        && optionalString(data, 'importRowHash', 64)
+        && optionalNumber(data, 'schemaVersion')
+        && optionalString(data, 'notes', 500)
+        && (!('station' in data) || data.station == null || validStation(data.station));
     }
 
     function validVehicle(data) {
@@ -85,8 +144,27 @@ service cloud.firestore {
       // never write to another person's account.
       allow read: if isOwner(uid) || isAdmin();
       allow create, update: if isOwner(uid)
-        && (!('settings' in request.resource.data) || request.resource.data.settings is map);
+        && (!('settings' in request.resource.data) || request.resource.data.settings is map)
+        // Login stamps, rotated once per authentication event. Numbers only,
+        // so a client cannot stash arbitrary structures on the profile.
+        && optionalNumber(request.resource.data, 'previousLoginAt')
+        && optionalNumber(request.resource.data, 'currentLoginAt')
+        && optionalNumber(request.resource.data, 'lastProcessedAuthTime');
       allow delete: if isOwner(uid);
+
+      /**
+       * Raw community price reports.
+       *
+       * Owner-only, in both directions. A raw observation is tied to one person
+       * and one place at one time, so it never becomes readable by other signed
+       * -in users; only the backend-produced aggregate is public.
+       */
+      match /stationPriceReports/{reportId} {
+        allow read, delete: if isOwner(uid);
+        allow create: if isOwner(uid) && validPriceReport(request.resource.data);
+        // A report is an observation, not a document to revise.
+        allow update: if false;
+      }
 
       match /vehicles/{vehicleId} {
         allow read: if isOwner(uid) || isAdmin();
@@ -99,6 +177,47 @@ service cloud.firestore {
           allow create, update: if isOwner(uid) && validFillup(request.resource.data);
         }
       }
+    }
+
+    /**
+     * A price observation. Plausibility is bounded per fuel type: a report far
+     * outside the range that fuel has ever traded at in Israel is a typo or an
+     * attack, and either way must not reach the aggregate.
+     */
+    function validPriceReport(data) {
+      return data.keys().hasOnly([
+             'stationId', 'fuelType', 'serviceMode', 'postedPrice', 'paidPrice',
+             'hadPersonalDiscount', 'observedAt', 'createdAt',
+             'locationConfidence', 'reportSource', 'appVersion', 'status'
+           ])
+        && isString(data.stationId, 64) && data.stationId.size() > 0
+        && data.fuelType in ['95', '98', 'diesel', 'other']
+        && (!('serviceMode' in data) || data.serviceMode in ['self', 'full'])
+        && isNumber(data.postedPrice)
+        && data.postedPrice > 1 && data.postedPrice < 30
+        && (!('paidPrice' in data) || data.paidPrice == null
+            || (isNumber(data.paidPrice) && data.paidPrice > 0 && data.paidPrice < 30))
+        && optionalBool(data, 'hadPersonalDiscount')
+        && data.observedAt is timestamp
+        && (!('locationConfidence' in data)
+            || data.locationConfidence in ['verified', 'nearby', 'manual'])
+        && optionalString(data, 'reportSource', 40)
+        && optionalString(data, 'appVersion', 20)
+        && (!('status' in data) || data.status in ['pending', 'accepted', 'rejected']);
+    }
+
+    /**
+     * Public station-price aggregates.
+     *
+     * Readable by any signed-in user, writable ONLY by trusted backend code,
+     * which bypasses rules. A client therefore cannot forge a confidence level,
+     * a report count or a reporter total to make a fabricated price look
+     * corroborated. Until the aggregator is deployed (Blaze), this collection
+     * is simply empty and the UI says the data is unavailable.
+     */
+    match /stationPriceAggregates/{aggregateId} {
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
     // Anonymous community benchmarks: any signed-in user may read the pool,

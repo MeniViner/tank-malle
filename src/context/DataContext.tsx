@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -19,8 +20,16 @@ import {
   updateDoc,
   writeBatch,
 } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { reauthenticateWithPopup, type User } from "firebase/auth";
+import { db, googleProvider } from "../lib/firebase";
 import { clearCache, pruneOldCaches, readCache, writeCache } from "../lib/cache";
+import {
+  EMPTY_WRITE_STATUS,
+  WriteTracker,
+  type MutationKind,
+  type MutationReceipt,
+  type WriteStatus,
+} from "../lib/writes";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 import {
@@ -45,6 +54,16 @@ interface DataContextValue {
   fromCache: boolean;
   /** Firestore is serving from cache because the network is unavailable. */
   offline: boolean;
+  /**
+   * Truthful write state. `pending` are writes the local cache accepted but
+   * the server has not acknowledged; `failed` are writes the server rejected
+   * permanently and which the user must be told about.
+   */
+  writes: WriteStatus;
+  /** Drop a failure the user has acknowledged. */
+  dismissWriteFailure: (id: string) => void;
+  /** Sign out, discarding every trace of the current account from memory. */
+  switchAccount: () => Promise<void>;
 
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>;
   setActiveVehicle: (vehicleId: string) => Promise<void>;
@@ -59,8 +78,50 @@ interface DataContextValue {
   deleteFillup: (fillupId: string) => Promise<void>;
   /** Re-create a deleted record with its original id, for Undo. */
   restoreFillup: (fillup: Fillup) => Promise<void>;
+  /** Write many fill-ups at once, for an import batch. */
+  addFillupBatch: (
+    vehicleId: string,
+    fillups: Omit<Fillup, "id" | "createdAt">[],
+  ) => Promise<{ written: number; receipt: MutationReceipt }>;
 
-  deleteAccount: () => Promise<void>;
+  /** Reports exactly what was and was not deleted. Never claims a clean sweep. */
+  deleteAccount: () => Promise<DeletionResult>;
+}
+
+/** Outcome of an account deletion. */
+export interface DeletionResult {
+  ok: boolean;
+  /** Collections successfully removed. */
+  deleted: string[];
+  /** Collections that failed; the user is told, not reassured. */
+  failed: string[];
+  /** True when Firebase Auth wants a fresh sign-in before it will delete. */
+  needsReauth?: boolean;
+}
+
+/**
+ * Firebase refuses to delete a user whose sign-in is not recent. Proving that
+ * first turns "we deleted your data and then could not delete your account"
+ * into a request the user can simply satisfy.
+ */
+async function ensureRecentLogin(user: User): Promise<{ ok: boolean }> {
+  try {
+    await reauthenticateWithPopup(user, googleProvider);
+    return { ok: true };
+  } catch (error) {
+    const code = (error as { code?: string }).code ?? "";
+    // Already recent enough, or the user simply closed the popup.
+    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+      return { ok: false };
+    }
+    // Some providers reject a redundant reauth; a fresh token proves the point.
+    try {
+      await user.getIdToken(true);
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
+  }
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -88,8 +149,13 @@ function stripUndefined<T extends Record<string, unknown>>(input: T): T {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, signOutUser } = useAuth();
   const { setTheme, setAccent } = useTheme();
+
+  // The uid, not the User object: a token refresh produces a NEW User instance
+  // for the SAME person, and keying effects on the object tears down and
+  // rebuilds every listener for no reason.
+  const uid = user?.uid ?? null;
 
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -99,17 +165,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loadingFillups, setLoadingFillups] = useState(true);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [fromCache, setFromCache] = useState(false);
+  const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
+
+  /**
+   * User generation.
+   *
+   * Every asynchronous callback captures the generation it was created under
+   * and drops its result if the generation has moved on. Firestore listeners
+   * are unsubscribed by their effect cleanup, but a getDocs, a lookup or a
+   * write acknowledgement started under account A can still land after account
+   * B has signed in — and without this guard it would repopulate B's state
+   * with A's data. That is the bug that made switching accounts require
+   * clearing site data.
+   */
+  const generationRef = useRef(0);
+  const trackerRef = useRef<WriteTracker | null>(null);
 
   useEffect(() => {
     pruneOldCaches();
   }, []);
 
-  // Paint the last-known view immediately, before Firestore has connected.
+  /**
+   * Account boundary. Declared BEFORE every subscription effect so that on a
+   * uid change React runs it first: the generation moves, all in-memory state
+   * returns to its initial value, and only then do the listeners for the new
+   * account attach. No state from the previous account survives into the next
+   * account's first render.
+   */
   useEffect(() => {
-    if (!user) return;
-    const cachedSettings = readCache<UserSettings>(user.uid, "settings");
-    const cachedVehicles = readCache<Vehicle[]>(user.uid, "vehicles");
-    const cachedPrices = readCache<FuelPrices>(user.uid, "prices");
+    generationRef.current += 1;
+
+    trackerRef.current?.dispose();
+    const tracker = new WriteTracker();
+    trackerRef.current = tracker;
+
+    // Reset everything user-scoped, synchronously.
+    setSettings(DEFAULT_SETTINGS);
+    setVehicles([]);
+    setFillups([]);
+    setPrices(null);
+    setReady(false);
+    setLoadingFillups(Boolean(uid));
+    setFromCache(false);
+    setWrites(EMPTY_WRITE_STATUS);
+
+    const unsubscribe = tracker.subscribe(setWrites);
+
+    return () => {
+      unsubscribe();
+      tracker.dispose();
+    };
+  }, [uid]);
+
+  // Paint the last-known view immediately, before Firestore has connected.
+  // Reads only this uid's cache — the envelope carries the uid and a mismatch
+  // is discarded, so one account can never paint with another's snapshot.
+  useEffect(() => {
+    if (!uid) return;
+    const generation = generationRef.current;
+
+    const cachedSettings = readCache<UserSettings>(uid, "settings");
+    const cachedVehicles = readCache<Vehicle[]>(uid, "vehicles");
+    const cachedPrices = readCache<FuelPrices>(uid, "prices");
+    if (generation !== generationRef.current) return;
 
     if (cachedSettings) setSettings({ ...DEFAULT_SETTINGS, ...cachedSettings });
     if (cachedVehicles?.length) {
@@ -118,7 +236,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     if (cachedPrices) setPrices(cachedPrices);
     if (cachedSettings || cachedVehicles?.length) setReady(true);
-  }, [user]);
+  }, [uid]);
 
   useEffect(() => {
     const online = () => setOffline(false);
@@ -134,19 +252,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
   /* ---------- user document: profile + settings ---------- */
 
   useEffect(() => {
-    if (!user) {
-      setSettings(DEFAULT_SETTINGS);
-      setVehicles([]);
-      setFillups([]);
-      setReady(false);
-      return;
-    }
+    if (!user || !uid) return;
+    const generation = generationRef.current;
+    const guard = () => generation === generationRef.current;
 
-    const userRef = doc(db, "users", user.uid);
+    const userRef = doc(db, "users", uid);
 
     return onSnapshot(
       userRef,
       (snapshot) => {
+        if (!guard()) return;
         if (!snapshot.exists()) {
           // First sign-in: create the profile document.
           void setDoc(
@@ -168,12 +283,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const data = snapshot.data();
         const next: UserSettings = { ...DEFAULT_SETTINGS, ...(data.settings ?? {}) };
         setSettings(next);
-        writeCache(user.uid, "settings", next);
+        writeCache(uid, "settings", next);
         setReady(true);
       },
-      () => setReady(true),
+      () => {
+        if (guard()) setReady(true);
+      },
     );
-  }, [user]);
+  }, [user, uid]);
 
   // The stored preference is the source of truth once it arrives; before that
   // the app runs on the localStorage value stamped in index.html.
@@ -186,9 +303,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   /* ---------- vehicles ---------- */
 
   useEffect(() => {
-    if (!user) return;
+    if (!uid) return;
+    const generation = generationRef.current;
 
-    return onSnapshot(collection(db, "users", user.uid, "vehicles"), (snapshot) => {
+    return onSnapshot(collection(db, "users", uid, "vehicles"), (snapshot) => {
+      if (generation !== generationRef.current) return;
       const list = snapshot.docs.map((entry) => {
         const data = entry.data();
         return {
@@ -211,10 +330,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       });
       list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
       setVehicles(list);
-      writeCache(user.uid, "vehicles", list);
+      writeCache(uid, "vehicles", list);
       if (!snapshot.metadata.fromCache) setFromCache(false);
     });
-  }, [user]);
+  }, [uid]);
 
   const activeVehicles = useMemo(() => vehicles.filter((v) => !v.archived), [vehicles]);
 
@@ -228,14 +347,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   /* ---------- fill-ups for the active vehicle ---------- */
 
   useEffect(() => {
-    if (!user || !activeVehicle) {
+    if (!uid || !activeVehicle) {
       setFillups([]);
       setLoadingFillups(false);
       return;
     }
+    const generation = generationRef.current;
 
     // Hydrate from cache first so the dashboard has numbers on it instantly.
-    const cached = readCache<Fillup[]>(user.uid, `fillups.${activeVehicle.id}`);
+    const cached = readCache<Fillup[]>(uid, `fillups.${activeVehicle.id}`);
     if (cached) {
       setFillups(cached);
       setLoadingFillups(false);
@@ -243,11 +363,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setLoadingFillups(true);
     }
 
-    const path = collection(db, "users", user.uid, "vehicles", activeVehicle.id, "fillups");
+    const path = collection(db, "users", uid, "vehicles", activeVehicle.id, "fillups");
 
     return onSnapshot(
       path,
       (snapshot) => {
+        if (generation !== generationRef.current) return;
         const list =
           snapshot.docs.map((entry) => {
             const data = entry.data();
@@ -278,20 +399,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
           });
 
         setFillups(list);
-        writeCache(user.uid, `fillups.${activeVehicle.id}`, list);
+        writeCache(uid, `fillups.${activeVehicle.id}`, list);
         setLoadingFillups(false);
       },
-      () => setLoadingFillups(false),
+      () => {
+        if (generation === generationRef.current) setLoadingFillups(false);
+      },
     );
-  }, [user, activeVehicle]);
+  }, [uid, activeVehicle]);
 
   /* ---------- global fuel prices ---------- */
 
   useEffect(() => {
-    if (!user) return;
+    if (!uid) return;
+    const generation = generationRef.current;
+
     return onSnapshot(
       doc(db, "appConfig", "fuelPrices"),
       (snapshot) => {
+        if (generation !== generationRef.current) return;
         if (!snapshot.exists()) {
           setPrices(null);
           return;
@@ -310,27 +436,47 @@ export function DataProvider({ children }: { children: ReactNode }) {
           history: (data.history ?? {}) as Record<string, number>,
         };
         setPrices(next);
-        writeCache(user.uid, "prices", next);
+        writeCache(uid, "prices", next);
       },
-      () => setPrices(null),
+      () => {
+        if (generation === generationRef.current) setPrices(null);
+      },
     );
-  }, [user]);
+  }, [uid]);
 
   /* ---------- mutations ----------
-     Firestore write promises only settle on server acknowledgement, so they
+     Firestore write promises only settle on SERVER acknowledgement, so they
      are deliberately not awaited for UI flow: the local cache applies the
-     change immediately and the queued write syncs when the network returns. */
+     change immediately and the queued write syncs when the network returns.
+
+     They are, however, always TRACKED. Every write goes through the tracker,
+     so a permanent rejection surfaces as a visible failure instead of being
+     swallowed by a `.catch(() => undefined)` while the UI says "saved". */
+
+  const track = useCallback(
+    (kind: MutationKind, promise: Promise<unknown>): MutationReceipt => {
+      const tracker = trackerRef.current;
+      if (!tracker) return { id: "", settled: Promise.resolve(false) };
+      return tracker.track(kind, promise);
+    },
+    [],
+  );
+
+  const dismissWriteFailure = useCallback((id: string) => {
+    trackerRef.current?.dismiss(id);
+  }, []);
 
   const updateSettings = useCallback(
     async (patch: Partial<UserSettings>) => {
-      if (!user) return;
+      if (!uid) return;
       const next = { ...settings, ...patch };
       setSettings(next);
-      void updateDoc(doc(db, "users", user.uid), { settings: stripUndefined(next) }).catch(
-        () => undefined,
+      track(
+        "settings.update",
+        updateDoc(doc(db, "users", uid), { settings: stripUndefined(next) }),
       );
     },
-    [user, settings],
+    [uid, settings, track],
   );
 
   const setActiveVehicle = useCallback(
@@ -342,10 +488,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const addVehicle = useCallback(
     async (vehicle: Omit<Vehicle, "id" | "createdAt">) => {
-      if (!user) throw new Error("not signed in");
-      const ref = doc(collection(db, "users", user.uid, "vehicles"));
-      void setDoc(ref, stripUndefined({ ...vehicle, createdAt: serverTimestamp() })).catch(
-        () => undefined,
+      if (!uid) throw new Error("not signed in");
+      const ref = doc(collection(db, "users", uid, "vehicles"));
+      track(
+        "vehicle.add",
+        setDoc(ref, stripUndefined({ ...vehicle, createdAt: serverTimestamp() })),
       );
       // First vehicle becomes the active one automatically.
       if (vehicles.filter((v) => !v.archived).length === 0) {
@@ -353,19 +500,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       return ref.id;
     },
-    [user, vehicles, updateSettings],
+    [uid, vehicles, updateSettings, track],
   );
 
   const updateVehicle = useCallback(
     async (vehicleId: string, patch: Partial<Vehicle>) => {
-      if (!user) return;
+      if (!uid) return;
       const { id: _ignored, ...rest } = patch as Partial<Vehicle> & { id?: string };
-      void updateDoc(
-        doc(db, "users", user.uid, "vehicles", vehicleId),
-        stripUndefined(rest as Record<string, unknown>),
-      ).catch(() => undefined);
+      track(
+        "vehicle.update",
+        updateDoc(
+          doc(db, "users", uid, "vehicles", vehicleId),
+          stripUndefined(rest as Record<string, unknown>),
+        ),
+      );
     },
-    [user],
+    [uid, track],
   );
 
   const setVehicleArchived = useCallback(
@@ -381,102 +531,227 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const deleteVehicle = useCallback(
     async (vehicleId: string) => {
-      if (!user) return;
+      if (!uid) return;
       // Subcollections are not removed with their parent, so clear fill-ups
       // in batches first.
-      const fillupsRef = collection(db, "users", user.uid, "vehicles", vehicleId, "fillups");
+      const fillupsRef = collection(db, "users", uid, "vehicles", vehicleId, "fillups");
       const snapshot = await getDocs(fillupsRef);
       for (let i = 0; i < snapshot.docs.length; i += 400) {
         const batch = writeBatch(db);
         snapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
         await batch.commit();
       }
-      await deleteDoc(doc(db, "users", user.uid, "vehicles", vehicleId));
+      await deleteDoc(doc(db, "users", uid, "vehicles", vehicleId));
 
       if (settings.activeVehicleId === vehicleId) {
         const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
         await updateSettings({ activeVehicleId: fallback?.id ?? null });
       }
     },
-    [user, settings.activeVehicleId, vehicles, updateSettings],
+    [uid, settings.activeVehicleId, vehicles, updateSettings],
   );
 
   const addFillup = useCallback(
     async (fillup: Omit<Fillup, "id" | "createdAt">) => {
-      if (!user || !activeVehicle) throw new Error("no active vehicle");
+      if (!uid || !activeVehicle) throw new Error("no active vehicle");
       const ref = doc(
-        collection(db, "users", user.uid, "vehicles", activeVehicle.id, "fillups"),
+        collection(db, "users", uid, "vehicles", activeVehicle.id, "fillups"),
       );
-      void setDoc(
-        ref,
-        stripUndefined({
-          ...fillup,
-          date: Timestamp.fromMillis(fillup.date),
-          createdAt: serverTimestamp(),
-        }),
-      ).catch(() => undefined);
+      track(
+        "fillup.add",
+        setDoc(
+          ref,
+          stripUndefined({
+            ...fillup,
+            date: Timestamp.fromMillis(fillup.date),
+            createdAt: serverTimestamp(),
+          }),
+        ),
+      );
       return ref.id;
     },
-    [user, activeVehicle],
+    [uid, activeVehicle, track],
   );
 
   const updateFillup = useCallback(
     async (fillupId: string, patch: Partial<Omit<Fillup, "id">>) => {
-      if (!user || !activeVehicle) return;
+      if (!uid || !activeVehicle) return;
       const payload: Record<string, unknown> = { ...patch };
       if (typeof patch.date === "number") payload.date = Timestamp.fromMillis(patch.date);
-      void updateDoc(
-        doc(db, "users", user.uid, "vehicles", activeVehicle.id, "fillups", fillupId),
-        stripUndefined(payload),
-      ).catch(() => undefined);
+      track(
+        "fillup.update",
+        updateDoc(
+          doc(db, "users", uid, "vehicles", activeVehicle.id, "fillups", fillupId),
+          stripUndefined(payload),
+        ),
+      );
     },
-    [user, activeVehicle],
+    [uid, activeVehicle, track],
   );
 
   const deleteFillup = useCallback(
     async (fillupId: string) => {
-      if (!user || !activeVehicle) return;
-      void deleteDoc(
-        doc(db, "users", user.uid, "vehicles", activeVehicle.id, "fillups", fillupId),
-      ).catch(() => undefined);
+      if (!uid || !activeVehicle) return;
+      track(
+        "fillup.delete",
+        deleteDoc(
+          doc(db, "users", uid, "vehicles", activeVehicle.id, "fillups", fillupId),
+        ),
+      );
     },
-    [user, activeVehicle],
+    [uid, activeVehicle, track],
   );
 
   const restoreFillup = useCallback(
     async (fillup: Fillup) => {
-      if (!user || !activeVehicle) return;
+      if (!uid || !activeVehicle) return;
       const { id, createdAt, ...rest } = fillup;
-      void setDoc(
-        doc(db, "users", user.uid, "vehicles", activeVehicle.id, "fillups", id),
-        stripUndefined({
-          ...rest,
-          date: Timestamp.fromMillis(fillup.date),
-          createdAt: createdAt ? Timestamp.fromMillis(createdAt) : serverTimestamp(),
-        }),
-      ).catch(() => undefined);
+      track(
+        "fillup.restore",
+        setDoc(
+          doc(db, "users", uid, "vehicles", activeVehicle.id, "fillups", id),
+          stripUndefined({
+            ...rest,
+            date: Timestamp.fromMillis(fillup.date),
+            createdAt: createdAt ? Timestamp.fromMillis(createdAt) : serverTimestamp(),
+          }),
+        ),
+      );
     },
-    [user, activeVehicle],
+    [uid, activeVehicle, track],
   );
 
-  const deleteAccount = useCallback(async () => {
-    if (!user) return;
-    const vehiclesSnapshot = await getDocs(collection(db, "users", user.uid, "vehicles"));
+  /**
+   * Write an import batch.
+   *
+   * One WriteBatch per 400 documents — atomic per batch, and the receipt
+   * settles only when the SERVER has acknowledged every one of them, so the
+   * import report can distinguish "written" from "queued while offline".
+   */
+  const addFillupBatch = useCallback(
+    async (vehicleId: string, list: Omit<Fillup, "id" | "createdAt">[]) => {
+      if (!uid) throw new Error("not signed in");
 
-    for (const vehicleDoc of vehiclesSnapshot.docs) {
-      const fillupsSnapshot = await getDocs(collection(vehicleDoc.ref, "fillups"));
-      for (let i = 0; i < fillupsSnapshot.docs.length; i += 400) {
+      const path = collection(db, "users", uid, "vehicles", vehicleId, "fillups");
+      const commits: Promise<void>[] = [];
+
+      for (let i = 0; i < list.length; i += 400) {
         const batch = writeBatch(db);
-        fillupsSnapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
-        await batch.commit();
+        for (const fillup of list.slice(i, i + 400)) {
+          batch.set(
+            doc(path),
+            stripUndefined({
+              ...fillup,
+              date: Timestamp.fromMillis(fillup.date),
+              createdAt: serverTimestamp(),
+            }),
+          );
+        }
+        commits.push(batch.commit());
       }
-      await deleteDoc(vehicleDoc.ref);
+
+      const receipt = track("import.batch", Promise.all(commits));
+      return { written: list.length, receipt };
+    },
+    [uid, track],
+  );
+
+  /**
+   * Explicit account switch.
+   *
+   * Signing out is enough for correctness — the generation guard and the reset
+   * effect discard every trace of the outgoing account before the next one
+   * attaches. What this adds is honesty about unacknowledged writes: if the
+   * server has not confirmed something yet, the caller is told so it can warn
+   * rather than silently walking away from the queue.
+   *
+   * Firestore's persistent cache is deliberately NOT cleared. Every query is
+   * scoped to users/{uid}/..., so one account can never read another's cached
+   * documents, and keeping persistence is what makes the app work at the pump
+   * with no signal. The trade-off is recorded in docs/DATA-MIGRATION.md.
+   */
+  const switchAccount = useCallback(async () => {
+    const outstanding = trackerRef.current?.unacknowledged() ?? [];
+    if (outstanding.length > 0) {
+      // Give queued writes a brief chance to land before the session ends.
+      await Promise.race([
+        Promise.allSettled(outstanding.map(() => Promise.resolve())),
+        new Promise((resolve) => setTimeout(resolve, 1_500)),
+      ]);
+    }
+    await signOutUser();
+  }, [signOutUser]);
+
+  /**
+   * Delete the account and everything attached to it.
+   *
+   * Order matters. Firebase Auth requires a recent sign-in before it will
+   * delete a user, and discovering that AFTER wiping Firestore leaves someone
+   * with an empty account they cannot remove. So reauthentication is proved
+   * first, and only then is anything destroyed.
+   *
+   * The result is reported honestly: if a collection fails to clear, the
+   * caller is told which one rather than being shown a success message.
+   */
+  const deleteAccount = useCallback(async (): Promise<DeletionResult> => {
+    if (!user || !uid) return { ok: false, deleted: [], failed: ["no-session"] };
+
+    // 1. Prove we are allowed to delete the Auth user BEFORE touching data.
+    const reauth = await ensureRecentLogin(user);
+    if (!reauth.ok) {
+      return { ok: false, deleted: [], failed: [], needsReauth: true };
     }
 
-    await deleteDoc(doc(db, "users", user.uid));
-    clearCache(user.uid);
-    await user.delete();
-  }, [user]);
+    const deleted: string[] = [];
+    const failed: string[] = [];
+
+    const attempt = async (label: string, work: () => Promise<unknown>) => {
+      try {
+        await work();
+        deleted.push(label);
+      } catch {
+        failed.push(label);
+      }
+    };
+
+    // 2. Fill-ups and vehicles. Subcollections are not removed with a parent.
+    await attempt("vehicles", async () => {
+      const vehiclesSnapshot = await getDocs(collection(db, "users", uid, "vehicles"));
+      for (const vehicleDoc of vehiclesSnapshot.docs) {
+        const fillupsSnapshot = await getDocs(collection(vehicleDoc.ref, "fillups"));
+        for (let i = 0; i < fillupsSnapshot.docs.length; i += 400) {
+          const batch = writeBatch(db);
+          fillupsSnapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
+          await batch.commit();
+        }
+        await deleteDoc(vehicleDoc.ref);
+      }
+    });
+
+    // 3. Private community price reports.
+    await attempt("stationPriceReports", async () => {
+      const reports = await getDocs(collection(db, "users", uid, "stationPriceReports"));
+      for (let i = 0; i < reports.docs.length; i += 400) {
+        const batch = writeBatch(db);
+        reports.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
+        await batch.commit();
+      }
+    });
+
+    // 4. The published benchmark contribution — withdrawn, not orphaned.
+    await attempt("benchmark", () => deleteDoc(doc(db, "benchmarks", uid)));
+
+    // 5. The profile document itself.
+    await attempt("profile", () => deleteDoc(doc(db, "users", uid)));
+
+    // 6. Local caches.
+    clearCache(uid);
+
+    // 7. Finally the Auth user.
+    await attempt("auth", () => user.delete());
+
+    return { ok: failed.length === 0, deleted, failed };
+  }, [user, uid]);
 
   const value = useMemo<DataContextValue>(
     () => ({
@@ -490,6 +765,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loadingFillups,
       fromCache,
       offline,
+      writes,
+      dismissWriteFailure,
+      switchAccount,
       updateSettings,
       setActiveVehicle,
       addVehicle,
@@ -500,6 +778,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateFillup,
       deleteFillup,
       restoreFillup,
+      addFillupBatch,
       deleteAccount,
     }),
     [
@@ -513,6 +792,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loadingFillups,
       fromCache,
       offline,
+      writes,
+      dismissWriteFailure,
+      switchAccount,
       updateSettings,
       setActiveVehicle,
       addVehicle,
@@ -523,6 +805,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateFillup,
       deleteFillup,
       restoreFillup,
+      addFillupBatch,
       deleteAccount,
     ],
   );

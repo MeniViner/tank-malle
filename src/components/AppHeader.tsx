@@ -3,7 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
 import { vehicleLabel } from "../lib/format";
-import { CarIcon, ChevronDown, CheckIcon, CloudOffIcon, PlusIcon } from "./icons";
+import {
+  CarIcon,
+  ChevronDown,
+  CheckIcon,
+  CloudOffIcon,
+  PlusIcon,
+  WarningIcon,
+} from "./icons";
 import { Sheet } from "./Sheet";
 import { Num } from "./Num";
 import { Avatar } from "./Avatar";
@@ -15,7 +22,7 @@ import { Avatar } from "./Avatar";
 export function AppHeader() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeVehicle, activeVehicles, setActiveVehicle, offline } = useData();
+  const { activeVehicle, activeVehicles, setActiveVehicle, offline, writes } = useData();
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   return (
@@ -57,7 +64,27 @@ export function AppHeader() {
       )}
 
       <div className="flex items-center gap-2">
-        {offline ? (
+        {/* Four distinct states, never conflated: a permanent rejection is not
+            the same thing as a queued write, and neither is "no connection". */}
+        {writes.failed.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => navigate("/settings")}
+            className="flex h-9 items-center gap-1.5 rounded-pill bg-danger-soft px-2.5 text-[12px] font-semibold text-danger-ink"
+            title={writes.failed[0].error ?? "הסנכרון נכשל"}
+          >
+            <WarningIcon size={15} />
+            הסנכרון נכשל
+          </button>
+        ) : writes.syncing ? (
+          <span
+            className="flex h-9 items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 text-[12px] font-semibold text-muted"
+            title={offline ? "אין חיבור — יסונכרן כשיחזור" : "ממתין לאישור מהשרת"}
+          >
+            <CloudOffIcon size={15} />
+            {offline ? "נשמר במכשיר" : "ממתין לסנכרון"}
+          </span>
+        ) : offline ? (
           <span
             className="flex size-9 items-center justify-center rounded-full bg-warning-soft text-warning-ink"
             title="אין חיבור — הנתונים יסתנכרנו אוטומטית"
