@@ -165,6 +165,16 @@ function subscribeResilient<T>(
   };
 }
 
+/**
+ * Monotonic session counter.
+ *
+ * Module-scoped rather than a compound assignment on the ref, which the React
+ * lint rule reads as an unsafe mutation. The value only ever moves forward, so
+ * a stale callback comparing against it can always tell that its session has
+ * ended.
+ */
+let sessionCounter = 0;
+
 /** Outcome of an account deletion. */
 export interface DeletionResult {
   ok: boolean;
@@ -244,12 +254,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
 
-  /** Is this the account the app is currently showing? */
-  const isCurrent = useCallback(
-    (generation: number) => () => generation === generationRef.current,
-    [],
-  );
-
   /**
    * User generation.
    *
@@ -264,6 +268,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const generationRef = useRef(0);
   const trackerRef = useRef<WriteTracker | null>(null);
 
+  /** Is this still the account the app is showing? */
+  const isCurrent = useCallback(
+    (generation: number) => () => generation === generationRef.current,
+    [],
+  );
+
   useEffect(() => {
     pruneOldCaches();
   }, []);
@@ -276,7 +286,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * account's first render.
    */
   useEffect(() => {
-    generationRef.current += 1;
+    sessionCounter += 1;
+    // oxlint-disable-next-line react/immutability -- Assigning to a ref inside
+    // an effect is the documented React pattern for a value that async
+    // callbacks must be able to compare against without re-subscribing. State
+    // would be captured stale by exactly the callbacks this guards.
+    generationRef.current = sessionCounter;
 
     trackerRef.current?.dispose();
     const tracker = new WriteTracker();

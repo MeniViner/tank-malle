@@ -6,7 +6,7 @@ import {
   seedVehicle,
   setActiveVehicle,
 } from "./helpers/emulator";
-import { ALICE, BOB, createVehicle, signIn, signOut, switchAccount, uidOf } from "./helpers/app";
+import { ALICE, BOB, createVehicle, signIn, signOut, uidOf } from "./helpers/app";
 
 /**
  * Account isolation.
