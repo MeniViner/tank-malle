@@ -55,8 +55,13 @@ export default defineConfig({
       // no global firebase-tools and in CI.
       command:
         "npx --no-install firebase emulators:start --only auth,firestore --project demo-tankmaleh",
-      // The emulator hub answers once both emulators are listening.
-      url: "http://127.0.0.1:4400/emulators",
+      // The FIRESTORE emulator's own root, not the hub's. The hub answered
+      // reliably locally but never did on the CI runner, hanging the whole
+      // job for the full timeout while the emulators themselves were up and
+      // logging "All emulators ready". Probing the service the tests actually
+      // need removes a moving part; e2e/global-setup.ts then waits for Auth
+      // as well before any test runs.
+      url: "http://127.0.0.1:8080/",
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
       stdout: "pipe",
