@@ -10,8 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "emulators": "firebase emulators:start --only auth,firestore",
-    "test:rules": "firebase emulators:exec --only firestore --project tank-maleh-rules-test \"vitest run --config vitest.rules.config.ts\"",
+    "emulators": "npx --no-install firebase emulators:start --only auth,firestore",
+    "test:rules": "npx --no-install firebase emulators:exec --only firestore --project tank-maleh-rules-test \"vitest run --config vitest.rules.config.ts\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },
@@ -31,6 +31,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.1.0",
     "firebase-admin": "^14.3.0",
+    "firebase-tools": "^15.28.2",
     "oxlint": "^1.79.0",
     "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",

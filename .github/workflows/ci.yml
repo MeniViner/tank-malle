@@ -75,17 +75,25 @@ jobs:
           npm ci --prefix functions
           npm run build --prefix functions
 
-      - name: Import fixtures are reproducible
+      - name: Import fixtures still match their generators
         # A fixture edited by hand instead of regenerated would silently drift
-        # from the generator that documents it.
+        # from the script that documents what it tests.
+        #
+        # Checked by REGENERATING and re-running the suites against the result,
+        # not by comparing bytes: DEFLATE output is not stable across zlib
+        # versions, so a byte comparison would fail on any runner whose zlib
+        # differs from the committer's — a false alarm about a real property
+        # nobody actually needs. The CSV fixture is plain text and IS compared.
         run: |
           node scripts/makeImportFixtures.mjs
           node scripts/makeXlsxFixtures.mjs
-          if ! git diff --quiet -- src/lib/import/__fixtures__; then
-            echo "::error::fixtures differ from their generators — run the scripts and commit"
-            git diff --stat -- src/lib/import/__fixtures__
+          if ! git diff --quiet -- src/lib/import/__fixtures__/legacy-fuel-tracker.csv; then
+            echo "::error::the CSV fixture differs from its generator — re-run the script and commit"
+            git diff -- src/lib/import/__fixtures__/legacy-fuel-tracker.csv
             exit 1
           fi
+          npx vitest run src/lib/import src/lib/csv.test.ts
+          git checkout -- src/lib/import/__fixtures__
 
   # ---------------------------------------------------------------------------
   # Firestore Rules, against the emulator.

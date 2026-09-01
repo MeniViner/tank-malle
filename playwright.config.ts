@@ -51,8 +51,10 @@ export default defineConfig({
 
   webServer: [
     {
+      // The locally installed CLI, so this behaves the same on a machine with
+      // no global firebase-tools and in CI.
       command:
-        "firebase emulators:start --only auth,firestore --project demo-tankmaleh",
+        "npx --no-install firebase emulators:start --only auth,firestore --project demo-tankmaleh",
       // The emulator hub answers once both emulators are listening.
       url: "http://127.0.0.1:4400/emulators",
       reuseExistingServer: !process.env.CI,
