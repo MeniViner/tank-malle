@@ -78,6 +78,8 @@ export function ImportData() {
         ]);
 
         let table: unknown[][];
+        // Which cells were computed rather than typed; XLSX only.
+        let formulaCells: boolean[][] = [];
 
         if (/\.xlsx?$/i.test(file.name)) {
           const { readWorkbook, canReadZip, UnsupportedArchiveError } = await import(
@@ -93,6 +95,7 @@ export function ImportData() {
           try {
             const sheet = await readWorkbook(await file.arrayBuffer());
             table = sheet.rows;
+            formulaCells = sheet.formulas;
           } catch (caught) {
             if (caught instanceof UnsupportedArchiveError) {
               setError("לא הצלחנו לקרוא את הקובץ. שמרו אותו כ־CSV ונסו שוב.");
@@ -106,7 +109,7 @@ export function ImportData() {
           table = parseCsv(await file.text());
         }
 
-        const parsed = parseRows(table);
+        const parsed = parseRows(table, formulaCells);
         const nextPlan = planImport(
           parsed,
           vehicleId,

@@ -165,3 +165,72 @@ future option to purge the cache on sign-out would be a small addition.
   is not deleted until replacement data is verified.
 - **No fill-up is ever rewritten by the client during normal startup.** Reads
   normalise in memory; the only writer is this script, run deliberately.
+
+---
+
+## 6. The XLSX reader
+
+The reader is hand-written (`src/lib/import/xlsx.ts` + `zip.ts`, ~350 lines) on
+the platform's `DecompressionStream`.
+
+### Why not a library
+
+| Option | Bundle | Licence | Maintenance | Verdict |
+| --- | --- | --- | --- | --- |
+| SheetJS `xlsx` on npm | ~400 kB min | Apache-2.0 | The npm package is a stale fork; the project moved distribution to its own CDN | Rejected — the registry copy is not the maintained one |
+| `exceljs` | ~900 kB min | MIT | Maintained, but aimed at writing as much as reading | Rejected on size for a read-only path |
+| `read-excel-file` | ~90 kB min | MIT | Maintained | Viable, and the fallback if the hand-written reader proves inadequate |
+| Hand-written on `DecompressionStream` | ~4 kB | n/a | Ours | Chosen |
+
+The whole import pipeline is dynamically imported and comes to about 9 kB, of
+which the XLSX reader is 4 kB. It is read-only, so the attack surface is
+parsing untrusted XML — which is why it uses bounded regular expressions over a
+known-regular machine-written format rather than an XML DOM, and never
+evaluates anything.
+
+**This choice is only defensible if the reader is demonstrably robust**, so it
+is tested against generated fixtures covering the structural variants real
+tools produce (`scripts/makeXlsxFixtures.mjs`, 20 tests):
+
+- Excel-shaped: `sharedStrings.xml`, a `styles.xml` with custom `numFmt`
+  entries, date and time cells stored as styled numeric serials, and cells
+  omitted entirely when empty.
+- Google-Sheets-shaped: inline strings, no `sharedStrings` part at all, dates
+  and numbers as text, and trailing rows of empty `<v></v>` cells.
+- Multiple worksheets, with the data on the second one.
+- Hebrew strings, RLM/LRM bidi marks, non-breaking and narrow non-breaking
+  spaces, currency symbols, embedded units, comma thousands separators and a
+  decimal comma.
+- Formulas with cached values, including an odometer computed by one and a
+  cell whose formula evaluated to `#DIV/0!`.
+
+Those fixtures found four real bugs, all now fixed:
+
+1. A styled date or time cell reaches the normaliser as a `Date`, which
+   `parseDate` and `parseTime` did not accept — so every Excel-native date
+   failed to parse.
+2. An empty `<v></v>` was read as the number **zero** rather than as an empty
+   cell, so a trailing empty row from Google Sheets was rejected as invalid
+   instead of skipped.
+3. The legacy `-` placeholder became a station literally named `-`.
+4. Row-level warnings were never aggregated, so the preview could not show
+   them.
+
+### Formulas
+
+A cached formula result is the only value a reader can see, and it is usually
+right — but it is not something the user typed, and a workbook edited without
+recalculation carries a stale one. Refusing such files outright would reject
+legitimate spreadsheets where someone computed the litres column.
+
+So the reader records which cells were formulas, and the importer imports the
+value **and warns** which raw inputs were computed rather than entered. A
+formula that evaluated to an error yields no value at all, and the row is
+rejected with a reason.
+
+### Runtime support
+
+`DecompressionStream('deflate-raw')` — Chrome 80+, Edge 80+, Firefox 113+,
+Safari 16.4+, Node 18+. `canReadZip()` checks for it, and the import screen
+tells the user to export CSV instead when it is missing, rather than failing
+opaquely. CSV import has no such requirement and works everywhere.

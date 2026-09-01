@@ -69,7 +69,7 @@ export function planImport(
     duplicates,
     rejected: parsed.rejected,
     assumptions: parsed.assumptions,
-    warnings: parsed.rows.flatMap((row) => row.warnings),
+    warnings: parsed.warnings,
     dateRange:
       dates.length > 0 ? { from: Math.min(...dates), to: Math.max(...dates) } : null,
     breakCount: parsed.breakCount,

@@ -53,6 +53,8 @@ export interface ParseResult {
    */
   vehicleLabels: string[];
   breakCount: number;
+  /** Every row-level warning, flattened, so the preview can show them all. */
+  warnings: string[];
 }
 
 const FUEL_ALIASES: { test: RegExp; type: FuelType }[] = [
@@ -88,7 +90,19 @@ function cell(row: unknown[], index: number | undefined): unknown {
  * A row that cannot produce a valid record is rejected with a reason rather
  * than silently dropped or half-imported.
  */
-export function parseRows(table: unknown[][]): ParseResult {
+export function parseRows(
+  table: unknown[][],
+  /**
+   * Which cells came from a formula, when the source can tell us (XLSX).
+   *
+   * A cached formula result is the only value available and is usually right,
+   * but it is not something the user typed: a workbook edited without
+   * recalculation carries a stale one. Raw inputs computed this way are
+   * imported AND flagged, so the preview can say so rather than the importer
+   * either refusing a legitimate file or passing the value off as entered.
+   */
+  formulaCells: boolean[][] = [],
+): ParseResult {
   const rejected: RejectedRow[] = [];
   const rows: ImportedRow[] = [];
   const assumptions: string[] = [];
@@ -112,6 +126,7 @@ export function parseRows(table: unknown[][]): ParseResult {
       assumptions: [],
       vehicleLabels: [],
       breakCount: 0,
+      warnings: [],
     };
   }
 
@@ -160,10 +175,11 @@ export function parseRows(table: unknown[][]): ParseResult {
       continue;
     }
 
+    const warnings: string[] = [];
+
     // Price and total are mutually derivable; require at least one.
     let pricePerLiter = parsePositive(cell(raw, columns.pricePerLiter));
     let totalCost = parseNumber(cell(raw, columns.totalCost));
-    const warnings: string[] = [];
 
     if (pricePerLiter === null && totalCost !== null && totalCost > 0) {
       pricePerLiter = totalCost / liters;
@@ -174,6 +190,26 @@ export function parseRows(table: unknown[][]): ParseResult {
     if (pricePerLiter === null || totalCost === null) {
       rejected.push({ rowNumber, reason: "אין מחיר לליטר ואין מחיר כולל" });
       continue;
+    }
+
+    // Raw inputs computed by a formula are usable but not typed; say so.
+    const formulaRow = formulaCells[i] ?? [];
+    const formulaFields = (
+      [
+        ["קילומטראז׳", columns.odometer],
+        ["כמות דלק", columns.liters],
+        ["מחיר כולל", columns.totalCost],
+        ["מחיר לליטר", columns.pricePerLiter],
+      ] as const
+    )
+      .filter(([, index]) => index !== undefined && formulaRow[index] === true)
+      .map(([label]) => label);
+
+    if (formulaFields.length > 0) {
+      warnings.push(
+        `שורה ${rowNumber}: ${formulaFields.join(", ")} חושבו בנוסחה בגיליון ולא הוקלדו — ` +
+          `ודאו שהערך מעודכן`,
+      );
     }
 
     // Pump rounding makes an exact match unrealistic; flag only real conflicts.
@@ -194,12 +230,15 @@ export function parseRows(table: unknown[][]): ParseResult {
 
     const declaredFull = parseBoolean(cell(raw, columns.isFullTank));
 
-    const stationName = cleanText(cell(raw, columns.station));
+    // "-" is the legacy placeholder for "no value"; it is not a station name.
+    const stationCell = cell(raw, columns.station);
+    const stationName = isEmptyCell(stationCell) ? "" : cleanText(stationCell);
     const lat = parseNumber(cell(raw, columns.latitude));
     const lng = parseNumber(cell(raw, columns.longitude));
     const stationId = cleanText(cell(raw, columns.stationId));
 
-    const notes = cleanText(cell(raw, columns.notes));
+    const notesCell = cell(raw, columns.notes);
+    const notes = isEmptyCell(notesCell) ? "" : cleanText(notesCell);
 
     rows.push({
       rowNumber,
@@ -233,6 +272,7 @@ export function parseRows(table: unknown[][]): ParseResult {
     assumptions,
     vehicleLabels: [...vehicleLabels],
     breakCount: rows.filter((row) => row.continuityBreakBefore).length,
+    warnings: rows.flatMap((row) => row.warnings),
   };
 }
 

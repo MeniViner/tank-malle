@@ -11,10 +11,22 @@ import { canReadZip, openZip, readZipText, UnsupportedArchiveError } from "./zip
 
 export { UnsupportedArchiveError, canReadZip };
 
+export type Cell = string | number | boolean | Date | null;
+
 export interface Sheet {
   name: string;
   /** Rows of primitive cells. Dates arrive as Date, numbers as number. */
-  rows: (string | number | boolean | Date | null)[][];
+  rows: Cell[][];
+  /**
+   * Which cells were produced by a FORMULA rather than typed.
+   *
+   * A cached formula result is the only value a reader can see, and it is
+   * usually right — but it is not something the user entered, and a stale
+   * cache or a workbook edited without recalculation can make it wrong. The
+   * importer surfaces this in the preview rather than either refusing the file
+   * or pretending the value is raw input.
+   */
+  formulas: boolean[][];
 }
 
 /* --- tiny XML helpers. The files here are machine-written and regular, so a
@@ -93,12 +105,14 @@ function parseSheet(
   xml: string,
   shared: string[],
   dateStyles: Set<number>,
-): Sheet["rows"] {
-  const rows: Sheet["rows"] = [];
+): { rows: Cell[][]; formulas: boolean[][] } {
+  const rows: Cell[][] = [];
+  const formulas: boolean[][] = [];
 
   for (const rowMatch of xml.matchAll(/<row[^>]*\br="(\d+)"[^>]*>([\s\S]*?)<\/row>/g)) {
     const rowIndex = Number(rowMatch[1]) - 1;
-    const cells: Sheet["rows"][number] = [];
+    const cells: Cell[] = [];
+    const cellFormulas: boolean[] = [];
 
     for (const cellMatch of rowMatch[2].matchAll(
       /<c\s([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g,
@@ -111,7 +125,8 @@ function parseSheet(
       const index = reference ? columnIndex(reference) : cells.length;
 
       const rawValue = body.match(/<v>([\s\S]*?)<\/v>/)?.[1];
-      let value: string | number | boolean | Date | null = null;
+      const isFormula = /<f[\s>]/.test(body);
+      let value: Cell = null;
 
       if (type === "s") {
         const at = Number(rawValue);
@@ -126,7 +141,9 @@ function parseSheet(
         value = null;
       } else if (type === "d") {
         value = rawValue ? new Date(rawValue) : null;
-      } else if (rawValue !== undefined) {
+      } else if (rawValue !== undefined && rawValue.trim() !== "") {
+        // An empty <v></v> is an empty cell, not the number zero. Google
+        // Sheets emits those for trailing columns.
         const numeric = Number(rawValue);
         value = Number.isFinite(numeric)
           ? dateStyles.has(style)
@@ -135,15 +152,23 @@ function parseSheet(
           : null;
       }
 
-      while (cells.length < index) cells.push(null);
+      while (cells.length < index) {
+        cells.push(null);
+        cellFormulas.push(false);
+      }
       cells[index] = value;
+      cellFormulas[index] = isFormula;
     }
 
-    while (rows.length < rowIndex) rows.push([]);
+    while (rows.length < rowIndex) {
+      rows.push([]);
+      formulas.push([]);
+    }
     rows[rowIndex] = cells;
+    formulas[rowIndex] = cellFormulas;
   }
 
-  return rows;
+  return { rows, formulas };
 }
 
 /**
@@ -191,7 +216,8 @@ export async function readWorkbook(
   );
   const dateStyles = parseDateStyles(await readZipText(buffer, entries, "xl/styles.xml"));
 
-  return { name, rows: parseSheet(sheetXml, shared, dateStyles) };
+  const { rows, formulas } = parseSheet(sheetXml, shared, dateStyles);
+  return { name, rows, formulas };
 }
 
 /** Every sheet name, for the picker when a workbook has more than one. */

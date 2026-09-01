@@ -58,6 +58,7 @@ const EMPTY_TOKENS = new Set(["", "-", "–", "—", "‒", "n/a", "na", "null",
  */
 export function cleanText(raw: unknown): string {
   if (raw === null || raw === undefined) return "";
+  if (raw instanceof Date) return raw.toISOString();
   return String(raw)
     .replace(BIDI_MARKS, "")
     .replace(ODD_SPACES, " ")
@@ -164,6 +165,13 @@ export function excelSerialToDate(serial: number): Date | null {
 
 /** { hours, minutes } from "15:45", "15:45:30", "9:5" or an Excel day fraction. */
 export function parseTime(raw: unknown): { hours: number; minutes: number } | null {
+  // An XLSX time cell reaches us already converted to a Date by the reader,
+  // because the cell carries a time number format.
+  if (raw instanceof Date) {
+    return Number.isNaN(raw.getTime())
+      ? null
+      : { hours: raw.getHours(), minutes: raw.getMinutes() };
+  }
   if (isEmptyCell(raw)) return null;
 
   // A bare fraction of a day, which is how Excel stores a time-only cell.
@@ -192,6 +200,9 @@ export function parseTime(raw: unknown): { hours: number; minutes: number } | nu
  * unambiguously a year (four digits) that reading wins instead.
  */
 export function parseDate(raw: unknown): Date | null {
+  // Likewise a date cell: the reader resolved the serial against the workbook's
+  // number formats, which it is in a better position to do than we are.
+  if (raw instanceof Date) return Number.isNaN(raw.getTime()) ? null : new Date(raw);
   if (isEmptyCell(raw)) return null;
 
   if (typeof raw === "number") return excelSerialToDate(raw);
@@ -255,12 +266,9 @@ export function combineDateTime(dateCell: unknown, timeCell: unknown): Date | nu
   const date = parseDate(dateCell);
   if (!date) return null;
 
+  // A separate time column wins. Without one, whatever the date parser found
+  // stands: midnight for a bare date, the embedded time otherwise.
   const time = parseTime(timeCell);
-  if (time) {
-    date.setHours(time.hours, time.minutes, 0, 0);
-  } else if (typeof dateCell !== "number") {
-    // A date-only string with no time column: leave whatever the date parser
-    // found (midnight for a bare date, the embedded time otherwise).
-  }
+  if (time) date.setHours(time.hours, time.minutes, 0, 0);
   return date;
 }
