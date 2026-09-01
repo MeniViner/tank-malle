@@ -26,6 +26,20 @@ service cloud.firestore {
         && value < 9999999999;
     }
 
+    // Epoch milliseconds do not fit isNumber's bound — 1.7e12 is far above the
+    // 1e10 ceiling that keeps odometers and prices sane. Timestamps get their
+    // own predicate rather than a loosened shared one.
+    function isEpochMillis(value) {
+      return value is number
+        && !math.isNaN(value)
+        && value > 0
+        && value < 4102444800000;  // 2100-01-01
+    }
+
+    function optionalEpochMillis(data, field) {
+      return !(field in data) || data[field] == null || isEpochMillis(data[field]);
+    }
+
     function isString(value, maxLength) {
       return value is string && value.size() <= maxLength;
     }
@@ -148,9 +162,9 @@ service cloud.firestore {
         && (!('settings' in request.resource.data) || request.resource.data.settings is map)
         // Login stamps, rotated once per authentication event. Numbers only,
         // so a client cannot stash arbitrary structures on the profile.
-        && optionalNumber(request.resource.data, 'previousLoginAt')
-        && optionalNumber(request.resource.data, 'currentLoginAt')
-        && optionalNumber(request.resource.data, 'lastProcessedAuthTime');
+        && optionalEpochMillis(request.resource.data, 'previousLoginAt')
+        && optionalEpochMillis(request.resource.data, 'currentLoginAt')
+        && optionalEpochMillis(request.resource.data, 'lastProcessedAuthTime');
       allow delete: if isOwner(uid);
 
       /**

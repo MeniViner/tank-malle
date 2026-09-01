@@ -1,0 +1,513 @@
+import { readFileSync } from "node:fs";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  assertFails,
+  assertSucceeds,
+  initializeTestEnvironment,
+  type RulesTestEnvironment,
+} from "@firebase/rules-unit-testing";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  Timestamp,
+} from "firebase/firestore";
+
+/**
+ * Firestore Rules, exercised against the emulator.
+ *
+ * These are the security tests. They assert both directions for every path:
+ * what the owner may do, and what everyone else — another signed-in user, an
+ * admin, an unauthenticated client — must not.
+ *
+ * Run with:  npm run test:rules   (needs Java and the Firebase CLI)
+ */
+
+const PROJECT_ID = "tank-maleh-rules-test";
+
+let testEnv: RulesTestEnvironment;
+
+beforeAll(async () => {
+  testEnv = await initializeTestEnvironment({
+    projectId: PROJECT_ID,
+    firestore: {
+      rules: readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8"),
+      host: "127.0.0.1",
+      port: 8080,
+    },
+  });
+}, 60_000);
+
+afterAll(async () => {
+  await testEnv?.cleanup();
+});
+
+beforeEach(async () => {
+  await testEnv.clearFirestore();
+});
+
+const ALICE = "alice";
+const BOB = "bob";
+
+const alice = () => testEnv.authenticatedContext(ALICE).firestore();
+const bob = () => testEnv.authenticatedContext(BOB).firestore();
+const admin = () =>
+  testEnv.authenticatedContext("root", { admin: true }).firestore();
+const anon = () => testEnv.unauthenticatedContext().firestore();
+
+/** A fill-up whose totalCost reconciles with liters x price. */
+function fillup(over: Record<string, unknown> = {}) {
+  return {
+    date: Timestamp.fromMillis(Date.UTC(2026, 0, 5, 8, 0)),
+    odometer: 100_000,
+    liters: 40,
+    pricePerLiter: 7.31,
+    totalCost: 292.4,
+    isFullTank: true,
+    ...over,
+  };
+}
+
+function vehicle(over: Record<string, unknown> = {}) {
+  return {
+    make: "מאזדה",
+    model: "3",
+    fuelType: "95",
+    archived: false,
+    priceAdjustment: 0,
+    ...over,
+  };
+}
+
+const fillupRef = (db: ReturnType<typeof alice>, uid = ALICE, id = "f1") =>
+  doc(db, "users", uid, "vehicles", "v1", "fillups", id);
+
+/* ------------------------------------------------------------------ *
+ * Ownership
+ * ------------------------------------------------------------------ */
+
+describe("user documents", () => {
+  it("lets the owner create and read their profile", async () => {
+    const ref = doc(alice(), "users", ALICE);
+    await assertSucceeds(setDoc(ref, { settings: { units: "kmPerLiter" } }));
+    await assertSucceeds(getDoc(ref));
+  });
+
+  it("refuses another signed-in user", async () => {
+    await assertFails(setDoc(doc(bob(), "users", ALICE), { settings: {} }));
+    await assertFails(getDoc(doc(bob(), "users", ALICE)));
+  });
+
+  it("refuses an unauthenticated client", async () => {
+    await assertFails(getDoc(doc(anon(), "users", ALICE)));
+    await assertFails(setDoc(doc(anon(), "users", ALICE), { settings: {} }));
+  });
+
+  it("lets an admin read but never write", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "users", ALICE), { settings: {} });
+    });
+    await assertSucceeds(getDoc(doc(admin(), "users", ALICE)));
+    await assertFails(setDoc(doc(admin(), "users", ALICE), { settings: {} }));
+  });
+
+  it("accepts the login stamps as numbers", async () => {
+    await assertSucceeds(
+      setDoc(doc(alice(), "users", ALICE), {
+        settings: {},
+        previousLoginAt: 1_700_000_000_000,
+        currentLoginAt: 1_700_000_100_000,
+        lastProcessedAuthTime: 1_700_000_100_000,
+      }),
+    );
+  });
+
+  it("rejects a login stamp that is not a number", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "users", ALICE), {
+        settings: {},
+        currentLoginAt: { nested: "map" },
+      }),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "users", ALICE), { settings: {}, currentLoginAt: "now" }),
+    );
+  });
+
+  it("accepts a null previous login — the first ever sign-in", async () => {
+    await assertSucceeds(
+      setDoc(doc(alice(), "users", ALICE), {
+        settings: {},
+        previousLoginAt: null,
+        currentLoginAt: 1_700_000_100_000,
+        lastProcessedAuthTime: 1_700_000_100_000,
+      }),
+    );
+  });
+
+  it("rejects a login stamp outside any believable era", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "users", ALICE), { settings: {}, currentLoginAt: -1 }),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "users", ALICE), {
+        settings: {},
+        currentLoginAt: 99_999_999_999_999,
+      }),
+    );
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Fill-ups
+ * ------------------------------------------------------------------ */
+
+describe("fill-ups", () => {
+  it("accepts a well-formed record from its owner", async () => {
+    await assertSucceeds(setDoc(fillupRef(alice()), fillup()));
+  });
+
+  it("refuses another user's record", async () => {
+    await assertFails(setDoc(fillupRef(bob(), ALICE), fillup()));
+    await assertFails(getDoc(fillupRef(bob(), ALICE)));
+  });
+
+  it("accepts the new optional fields", async () => {
+    await assertSucceeds(
+      setDoc(
+        fillupRef(alice()),
+        fillup({
+          continuityBreakBefore: true,
+          fullTankSource: "legacy-assumption",
+          postedPricePerLiter: 7.5,
+          fuelType: "diesel",
+          importSource: "legacy-fuel-tracker",
+          importBatchId: "imp_abc",
+          importRowHash: "0123456789abcdef",
+          schemaVersion: 2,
+          notes: "מלא",
+        }),
+      ),
+    );
+  });
+
+  it("accepts a record with no optional fields at all — pre-upgrade shape", async () => {
+    await assertSucceeds(
+      setDoc(doc(alice(), "users", ALICE, "vehicles", "v1", "fillups", "old"), {
+        date: Timestamp.fromMillis(Date.UTC(2025, 0, 5)),
+        odometer: 90_000,
+        liters: 30,
+        pricePerLiter: 7,
+        totalCost: 210,
+        isFullTank: false,
+      }),
+    );
+  });
+
+  it("rejects an unrecognised field", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ somethingElse: "x" })));
+  });
+
+  it("rejects an arbitrary nested map smuggled into the station", async () => {
+    await assertFails(
+      setDoc(fillupRef(alice()), fillup({ station: { name: "פז", tracking: { a: 1 } } })),
+    );
+  });
+
+  it("accepts a well-formed station reference", async () => {
+    await assertSucceeds(
+      setDoc(
+        fillupRef(alice()),
+        fillup({
+          station: { name: "פז חגור", lat: 32.1, lng: 34.9, stationId: "st-42", brand: "פז" },
+        }),
+      ),
+    );
+  });
+
+  it("rejects a non-positive odometer or liters", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ odometer: 0 })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ liters: 0 })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ odometer: -5 })));
+  });
+
+  it("rejects a date that is not a timestamp", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ date: 1_700_000_000_000 })));
+  });
+
+  it("rejects a non-boolean full-tank flag", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ isFullTank: "yes" })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ continuityBreakBefore: 1 })));
+  });
+
+  it("rejects a total that cannot be reconciled with liters and price", async () => {
+    // 40 L at 7.31 is about 292; 900 is not a rounding difference.
+    await assertFails(setDoc(fillupRef(alice()), fillup({ totalCost: 900 })));
+  });
+
+  it("allows pump rounding and a small manual edit", async () => {
+    await assertSucceeds(setDoc(fillupRef(alice()), fillup({ totalCost: 292.0 })));
+    await assertSucceeds(setDoc(fillupRef(alice()), fillup({ totalCost: 295.0 })));
+  });
+
+  it("rejects an implausible price or an over-long note", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ pricePerLiter: 500, totalCost: 20000 })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ notes: "x".repeat(501) })));
+  });
+
+  it("rejects an invalid fuel type", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ fuelType: "kerosene" })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ fullTankSource: "invented" })));
+  });
+
+  it("lets an admin read but not write a fill-up", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(fillupRef(context.firestore() as never), fillup());
+    });
+    await assertSucceeds(getDoc(fillupRef(admin())));
+    await assertFails(setDoc(fillupRef(admin()), fillup({ odometer: 1 })));
+  });
+
+  it("lets the owner delete their own record", async () => {
+    await setDoc(fillupRef(alice()), fillup());
+    await assertSucceeds(deleteDoc(fillupRef(alice())));
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Vehicles
+ * ------------------------------------------------------------------ */
+
+describe("vehicles", () => {
+  const ref = (db: ReturnType<typeof alice>, uid = ALICE) =>
+    doc(db, "users", uid, "vehicles", "v1");
+
+  it("accepts a well-formed vehicle", async () => {
+    await assertSucceeds(setDoc(ref(alice()), vehicle()));
+  });
+
+  it("preserves the legacy price fields during migration", async () => {
+    await assertSucceeds(
+      setDoc(ref(alice()), vehicle({ priceAdjustment: -0.05, manualPricePerLiter: 6.8 })),
+    );
+  });
+
+  it("rejects an invalid fuel type and an over-long make", async () => {
+    await assertFails(setDoc(ref(alice()), vehicle({ fuelType: "steam" })));
+    await assertFails(setDoc(ref(alice()), vehicle({ make: "x".repeat(61) })));
+  });
+
+  it("rejects a nonsensical tank size", async () => {
+    await assertFails(setDoc(ref(alice()), vehicle({ tankLiters: -1 })));
+  });
+
+  it("refuses another user entirely", async () => {
+    await assertFails(setDoc(ref(bob(), ALICE), vehicle()));
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Community price reports — private by construction
+ * ------------------------------------------------------------------ */
+
+describe("station price reports", () => {
+  const report = (over: Record<string, unknown> = {}) => ({
+    stationId: "st-42",
+    fuelType: "95",
+    serviceMode: "self",
+    postedPrice: 7.18,
+    observedAt: Timestamp.fromMillis(Date.UTC(2026, 7, 20)),
+    ...over,
+  });
+
+  const ref = (db: ReturnType<typeof alice>, uid = ALICE, id = "r1") =>
+    doc(db, "users", uid, "stationPriceReports", id);
+
+  it("lets the owner file and read their own report", async () => {
+    await assertSucceeds(setDoc(ref(alice()), report()));
+    await assertSucceeds(getDoc(ref(alice())));
+  });
+
+  it("is NOT readable by another signed-in user", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), "users", ALICE, "stationPriceReports", "r1"),
+        report(),
+      );
+    });
+    await assertFails(getDoc(ref(bob(), ALICE)));
+    await assertFails(getDocs(collection(bob(), "users", ALICE, "stationPriceReports")));
+  });
+
+  it("is not readable by an admin either", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), "users", ALICE, "stationPriceReports", "r1"),
+        report(),
+      );
+    });
+    await assertFails(getDoc(ref(admin(), ALICE)));
+  });
+
+  it("cannot be revised after the fact", async () => {
+    await setDoc(ref(alice()), report());
+    await assertFails(updateDoc(ref(alice()), { postedPrice: 1 }));
+  });
+
+  it("rejects a price outside the plausible band", async () => {
+    await assertFails(setDoc(ref(alice()), report({ postedPrice: 0.5 })));
+    await assertFails(setDoc(ref(alice()), report({ postedPrice: 99 })));
+  });
+
+  it("rejects an unknown field or an invalid fuel type", async () => {
+    await assertFails(setDoc(ref(alice()), report({ reporterName: "אליס" })));
+    await assertFails(setDoc(ref(alice()), report({ fuelType: "kerosene" })));
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Public aggregates — read-only to every client
+ * ------------------------------------------------------------------ */
+
+describe("station price aggregates", () => {
+  const id = "st-42_95_self";
+
+  it("is readable by any signed-in user", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "stationPriceAggregates", id), {
+        medianPrice: 7.18,
+        uniqueReporters: 5,
+      });
+    });
+    await assertSucceeds(getDoc(doc(alice(), "stationPriceAggregates", id)));
+  });
+
+  it("cannot be written by a client — confidence and counts are unforgeable", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "stationPriceAggregates", id), {
+        medianPrice: 0.01,
+        uniqueReporters: 9999,
+      }),
+    );
+    await assertFails(
+      setDoc(doc(admin(), "stationPriceAggregates", id), { medianPrice: 1 }),
+    );
+  });
+
+  it("is not readable by an unauthenticated client", async () => {
+    await assertFails(getDoc(doc(anon(), "stationPriceAggregates", id)));
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Benchmarks — per vehicle, owner-writable only
+ * ------------------------------------------------------------------ */
+
+describe("benchmarks", () => {
+  const summary = (over: Record<string, unknown> = {}) => ({
+    vehicleId: "v1",
+    modelKey: "מאזדה 3",
+    fuelType: "95",
+    year: 2018,
+    avgKmPerLiter: 14.2,
+    segments: 6,
+    avgPricePerLiter: 7.2,
+    ...over,
+  });
+
+  it("lets a user write their own per-vehicle document", async () => {
+    await assertSucceeds(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v1`), summary()),
+    );
+    await assertSucceeds(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v2`), summary({ vehicleId: "v2" })),
+    );
+  });
+
+  it("still accepts the pre-upgrade uid-only document", async () => {
+    await assertSucceeds(setDoc(doc(alice(), "benchmarks", ALICE), summary()));
+    await assertSucceeds(deleteDoc(doc(alice(), "benchmarks", ALICE)));
+  });
+
+  it("refuses to let one user write another's document", async () => {
+    await assertFails(setDoc(doc(bob(), "benchmarks", `${ALICE}__v1`), summary()));
+    await assertFails(setDoc(doc(bob(), "benchmarks", ALICE), summary()));
+  });
+
+  it("rejects any field that could identify a person or a place", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v1`), summary({ email: "a@b.c" })),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v1`), summary({ plateNumber: "12345678" })),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v1`), summary({ odometer: 100000 })),
+    );
+  });
+
+  it("rejects an implausible economy figure", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v1`), summary({ avgKmPerLiter: 0 })),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "benchmarks", `${ALICE}__v1`), summary({ avgKmPerLiter: 500 })),
+    );
+  });
+
+  it("is readable by any signed-in user, and by nobody else", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "benchmarks", `${BOB}__v1`), summary());
+    });
+    await assertSucceeds(getDoc(doc(alice(), "benchmarks", `${BOB}__v1`)));
+    await assertFails(getDoc(doc(anon(), "benchmarks", `${BOB}__v1`)));
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Global config and feedback
+ * ------------------------------------------------------------------ */
+
+describe("app config", () => {
+  it("is readable by any signed-in user and writable only by an admin", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "appConfig", "fuelPrices"), {
+        current: { pricePerLiter: 7.31 },
+      });
+    });
+    await assertSucceeds(getDoc(doc(alice(), "appConfig", "fuelPrices")));
+    await assertFails(
+      setDoc(doc(alice(), "appConfig", "fuelPrices"), { current: { pricePerLiter: 1 } }),
+    );
+    await assertSucceeds(
+      setDoc(doc(admin(), "appConfig", "fuelPrices"), { current: { pricePerLiter: 7.4 } }),
+    );
+  });
+});
+
+describe("feedback", () => {
+  it("is append-only", async () => {
+    const ref = doc(alice(), "feedback", "e1");
+    await assertSucceeds(setDoc(ref, { uid: ALICE, message: "שלום" }));
+    await assertFails(updateDoc(ref, { message: "שונה" }));
+  });
+
+  it("cannot be filed in someone else's name", async () => {
+    await assertFails(setDoc(doc(bob(), "feedback", "e2"), { uid: ALICE, message: "x" }));
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Everything else is closed
+ * ------------------------------------------------------------------ */
+
+describe("default deny", () => {
+  it("refuses an unlisted collection", async () => {
+    await assertFails(setDoc(doc(alice(), "somethingElse", "x"), { a: 1 }));
+    await assertFails(getDoc(doc(alice(), "somethingElse", "x")));
+  });
+});
