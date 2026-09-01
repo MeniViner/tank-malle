@@ -125,9 +125,10 @@ service cloud.firestore {
     // client cannot turn this collection into a tracking log.
     function validBenchmark(data) {
       return data.keys().hasOnly([
-             'modelKey', 'fuelType', 'year', 'avgKmPerLiter',
+             'vehicleId', 'modelKey', 'fuelType', 'year', 'avgKmPerLiter',
              'segments', 'avgPricePerLiter', 'updatedAt'
            ])
+        && (!('vehicleId' in data) || isString(data.vehicleId, 64))
         && data.modelKey is string && data.modelKey.size() <= 80
         && data.fuelType in ['95', '98', 'diesel', 'other']
         && isNumber(data.avgKmPerLiter)
@@ -220,12 +221,27 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Anonymous community benchmarks: any signed-in user may read the pool,
-    // but may only ever write the single document keyed by their own uid.
-    match /benchmarks/{uid} {
+    /**
+     * Community benchmarks, one document PER VEHICLE.
+     *
+     * The id is "{uid}__{vehicleId}", so ownership is provable without a
+     * backend while a two-car household no longer has one vehicle overwrite
+     * the other. The bare "{uid}" form is still accepted so pre-upgrade
+     * documents remain writable and deletable by their owner.
+     *
+     * Note that the uid appears in a world-readable document id. That makes
+     * this pool PSEUDONYMOUS, not anonymous, and the documentation says so.
+     * True anonymity requires the Blaze-side cohort aggregator.
+     */
+    function ownsBenchmark(docId) {
+      return isSignedIn()
+        && (docId == request.auth.uid || docId.matches(request.auth.uid + '__.*'));
+    }
+
+    match /benchmarks/{docId} {
       allow read: if isSignedIn();
-      allow create, update: if isOwner(uid) && validBenchmark(request.resource.data);
-      allow delete: if isOwner(uid) || isAdmin();
+      allow create, update: if ownsBenchmark(docId) && validBenchmark(request.resource.data);
+      allow delete: if ownsBenchmark(docId) || isAdmin();
     }
 
     // Product feedback. A user may file and read back their own notes; only

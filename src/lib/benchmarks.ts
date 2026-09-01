@@ -16,18 +16,32 @@ import type { Stats } from "./stats";
 /**
  * Community benchmarks.
  *
- * Comparing your economy against other drivers is only useful if it costs
- * nobody their privacy. Each user publishes exactly one anonymous summary
- * document — no name, no email, no plate, no odometer, no station, no dates —
- * keyed by their uid so it can be updated and deleted, and readable by any
- * signed-in user. Everything the comparison shows is derived from those
- * summaries client-side.
+ * Each user publishes one economy summary PER VEHICLE — no name, no email, no
+ * plate, no odometer, no station, no dates. Everything the comparison shows is
+ * derived from those summaries client-side.
  *
- * Publishing is opt-out (Settings → "השוואה אנונימית"), and deleting the
- * account or opting out removes the document.
+ * Two things this is careful about:
+ *
+ * 1. **Per vehicle, not per user.** The document was previously keyed by uid
+ *    alone, so a two-car household had whichever vehicle happened to be active
+ *    overwrite the other's figure, and a diesel van could replace a petrol
+ *    hatchback's entry in the same pool.
+ *
+ * 2. **Pseudonymous, not anonymous.** The document id contains the uid, which
+ *    is what lets the rules prove ownership without a backend. Any signed-in
+ *    user can therefore see that *some account* has this economy figure for
+ *    this model — they cannot see who, but the documents are linkable across
+ *    time. Calling that "anonymous" would be untrue. Genuine anonymity needs
+ *    the Blaze-side cohort aggregator, which is written but not deployed; see
+ *    docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md.
+ *
+ * Publishing is opt-out (Settings → "השוואה אנונימית"), and opting out or
+ * deleting the account removes the documents.
  */
 
 export interface BenchmarkDoc {
+  /** The vehicle this figure describes. Present so one car cannot mask another. */
+  vehicleId?: string;
   /** Normalised so "מזדה 3" and "מזדה  3 " land in the same bucket. */
   modelKey: string;
   fuelType: FuelType;
@@ -37,6 +51,26 @@ export interface BenchmarkDoc {
   segments: number;
   avgPricePerLiter: number | null;
   updatedAt?: unknown;
+}
+
+/**
+ * Not enough comparable drivers yet.
+ *
+ * Returned instead of null so the Community section can stay on screen and say
+ * what it is waiting for. The old behaviour — returning null and rendering
+ * nothing — made the whole feature look like it did not exist.
+ */
+export interface InsufficientPeers {
+  insufficient: true;
+  /** How many comparable drivers were found. */
+  peers: number;
+  required: number;
+}
+
+export function hasComparison(
+  result: BenchmarkComparison | InsufficientPeers | null,
+): result is BenchmarkComparison {
+  return result !== null && !("insufficient" in result);
 }
 
 export interface BenchmarkComparison {
@@ -60,8 +94,28 @@ export interface BenchmarkComparison {
   yourAvgPrice: number | null;
 }
 
-/** Minimum peers before a comparison is shown at all. */
-const MIN_PEERS = 4;
+/**
+ * Minimum peers before a NUMBER is shown. Below this the section still
+ * appears, saying how far off it is — it does not vanish.
+ */
+export const MIN_PEERS = 4;
+
+/**
+ * How many peer documents to read per comparison.
+ *
+ * The old limit of 500 was fetched on every visit to Statistics. This is a
+ * sample, not a census: a percentile from 120 peers is not meaningfully worse
+ * than one from 500, and it is four times cheaper against the Spark read quota.
+ */
+const PEER_SAMPLE_LIMIT = 120;
+
+/** Separator in the composite document id. */
+const ID_SEPARATOR = "__";
+
+/** users/{uid} + vehicle → the per-vehicle benchmark document id. */
+export function benchmarkDocId(uid: string, vehicleId: string): string {
+  return `${uid}${ID_SEPARATOR}${vehicleId}`;
+}
 
 export function modelKey(vehicle: Pick<Vehicle, "make" | "model">): string {
   return `${vehicle.make} ${vehicle.model}`
@@ -82,6 +136,7 @@ export async function publishBenchmark(
   if (stats.avgKmPerLiter === null || stats.segments.length < 2) return;
 
   const payload: BenchmarkDoc = {
+    vehicleId: vehicle.id,
     modelKey: modelKey(vehicle),
     fuelType: vehicle.fuelType,
     year: vehicle.year ?? null,
@@ -91,11 +146,26 @@ export async function publishBenchmark(
     updatedAt: serverTimestamp(),
   };
 
-  await setDoc(doc(db, "benchmarks", uid), payload, { merge: true });
+  await setDoc(doc(db, "benchmarks", benchmarkDocId(uid, vehicle.id)), payload, {
+    merge: true,
+  });
 }
 
-export async function withdrawBenchmark(uid: string): Promise<void> {
-  await deleteDoc(doc(db, "benchmarks", uid)).catch(() => undefined);
+/**
+ * Withdraw this user's contributions.
+ *
+ * The caller passes the vehicle ids because a client cannot list documents by
+ * id prefix; the legacy uid-only document is removed too, so a user who opts
+ * out does not leave a pre-upgrade row behind.
+ */
+export async function withdrawBenchmark(
+  uid: string,
+  vehicleIds: string[] = [],
+): Promise<void> {
+  const targets = [uid, ...vehicleIds.map((id) => benchmarkDocId(uid, id))];
+  await Promise.all(
+    targets.map((id) => deleteDoc(doc(db, "benchmarks", id)).catch(() => undefined)),
+  );
 }
 
 /**
@@ -106,8 +176,12 @@ export async function fetchComparison(
   uid: string,
   vehicle: Vehicle,
   yourAverage: number,
-): Promise<BenchmarkComparison | null> {
+): Promise<BenchmarkComparison | InsufficientPeers> {
   const key = modelKey(vehicle);
+  // Every one of this user's own documents is excluded, not just the one for
+  // the active vehicle — comparing a car against its garage-mate is not a
+  // community comparison.
+  const isOwn = (id: string) => id === uid || id.startsWith(`${uid}${ID_SEPARATOR}`);
 
   const attempts: { basis: "model" | "fuelType"; label: string; constraint: ReturnType<typeof where> }[] =
     [
@@ -123,17 +197,26 @@ export async function fetchComparison(
       },
     ];
 
+  let shortfall = 0;
+
   for (const attempt of attempts) {
     const snapshot = await getDocs(
-      query(collection(db, "benchmarks"), attempt.constraint, limit(500)),
+      query(collection(db, "benchmarks"), attempt.constraint, limit(PEER_SAMPLE_LIMIT)),
     );
 
     const peers = snapshot.docs
-      .filter((entry) => entry.id !== uid)
+      .filter((entry) => !isOwn(entry.id))
       .map((entry) => entry.data() as BenchmarkDoc)
+      // Fuel type is part of the cohort, never crossed: a diesel figure and a
+      // petrol figure are not comparable numbers.
+      .filter((entry) => entry.fuelType === vehicle.fuelType)
       .filter((entry) => Number.isFinite(entry.avgKmPerLiter) && entry.avgKmPerLiter > 0);
 
-    if (peers.length < MIN_PEERS) continue;
+    if (peers.length < MIN_PEERS) {
+      // Remember how close we got, so the empty state can say "2 of 4".
+      shortfall = Math.max(shortfall, peers.length);
+      continue;
+    }
 
     const values = peers.map((peer) => peer.avgKmPerLiter).sort((a, b) => a - b);
     const below = values.filter((value) => value < yourAverage).length;
@@ -162,7 +245,8 @@ export async function fetchComparison(
     };
   }
 
-  return null;
+  // Not null: the section stays visible and says what it is waiting for.
+  return { insufficient: true, peers: shortfall, required: MIN_PEERS };
 }
 
 function round2(value: number): number {

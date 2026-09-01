@@ -16,16 +16,36 @@ import {
 } from "recharts";
 import { useData } from "../context/DataContext";
 import { useBenchmark } from "../hooks/useBenchmark";
-import { computeStats, filterByRange } from "../lib/stats";
+import { computeStats, filterSegmentsByRange } from "../lib/stats";
+import {
+  GROUPING_LABELS,
+  RANGE_LABELS,
+  bucketSpend,
+  buildRange,
+  inRange,
+  resolveGrouping,
+  summariseSpend,
+  withRange,
+  type DateRange,
+  type Grouping,
+  type RangeKey,
+} from "../lib/periods";
+import {
+  MIN_PEERS,
+  hasComparison,
+  type BenchmarkComparison,
+  type InsufficientPeers,
+} from "../lib/benchmarks";
+import { Distance, Quantity, SignedPercent } from "../components/Fmt";
 import { Card, Label, Skeleton } from "../components/Card";
 import { Segmented } from "../components/Segmented";
 import { Num } from "../components/Num";
 import { ChartIcon, UserIcon } from "../components/icons";
 import { InfoTip } from "../components/InfoTip";
 import {
+  FUEL_TYPE_SHORT,
   consumption,
   dayMonthShort,
-  heMonthShort,
   monthYear,
   num,
   price,
@@ -33,76 +53,148 @@ import {
   vehicleShort,
 } from "../lib/format";
 
-type Range = "3m" | "6m" | "1y" | "all";
+/* ------------------------------------------------------------------ *
+ * Information architecture
+ *
+ * The old screen had one control — 3ח׳ / 6ח׳ / שנה / הכול — that silently did
+ * two different jobs: it chose WHICH RECORDS were in scope and it chose HOW
+ * THEY WERE GROUPED, and no label said which numbers it had changed. Those are
+ * separated here into a range, a grouping, and named sections; every heading
+ * states the range it is showing.
+ * ------------------------------------------------------------------ */
 
-const RANGES: { value: Range; label: string }[] = [
-  { value: "3m", label: "3ח׳" },
-  { value: "6m", label: "6ח׳" },
-  { value: "1y", label: "שנה" },
-  { value: "all", label: "הכול" },
+type Section = "overview" | "costs" | "consumption" | "prices" | "community";
+
+const SECTIONS: { value: Section; label: string }[] = [
+  { value: "overview", label: "סקירה" },
+  { value: "costs", label: "הוצאות" },
+  { value: "consumption", label: "צריכה" },
+  { value: "prices", label: "מחירים" },
+  { value: "community", label: "קהילה" },
+];
+
+const RANGES: { value: RangeKey; label: string }[] = [
+  { value: "thisMonth", label: RANGE_LABELS.thisMonth },
+  { value: "3m", label: RANGE_LABELS["3m"] },
+  { value: "6m", label: RANGE_LABELS["6m"] },
+  { value: "ytd", label: RANGE_LABELS.ytd },
+  { value: "1y", label: RANGE_LABELS["1y"] },
+  { value: "all", label: RANGE_LABELS.all },
+];
+
+const GROUPINGS: { value: Grouping; label: string }[] = [
+  { value: "auto", label: GROUPING_LABELS.auto },
+  { value: "week", label: GROUPING_LABELS.week },
+  { value: "month", label: GROUPING_LABELS.month },
+  { value: "year", label: GROUPING_LABELS.year },
 ];
 
 /**
  * Statistics (designs 17 / 23).
  *
- * Every series is recomputed from the raw fill-ups for the selected range, so
- * the range control and any backdated edit are the same code path.
+ * The engine runs on the COMPLETE history and the range is applied afterwards,
+ * per metric. Filtering the fill-ups first — what this screen used to do —
+ * destroys any consumption segment whose opening full tank happens to fall
+ * outside the window, so shortening the range could silently delete a valid
+ * measurement rather than just hiding it.
  */
 export function Statistics() {
   const { fillups, activeVehicle, prices, settings, loadingFillups } = useData();
-  const [range, setRange] = useState<Range>("6m");
+  const [section, setSection] = useState<Section>("overview");
+  const [rangeKey, setRangeKey] = useState<RangeKey>("6m");
+  const [grouping, setGrouping] = useState<Grouping>("auto");
 
+  const now = Date.now();
+  const range = useMemo(() => buildRange(rangeKey, now), [rangeKey, now]);
+
+  // Canonical, whole-history statistics. Never range-filtered.
   const stats = useMemo(
-    () => computeStats(filterByRange(fillups, range), activeVehicle, prices),
-    [fillups, range, activeVehicle, prices],
+    () => computeStats(fillups, activeVehicle, prices),
+    [fillups, activeVehicle, prices],
+  );
+
+  // Segments are built on everything, then clipped by their CLOSING date.
+  const segments = useMemo(
+    () => filterSegmentsByRange(stats.segments, range.from, range.to),
+    [stats.segments, range],
   );
 
   const units = settings.units;
-  const average = consumption(stats.avgKmPerLiter, units);
-  const { comparison } = useBenchmark(stats);
+  const { comparison, loading: loadingComparison } = useBenchmark(stats);
+
+  const spend = useMemo(() => summariseSpend(fillups, range, now), [fillups, range, now]);
+  const resolvedGrouping = useMemo(
+    () => resolveGrouping(grouping, range, fillups),
+    [grouping, range, fillups],
+  );
+  const spendBuckets = useMemo(
+    () => bucketSpend(fillups, range, resolvedGrouping),
+    [fillups, range, resolvedGrouping],
+  );
+
+  /* Consumption in the range, distance-weighted like everywhere else. */
+  const rangeKm = segments.reduce((sum, s) => sum + s.km, 0);
+  const rangeLiters = segments.reduce((sum, s) => sum + s.liters, 0);
+  const rangeCost = segments.reduce((sum, s) => sum + s.cost, 0);
+  const rangeKmPerLiter = rangeLiters > 0 ? rangeKm / rangeLiters : null;
+  const rangeCostPerKm = rangeKm > 0 ? rangeCost / rangeKm : null;
+
+  // Every plotted value, the average line, the axis and the tooltip are
+  // converted together. Relabelling the title while leaving km/L values in
+  // place is the bug this single conversion point exists to prevent.
+  const toUnit = (kmPerLiter: number) =>
+    units === "litersPer100"
+      ? Math.round((100 / kmPerLiter) * 100) / 100
+      : Math.round(kmPerLiter * 100) / 100;
+
+  const unitLabel = units === "litersPer100" ? "ל׳/100 ק״מ" : "קמ״ל";
 
   const consumptionData = useMemo(
     () =>
-      stats.consumptionSeries.map((point) => ({
-        label: point.label,
-        value:
-          units === "litersPer100"
-            ? Math.round((100 / point.kmPerLiter) * 100) / 100
-            : point.kmPerLiter,
+      segments.map((segment) => ({
+        label: dayMonthShort(segment.endDate),
+        value: toUnit(segment.kmPerLiter),
       })),
-    [stats.consumptionSeries, units],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [segments, units],
   );
 
-  const averageLine =
-    units === "litersPer100" ? stats.avgLitersPer100 : stats.avgKmPerLiter;
-
-  const monthlyData = useMemo(
-    () =>
-      stats.months.map((bucket) => ({
-        label: heMonthShort(bucket.month),
-        cost: bucket.cost,
-      })),
-    [stats.months],
-  );
+  const averageLine = rangeKmPerLiter !== null ? toUnit(rangeKmPerLiter) : null;
 
   const priceData = useMemo(
     () =>
-      stats.priceSeries.map((point) => ({
-        label: point.label,
-        paid: point.paid,
-        official: point.official,
-      })),
-    [stats.priceSeries],
+      stats.priceSeries
+        .filter((point) => inRange(point.date, range))
+        .map((point) => ({
+          label: point.label,
+          paid: point.paid,
+          official: point.official,
+        })),
+    [stats.priceSeries, range],
   );
 
   const odometerData = useMemo(
     () =>
-      stats.odometerSeries.map((point) => ({
-        label: point.label,
-        odometer: point.odometer,
-      })),
-    [stats.odometerSeries],
+      stats.odometerSeries
+        .filter((point) => inRange(point.date, range))
+        .map((point, index, all) => ({
+          label: point.label,
+          // A declared break must show as a gap, not as a line drawn across
+          // history the user told us is missing.
+          odometer: point.gapBefore && index > 0 ? null : point.odometer,
+          realOdometer: point.odometer,
+          gap: point.gapBefore && index > 0,
+          _all: all.length,
+        })),
+    [stats.odometerSeries, range],
   );
+
+  const spendData = spendBuckets.map((bucket) => ({
+    label: bucket.label,
+    cost: bucket.cost,
+  }));
+
+  const empty = !loadingFillups && stats.fillups.length === 0;
 
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
@@ -111,237 +203,563 @@ export function Statistics() {
         <span className="truncate text-[13px] text-muted">{vehicleShort(activeVehicle)}</span>
       </header>
 
+      {/* Section navigation. Community is one of five peers, always reachable,
+          rather than something buried at the bottom of a long scroll. */}
+      <nav
+        aria-label="מדורי סטטיסטיקה"
+        className="flex flex-none gap-1.5 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]{display:none}"
+      >
+        {SECTIONS.map((entry) => (
+          <button
+            key={entry.value}
+            type="button"
+            aria-current={section === entry.value ? "page" : undefined}
+            onClick={() => setSection(entry.value)}
+            className={`min-h-[36px] flex-none rounded-pill px-3.5 text-[13.5px] font-semibold transition-[background-color,color] duration-200 ${
+              section === entry.value
+                ? "bg-accent text-accent-contrast"
+                : "bg-surface-2 text-muted"
+            }`}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
       <div className="flex flex-col gap-3 px-5">
-        <Segmented value={range} options={RANGES} onChange={setRange} ariaLabel="טווח זמן" />
+        {/* Range applies to every section; grouping only to the charts that
+            bucket, so it is shown next to them rather than pretending to be
+            global. */}
+        {section !== "community" ? (
+          <Segmented
+            value={rangeKey}
+            options={RANGES}
+            onChange={setRangeKey}
+            ariaLabel="טווח תאריכים"
+          />
+        ) : null}
 
         {loadingFillups ? (
           <>
             <Skeleton className="h-[188px] rounded-card" />
             <Skeleton className="h-[188px] rounded-card" />
           </>
-        ) : stats.fillups.length < 2 ? (
+        ) : empty ? (
           <Card className="flex flex-col items-center gap-3 px-7 py-12 text-center">
             <span className="flex size-[64px] items-center justify-center rounded-[22px] bg-accent-soft text-accent">
               <ChartIcon size={30} />
             </span>
             <span className="text-[17px] font-bold text-ink">אין עדיין מספיק נתונים</span>
             <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
-              אחרי שני תדלוקים במיכל מלא נתחיל להציג מגמות, עלויות והשוואות.
+              אחרי שני תדלוקים שבסיומם המיכל היה מלא נתחיל להציג מגמות, עלויות והשוואות.
             </span>
           </Card>
         ) : (
           <>
-            {/* Summary strip */}
-            <div className="tm-rise flex gap-3">
-              <SummaryCard
-                label="ממוצע צריכה"
-                value={average.value}
-                unit={average.unit}
-                accent
-              />
-              <SummaryCard
-                label="עלות לק״מ"
-                value={stats.avgCostPerKm !== null ? shekel(stats.avgCostPerKm, 2) : "—"}
-              />
-            </div>
-
-            <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
-              <SummaryCard
-                label="ק״מ בחודש"
-                value={stats.kmPerMonth !== null ? num(stats.kmPerMonth, 0) : "—"}
-                unit="ק״מ"
-              />
-              <SummaryCard
-                label="סה״כ הוצאה"
-                value={shekel(stats.records.totalCost)}
-              />
-            </div>
-
-            <ChartCard
-              title={units === "litersPer100" ? "צריכה · ל׳/100 ק״מ" : "צריכה · קמ״ל"}
-              legend={
-                <>
-                  <LegendDot color="var(--accent)" label="בפועל" />
-                  {averageLine ? (
-                    <LegendDot color="var(--muted)" label={`ממוצע ${num(averageLine, 1)}`} dashed />
-                  ) : null}
-                </>
-              }
-            >
-              <LineChart data={consumptionData} margin={CHART_MARGIN}>
-                <CartesianGrid stroke="var(--line)" vertical={false} />
-                <XAxis {...xAxis} />
-                <YAxis {...yAxis} width={38} />
-                <Tooltip content={<ChartTooltip suffix={` ${average.unit}`} />} />
-                {averageLine ? (
-                  <ReferenceLine
-                    y={averageLine}
-                    stroke="var(--muted)"
-                    strokeDasharray="5 5"
-                    strokeWidth={1.5}
+            {section === "overview" ? (
+              <>
+                <div className="tm-rise flex gap-3">
+                  <SummaryCard
+                    label="צריכה אחרונה"
+                    value={
+                      segments.length > 0
+                        ? String(toUnit(segments[segments.length - 1].kmPerLiter))
+                        : "—"
+                    }
+                    unit={unitLabel}
+                    accent
                   />
-                ) : null}
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="var(--accent)"
-                  strokeWidth={2.6}
-                  dot={{ r: 3, fill: "var(--accent)", strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                />
-              </LineChart>
-            </ChartCard>
-
-            <ChartCard title="הוצאה חודשית · ₪">
-              <BarChart data={monthlyData} margin={CHART_MARGIN}>
-                <CartesianGrid stroke="var(--line)" vertical={false} />
-                <XAxis {...xAxis} />
-                <YAxis {...yAxis} width={44} />
-                <Tooltip content={<ChartTooltip currency />} />
-                <Bar dataKey="cost" fill="var(--accent)" radius={[6, 6, 0, 0]} maxBarSize={34} />
-              </BarChart>
-            </ChartCard>
-
-            <ChartCard
-              title="מחיר לליטר"
-              legend={
-                <>
-                  <LegendDot color="var(--accent)" label="ששולם" />
-                  <LegendDot color="var(--muted)" label="רשמי" dashed />
-                </>
-              }
-            >
-              <LineChart data={priceData} margin={CHART_MARGIN}>
-                <CartesianGrid stroke="var(--line)" vertical={false} />
-                <XAxis {...xAxis} />
-                <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
-                <Tooltip content={<ChartTooltip currency />} />
-                <Line
-                  type="monotone"
-                  dataKey="official"
-                  stroke="var(--muted)"
-                  strokeWidth={1.8}
-                  strokeDasharray="5 5"
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="paid"
-                  stroke="var(--accent)"
-                  strokeWidth={2.6}
-                  dot={{ r: 3, fill: "var(--accent)", strokeWidth: 0 }}
-                />
-              </LineChart>
-            </ChartCard>
-
-            <ChartCard title="קילומטראז׳ מצטבר">
-              <AreaChart data={odometerData} margin={CHART_MARGIN}>
-                <defs>
-                  <linearGradient id="odoFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--line)" vertical={false} />
-                <XAxis {...xAxis} />
-                <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
-                <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
-                <Area
-                  type="monotone"
-                  dataKey="odometer"
-                  stroke="var(--accent)"
-                  strokeWidth={2.4}
-                  fill="url(#odoFill)"
-                />
-              </AreaChart>
-            </ChartCard>
-
-            {/* Records */}
-            <div className="flex gap-3">
-              <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-                <Label className="text-[12.5px]">התדלוק היקר ביותר</Label>
-                <Num className="text-[22px] font-bold leading-tight text-ink">
-                  {stats.records.mostExpensive
-                    ? shekel(stats.records.mostExpensive.totalCost)
-                    : "—"}
-                </Num>
-                <span className="truncate text-[12.5px] text-muted">
-                  {stats.records.mostExpensive
-                    ? `${stats.records.mostExpensive.station?.name ?? "ללא מיקום"} · ${dayMonthShort(
-                        stats.records.mostExpensive.date,
-                      )}`
-                    : "—"}
-                </span>
-              </Card>
-
-              <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-                <Label className="text-[12.5px]">החודש החסכוני</Label>
-                <span className="flex items-baseline gap-1.5">
-                  <Num className="text-[22px] font-bold leading-tight text-accent">
-                    {stats.records.mostEconomicalMonth
-                      ? consumption(stats.records.mostEconomicalMonth.kmPerLiter, units).value
-                      : "—"}
-                  </Num>
-                  <span className="text-[12px] text-muted">{average.unit}</span>
-                </span>
-                <span className="truncate text-[12.5px] text-muted">
-                  {stats.records.mostEconomicalMonth
-                    ? monthYear(stats.records.mostEconomicalMonth.key)
-                    : "—"}
-                </span>
-              </Card>
-            </div>
-
-            {stats.vsDeclaredPercent !== null ? (
-              <Card className="flex items-center justify-between gap-3 p-4">
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-[14.5px] font-semibold text-ink">
-                    מול נתוני היצרן
-                  </span>
-                  <span className="text-[12.5px] text-muted">
-                    מוצהר: <Num>{num(activeVehicle?.declaredKmPerLiter ?? 0, 1)}</Num> קמ״ל
-                  </span>
-                </span>
-                <Num
-                  className={`rounded-pill px-3 py-1.5 text-[13px] font-bold ${
-                    stats.vsDeclaredPercent >= 0
-                      ? "bg-success-soft text-success-ink"
-                      : "bg-danger-soft text-danger-ink"
-                  }`}
-                >
-                  {stats.vsDeclaredPercent > 0 ? "+" : ""}
-                  {num(stats.vsDeclaredPercent, 1)}%
-                </Num>
-              </Card>
-            ) : null}
-
-            {stats.stationStats.length > 1 ? (
-              <Card className="flex flex-col gap-2.5 p-4">
-                <Label>השוואת תחנות · מחיר ממוצע לליטר</Label>
-                <div className="flex flex-col gap-2">
-                  {stats.stationStats.map((entry) => (
-                    <div key={entry.name} className="flex items-center justify-between gap-3">
-                      <span className="min-w-0 flex-1 truncate text-[14px] text-ink">
-                        {entry.name}
-                      </span>
-                      <span className="flex-none text-[12px] text-muted">
-                        <Num>{entry.count}</Num> תדלוקים
-                      </span>
-                      <Num className="w-[62px] flex-none text-end text-[14px] font-bold text-ink">
-                        {price(entry.avgPricePerLiter)}
-                      </Num>
-                    </div>
-                  ))}
+                  <SummaryCard
+                    label="ממוצע משוקלל"
+                    value={averageLine !== null ? String(averageLine) : "—"}
+                    unit={unitLabel}
+                  />
                 </div>
-              </Card>
+
+                <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
+                  <SummaryCard
+                    label="מרחק במעקב"
+                    value={num(rangeKm, 0)}
+                    unit="ק״מ"
+                  />
+                  <SummaryCard
+                    label="עלות לק״מ תקף"
+                    value={rangeCostPerKm !== null ? shekel(rangeCostPerKm, 2) : "—"}
+                  />
+                </div>
+
+                <div className="tm-rise flex gap-3" style={{ animationDelay: "140ms" }}>
+                  <SummaryCard label={withRange("הוצאה", range)} value={shekel(spend.total)} />
+                  <SummaryCard
+                    label="ממוצע חודשי"
+                    value={spend.perMonth !== null ? shekel(spend.perMonth) : "—"}
+                  />
+                </div>
+
+                <BasisCard
+                  segments={segments.length}
+                  fillups={spend.fillups}
+                  range={range}
+                  breaks={stats.breakCount}
+                />
+
+                <OpenSegmentCard stats={stats} units={units} />
+              </>
             ) : null}
 
-            {comparison ? <PeerSection comparison={comparison} units={units} /> : null}
+            {section === "costs" ? (
+              <>
+                <div className="flex gap-3">
+                  <SummaryCard label={withRange("סה״כ", range)} value={shekel(spend.total)} />
+                  <SummaryCard
+                    label="ליטרים"
+                    value={num(spend.liters, 1)}
+                    unit="ל׳"
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <SummaryCard
+                    label="ממוצע שבועי"
+                    value={spend.perWeek !== null ? shekel(spend.perWeek) : "—"}
+                  />
+                  <SummaryCard
+                    label="ממוצע חודשי"
+                    value={spend.perMonth !== null ? shekel(spend.perMonth) : "—"}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <SummaryCard label="מתחילת השנה" value={shekel(spend.yearToDate)} />
+                  <SummaryCard
+                    label="עלות לק״מ תקף"
+                    value={rangeCostPerKm !== null ? shekel(rangeCostPerKm, 2) : "—"}
+                  />
+                </div>
+
+                <Segmented
+                  value={grouping}
+                  options={GROUPINGS}
+                  onChange={setGrouping}
+                  ariaLabel="קיבוץ"
+                />
+
+                <ChartCard
+                  title={`${withRange("הוצאה", range)} · ${GROUPING_LABELS[resolvedGrouping]}`}
+                >
+                  <BarChart data={spendData} margin={CHART_MARGIN}>
+                    <CartesianGrid stroke="var(--line)" vertical={false} />
+                    <XAxis {...xAxis} />
+                    <YAxis {...yAxis} width={44} />
+                    <Tooltip content={<ChartTooltip currency />} />
+                    <Bar
+                      dataKey="cost"
+                      fill="var(--accent)"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={34}
+                    />
+                  </BarChart>
+                </ChartCard>
+
+                <p className="px-1 text-[12px] leading-relaxed text-muted">
+                  ההוצאה כוללת את כל התדלוקים בטווח — גם חלקיים וגם כאלה שאחרי התחלת
+                  תקופה חדשה. אלה נתונים גולמיים, לא מדד צריכה.
+                </p>
+              </>
+            ) : null}
+
+            {section === "consumption" ? (
+              <>
+                <div className="flex gap-3">
+                  <SummaryCard
+                    label="ממוצע משוקלל"
+                    value={averageLine !== null ? String(averageLine) : "—"}
+                    unit={unitLabel}
+                    accent
+                  />
+                  <SummaryCard label="מקטעים סגורים" value={String(segments.length)} />
+                </div>
+
+                <ChartCard
+                  title={`${withRange("צריכה", range)} · ${unitLabel}`}
+                  legend={
+                    <>
+                      <LegendDot color="var(--accent)" label="בפועל" />
+                      {averageLine !== null ? (
+                        <LegendDot
+                          color="var(--muted)"
+                          label={`ממוצע ${num(averageLine, 1)}`}
+                          dashed
+                        />
+                      ) : null}
+                    </>
+                  }
+                >
+                  <LineChart data={consumptionData} margin={CHART_MARGIN}>
+                    <CartesianGrid stroke="var(--line)" vertical={false} />
+                    <XAxis {...xAxis} />
+                    <YAxis {...yAxis} width={38} />
+                    <Tooltip content={<ChartTooltip suffix={` ${unitLabel}`} />} />
+                    {averageLine !== null ? (
+                      <ReferenceLine
+                        y={averageLine}
+                        stroke="var(--muted)"
+                        strokeDasharray="5 5"
+                        strokeWidth={1.5}
+                      />
+                    ) : null}
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--accent)"
+                      strokeWidth={2.6}
+                      dot={{ r: 3, fill: "var(--accent)", strokeWidth: 0 }}
+                      activeDot={{ r: 5 }}
+                    />
+                  </LineChart>
+                </ChartCard>
+
+                <OpenSegmentCard stats={stats} units={units} />
+
+                {stats.vsDeclaredPercent !== null ? (
+                  <Card className="flex items-center justify-between gap-3 p-4">
+                    <span className="flex flex-col gap-0.5">
+                      <span className="text-[14.5px] font-semibold text-ink">
+                        מול נתוני היצרן
+                      </span>
+                      <span className="text-[12.5px] text-muted">
+                        מוצהר: <Num>{num(activeVehicle?.declaredKmPerLiter ?? 0, 1)}</Num> קמ״ל
+                        · מבוסס על כל ההיסטוריה
+                      </span>
+                    </span>
+                    <SignedPercent
+                      value={stats.vsDeclaredPercent}
+                      digits={1}
+                      className={`rounded-pill px-3 py-1.5 text-[13px] font-bold ${
+                        stats.vsDeclaredPercent >= 0
+                          ? "bg-success-soft text-success-ink"
+                          : "bg-danger-soft text-danger-ink"
+                      }`}
+                    />
+                  </Card>
+                ) : null}
+
+                <ChartCard title={withRange("קילומטראז׳ מצטבר", range)}>
+                  <AreaChart data={odometerData} margin={CHART_MARGIN}>
+                    <defs>
+                      <linearGradient id="odoFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
+                        <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="var(--line)" vertical={false} />
+                    <XAxis {...xAxis} />
+                    <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
+                    <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
+                    <Area
+                      type="monotone"
+                      dataKey="odometer"
+                      stroke="var(--accent)"
+                      strokeWidth={2.4}
+                      fill="url(#odoFill)"
+                      connectNulls={false}
+                    />
+                  </AreaChart>
+                </ChartCard>
+
+                {stats.breakCount > 0 ? (
+                  <p className="px-1 text-[12px] leading-relaxed text-muted">
+                    בגרף יש {stats.breakCount === 1 ? "נקודת" : `${stats.breakCount} נקודות`}{" "}
+                    התחלת תקופה חדשה. הקו נקטע שם בכוונה — לא מחושב שום נתון שחוצה תדלוקים
+                    שלא תועדו.
+                  </p>
+                ) : null}
+              </>
+            ) : null}
+
+            {section === "prices" ? (
+              <>
+                <div className="flex gap-3">
+                  <SummaryCard
+                    label="מחיר ממוצע ששולם"
+                    value={stats.avgPricePaid !== null ? price(stats.avgPricePaid) : "—"}
+                  />
+                  <SummaryCard
+                    label="סוג דלק"
+                    value={FUEL_TYPE_SHORT[activeVehicle?.fuelType ?? "95"] ?? "—"}
+                  />
+                </div>
+
+                <ChartCard
+                  title={withRange("מחיר לליטר", range)}
+                  legend={
+                    <>
+                      <LegendDot color="var(--accent)" label="ששולם" />
+                      {activeVehicle?.fuelType === "95" ? (
+                        <LegendDot color="var(--muted)" label="מחיר מרבי מפוקח" dashed />
+                      ) : null}
+                    </>
+                  }
+                >
+                  <LineChart data={priceData} margin={CHART_MARGIN}>
+                    <CartesianGrid stroke="var(--line)" vertical={false} />
+                    <XAxis {...xAxis} />
+                    <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
+                    <Tooltip content={<ChartTooltip currency />} />
+                    {activeVehicle?.fuelType === "95" ? (
+                      <Line
+                        type="monotone"
+                        dataKey="official"
+                        stroke="var(--muted)"
+                        strokeWidth={1.8}
+                        strokeDasharray="5 5"
+                        dot={false}
+                      />
+                    ) : null}
+                    <Line
+                      type="monotone"
+                      dataKey="paid"
+                      stroke="var(--accent)"
+                      strokeWidth={2.6}
+                      dot={{ r: 3, fill: "var(--accent)", strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ChartCard>
+
+                {activeVehicle && activeVehicle.fuelType !== "95" ? (
+                  <p className="px-1 text-[12px] leading-relaxed text-muted">
+                    אין מחיר מרבי מפוקח ל
+                    {FUEL_TYPE_SHORT[activeVehicle.fuelType]} בישראל, ולכן מוצג רק המחיר
+                    ששילמתם בפועל. לא נציג את מחיר בנזין 95 כאילו הוא חל על הרכב שלכם.
+                  </p>
+                ) : null}
+
+                {stats.stationStats.length > 1 ? (
+                  <Card className="flex flex-col gap-2.5 p-4">
+                    <Label>השוואת תחנות · מחיר ממוצע ששולם לליטר</Label>
+                    <div className="flex flex-col gap-2">
+                      {stats.stationStats.map((entry) => (
+                        <div
+                          key={entry.name}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-[14px] text-ink">
+                            {entry.name}
+                          </span>
+                          <span className="flex-none text-[12px] text-muted">
+                            <Num>{entry.count}</Num> תדלוקים
+                          </span>
+                          <Num className="w-[62px] flex-none text-end text-[14px] font-bold text-ink">
+                            {price(entry.avgPricePerLiter)}
+                          </Num>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="text-[11.5px] leading-relaxed text-muted">
+                      אלה המחירים ש<b>אתם</b> שילמתם, כולל הנחות אישיות — לא מחירי המשאבה
+                      הפומביים של התחנות.
+                    </span>
+                  </Card>
+                ) : null}
+
+                <div className="flex gap-3">
+                  <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+                    <Label className="text-[12.5px]">התדלוק היקר ביותר</Label>
+                    <Num className="text-[22px] font-bold leading-tight text-ink">
+                      {stats.records.mostExpensive
+                        ? shekel(stats.records.mostExpensive.totalCost)
+                        : "—"}
+                    </Num>
+                    <span className="truncate text-[12.5px] text-muted">
+                      {stats.records.mostExpensive
+                        ? `${stats.records.mostExpensive.station?.name ?? "ללא מיקום"} · ${dayMonthShort(
+                            stats.records.mostExpensive.date,
+                          )}`
+                        : "—"}
+                    </span>
+                  </Card>
+
+                  <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+                    <Label className="text-[12.5px]">החודש החסכוני</Label>
+                    <span className="flex items-baseline gap-1.5">
+                      <Num className="text-[22px] font-bold leading-tight text-accent">
+                        {stats.records.mostEconomicalMonth?.kmPerLiter != null
+                          ? String(toUnit(stats.records.mostEconomicalMonth.kmPerLiter))
+                          : "—"}
+                      </Num>
+                      <span className="text-[12px] text-muted">{unitLabel}</span>
+                    </span>
+                    <span className="truncate text-[12.5px] text-muted">
+                      {stats.records.mostEconomicalMonth
+                        ? monthYear(stats.records.mostEconomicalMonth.key)
+                        : "—"}
+                    </span>
+                  </Card>
+                </div>
+              </>
+            ) : null}
+
+            {/* Always rendered — including when there is nothing to compare
+                against yet, which is exactly when a disappearing section is
+                most confusing. */}
+            {section === "community" ? (
+              <CommunitySection
+                comparison={comparison}
+                loading={loadingComparison}
+                units={units}
+                sharing={settings.shareBenchmarks !== false}
+                hasOwnFigure={stats.segments.length >= 2}
+              />
+            ) : null}
           </>
         )}
       </div>
     </main>
   );
+}
+
+/** "מבוסס על 2 מקטעי צריכה · 3 תדלוקים" — never fill-ups alone. */
+function BasisCard({
+  segments,
+  fillups,
+  range,
+  breaks,
+}: {
+  segments: number;
+  fillups: number;
+  range: DateRange;
+  breaks: number;
+}) {
+  return (
+    <Card className="flex flex-col gap-1 p-4">
+      <Label className="text-[12.5px]">בסיס החישוב</Label>
+      <span className="text-[13.5px] leading-relaxed text-ink">
+        מבוסס על <Num>{segments}</Num>{" "}
+        {segments === 1 ? "מקטע צריכה" : "מקטעי צריכה"} · <Num>{fillups}</Num> תדלוקים
+      </span>
+      <span className="text-[12px] leading-relaxed text-muted">
+        {range.label}
+        {breaks > 0
+          ? ` · ${breaks === 1 ? "נקודת התחלה מחדש אחת" : `${breaks} נקודות התחלה מחדש`} — שום חישוב לא חוצה אותן`
+          : ""}
+      </span>
+    </Card>
+  );
+}
+
+/** Open-segment status, so retained partial fill-ups are visibly retained. */
+function OpenSegmentCard({
+  stats,
+  units,
+}: {
+  stats: ReturnType<typeof computeStats>;
+  units: "kmPerLiter" | "litersPer100";
+}) {
+  const open = stats.openSegment;
+  if (!open.hasBaseline) {
+    if (stats.records.fillupCount === 0) return null;
+    return (
+      <Card className="flex flex-col gap-1 p-4">
+        <Label className="text-[12.5px]">מקטע פתוח</Label>
+        <span className="text-[13.5px] leading-relaxed text-ink">
+          עדיין אין נקודת התחלה. סמנו “מילאתי עד מלא” בתדלוק הבא כדי להתחיל חישוב.
+        </span>
+      </Card>
+    );
+  }
+
+  if (open.pendingFillups === 0) return null;
+
+  return (
+    <Card className="flex flex-col gap-1 p-4">
+      <Label className="text-[12.5px]">מקטע פתוח</Label>
+      <span className="text-[13.5px] leading-relaxed text-ink">
+        <Quantity value={open.liters} digits={1} /> מ־<Num>{open.pendingFillups}</Num>{" "}
+        {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} ·{" "}
+        <Distance value={open.km} /> מאז המילוי האחרון עד מלא
+      </span>
+      <span className="text-[12px] leading-relaxed text-muted">
+        הליטרים האלה נשמרים וייכללו בחישוב במילוי הבא עד מלא. עדיין לא מוצגת מהם צריכה,
+        כי המקטע לא נסגר.{" "}
+        {units === "litersPer100" ? "" : ""}
+      </span>
+    </Card>
+  );
+}
+
+/**
+ * The Community area.
+ *
+ * Always on screen. The old version rendered nothing at all below four peers,
+ * so a feature that was working correctly looked like a feature that did not
+ * exist. Now the section explains what it is waiting for.
+ */
+function CommunitySection({
+  comparison,
+  loading,
+  units,
+  sharing,
+  hasOwnFigure,
+}: {
+  comparison: BenchmarkComparison | InsufficientPeers | null;
+  loading: boolean;
+  units: "kmPerLiter" | "litersPer100";
+  sharing: boolean;
+  hasOwnFigure: boolean;
+}) {
+  if (!sharing) {
+    return (
+      <Card className="flex flex-col gap-2 p-5">
+        <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
+        <span className="text-[13.5px] leading-relaxed text-muted">
+          ההשתתפות בהשוואה כבויה בהגדרות. כשמפעילים אותה, מפורסם סיכום צריכה אחד לכל רכב
+          — בלי שם, אימייל, מספר רכב, קילומטראז׳, תחנה או תאריכים.
+        </span>
+      </Card>
+    );
+  }
+
+  if (!hasOwnFigure) {
+    return (
+      <Card className="flex flex-col gap-2 p-5">
+        <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
+        <span className="text-[13.5px] leading-relaxed text-muted">
+          צריך לפחות שני מקטעי צריכה סגורים כדי שיהיה מה להשוות. מלאו עד מלא פעמיים
+          ונחשב לכם ממוצע.
+        </span>
+      </Card>
+    );
+  }
+
+  if (loading) return <Skeleton className="h-[220px] rounded-card" />;
+
+  if (comparison === null || !hasComparison(comparison)) {
+    const found = comparison?.peers ?? 0;
+    const required = comparison?.required ?? MIN_PEERS;
+    return (
+      <Card className="flex flex-col gap-3 p-5">
+        <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
+        <span className="text-[13.5px] leading-relaxed text-muted">
+          עדיין אין מספיק נהגים להשוואה.
+        </span>
+        <span className="flex flex-col gap-1.5">
+          <span className="text-[13px] text-ink">
+            יש כרגע <Num>{found}</Num> מתוך <Num>{required}</Num> נהגים נדרשים עם רכב דומה.
+          </span>
+          <span className="h-2 overflow-hidden rounded-pill bg-surface-2">
+            <span
+              className="block h-full rounded-pill bg-accent transition-[width] duration-500"
+              style={{ width: `${Math.min(100, (found / required) * 100)}%` }}
+            />
+          </span>
+        </span>
+        <span className="text-[12px] leading-relaxed text-muted">
+          ההשוואה נבנית מסיכומי צריכה של נהגים אחרים עם אותו דגם וסוג דלק. היא מבוססת על
+          כל היסטוריית הרכב ולא משתנה לפי טווח התאריכים שנבחר למעלה.
+        </span>
+      </Card>
+    );
+  }
+
+  return <PeerSection comparison={comparison} units={units} />;
 }
 
 /**
