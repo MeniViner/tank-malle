@@ -31,6 +31,18 @@ async function waitFor(name: string, url: string, timeoutMs = 120_000): Promise<
 }
 
 export default async function globalSetup(): Promise<void> {
+  // Without .env.e2e the app has no Firebase config, renders its
+  // "not configured" state, and EVERY test then fails on a missing sign-in
+  // button — sixty timeouts describing one missing file. Say so once instead.
+  const { existsSync } = await import("node:fs");
+  const envFile = new URL("../.env.e2e", import.meta.url);
+  if (!existsSync(envFile)) {
+    throw new Error(
+      ".env.e2e is missing. It holds emulator-only placeholder values and is " +
+        "committed on purpose; without it the app cannot initialise Firebase.",
+    );
+  }
+
   await waitFor("Auth", `${AUTH_HOST}/`);
   await waitFor("Firestore", `${FIRESTORE_HOST}/`);
 

@@ -29,6 +29,11 @@ serviceAccountKey*.json
 .env
 .env.*
 !.env.example
+# Emulator-only values for the E2E suite. The project id is the reserved
+# `demo-tankmaleh`, which the Firebase emulators special-case to refuse contact
+# with any real Google service, and the API key is a placeholder they never
+# validate. It has to be committed for CI to have any configuration at all.
+!.env.e2e
 
 # Firebase
 .firebase/
