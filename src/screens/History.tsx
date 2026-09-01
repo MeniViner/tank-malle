@@ -7,6 +7,7 @@ import { Segmented } from "../components/Segmented";
 import { Sheet, ConfirmDialog } from "../components/Sheet";
 import { Card, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
+import { ConsumptionValue } from "../components/Fmt";
 import {
   ChevronStart,
   PencilIcon,
@@ -16,7 +17,6 @@ import {
   TrashIcon,
 } from "../components/icons";
 import {
-  consumption,
   heMonthShort,
   monthYear,
   num,
@@ -158,7 +158,6 @@ export function History() {
                 <Card className="overflow-hidden">
                   {list.map((fillup, index) => {
                     const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
-                    const formatted = consumption(kmPerLiter, settings.units);
                     const date = new Date(fillup.date);
 
                     return (
@@ -217,9 +216,11 @@ export function History() {
                             חלקי
                           </span>
                         ) : kmPerLiter !== null ? (
-                          <Num className="flex-none rounded-pill bg-success-soft px-[11px] py-1.5 text-[12px] font-semibold text-success-ink">
-                            {formatted.value} {formatted.unit}
-                          </Num>
+                          <ConsumptionValue
+                            kmPerLiter={kmPerLiter}
+                            units={settings.units}
+                            className="flex-none rounded-pill bg-success-soft px-[11px] py-1.5 text-[12px] font-semibold text-success-ink"
+                          />
                         ) : null}
                       </button>
                       </Fragment>

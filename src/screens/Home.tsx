@@ -5,7 +5,7 @@ import { AppHeader } from "../components/AppHeader";
 import { Card, Label, ListCard, SectionTitle, Skeleton } from "../components/Card";
 import { InfoStrip } from "../components/Field";
 import { Num } from "../components/Num";
-import { Quantity, SignedPercent } from "../components/Fmt";
+import { ConsumptionValue, Quantity, SignedPercent } from "../components/Fmt";
 import {
   ArrowDown,
   ArrowUp,
@@ -30,7 +30,6 @@ export function Home() {
   const units = settings.units;
 
   const hero = consumption(stats.lastSegment?.kmPerLiter ?? null, units);
-  const average = consumption(stats.avgKmPerLiter, units);
   const delta = stats.lastVsAvgPercent;
   const better = delta !== null && delta >= 0;
 
@@ -79,7 +78,9 @@ export function Home() {
               <span className="text-[13px] text-muted">
                 {stats.avgKmPerLiter !== null ? (
                   <>
-                    ממוצע הרכב: <Num>{average.value}</Num> {average.unit} · מבוסס על{" "}
+                    ממוצע הרכב:{" "}
+                    <ConsumptionValue kmPerLiter={stats.avgKmPerLiter} units={units} /> ·
+                    מבוסס על{" "}
                     <Num>{stats.segments.length}</Num>{" "}
                     {stats.segments.length === 1 ? "מקטע צריכה" : "מקטעי צריכה"} ·{" "}
                     <Num>{stats.records.fillupCount}</Num> תדלוקים
@@ -155,7 +156,6 @@ export function Home() {
               <ListCard className="tm-rise" style={{ animationDelay: "210ms" }}>
                 {recent.map((fillup) => {
                   const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
-                  const formatted = consumption(kmPerLiter, units);
                   return (
                     <Link
                       key={fillup.id}
@@ -177,9 +177,11 @@ export function Home() {
                           חלקי
                         </span>
                       ) : kmPerLiter !== null ? (
-                        <Num className="flex-none rounded-pill bg-success-soft px-[11px] py-1.5 text-[12.5px] font-semibold text-success-ink">
-                          {formatted.value} {formatted.unit}
-                        </Num>
+                        <ConsumptionValue
+                          kmPerLiter={kmPerLiter}
+                          units={units}
+                          className="flex-none rounded-pill bg-success-soft px-[11px] py-1.5 text-[12.5px] font-semibold text-success-ink"
+                        />
                       ) : (
                         <span className="flex-none rounded-pill bg-surface-2 px-[11px] py-1 text-[12.5px] font-semibold text-muted">
                           מולא עד מלא

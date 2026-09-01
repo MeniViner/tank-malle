@@ -1,5 +1,13 @@
 import { expect, type Page } from "@playwright/test";
-import { uidForEmail } from "./emulator";
+import {
+  resetEmulators,
+  seedFillups,
+  seedVehicle,
+  setActiveVehicle,
+  uidForEmail,
+  type SeedFillup,
+  type SeedVehicle,
+} from "./emulator";
 
 /**
  * Driving the app itself.
@@ -176,7 +184,9 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
       await field.fill(input.time);
       await field.press("Enter");
     }
-    await page.getByRole("button", { name: /אישור|סגירה|שמירה/ }).first().click();
+    // "אישור" exactly — the sheet's backdrop is also a button, labelled
+    // "סגירה", and it sits over everything.
+    await page.getByRole("button", { name: "אישור", exact: true }).click();
   }
 
   // The odometer label changes to "קילומטראז׳ בתאריך זה" for a backdated record.
@@ -204,4 +214,56 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
   const toast = page.locator("[data-toast-title]").first();
   await expect(toast).toBeVisible({ timeout: 20_000 });
   return (await toast.innerText()).trim();
+}
+
+/* ------------------------------------------------------------------ *
+ * A signed-in account with data, in one step
+ * ------------------------------------------------------------------ */
+
+export interface ReadyAccount {
+  uid: string;
+  vehicleId: string;
+}
+
+/**
+ * Reset, sign in, and put a vehicle and its fill-ups in place.
+ *
+ * Sign-in goes through the real UI because that is what account handling
+ * tests are about. The vehicle and the records are written straight to
+ * Firestore: re-driving the fill-up form a dozen times per spec would test the
+ * form over and over instead of the thing under test, and would make the suite
+ * several minutes slower.
+ *
+ * Each test that uses this stands entirely on its own — no spec depends on
+ * data another spec happened to leave behind.
+ */
+export async function signedInWithData(
+  page: Page,
+  options: {
+    account?: TestAccount;
+    vehicle?: SeedVehicle;
+    fillups?: SeedFillup[];
+    vehicleId?: string;
+  } = {},
+): Promise<ReadyAccount> {
+  const account = options.account ?? ALICE;
+  const vehicleId = options.vehicleId ?? "v1";
+
+  await resetEmulators();
+  await signIn(page, account);
+  const uid = await uidOf(account);
+
+  await seedVehicle(uid, vehicleId, options.vehicle ?? { make: "מאזדה", model: "3" });
+  if (options.fillups?.length) await seedFillups(uid, vehicleId, options.fillups);
+  await setActiveVehicle(uid, vehicleId);
+
+  await page.goto("/");
+  await expect(
+    page.getByText(
+      `${(options.vehicle ?? { make: "מאזדה" }).make}`,
+      { exact: false },
+    ).first(),
+  ).toBeVisible({ timeout: 25_000 });
+
+  return { uid, vehicleId };
 }
