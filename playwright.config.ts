@@ -68,10 +68,16 @@ export default defineConfig({
       stderr: "pipe",
     },
     {
-      command: `vite --mode e2e --port ${PORT} --strictPort`,
+      // --host 127.0.0.1 explicitly: Vite binds to `localhost` by default,
+      // which on a Linux runner can resolve to ::1 only, while the readiness
+      // probe and the browser both use 127.0.0.1. That mismatch looks exactly
+      // like a server that never came up.
+      command: `vite --mode e2e --host 127.0.0.1 --port ${PORT} --strictPort`,
       url: BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
     },
   ],
 });
