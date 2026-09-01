@@ -266,11 +266,13 @@ describe("fill-ups", () => {
     await assertFails(setDoc(fillupRef(alice()), fillup({ fullTankSource: "invented" })));
   });
 
-  it("lets an admin read but not write a fill-up", async () => {
+  it("is not readable by an admin at all", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await setDoc(fillupRef(context.firestore() as never), fillup());
     });
-    await assertSucceeds(getDoc(fillupRef(admin())));
+    // The dashboard reads published summaries, so this permission was removed
+    // rather than left in place unused.
+    await assertFails(getDoc(fillupRef(admin())));
     await assertFails(setDoc(fillupRef(admin()), fillup({ odometer: 1 })));
   });
 
@@ -309,6 +311,13 @@ describe("vehicles", () => {
 
   it("refuses another user entirely", async () => {
     await assertFails(setDoc(ref(bob(), ALICE), vehicle()));
+  });
+
+  it("is not readable by an admin either", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "users", ALICE, "vehicles", "v1"), vehicle());
+    });
+    await assertFails(getDoc(ref(admin(), ALICE)));
   });
 });
 
@@ -595,5 +604,64 @@ describe("personal price rules", () => {
     await assertFails(setDoc(ref(alice()), rule({ ownerEmail: "a@b.c" })));
     await assertFails(setDoc(ref(alice()), rule({ discountPerLiter: 500 })));
     await assertFails(setDoc(ref(alice()), rule({ fuelType: "kerosene" })));
+  });
+});
+
+
+describe("operational summaries", () => {
+  const summary = (over: Record<string, unknown> = {}) => ({
+    version: 1,
+    vehicleCount: 2,
+    vehicles: {
+      v1: {
+        fuelType: "95",
+        fillups: 12,
+        trackedKm: 4800,
+        liters: 410.5,
+        cost: 3021.4,
+        kmPerLiter: 11.7,
+        segments: 9,
+        lastFillupAt: 1_780_000_000_000,
+        updatedAt: 1_780_000_000_000,
+      },
+    },
+    ...over,
+  });
+
+  it("lets the owner publish its own summary", async () => {
+    await assertSucceeds(setDoc(doc(alice(), "userSummaries", ALICE), summary()));
+    await assertSucceeds(getDoc(doc(alice(), "userSummaries", ALICE)));
+  });
+
+  it("is readable by an admin — this is what replaced raw fill-up access", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "userSummaries", ALICE), summary());
+    });
+    await assertSucceeds(getDoc(doc(admin(), "userSummaries", ALICE)));
+  });
+
+  it("cannot be written for someone else", async () => {
+    await assertFails(setDoc(doc(bob(), "userSummaries", ALICE), summary()));
+    // Not even by an admin: a summary is the account's own statement.
+    await assertFails(setDoc(doc(admin(), "userSummaries", ALICE), summary()));
+  });
+
+  it("is not readable by another signed-in user", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "userSummaries", ALICE), summary());
+    });
+    await assertFails(getDoc(doc(bob(), "userSummaries", ALICE)));
+  });
+
+  it("is bounded, so a hostile value cannot break the dashboard", async () => {
+    await assertFails(
+      setDoc(doc(alice(), "userSummaries", ALICE), summary({ vehicleCount: 5000 })),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "userSummaries", ALICE), summary({ rawFillups: [] })),
+    );
+    await assertFails(
+      setDoc(doc(alice(), "userSummaries", ALICE), summary({ vehicles: "not a map" })),
+    );
   });
 });

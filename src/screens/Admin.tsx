@@ -4,7 +4,6 @@ import {
   collection,
   collectionGroup,
   doc,
-  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -17,7 +16,11 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
-import { computeStats, type Fillup } from "../lib/stats";
+import {
+  aggregateSummaries,
+  type UserSummary,
+  type VehicleSummary,
+} from "../lib/summary";
 import { ScreenHeader } from "../components/AppHeader";
 import { Card, IconTile, Label, ListCard, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
@@ -56,21 +59,11 @@ interface AdminUser {
   photoURL: string | null;
   createdAt: number | null;
   isAdmin: boolean;
-  /** From a COUNT aggregation, not from reading the documents. */
+  /** The account's published summary, or null if it has never written one. */
+  summary: UserSummary | null;
+  /** Derived from the summary. No fill-up document is ever read to get these. */
   vehicles: number;
   fillups: number;
-  lastFillup: number | null;
-  /** Populated only when an admin expands the row. */
-  detail: AdminUserDetail | null;
-}
-
-/** The figures that genuinely require reading fill-up documents. */
-export interface AdminUserDetail {
-  totalLiters: number;
-  totalCost: number;
-  /** Valid segment distance, summed per vehicle — never a mixed odometer span. */
-  totalKm: number;
-  avgKmPerLiter: number | null;
   lastFillup: number | null;
 }
 
@@ -78,10 +71,7 @@ type SortKey = "recent" | "activity" | "joined";
 
 /** One page of users per request. */
 const PAGE_SIZE = 25;
-/** Bound on the fan-out of count queries for a single user. */
-const MAX_VEHICLES_TO_COUNT = 10;
-/** Bound on a detail read, so one enormous account cannot blow the quota. */
-const MAX_FILLUPS_PER_VEHICLE = 1_000;
+
 
 export function Admin() {
   const navigate = useNavigate();
@@ -93,7 +83,6 @@ export function Admin() {
   const [pageCursor, setPageCursor] = useState<QueryDocumentSnapshot | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [detailLoading, setDetailLoading] = useState<string | null>(null);
 
   /**
    * Load one PAGE of users.
@@ -108,6 +97,20 @@ export function Admin() {
    * document, so a page of 25 users costs roughly 25 + 25 + (a count per
    * vehicle) reads instead of thousands. Nothing reads a fill-up document at
    * all unless an admin explicitly expands a row.
+   */
+  /**
+   * Load one PAGE of users.
+   *
+   * The original implementation read every user document, then every vehicle
+   * of every user, then every fill-up of every vehicle — an unbounded N+1 scan
+   * that at 500 users could be tens of thousands of reads on one screen load,
+   * against a Spark daily quota of 50,000.
+   *
+   * It now reads the profile page plus each account's published summary: two
+   * documents per user, and NOT ONE fill-up record. The summaries are
+   * client-produced operational telemetry and back no security decision; they
+   * simply mean the dashboard does not need to see anybody's fuel log to count
+   * it.
    */
   const load = useCallback(
     async (cursor: QueryDocumentSnapshot | null) => {
@@ -125,29 +128,23 @@ export function Admin() {
           usersSnapshot.docs.map(async (userDoc) => {
             const data = userDoc.data();
 
-            // Counts only. No fill-up document is read here.
-            const vehiclesRef = collection(userDoc.ref, "vehicles");
-            let vehicles = 0;
-            let fillups = 0;
+            let summary: UserSummary | null = null;
             try {
-              const vehicleCount = await getCountFromServer(vehiclesRef);
-              vehicles = vehicleCount.data().count;
-
-              if (vehicles > 0 && vehicles <= MAX_VEHICLES_TO_COUNT) {
-                const vehicleDocs = await getDocs(query(vehiclesRef, limit(MAX_VEHICLES_TO_COUNT)));
-                const counts = await Promise.all(
-                  vehicleDocs.docs.map((vehicleDoc) =>
-                    getCountFromServer(collection(vehicleDoc.ref, "fillups"))
-                      .then((snapshot) => snapshot.data().count)
-                      .catch(() => 0),
-                  ),
-                );
-                fillups = counts.reduce((sum, count) => sum + count, 0);
-              }
+              const snapshot = await getDoc(doc(db, "userSummaries", userDoc.id));
+              if (snapshot.exists()) summary = snapshot.data() as UserSummary;
             } catch {
-              // A count that fails leaves the row with zeroes rather than
-              // failing the whole page.
+              // A missing or unreadable summary leaves the row honest about
+              // having none, rather than failing the whole page.
             }
+
+            const vehicles: VehicleSummary[] = Object.values(summary?.vehicles ?? {});
+            const lastFillup = vehicles.reduce<number | null>(
+              (latest, entry) =>
+                entry.lastFillupAt === null
+                  ? latest
+                  : Math.max(latest ?? 0, entry.lastFillupAt),
+              null,
+            );
 
             return {
               uid: userDoc.id,
@@ -156,11 +153,10 @@ export function Admin() {
               photoURL: data.photoURL ?? null,
               createdAt: data.createdAt?.toMillis?.() ?? null,
               isAdmin: Boolean(data.isAdmin),
-              vehicles,
-              fillups,
-              lastFillup:
-                typeof data.currentLoginAt === "number" ? data.currentLoginAt : null,
-              detail: null,
+              summary,
+              vehicles: summary?.vehicleCount ?? 0,
+              fillups: vehicles.reduce((sum, entry) => sum + entry.fillups, 0),
+              lastFillup,
             } satisfies AdminUser;
           }),
         );
@@ -186,81 +182,6 @@ export function Admin() {
     [],
   );
 
-  /**
-   * Read one user's fill-ups, on request only.
-   *
-   * Per vehicle, never combined. Merging two vehicles' odometer histories into
-   * one computeStats call produces a nonsense distance — the readings are two
-   * unrelated sequences — and the previous averaging, `(running + next) / 2`,
-   * gave the last vehicle half the weight of everything before it. The average
-   * here is distance-weighted across vehicles, which is the same rule the app
-   * uses within one vehicle.
-   */
-  const loadDetail = useCallback(async (uid: string) => {
-    setDetailLoading(uid);
-    try {
-      const vehiclesSnapshot = await getDocs(
-        query(collection(db, "users", uid, "vehicles"), limit(MAX_VEHICLES_TO_COUNT)),
-      );
-
-      let liters = 0;
-      let cost = 0;
-      let last = 0;
-      let segmentKm = 0;
-      let segmentLiters = 0;
-
-      for (const vehicleDoc of vehiclesSnapshot.docs) {
-        const fillupsSnapshot = await getDocs(
-          query(collection(vehicleDoc.ref, "fillups"), limit(MAX_FILLUPS_PER_VEHICLE)),
-        );
-
-        const list = fillupsSnapshot.docs.map((entry) => {
-          const raw = entry.data();
-          return {
-            id: entry.id,
-            date: raw.date?.toMillis?.() ?? 0,
-            odometer: Number(raw.odometer ?? 0),
-            liters: Number(raw.liters ?? 0),
-            pricePerLiter: Number(raw.pricePerLiter ?? 0),
-            totalCost: Number(raw.totalCost ?? 0),
-            isFullTank: raw.isFullTank !== false,
-            continuityBreakBefore: raw.continuityBreakBefore === true,
-          } satisfies Fillup;
-        });
-
-        for (const entry of list) {
-          liters += entry.liters;
-          cost += entry.totalCost;
-          last = Math.max(last, entry.date);
-        }
-
-        // One vehicle at a time. Distance-weighted, so a long-distance car
-        // does not count the same as one driven twice a year.
-        for (const segment of computeStats(list).segments) {
-          segmentKm += segment.km;
-          segmentLiters += segment.liters;
-        }
-      }
-
-      const detail: AdminUserDetail = {
-        totalLiters: Math.round(liters * 10) / 10,
-        totalCost: Math.round(cost * 100) / 100,
-        totalKm: Math.round(segmentKm),
-        avgKmPerLiter:
-          segmentLiters > 0 ? Math.round((segmentKm / segmentLiters) * 100) / 100 : null,
-        lastFillup: last || null,
-      };
-
-      setUsers((previous) =>
-        (previous ?? []).map((entry) => (entry.uid === uid ? { ...entry, detail } : entry)),
-      );
-    } catch {
-      /* leave the row without detail rather than failing the page */
-    } finally {
-      setDetailLoading(null);
-    }
-  }, []);
-
   useEffect(() => {
     if (claimsLoaded && isAdmin) void load(null);
   }, [claimsLoaded, isAdmin, load]);
@@ -277,43 +198,17 @@ export function Admin() {
   /**
    * Totals across the users LOADED SO FAR.
    *
-   * Labelled as such in the UI rather than presented as a global figure: a
-   * paginated list cannot honestly claim to cover the whole population, and
-   * fetching everything to make it true is exactly the read pattern this
-   * screen was rewritten to remove. A real global count belongs in a
-   * backend-maintained aggregate document (Blaze).
+   * Labelled as such rather than presented as a global figure: a paginated
+   * list cannot honestly claim to cover the whole population, and fetching
+   * everything to make it true is the read pattern this screen was rewritten
+   * to remove. A real global count belongs in a backend-maintained aggregate
+   * document (Blaze).
    */
   const totals = useMemo(() => {
     if (!users) return null;
-    const active = users.filter(
-      (entry) => entry.lastFillup && Date.now() - entry.lastFillup < 30 * 86_400_000,
-    ).length;
-    const withDetail = users.filter((entry) => entry.detail !== null);
-
-    // Distance-weighted across the users whose detail has been loaded — not an
-    // iterative running mean, which gave whoever came last half the weight of
-    // everyone before them combined.
-    const km = withDetail.reduce((sum, entry) => sum + (entry.detail?.totalKm ?? 0), 0);
-    const liters = withDetail.reduce(
-      (sum, entry) =>
-        sum +
-        (entry.detail?.avgKmPerLiter
-          ? entry.detail.totalKm / entry.detail.avgKmPerLiter
-          : 0),
-      0,
+    return aggregateSummaries(
+      users.map((entry) => ({ uid: entry.uid, summary: entry.summary })),
     );
-
-    return {
-      users: users.length,
-      active,
-      vehicles: users.reduce((sum, entry) => sum + entry.vehicles, 0),
-      fillups: users.reduce((sum, entry) => sum + entry.fillups, 0),
-      liters: withDetail.reduce((sum, entry) => sum + (entry.detail?.totalLiters ?? 0), 0),
-      cost: withDetail.reduce((sum, entry) => sum + (entry.detail?.totalCost ?? 0), 0),
-      avgKmPerLiter: liters > 0 ? km / liters : null,
-      /** True when some rows have not had their detail loaded. */
-      partial: withDetail.length < users.length,
-    };
   }, [users]);
 
   if (!claimsLoaded) {
@@ -399,10 +294,10 @@ export function Admin() {
                 <StatTile
                   icon={<ChartIcon size={17} />}
                   label="צריכה ממוצעת"
-                  value={totals?.avgKmPerLiter ? num(totals.avgKmPerLiter, 1) : "—"}
+                  value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : "—"}
                   meta={
-                    totals?.partial
-                      ? "קמ״ל · רק לפי פירוט שנטען"
+                    totals && totals.withoutSummary > 0
+                      ? `קמ״ל · ${totals.withoutSummary} ללא סיכום`
                       : "קמ״ל · משוקלל לפי מרחק"
                   }
                   accent
@@ -413,9 +308,9 @@ export function Admin() {
                   <span className="text-[14px] font-semibold text-ink">
                     סך ההוצאה שתועדה
                   </span>
-                  {totals?.partial ? (
+                  {totals && totals.withoutSummary > 0 ? (
                     <span className="text-[11.5px] text-muted">
-                      מחושב רק ממשתמשים שנטען עבורם פירוט
+                      <Num>{totals.withoutSummary}</Num> משתמשים עדיין ללא סיכום
                     </span>
                   ) : null}
                 </span>
@@ -487,30 +382,20 @@ export function Admin() {
                           value={entry.createdAt ? dayMonthShort(entry.createdAt) : "—"}
                         />
 
-                        {/* Reading a person's fill-up records is a deliberate
-                            act, not something that happens to every admin on
-                            every page load. */}
-                        {entry.detail ? (
+                        {/* From the account's own published summary. The
+                            dashboard reads no fill-up records at all. */}
+                        {entry.summary ? (
                           <>
                             <MiniStat
                               label="קמ״ל"
-                              value={
-                                entry.detail.avgKmPerLiter
-                                  ? num(entry.detail.avgKmPerLiter, 1)
-                                  : "—"
-                              }
+                              value={consumptionOf(entry.summary)}
                             />
-                            <MiniStat label="הוצאה" value={shekel(entry.detail.totalCost)} />
+                            <MiniStat label="הוצאה" value={shekel(costOf(entry.summary))} />
                           </>
                         ) : (
-                          <button
-                            type="button"
-                            disabled={detailLoading === entry.uid}
-                            onClick={() => void loadDetail(entry.uid)}
-                            className="min-h-[28px] rounded-pill bg-surface-2 px-2.5 text-[11.5px] font-semibold text-accent disabled:opacity-50"
-                          >
-                            {detailLoading === entry.uid ? "טוען…" : "טעינת פירוט"}
-                          </button>
+                          <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted">
+                            עדיין ללא סיכום
+                          </span>
                         )}
                       </div>
                     </div>
@@ -530,8 +415,8 @@ export function Admin() {
               ) : null}
 
               <p className="px-1 text-[11.5px] leading-relaxed text-muted">
-                הרשימה נטענת בעמודים. מספרי הרכבים והתדלוקים מגיעים משאילתות ספירה ולא
-                מקריאת הרשומות עצמן, ופירוט הצריכה וההוצאה נטען רק כשמבקשים אותו במפורש.
+                הרשימה נטענת בעמודים, והמספרים מגיעים מסיכום שכל חשבון מפרסם בעצמו.
+                לוח הניהול אינו קורא אף רשומת תדלוק, וגם אין לו הרשאה לעשות זאת.
               </p>
             </section>
 
@@ -859,5 +744,26 @@ function MiniStat({ label, value }: { label: string; value: string }) {
       <span className="text-muted">{label}</span>
       <Num className="font-bold text-ink">{value}</Num>
     </span>
+  );
+}
+
+
+/** Distance-weighted consumption across a summary's vehicles. */
+function consumptionOf(summary: UserSummary): string {
+  let km = 0;
+  let liters = 0;
+  for (const vehicle of Object.values(summary.vehicles ?? {})) {
+    if (vehicle.kmPerLiter && vehicle.kmPerLiter > 0 && vehicle.trackedKm > 0) {
+      km += vehicle.trackedKm;
+      liters += vehicle.trackedKm / vehicle.kmPerLiter;
+    }
+  }
+  return liters > 0 ? num(km / liters, 1) : "—";
+}
+
+function costOf(summary: UserSummary): number {
+  return Object.values(summary.vehicles ?? {}).reduce(
+    (sum, vehicle) => sum + vehicle.cost,
+    0,
   );
 }

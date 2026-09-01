@@ -155,8 +155,9 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      // Admins get read-only visibility for the /admin dashboard; they can
-      // never write to another person's account.
+      // Admins read the PROFILE only — display name, email, join date — which
+      // the dashboard needs to list accounts and support needs to find one.
+      // Vehicles and fill-ups below are owner-only, with no admin exception.
       allow read: if isOwner(uid) || isAdmin();
       allow create, update: if isOwner(uid)
         && (!('settings' in request.resource.data) || request.resource.data.settings is map)
@@ -240,13 +241,21 @@ service cloud.firestore {
           && request.resource.data.recordCount <= 100000;
       }
 
+      /**
+       * Vehicles and fill-ups are OWNER-ONLY.
+       *
+       * Admins used to have read here, for a dashboard that counted records by
+       * reading them. It now reads published summaries instead, so the
+       * permission had no remaining purpose — and a permission with no purpose
+       * is one that should not exist.
+       */
       match /vehicles/{vehicleId} {
-        allow read: if isOwner(uid) || isAdmin();
+        allow read: if isOwner(uid);
         allow delete: if isOwner(uid);
         allow create, update: if isOwner(uid) && validVehicle(request.resource.data);
 
         match /fillups/{fillupId} {
-          allow read: if isOwner(uid) || isAdmin();
+          allow read: if isOwner(uid);
           allow delete: if isOwner(uid);
           allow create, update: if isOwner(uid) && validFillup(request.resource.data);
         }
@@ -278,6 +287,33 @@ service cloud.firestore {
         && optionalString(data, 'reportSource', 40)
         && optionalString(data, 'appVersion', 20)
         && (!('status' in data) || data.status in ['pending', 'accepted', 'rejected']);
+    }
+
+    /**
+     * Operational summaries, published by each client for the admin dashboard.
+     *
+     * Counts and averages only: no dates beyond the last fill-up, no odometer
+     * readings, no stations, no notes, no per-record prices. This is what lets
+     * the dashboard stop reading anybody's fuel log.
+     *
+     * They are CLIENT-PRODUCED and back no security decision — a modified
+     * client can write whatever it likes about itself. The bounds below exist
+     * so a hostile value cannot break the dashboard, not so the numbers can be
+     * trusted for anything that matters.
+     */
+    function validSummary(data) {
+      return data.keys().hasOnly(['version', 'vehicleCount', 'vehicles', 'updatedAt'])
+        && isNumber(data.version)
+        && isNumber(data.vehicleCount)
+        && data.vehicleCount >= 0 && data.vehicleCount <= 100
+        && data.vehicles is map
+        && data.vehicles.keys().size() <= 100;
+    }
+
+    match /userSummaries/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update: if isOwner(uid) && validSummary(request.resource.data);
+      allow delete: if isOwner(uid) || isAdmin();
     }
 
     /**

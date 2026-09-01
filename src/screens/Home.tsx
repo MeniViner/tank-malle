@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
+import { usePublishSummary } from "../hooks/usePublishSummary";
 import { AppHeader } from "../components/AppHeader";
 import { Card, Label, ListCard, SectionTitle, Skeleton } from "../components/Card";
 import { InfoStrip } from "../components/Field";
@@ -27,6 +28,10 @@ import {
 export function Home() {
   const { settings, fillups, loadingFillups, prices, activeVehicle } = useData();
   const stats = useStats();
+  // Operational telemetry for the admin dashboard, so it never has to read
+  // anyone's fill-up records to count them.
+  usePublishSummary(stats);
+
   const units = settings.units;
 
   const hero = consumption(stats.lastSegment?.kmPerLiter ?? null, units);
