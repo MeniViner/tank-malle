@@ -1,5 +1,6 @@
 import { Card, Label } from "./Card";
 import { Num } from "./Num";
+import { SignedPercent } from "./Fmt";
 import { ArrowUp, CalendarIcon, CarIcon, CheckIcon, PinIcon } from "./icons";
 
 /**
@@ -61,7 +62,8 @@ export function StatsPreview() {
         <Label className="text-[11px]">צריכה · קמ״ל</Label>
         <span className="flex items-center gap-1 rounded-pill bg-success-soft px-2 py-0.5 text-[9.5px] font-semibold text-success-ink">
           <ArrowUp size={9} />
-          <Num>5%+</Num>
+          {/* The sign leads. This is the first number a new user ever sees. */}
+          <SignedPercent value={5} />
         </span>
       </div>
 

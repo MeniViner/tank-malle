@@ -45,9 +45,19 @@ export function Toaster() {
             </span>
 
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[14.5px] font-bold text-ink">{toast.title}</span>
+              {/* Stable hook for end-to-end assertions: the post-save message
+                  is a product guarantee, so a test must be able to read it
+                  without depending on a class name. */}
+              <span
+                data-toast-title
+                className="truncate text-[14.5px] font-bold text-ink"
+              >
+                {toast.title}
+              </span>
               {toast.detail ? (
-                <span className="truncate text-[12.5px] text-muted">{toast.detail}</span>
+                <span data-toast-detail className="truncate text-[12.5px] text-muted">
+                  {toast.detail}
+                </span>
               ) : null}
             </div>
 

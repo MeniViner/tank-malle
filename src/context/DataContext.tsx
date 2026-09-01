@@ -19,6 +19,9 @@ import {
   setDoc,
   updateDoc,
   writeBatch,
+  type DocumentData,
+  type DocumentSnapshot,
+  type QuerySnapshot,
 } from "firebase/firestore";
 import { reauthenticateWithPopup, type User } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
@@ -86,6 +89,80 @@ interface DataContextValue {
 
   /** Reports exactly what was and was not deleted. Never claims a clean sweep. */
   deleteAccount: () => Promise<DeletionResult>;
+}
+
+/**
+ * Attach a Firestore listener that survives an account handover.
+ *
+ * Two things happen when the signed-in user changes, and Firestore handles
+ * neither of them for us:
+ *
+ * 1. Listeners still attached to the OUTGOING account's paths fail with
+ *    permission-denied before React runs their cleanup. An onSnapshot with no
+ *    error callback rethrows that.
+ * 2. Listeners attached to the INCOMING account's paths can be created before
+ *    the SDK has finished swapping its auth token, so they are evaluated
+ *    against the previous user's credentials and also fail with
+ *    permission-denied — and a Firestore listener that fails this way is
+ *    terminated permanently. It never retries on its own.
+ *
+ * (2) is what left a second tab stuck on "add your first vehicle" after
+ * switching accounts: the write had landed in Firestore, but the listener that
+ * should have delivered it was already dead, and only a manual reload fixed it.
+ *
+ * So a permission error is re-attached a few times with a short backoff, which
+ * is far longer than a token swap needs. A genuine, persistent permission
+ * failure exhausts the retries and is then reported rather than hidden.
+ */
+function subscribeResilient<T>(
+  attach: (onNext: (value: T) => void, onError: (error: unknown) => void) => () => void,
+  onNext: (value: T) => void,
+  options: {
+    /** False once the account has moved on; the result is then dropped. */
+    isCurrent: () => boolean;
+    label: string;
+    onError?: (error: unknown) => void;
+    maxRetries?: number;
+  },
+): () => void {
+  const maxRetries = options.maxRetries ?? 5;
+  let unsubscribe: (() => void) | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let attempts = 0;
+  let cancelled = false;
+
+  const start = (): void => {
+    if (cancelled) return;
+    unsubscribe = attach(
+      (value) => {
+        if (!cancelled && options.isCurrent()) onNext(value);
+      },
+      (error) => {
+        if (cancelled || !options.isCurrent()) return;
+
+        const code = (error as { code?: string })?.code;
+        if (code === "permission-denied" && attempts < maxRetries) {
+          attempts += 1;
+          unsubscribe?.();
+          unsubscribe = null;
+          timer = setTimeout(start, 120 * attempts);
+          return;
+        }
+
+        // eslint-disable-next-line no-console
+        console.warn(`[tank-maleh] ${options.label} listener failed`, error);
+        options.onError?.(error);
+      },
+    );
+  };
+
+  start();
+
+  return () => {
+    cancelled = true;
+    if (timer) clearTimeout(timer);
+    unsubscribe?.();
+  };
 }
 
 /** Outcome of an account deletion. */
@@ -166,6 +243,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [offline, setOffline] = useState(!navigator.onLine);
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
+
+  /** Is this the account the app is currently showing? */
+  const isCurrent = useCallback(
+    (generation: number) => () => generation === generationRef.current,
+    [],
+  );
 
   /**
    * User generation.
@@ -254,16 +337,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || !uid) return;
     const generation = generationRef.current;
-    const guard = () => generation === generationRef.current;
 
     const userRef = doc(db, "users", uid);
 
-    return onSnapshot(
-      userRef,
+    return subscribeResilient<DocumentSnapshot<DocumentData>>(
+      (onNext, onError) => onSnapshot(userRef, onNext, onError),
       (snapshot) => {
-        if (!guard()) return;
         if (!snapshot.exists()) {
           // First sign-in: create the profile document.
+          // Not routed through the write tracker: this fires during the very
+          // first render for a new account, before the tracker callback is
+          // declared, and a profile that fails to create surfaces immediately
+          // as an unusable app rather than needing a pending-write badge.
           void setDoc(
             userRef,
             {
@@ -274,7 +359,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
               createdAt: serverTimestamp(),
             },
             { merge: true },
-          ).catch(() => undefined);
+          ).catch((error: unknown) => {
+            // eslint-disable-next-line no-console
+            console.warn("[tank-maleh] could not create the profile document", error);
+          });
           setSettings(DEFAULT_SETTINGS);
           setReady(true);
           return;
@@ -286,11 +374,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         writeCache(uid, "settings", next);
         setReady(true);
       },
-      () => {
-        if (guard()) setReady(true);
+      {
+        isCurrent: isCurrent(generation),
+        label: "user document",
+        onError: () => setReady(true),
       },
     );
-  }, [user, uid]);
+  }, [user, uid, isCurrent]);
 
   // The stored preference is the source of truth once it arrives; before that
   // the app runs on the localStorage value stamped in index.html.
@@ -306,34 +396,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!uid) return;
     const generation = generationRef.current;
 
-    return onSnapshot(collection(db, "users", uid, "vehicles"), (snapshot) => {
-      if (generation !== generationRef.current) return;
-      const list = snapshot.docs.map((entry) => {
-        const data = entry.data();
-        return {
-          id: entry.id,
-          make: String(data.make ?? ""),
-          model: String(data.model ?? ""),
-          year: toNumberOrNull(data.year),
-          plateNumber: data.plateNumber ?? null,
-          fuelType: (data.fuelType ?? "95") as Vehicle["fuelType"],
-          tankLiters: toNumberOrNull(data.tankLiters),
-          declaredKmPerLiter: toNumberOrNull(data.declaredKmPerLiter),
-          priceAdjustment: typeof data.priceAdjustment === "number" ? data.priceAdjustment : 0,
-          manualPricePerLiter: toNumberOrNull(data.manualPricePerLiter),
-          nickname: data.nickname ?? null,
-          archived: Boolean(data.archived),
-          createdAt: toMillis(data.createdAt),
-          tozeretCd: toNumberOrNull(data.tozeretCd),
-          degemCd: toNumberOrNull(data.degemCd),
-        } satisfies Vehicle;
-      });
-      list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
-      setVehicles(list);
-      writeCache(uid, "vehicles", list);
-      if (!snapshot.metadata.fromCache) setFromCache(false);
-    });
-  }, [uid]);
+    return subscribeResilient<QuerySnapshot<DocumentData>>(
+      (onNext, onError) =>
+        onSnapshot(collection(db, "users", uid, "vehicles"), onNext, onError),
+      (snapshot) => {
+        const list = snapshot.docs.map((entry) => {
+          const data = entry.data();
+          return {
+            id: entry.id,
+            make: String(data.make ?? ""),
+            model: String(data.model ?? ""),
+            year: toNumberOrNull(data.year),
+            plateNumber: data.plateNumber ?? null,
+            fuelType: (data.fuelType ?? "95") as Vehicle["fuelType"],
+            tankLiters: toNumberOrNull(data.tankLiters),
+            declaredKmPerLiter: toNumberOrNull(data.declaredKmPerLiter),
+            priceAdjustment: typeof data.priceAdjustment === "number" ? data.priceAdjustment : 0,
+            manualPricePerLiter: toNumberOrNull(data.manualPricePerLiter),
+            nickname: data.nickname ?? null,
+            archived: Boolean(data.archived),
+            createdAt: toMillis(data.createdAt),
+            tozeretCd: toNumberOrNull(data.tozeretCd),
+            degemCd: toNumberOrNull(data.degemCd),
+          } satisfies Vehicle;
+        });
+        list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+        setVehicles(list);
+        writeCache(uid, "vehicles", list);
+        if (!snapshot.metadata.fromCache) setFromCache(false);
+      },
+      { isCurrent: isCurrent(generation), label: "vehicles" },
+    );
+  }, [uid, isCurrent]);
 
   const activeVehicles = useMemo(() => vehicles.filter((v) => !v.archived), [vehicles]);
 
@@ -365,10 +459,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const path = collection(db, "users", uid, "vehicles", activeVehicle.id, "fillups");
 
-    return onSnapshot(
-      path,
+    return subscribeResilient<QuerySnapshot<DocumentData>>(
+      (onNext, onError) => onSnapshot(path, onNext, onError),
       (snapshot) => {
-        if (generation !== generationRef.current) return;
         const list =
           snapshot.docs.map((entry) => {
             const data = entry.data();
@@ -402,11 +495,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         writeCache(uid, `fillups.${activeVehicle.id}`, list);
         setLoadingFillups(false);
       },
-      () => {
-        if (generation === generationRef.current) setLoadingFillups(false);
+      {
+        isCurrent: isCurrent(generation),
+        label: "fill-ups",
+        onError: () => setLoadingFillups(false),
       },
     );
-  }, [uid, activeVehicle]);
+  }, [uid, activeVehicle, isCurrent]);
 
   /* ---------- global fuel prices ---------- */
 
@@ -414,10 +509,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!uid) return;
     const generation = generationRef.current;
 
-    return onSnapshot(
-      doc(db, "appConfig", "fuelPrices"),
+    return subscribeResilient<DocumentSnapshot<DocumentData>>(
+      (onNext, onError) => onSnapshot(doc(db, "appConfig", "fuelPrices"), onNext, onError),
       (snapshot) => {
-        if (generation !== generationRef.current) return;
         if (!snapshot.exists()) {
           setPrices(null);
           return;
@@ -438,11 +532,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setPrices(next);
         writeCache(uid, "prices", next);
       },
-      () => {
-        if (generation === generationRef.current) setPrices(null);
+      {
+        isCurrent: isCurrent(generation),
+        label: "fuel prices",
+        onError: () => setPrices(null),
       },
     );
-  }, [uid]);
+  }, [uid, isCurrent]);
 
   /* ---------- mutations ----------
      Firestore write promises only settle on SERVER acknowledgement, so they

@@ -1,0 +1,207 @@
+import { expect, type Page } from "@playwright/test";
+import { uidForEmail } from "./emulator";
+
+/**
+ * Driving the app itself.
+ *
+ * Sign-in goes through the REAL flow — the consent checkbox, the Google button
+ * and `signInWithPopup` — landing on the Auth emulator's own account chooser.
+ * There is no test-only back door in the application code, so what these tests
+ * exercise is what a user exercises.
+ */
+
+export interface TestAccount {
+  email: string;
+  displayName: string;
+}
+
+export const ALICE: TestAccount = { email: "alice@example.com", displayName: "אליס" };
+export const BOB: TestAccount = { email: "bob@example.com", displayName: "בוב" };
+
+/**
+ * Get to the sign-in screen.
+ *
+ * A first visit lands on the marketing carousel; a later one goes straight to
+ * sign-in. Waiting for EITHER, rather than assuming one, is what keeps this
+ * from racing the first render.
+ */
+async function reachSignIn(page: Page): Promise<void> {
+  const skip = page.getByRole("button", { name: "דלג" });
+  const google = page.getByRole("button", { name: /Google/ });
+
+  await expect(async () => {
+    expect((await skip.count()) + (await google.count())).toBeGreaterThan(0);
+  }).toPass({ timeout: 20_000 });
+
+  if (await skip.count()) {
+    await skip.first().click();
+    await expect(google).toBeVisible({ timeout: 20_000 });
+  }
+}
+
+/**
+ * Sign in as `account`, creating it in the Auth emulator on first use.
+ *
+ * Consent is an affirmative act in this app: the Google button does nothing
+ * until the checkbox is ticked, so the helper ticks it exactly as a user must.
+ */
+export async function signIn(page: Page, account: TestAccount): Promise<void> {
+  await page.goto("/");
+  await reachSignIn(page);
+
+  const consent = page.getByRole("checkbox").first();
+  await expect(consent).toBeVisible();
+  if (!(await consent.isChecked())) await consent.click({ force: true });
+
+  const [popup] = await Promise.all([
+    page.waitForEvent("popup"),
+    page.getByRole("button", { name: /Google/ }).click(),
+  ]);
+  await popup.waitForLoadState("domcontentloaded");
+
+  // An account the emulator already holds is listed and can be picked; a new
+  // one goes through the add form.
+  const existing = popup.getByText(account.email, { exact: false }).first();
+  if (await existing.count()) {
+    await existing.click();
+  } else {
+    await popup.getByRole("button", { name: /Add new account/ }).click();
+    await popup.locator("#email-input").fill(account.email);
+    await popup.locator("#display-name-input").fill(account.displayName);
+    await popup.getByRole("button", { name: /Sign in with Google\.com/ }).click();
+  }
+
+  await popup.waitForEvent("close", { timeout: 20_000 }).catch(() => undefined);
+  await expect(page.getByRole("button", { name: /Google/ })).toHaveCount(0, {
+    timeout: 20_000,
+  });
+}
+
+/** Sign out through the UI, the way a user does. */
+export async function signOut(page: Page): Promise<void> {
+  await page.goto("/settings/profile");
+  await page.getByRole("button", { name: "התנתקות" }).first().click();
+  // The confirmation dialog repeats the label on its confirm button.
+  await page.getByRole("button", { name: "התנתקות" }).last().click();
+  await expect(page.getByRole("button", { name: /Google/ })).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
+/** Switch accounts through the explicit flow rather than a bare sign-out. */
+export async function switchAccount(page: Page): Promise<void> {
+  await page.goto("/settings/profile");
+  await page.getByRole("button", { name: "החלפת חשבון" }).first().click();
+  await page.getByRole("button", { name: "החלפת חשבון" }).last().click();
+  await expect(page.getByRole("button", { name: /Google/ })).toBeVisible({
+    timeout: 20_000,
+  });
+}
+
+export async function uidOf(account: TestAccount): Promise<string> {
+  const uid = await uidForEmail(account.email);
+  if (!uid) throw new Error(`no emulator account for ${account.email}`);
+  return uid;
+}
+
+/* ------------------------------------------------------------------ *
+ * Vehicles and fill-ups, through the UI
+ * ------------------------------------------------------------------ */
+
+/** Create a vehicle by the manual path — no registry call, so no network. */
+/** The wizard shows the long labels; tests name the fuel type by its key. */
+const FUEL_LABEL = {
+  "95": "בנזין 95 אוקטן",
+  "98": "בנזין 98 אוקטן",
+  diesel: "סולר",
+  other: "אחר",
+} as const;
+
+export type TestFuelType = keyof typeof FUEL_LABEL;
+
+export async function createVehicle(
+  page: Page,
+  {
+    make,
+    model,
+    fuelType = "95",
+  }: { make: string; model: string; fuelType?: TestFuelType },
+): Promise<void> {
+  await page.goto("/vehicles/new");
+  await page.getByRole("button", { name: /הזנה ידנית/ }).click();
+
+  await page.getByLabel("יצרן", { exact: true }).fill(make);
+  await page.getByLabel("דגם", { exact: true }).fill(model);
+  await page.getByRole("button", { name: FUEL_LABEL[fuelType], exact: true }).click();
+
+  await page.getByRole("button", { name: "המשך", exact: true }).click();
+  await page.getByRole("button", { name: "שמירת הרכב" }).click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 25_000 });
+
+  // Landing on Home is not the same as the vehicle being active. Wait for the
+  // header to name it, which is the signal the rest of the app also waits for
+  // — otherwise the fill-up form renders its "no vehicle" state.
+  await expect(page.getByText(`${make} ${model}`, { exact: false }).first()).toBeVisible({
+    timeout: 25_000,
+  });
+}
+
+export interface FillupInput {
+  odometer: number;
+  liters: number;
+  pricePerLiter?: number;
+  /** Defaults to a full tank, matching the form. */
+  fullToTheTop?: boolean;
+  /** Declare undocumented fill-ups before this record. */
+  continuityBreak?: boolean;
+  /** "YYYY-MM-DD", typed into the date field. */
+  date?: string;
+  /** "HH:MM", typed into the time field. */
+  time?: string;
+}
+
+/** Add a fill-up through the real form. Returns the toast title it produced. */
+export async function addFillup(page: Page, input: FillupInput): Promise<string> {
+  await page.goto("/fillup/new");
+
+  if (input.date || input.time) {
+    await page.getByRole("button", { name: /תאריך ושעה/ }).first().click();
+    if (input.date) {
+      const field = page.getByLabel("תאריך — הקלדה ידנית");
+      await field.fill(input.date);
+      await field.press("Enter");
+    }
+    if (input.time) {
+      const field = page.getByLabel("שעה — הקלדה ידנית");
+      await field.fill(input.time);
+      await field.press("Enter");
+    }
+    await page.getByRole("button", { name: /אישור|סגירה|שמירה/ }).first().click();
+  }
+
+  // The odometer label changes to "קילומטראז׳ בתאריך זה" for a backdated record.
+  await page.getByLabel(/^קילומטראז׳/).fill(String(input.odometer));
+  await page.getByLabel("ליטרים", { exact: true }).fill(String(input.liters));
+
+  if (input.pricePerLiter !== undefined) {
+    await page.getByLabel("מחיר לליטר").fill(String(input.pricePerLiter));
+  }
+
+  const fullToggle = page.getByRole("switch", { name: "מילאתי עד מלא" });
+  const wantsFull = input.fullToTheTop !== false;
+  if ((await fullToggle.getAttribute("aria-checked")) !== String(wantsFull)) {
+    await fullToggle.click();
+  }
+
+  if (input.continuityBreak) {
+    await page
+      .getByRole("switch", { name: "היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת" })
+      .click();
+  }
+
+  await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+
+  const toast = page.locator("[data-toast-title]").first();
+  await expect(toast).toBeVisible({ timeout: 20_000 });
+  return (await toast.innerText()).trim();
+}
