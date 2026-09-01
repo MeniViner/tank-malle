@@ -1,4 +1,4 @@
-# טנק מלא · Tank Male
+# טנק מלא · Tank Maleh
 
 A Hebrew, right-to-left, offline-first PWA for tracking fuel fill-ups: real
 consumption in קמ״ל, spend over time, price trends and per-station comparisons.
@@ -51,14 +51,17 @@ the admin scripts below, and only via `GOOGLE_APPLICATION_CREDENTIALS`.
 | -------------------------------------- | ----------------------------------------------- |
 | `npm run dev`                          | Dev server                                       |
 | `npm run build`                        | Type-check + production build                    |
-| `npm test`                             | Vitest run (the stats engine)                    |
+| `npm test`                             | Vitest run — 250 cases, no emulator needed       |
 | `npm run test:watch`                   | Vitest watch                                     |
+| `npm run test:rules`                   | Firestore Rules tests (needs Java 21+ and the CLI) |
 | `npm run lint`                         | oxlint                                           |
 | `npm run emulators`                    | Auth + Firestore emulator suite (needs Java)     |
 | `node scripts/generateIcons.mjs`       | Regenerate PWA icons from the inline SVG mark    |
 | `node scripts/buildVehicleCatalog.mjs` | Rebuild the make/model catalog from data.gov.il  |
 | `node scripts/buildStationCatalog.mjs` | Rebuild the fuel-station catalog with coordinates |
 | `node scripts/grantAdmin.mjs <email>`  | Grant (or `--revoke`) the admin custom claim     |
+| `node scripts/makeImportFixtures.mjs`  | Regenerate the synthetic import fixtures         |
+| `node scripts/migrate.mjs`             | Data migration — **dry run** unless `--apply`    |
 
 To develop against the emulator suite, set `VITE_USE_EMULATORS=1` in `.env` and
 run `npm run emulators` alongside `npm run dev`.
@@ -103,34 +106,55 @@ After deploying functions, re-add the proxy rewrite to `firebase.json`:
 src/
   lib/
     stats.ts          pure derived-metrics engine — the heart of the app
-    stats.test.ts     64 Vitest cases covering it
-    plateLookup.ts    tier-1 vehicle lookup against the national registry
+    stats.test.ts     the original 64 cases
+    continuity.test.ts  islands, open segments, draft evaluation
+    periods.ts        date ranges and aggregation buckets for Statistics
+    prices/           fuel-type-aware price model + the one station resolver
+    import/           CSV + XLSX readers, legacy adapter, dedupe, plan
+    writes.ts         mutation tracking — pending / synced / failed
+    capabilities.ts   flags gating Blaze-only features (all default off)
+    plateLookup.ts    tier-1 vehicle lookup, with a real tri-state outcome
     accents.ts        accent palette + AA-contrast dark-variant derivation
     format.ts         Hebrew/RTL-aware number, money and date formatting
-    csv.ts            raw-data CSV export
+    csv.ts            versioned raw-data CSV export
     firebase.ts       app/auth/firestore initialisation
   context/            Auth, Data (Firestore), Theme, Toast providers
   components/         design-system primitives (Card, Field, Sheet, TabBar…)
   screens/            one file per screen in the design kit
-functions/            scheduled fuel-price updater + CORS proxy
-scripts/              admin seed + dev-time generators
+  components/Fmt.tsx  semantic RTL formatting primitives
+functions/            scheduled fuel-price updater + CORS proxy (NOT deployed)
+scripts/              admin seed, migration, dev-time generators
+tests/rules/          Firestore Rules tests against the emulator
+docs/                 architecture, migration, Spark/Blaze, price model
 design/               the design export this was built against
 ```
 
 ### Data model
 
 ```
-users/{uid}                                     profile + settings
+users/{uid}                                     profile + settings + login stamps
 users/{uid}/vehicles/{vehicleId}
 users/{uid}/vehicles/{vehicleId}/fillups/{fillupId}
+users/{uid}/stationPriceReports/{reportId}      private; owner-only, create-only
+users/{uid}/personalPriceRules/{ruleId}         private; scoped price rules
+benchmarks/{uid}__{vehicleId}                   per-vehicle economy summary
+stationPriceAggregates/{station_fuel_mode}      public; backend-written only
 appConfig/fuelPrices                            global; admin/Functions write only
+feedback/{entryId}                              append-only
 ```
+
+Full field semantics, and how every pre-upgrade shape is read, are in
+[docs/DATA-MIGRATION.md](docs/DATA-MIGRATION.md).
 
 ### Consumption model
 
-Consumption is only meaningful between two **full tanks**. A partial fill-up
-does not close a segment — its liters roll into the open one, because the tank
-level at a partial fill is unknown:
+`isFullTank` means **the tank was full at the END of the fill-up** — whatever
+was in it on arrival. The UI says so: *מילאתי עד מלא*, not *מיכל מלא*.
+
+Consumption is only meaningful between two such fill-ups. A partial does not
+close a segment; its liters roll into the open one, because the tank level at a
+partial fill is unknown. The opening fill-up's own liters are not counted — they
+were burnt before it:
 
 ```
 kmPerLiter = (odoEnd − odoStart) / Σ liters(fills after the segment start,
@@ -139,6 +163,35 @@ kmPerLiter = (odoEnd − odoStart) / Σ liters(fills after the segment start,
 
 The overall average is **distance-weighted**, so a 900 km segment counts for
 more than a 200 km one.
+
+#### Continuity islands
+
+A user can declare that fill-ups happened which they did not record
+(`continuityBreakBefore`). That splits the history into **islands**, and no
+metric crosses an island boundary — not consumption, not cost per km, not
+distance per day, and not the line on a chart. Records before a break stay
+visible; they are simply in a different island.
+
+Elapsed time and distance never create a break on their own. A month without
+refuelling is a real thing that happens, not evidence of missing data.
+
+Valid tracked distance is therefore the **sum of island spans**, not
+`max(odometer) − min(odometer)`.
+
+#### The open segment
+
+`stats.openSegment` exposes the stretch after the most recent full tank: its
+baseline, accumulated partial liters and cost, distance so far, and whether the
+next full fill-up will close it. Home, the fill-up form and Statistics all show
+it, so a partial fill-up is visibly retained rather than looking discarded.
+
+#### One authority
+
+`evaluateDraft()` is the single way to find out what an unsaved record does. The
+post-save message and the implausible-consumption warning both run through it,
+by inserting the draft into a temporary canonical list and rebuilding segments.
+No screen, toast, validator, chart or importer derives consumption any other
+way.
 
 ### Validation philosophy
 
@@ -149,13 +202,22 @@ more than a 200 km one.
   chronological neighbours. The message states the allowed range
   (`הזן בין 41,200 ל־42,850`).
 
-### Fuel price chain
+### Fuel prices
 
-Weakest to strongest: official monthly price → `+ vehicle.priceAdjustment` →
-`vehicle.manualPricePerLiter` (replaces both) → a per-fill-up manual edit
-(always wins). Backdated fill-ups resolve the price for **their own month** via
-`history`, falling back to the latest known price — and the UI says which,
-rather than claiming a month it has no record for.
+Five separate concepts, never conflated: the **regulated maximum**, a
+**station-posted price**, the **price actually paid**, a **personal discount**,
+and an optional **external provider** figure.
+
+The Israeli regulated maximum covers exactly one product — 95-octane petrol,
+self-service, mainland. A diesel or 98-octane vehicle gets *"מחיר סולר לא ידוע"*,
+never the 95 figure relabelled.
+
+`resolveStationPrice()` is the one resolver every screen uses, with a documented
+precedence, freshness thresholds and confidence rules. See
+[docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md](docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md).
+
+The paid price is never published as the station's posted price without an
+explicit answer to *"האם זה גם המחיר שהופיע במשאבה?"*.
 
 ### Admin area
 
@@ -175,16 +237,26 @@ the project is on Spark.
 
 ### Community benchmarks
 
-Each user publishes exactly one anonymous document to `benchmarks/{uid}`:
-model key, fuel type, year, average km/l, segment count and average price paid.
-No name, email, plate, odometer, date, station or note ever leaves the account —
-and the rules enforce that with `hasOnly`, so it is a structural guarantee
-rather than a promise.
+Each user publishes one summary **per vehicle** to
+`benchmarks/{uid}__{vehicleId}`: model key, fuel type, year, average km/l,
+segment count and average price paid. No name, email, plate, odometer, date,
+station or note ever leaves the account, and the rules enforce that with
+`hasOnly`.
 
-The comparison lives at the bottom of Statistics — a percentile headline, a
+The figure is built from the vehicle's complete closed-segment history, so the
+range selected in Statistics cannot move it, and the cohort never crosses fuel
+types.
+
+**It is pseudonymous, not anonymous.** The document id contains the uid — which
+is what lets the rules prove ownership without a backend. A reader cannot tell
+whose document it is, but documents are linkable across time. True anonymity
+needs the Blaze-side cohort aggregator, which is written and not deployed.
+
+The comparison lives in the Community section of Statistics — a percentile headline, a
 histogram of where you sit in the pack, a direct you-vs-group-vs-best bar, and
-a price comparison. It appears only once at least four comparable drivers
-exist, and is phrased as context rather than a scoreboard. An `InfoTip` next to
+a price comparison. The section is **always visible**; below four comparable drivers it says how
+many are still needed rather than disappearing. It is phrased as context rather
+than a scoreboard. An `InfoTip` next to
 the heading spells out exactly what is and is not shared. Publishing is opt-out
 in Settings; opting out deletes the document immediately.
 
@@ -246,37 +318,154 @@ it clears 4.5:1 against the dark surface.
 
 ### RTL
 
-The whole app is `dir="rtl"`. Every numeric or Latin run is wrapped in an LTR
-island (the `<Num>` component) with `tabular-nums`, so digits, `₪` and
-separators keep their visual order. Charts reverse the category axis and pin the
-value axis to the right so time still reads right-to-left.
+The whole app is `dir="rtl"`. The rule: the **numeric run** — digits, sign,
+separators and the currency symbol — is one atomic LTR island inside `<bdi>`;
+the **Hebrew unit word stays outside it**, in the surrounding RTL flow. Putting
+both into one uncontrolled `dir="ltr"` span is what produced `35%+`.
+
+`src/components/Fmt.tsx` provides the semantic primitives — `Money`,
+`SignedMoney`, `PricePerLiter`, `SignedPercent`, `Percent`, `Quantity`,
+`Distance`, `ConsumptionValue`. `ConsumptionValue` takes km/L and converts
+internally, so a unit label can never drift away from the value it labels.
+
+Charts reverse the category axis and pin the value axis to the right so time
+still reads right-to-left.
+
+### Import and export
+
+Settings → ייבוא נתונים reads CSV and XLSX **entirely on the device**. The
+format and field mapping are detected automatically — Tank Maleh's own export
+(v1 or v2) and older fuel-tracker workbooks — but nothing is written until a
+preview has been confirmed, and the final report distinguishes imported, queued,
+skipped-as-duplicate, not-importable and failed.
+
+Only raw inputs are imported; every legacy derived column is discarded and
+recomputed. Re-importing the same file adds nothing, via a deterministic
+identity hash over vehicle, minute, odometer, litres, cost and fuel type.
+
+The XLSX reader is ~350 lines built on the platform's `DecompressionStream`, so
+there is no new dependency, and the whole pipeline is dynamically imported —
+about 9 kB, loaded only when the import screen is opened.
+
+### Write states
+
+An offline write feels instant and its promise only settles on **server**
+acknowledgement. Those are different things, so four states are kept distinct
+and shown in the header: `נשמר במכשיר`, `ממתין לסנכרון`, `סונכרן`,
+`הסנכרון נכשל`. A permanent rejection surfaces instead of being swallowed.
+
+### Account switching
+
+Switching accounts never requires clearing cookies or site data. A
+user-generation counter is bumped before any listener for the next account
+attaches; every async callback drops its result if the generation has moved.
+Profile → החלפת חשבון is the explicit flow.
 
 ## Testing
 
 ```bash
-npm test
+npm test            # 250 unit cases (243 run, 7 need the real workbook)
+npm run test:rules  # 48 Firestore Rules cases (needs Java 21+ and the Firebase CLI)
+npm run lint
+npm run build
 ```
 
-64 cases over the stats engine: segments with partials, a backdated insert
-splitting a segment, edits, deletes, single-record and empty inputs,
-out-of-order timestamps, odometer bounds, soft/hard validation, the price chain
-and the range filter.
+| Suite | Cases | Covers |
+| --- | --- | --- |
+| `stats.test.ts` | 67 | the original engine — segments with partials, backdated inserts, edits, deletes, odometer bounds, soft/hard validation, range filtering — plus the no-95-for-diesel price rule |
+| `continuity.test.ts` | 33 | islands, breaks before full and partial fills, backdated and removed breaks, valid tracked distance, cost per valid km, open segments, `evaluateDraft`, warning suppression, segment range boundaries |
+| `import.test.ts` | 45 (7 need the real workbook) | bidi marks, NBSP, currency, units, comma ambiguity, Excel serials, header aliases, legacy reset detection, duplicate prevention, CSV and XLSX fixtures |
+| `prices.test.ts` | 30 | no cross-fuel fallback, precedence, freshness, confidence, personal-rule scoping, ceiling-vs-price wording |
+| `plateLookup.test.ts` | 22 | every failure classification, plate mismatch, retries, cached fallback |
+| `periods.test.ts` | 18 | ranges, grouping, elapsed-time averages, year-to-date, per-metric range semantics |
+| `format.test.ts` | 12 | leading signs, currency placement, true minus, previous-login wording |
+| `DateTimePicker.test.ts` | 9 | one-minute typed times, day-first dates, impossible dates |
+| `writes.test.ts` | 8 | pending → synced → failed, disposal after an account switch |
+| `csv.test.ts` | 6 | export round trip, formula-injection neutralisation, v1 compatibility |
+| `tests/rules/` | 48 | owner / other user / admin / unauthenticated, on every collection |
+
+### The legacy workbook
+
+The importer is verified against a real legacy workbook locally. The file is
+never committed; point the suite at your own copy:
+
+```bash
+TANK_MALEH_LEGACY_XLSX=~/Downloads/fuel-tracker-2026-09-01.xlsx npm test
+```
+
+Committed fixtures (`src/lib/import/__fixtures__/`) carry the identical schema
+with entirely invented data, generated by `scripts/makeImportFixtures.mjs`.
 
 ## Known limitations
 
-- **Cloud Functions are not deployed.** The project is on the Spark plan, so the
-  scheduled price updater and the lookup proxy are written but undeployed. Until
-  a Blaze upgrade, the admin price editor at `/admin`, `scripts/seedFuelPrice.mjs`
-  and the per-vehicle manual override cover the same ground. The plate lookup is
-  unaffected — data.gov.il sends `Access-Control-Allow-Origin: *`, so the browser
-  calls it directly and the proxy is only a safety net.
+### Requires Blaze, written but not deployed
+
+- **Cloud Functions are not deployed.** The scheduled price updater and the
+  lookup proxy exist in `functions/` and are undeployed. The admin price editor
+  at `/admin`, `scripts/seedFuelPrice.mjs` and a per-vehicle manual price cover
+  the same ground. The plate lookup is unaffected — data.gov.il sends
+  `Access-Control-Allow-Origin: *`, so the browser calls it directly.
+- **`/api/vehicle-lookup` is not a working fallback.** Hosting rewrites every
+  unmatched path to the SPA, so that route returns a 200 with an HTML body. It
+  is therefore off unless `VITE_VEHICLE_LOOKUP_PROXY=1`, and the client rejects
+  any HTML or non-JSON response rather than reading it as "no records".
+- **Community station prices are not live.** Report ingestion, median
+  aggregation, App Check and rate limiting are Blaze-side. With the capability
+  flag off, station prices resolve to the regulated ceiling (95 only) or to
+  "unknown", and the UI says which. It never invents a community result.
+- **Benchmarks are pseudonymous, not anonymous.** `benchmarks/{uid}__{vehicleId}`
+  is world-readable to signed-in users and its id contains the uid, which is what
+  lets the rules prove ownership without a backend. A reader cannot tell whose
+  document it is, but documents are linkable over time. Genuine anonymity needs
+  the cohort aggregator.
+- **Admin totals cover the users loaded so far**, and spend/consumption only
+  those whose detail was explicitly requested. A true global count needs a
+  backend-maintained aggregate document. The strip is labelled accordingly.
+
+### Data sources
+
 - **No first-party feed for the official pump price.** The Ministry of Energy
-  publishes it behind Cloudflare with no JSON API, and `data.gov.il` only
-  carries refinery-gate prices. The scheduled function tries the gov.il pages
-  with a defensive parser and, on failure, leaves the last known good value in
-  place rather than writing something wrong.
+  publishes it behind Cloudflare with no JSON API, and data.gov.il carries only
+  refinery-gate prices. The price is entered manually and the UI says so —
+  "המחיר עודכן ידנית" / "המחיר לא עודכן החודש" — rather than promising an
+  automatic update on the 1st.
+- **There is no regulated maximum for 98 or diesel.** Israel regulates
+  95-octane self-service only. Those vehicles are told the price is unknown; the
+  95 figure is never substituted.
 - **The motorcycle registry dataset** rejects the catalog query (HTTP 409), so
-  two-wheelers fall back to tiers 2 and 3.
-- **Tank capacity is an estimate.** No Israeli open dataset publishes it. The
-  value is derived from body style and engine displacement, shown as an
-  estimate, and only ever feeds the range figure.
+  two-wheelers fall back to the make/model picker and free text.
+- **Tank capacity is an estimate.** No Israeli open dataset publishes it. It is
+  derived from body style and displacement, shown as an estimate, and only feeds
+  the range figure.
+
+### Migration
+
+- **Legacy price rules need review.** `vehicle.priceAdjustment` and
+  `manualPricePerLiter` are preserved and migrated to explicit rules, but an
+  unreviewed legacy rule is deliberately **not applied**, so a user who had one
+  will see the suggestion change until they confirm it. That is the intent —
+  an invisible permanent override is what was wrong.
+- **Legacy stations may stay unresolved.** A fill-up with no coordinates, or
+  with several catalog candidates nearby, keeps no `stationId`. It is reported,
+  not guessed at.
+- **Legacy imports assume a full tank.** Older workbooks have no full/partial
+  field and their own maths treated every row as closing an interval. Imported
+  rows default to full with `fullTankSource: "legacy-assumption"`, stated in the
+  preview and editable afterwards.
+
+### Platform
+
+- **XLSX import needs `DecompressionStream`** (Chrome 80+, Firefox 113+, Safari
+  16.4+). Older browsers are told to export CSV instead.
+- **Firestore's persistent cache is not cleared on sign-out.** Queries are
+  scoped per uid so no account can read another's cached documents, and keeping
+  it is what makes the app work at the pump with no signal. Another account's
+  documents do remain in IndexedDB until evicted; see
+  [docs/DATA-MIGRATION.md](docs/DATA-MIGRATION.md) for the trade-off.
+
+## Documentation
+
+- [docs/TANK-MALEH-PRODUCTION-UPGRADE.md](docs/TANK-MALEH-PRODUCTION-UPGRADE.md) — target domain model and rollout
+- [docs/DATA-MIGRATION.md](docs/DATA-MIGRATION.md) — how every pre-upgrade shape is read, and the migration script
+- [docs/FIREBASE-SPARK-AND-BLAZE.md](docs/FIREBASE-SPARK-AND-BLAZE.md) — what works today, what needs Blaze, read/write budget
+- [docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md](docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md) — the five price concepts, precedence, confidence, privacy

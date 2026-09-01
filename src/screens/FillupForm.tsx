@@ -89,6 +89,20 @@ export function FillupForm() {
   const [continuityBreak, setContinuityBreak] = useState(
     editing?.continuityBreakBefore === true,
   );
+  /**
+   * Whether the price paid was also the price on the pump.
+   *
+   * Never assumed. totalCost / liters is what this person paid, which may
+   * include a discount that is theirs and nobody else's — publishing it as the
+   * station's posted price would both corrupt a shared figure and leak a
+   * private arrangement.
+   */
+  const [pumpAnswer, setPumpAnswer] = useState<PumpAnswer>(
+    editing?.postedPricePerLiter != null ? "same" : "unanswered",
+  );
+  const [pumpPrice, setPumpPrice] = useState(() =>
+    editing?.postedPricePerLiter != null ? String(editing.postedPricePerLiter) : "",
+  );
   const [station, setStation] = useState<Station | null>(editing?.station ?? null);
   const [stationAuto, setStationAuto] = useState(false);
   const [notes, setNotes] = useState(editing?.notes ?? "");
@@ -311,6 +325,10 @@ export function FillupForm() {
       // Provenance: an explicit user statement, never a guess.
       fullTankSource: "user" as const,
       continuityBreakBefore: continuityBreak,
+      // Only ever set from an explicit answer. "לא יודע" and no answer both
+      // leave it null, so nothing unverified can reach a public aggregate.
+      postedPricePerLiter: resolvePostedPrice(pumpAnswer, priceValue, pumpPrice),
+      fuelType: activeVehicle.fuelType,
       station: station ?? null,
       notes: notes.trim() || null,
     };
@@ -461,6 +479,16 @@ export function FillupForm() {
             />
           </div>
         </Card>
+
+        {station && Number.isFinite(priceValue) && priceValue > 0 ? (
+          <PumpPriceQuestion
+            paid={priceValue}
+            answer={pumpAnswer}
+            onAnswer={setPumpAnswer}
+            pumpPrice={pumpPrice}
+            onPumpPrice={setPumpPrice}
+          />
+        ) : null}
 
         {/* Full-tank toggle — drives the whole segment model.
             The label says "I filled up to full", not "full tank": the flag
@@ -1009,4 +1037,107 @@ function priceSourceText(
         ? `מחיר מרבי מפוקח לבנזין 95 · ${heMonthName(new Date(date).getMonth() + 1)}`
         : "המחיר המרבי המפוקח האחרון הידוע";
   }
+}
+
+
+/** Answers to "was this also the price on the pump?". */
+type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
+
+/**
+ * Only a confirmed pump price is eligible to become public.
+ *
+ * "לא יודע" and no answer both yield null. A discount yields null too — the
+ * paid price is then explicitly NOT the station's price, which is exactly the
+ * distinction the question exists to draw.
+ */
+function resolvePostedPrice(
+  answer: PumpAnswer,
+  paid: number,
+  typed: string,
+): number | null {
+  if (answer === "same") return Number.isFinite(paid) && paid > 0 ? paid : null;
+  if (answer === "different") {
+    const value = parseDecimal(typed);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+  return null;
+}
+
+/**
+ * One low-friction question, asked only when a station is named — there is no
+ * point asking about the pump price at a station we cannot identify.
+ *
+ * Answering is optional. Skipping it simply means nothing is contributed.
+ */
+function PumpPriceQuestion({
+  paid,
+  answer,
+  onAnswer,
+  pumpPrice,
+  onPumpPrice,
+}: {
+  paid: number;
+  answer: PumpAnswer;
+  onAnswer: (value: PumpAnswer) => void;
+  pumpPrice: string;
+  onPumpPrice: (value: string) => void;
+}) {
+  const options: { value: PumpAnswer; label: string }[] = [
+    { value: "same", label: "כן" },
+    { value: "discount", label: "לא, הייתה לי הנחה" },
+    { value: "different", label: "מחיר המשאבה היה אחר" },
+    { value: "unknown", label: "לא יודע" },
+  ];
+
+  return (
+    <Card className="flex flex-col gap-3 p-4">
+      <span className="flex flex-col gap-0.5">
+        <span className="text-[15px] font-semibold text-ink">
+          האם זה גם המחיר שהופיע במשאבה?
+        </span>
+        <span className="text-[12.5px] leading-relaxed text-muted">
+          שילמתם <Num>{price(paid)}</Num> לליטר. התשובה עוזרת לנו לדעת מה המחיר
+          הציבורי בתחנה — המחיר שלכם לא מתפרסם בלי אישור.
+        </span>
+      </span>
+
+      <div className="flex flex-wrap gap-1.5">
+        {options.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={answer === option.value}
+            onClick={() => onAnswer(answer === option.value ? "unanswered" : option.value)}
+            className={`min-h-[36px] rounded-pill px-3 text-[13px] font-semibold transition-[background-color,color] duration-200 ${
+              answer === option.value
+                ? "bg-accent text-accent-contrast"
+                : "bg-surface-2 text-muted"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      {answer === "different" ? (
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-[13.5px] text-ink">מה היה המחיר במשאבה?</span>
+          <input
+            dir="ltr"
+            inputMode="decimal"
+            aria-label="מחיר המשאבה"
+            value={pumpPrice}
+            onChange={(event) => onPumpPrice(event.target.value)}
+            className="num min-h-[44px] w-[88px] flex-none rounded-[11px] border border-line bg-surface px-2 text-center text-[16px] font-bold text-ink outline-none focus:border-accent"
+          />
+        </label>
+      ) : null}
+
+      {answer === "discount" ? (
+        <span className="text-[12.5px] leading-relaxed text-muted">
+          נשמר כמחיר ששילמתם בלבד. הוא לא ידווח כמחיר התחנה.
+        </span>
+      ) : null}
+    </Card>
+  );
 }
