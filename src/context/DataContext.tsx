@@ -262,6 +262,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
               station: data.station ?? null,
               notes: data.notes ?? null,
               createdAt: toMillis(data.createdAt),
+              // Added by the upgrade. Absent on every pre-existing document,
+              // and absence must read as "no break", so the default is false.
+              continuityBreakBefore: data.continuityBreakBefore === true,
+              fullTankSource:
+                data.fullTankSource === "legacy-assumption" ? "legacy-assumption" : "user",
+              postedPricePerLiter: toNumberOrNull(data.postedPricePerLiter),
+              fuelType: (data.fuelType ?? null) as Fillup["fuelType"],
+              importSource: data.importSource ?? null,
+              importBatchId: data.importBatchId ?? null,
+              importRowHash: data.importRowHash ?? null,
+              schemaVersion:
+                typeof data.schemaVersion === "number" ? data.schemaVersion : 1,
             } satisfies Fillup;
           });
 

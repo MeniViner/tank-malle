@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
@@ -162,12 +162,27 @@ export function History() {
                     const date = new Date(fillup.date);
 
                     return (
+                      <Fragment key={fillup.id}>
+                        {fillup.continuityBreakBefore ? (
+                          <div
+                            className={`flex items-center gap-2 bg-surface-2 px-3.5 py-2 ${
+                              index > 0 ? "border-t border-line" : ""
+                            }`}
+                          >
+                            <span className="h-px flex-1 bg-line" />
+                            <span className="flex-none text-[11.5px] font-semibold text-muted">
+                              התחלת תקופה חדשה
+                            </span>
+                            <span className="h-px flex-1 bg-line" />
+                          </div>
+                        ) : null}
                       <button
-                        key={fillup.id}
                         type="button"
                         onClick={() => setSelected(fillup)}
                         className={`flex min-h-[66px] w-full items-center gap-3 px-3.5 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 ${
-                          index > 0 ? "border-t border-line" : ""
+                          index > 0 && !fillup.continuityBreakBefore
+                            ? "border-t border-line"
+                            : ""
                         }`}
                       >
                         <span className="flex w-[38px] flex-none flex-col items-center">
@@ -207,6 +222,7 @@ export function History() {
                           </Num>
                         ) : null}
                       </button>
+                      </Fragment>
                     );
                   })}
                 </Card>

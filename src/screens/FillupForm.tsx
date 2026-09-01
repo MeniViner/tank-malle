@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import {
+  evaluateDraft,
   hardBlock,
   odometerBounds,
   resolvePricePerLiter,
@@ -10,7 +11,6 @@ import {
   type Fillup,
 } from "../lib/stats";
 import {
-  consumption,
   heMonthName,
   num,
   parseDecimal,
@@ -36,6 +36,7 @@ import { Card, Label, IconTile } from "../components/Card";
 import { Toggle } from "../components/Segmented";
 import { Sheet, ConfirmDialog } from "../components/Sheet";
 import { Num } from "../components/Num";
+import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { DateTimePicker } from "../components/DateTimePicker";
 import { ScreenHeader } from "../components/AppHeader";
 import {
@@ -84,6 +85,9 @@ export function FillupForm() {
   const [pricePerLiter, setPricePerLiter] = useState("");
   const [priceTouched, setPriceTouched] = useState(false);
   const [isFullTank, setIsFullTank] = useState(editing?.isFullTank ?? true);
+  const [continuityBreak, setContinuityBreak] = useState(
+    editing?.continuityBreakBefore === true,
+  );
   const [station, setStation] = useState<Station | null>(editing?.station ?? null);
   const [stationAuto, setStationAuto] = useState(false);
   const [notes, setNotes] = useState(editing?.notes ?? "");
@@ -220,11 +224,61 @@ export function FillupForm() {
   const warnings = useMemo(() => {
     if (!odometer || !liters) return [];
     return softWarnings(
-      { date, odometer: odometerValue, liters: litersValue, pricePerLiter: priceValue },
+      {
+        date,
+        odometer: odometerValue,
+        liters: litersValue,
+        pricePerLiter: priceValue,
+        isFullTank,
+        continuityBreakBefore: continuityBreak,
+      },
       others,
       activeVehicle,
     );
-  }, [odometer, liters, date, odometerValue, litersValue, priceValue, others, activeVehicle]);
+  }, [
+    odometer,
+    liters,
+    date,
+    odometerValue,
+    litersValue,
+    priceValue,
+    isFullTank,
+    continuityBreak,
+    others,
+    activeVehicle,
+  ]);
+
+  /**
+   * What this draft will actually do, from the central engine — the same one
+   * that produces every other consumption number in the app. Drives both the
+   * live explanation under the toggle and the post-save message.
+   */
+  const draftEvaluation = useMemo(() => {
+    if (!Number.isFinite(odometerValue) || !Number.isFinite(litersValue)) return null;
+    return evaluateDraft(
+      {
+        date,
+        odometer: odometerValue,
+        liters: litersValue,
+        pricePerLiter: priceValue,
+        totalCost: Number.isFinite(totalValue) ? totalValue : undefined,
+        isFullTank,
+        continuityBreakBefore: continuityBreak,
+      },
+      others,
+      editing?.id,
+    );
+  }, [
+    date,
+    odometerValue,
+    litersValue,
+    priceValue,
+    totalValue,
+    isFullTank,
+    continuityBreak,
+    others,
+    editing,
+  ]);
 
   const isBackdated = date < Date.now() - 12 * 3600_000;
 
@@ -253,6 +307,9 @@ export function FillupForm() {
         ? totalValue
         : Math.round(litersValue * priceValue * 100) / 100,
       isFullTank,
+      // Provenance: an explicit user statement, never a guess.
+      fullTankSource: "user" as const,
+      continuityBreakBefore: continuityBreak,
       station: station ?? null,
       notes: notes.trim() || null,
     };
@@ -269,21 +326,21 @@ export function FillupForm() {
         });
       } else {
         const newId = await addFillup(payload);
-        // The consumption this fill-up closes is only known after it lands in
-        // the list, so compute it against the previous full tank here.
-        const { prev } = odometerBounds(others, date);
-        const kmPerLiter =
-          prev && odometerValue > prev.odometer && litersValue > 0
-            ? (odometerValue - prev.odometer) / litersValue
-            : null;
-        const formatted = consumption(kmPerLiter, settings.units);
+        // What this record did is decided by the central segment engine, not by
+        // an approximation local to this screen. A partial fill-up never gets a
+        // consumption headline, because it does not close a segment.
+        const { title, detail } = savedMessage(
+          evaluateDraft(
+            { ...payload, continuityBreakBefore: continuityBreak },
+            others,
+          ),
+          settings.units,
+        );
 
         showToast({
           tone: "success",
-          title: kmPerLiter
-            ? `נשמר · ${formatted.value} ${formatted.unit} מאז התדלוק הקודם`
-            : "התדלוק נשמר",
-          detail: "אפשר לבטל תוך 5 שניות",
+          title,
+          detail,
           undoLabel: "ביטול",
           duration: 5000,
           onUndo: () => deleteFillup(newId),
@@ -412,15 +469,50 @@ export function FillupForm() {
           </div>
         </Card>
 
-        {/* Full tank toggle — drives the whole segment model. */}
-        <Card className="flex items-center gap-3 p-4">
-          <span className="flex flex-1 flex-col gap-0.5">
-            <span className="text-[15px] font-semibold text-ink">מיכל מלא</span>
-            <span className="text-[12.5px] leading-relaxed text-muted">
-              כבו עבור תדלוק חלקי — הצריכה תחושב בתדלוק המלא הבא
+        {/* Full-tank toggle — drives the whole segment model.
+            The label says "I filled up to full", not "full tank": the flag
+            means the tank was full at the END of this fill-up, whatever was in
+            it on arrival. */}
+        <Card className="flex flex-col gap-3 p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex flex-1 flex-col gap-0.5">
+              <span className="text-[15px] font-semibold text-ink">מילאתי עד מלא</span>
+              <span className="text-[12.5px] leading-relaxed text-muted">
+                {isFullTank
+                  ? "סמנו אם בסיום התדלוק המיכל היה מלא — גם אם לא התחלתם ממיכל ריק."
+                  : "תדלוק חלקי — הליטרים ייצברו וייכללו בחישוב בפעם הבאה שתמלאו עד מלא."}
+              </span>
             </span>
-          </span>
-          <Toggle checked={isFullTank} onChange={setIsFullTank} ariaLabel="מיכל מלא" />
+            <Toggle
+              checked={isFullTank}
+              onChange={setIsFullTank}
+              ariaLabel="מילאתי עד מלא"
+            />
+          </div>
+
+          {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
+        </Card>
+
+        {/* Missing history. Never inferred from elapsed time or distance — a
+            month without refuelling is a real thing, not evidence of a gap. */}
+        <Card className="flex flex-col gap-3 p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex flex-1 flex-col gap-0.5">
+              <span className="text-[15px] font-semibold text-ink">
+                היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת
+              </span>
+              <span className="text-[12.5px] leading-relaxed text-muted">
+                {continuityBreak
+                  ? "מתחיל תקופת חישוב חדשה. הרשומות הישנות נשמרות — פשוט לא יחושב שום נתון שחוצה את הנקודה הזו."
+                  : "סמנו רק אם באמת תדלקתם בלי לתעד. אחרת השאירו כבוי."}
+              </span>
+            </span>
+            <Toggle
+              checked={continuityBreak}
+              onChange={setContinuityBreak}
+              ariaLabel="היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת"
+            />
+          </div>
         </Card>
 
         <Card className="flex flex-col gap-3 p-4">
@@ -799,4 +891,98 @@ function DateSheet({
       </div>
     </Sheet>
   );
+}
+
+
+/**
+ * Live explanation of what the current draft will produce, straight from the
+ * segment engine. No consumption figure is ever shown for a draft that does
+ * not close a segment.
+ */
+function DraftExplanation({
+  evaluation,
+}: {
+  evaluation: NonNullable<ReturnType<typeof evaluateDraft>>;
+}) {
+  const { settings } = useData();
+
+  if (evaluation.outcome === "closedSegment" && evaluation.segment) {
+    return (
+      <span className="rounded-[11px] bg-success-soft px-3 py-2 text-[12.5px] leading-relaxed text-success-ink">
+        סוגר מקטע צריכה:{" "}
+        <ConsumptionValue
+          kmPerLiter={evaluation.segment.kmPerLiter}
+          units={settings.units}
+          className="font-semibold"
+        />
+      </span>
+    );
+  }
+
+  if (evaluation.outcome === "baseline") {
+    return (
+      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+        {evaluation.startsNewPeriod
+          ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב במילוי הבא עד מלא."
+          : "יוצר נקודת התחלה. הצריכה תחושב במילוי הבא עד מלא."}
+      </span>
+    );
+  }
+
+  if (evaluation.outcome === "partialNoBaseline") {
+    return (
+      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+        עדיין אין נקודת התחלה, אז התדלוק הזה לא ייכנס לחישוב. סמנו “מילאתי עד מלא”
+        בתדלוק הבא כדי להתחיל.
+      </span>
+    );
+  }
+
+  return (
+    <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+      הליטרים ייכללו בחישוב במילוי הבא עד מלא · במקטע הפתוח יהיו{" "}
+      <Quantity value={evaluation.openSegment.liters} digits={1} className="font-semibold" />
+    </span>
+  );
+}
+
+/** Post-save toast copy, decided by the engine rather than by this screen. */
+function savedMessage(
+  evaluation: ReturnType<typeof evaluateDraft>,
+  units: "kmPerLiter" | "litersPer100",
+): { title: string; detail: string } {
+  const undo = "אפשר לבטל תוך 5 שניות";
+
+  if (evaluation.outcome === "closedSegment" && evaluation.segment) {
+    const kmPerLiter = evaluation.segment.kmPerLiter;
+    const value =
+      units === "kmPerLiter"
+        ? `${kmPerLiter.toLocaleString("he-IL", { maximumFractionDigits: 1 })} קמ״ל`
+        : `${(100 / kmPerLiter).toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל׳/100 ק״מ`;
+    return { title: `נשמר · ${value} מאז המילוי הקודם עד מלא`, detail: undo };
+  }
+
+  if (evaluation.outcome === "baseline") {
+    return {
+      title: evaluation.startsNewPeriod
+        ? "התחילה תקופת חישוב חדשה. הצריכה תחושב במילוי הבא עד מלא."
+        : "נקודת התחלה נוצרה. הצריכה תחושב במילוי הבא עד מלא.",
+      detail: undo,
+    };
+  }
+
+  if (evaluation.outcome === "partialNoBaseline") {
+    return {
+      title: "התדלוק נשמר. עדיין אין נקודת התחלה לחישוב.",
+      detail: undo,
+    };
+  }
+
+  const liters = evaluation.openSegment.liters.toLocaleString("he-IL", {
+    maximumFractionDigits: 1,
+  });
+  return {
+    title: "התדלוק נשמר. הליטרים ייכללו בחישוב במילוי הבא עד מלא.",
+    detail: `נשמרו ${liters} ל׳ במקטע הפתוח · ${undo}`,
+  };
 }
