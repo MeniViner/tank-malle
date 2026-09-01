@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
-import { listDocuments, resetEmulators, seedFillups, setActiveVehicle } from "./helpers/emulator";
-import { ALICE, addFillup, createVehicle, signIn, uidOf } from "./helpers/app";
+import { resetEmulators, seedFillups, setActiveVehicle } from "./helpers/emulator";
+import {
+  ALICE,
+  addFillup,
+  createVehicle,
+  firstVehicleId,
+  signIn,
+  uidOf,
+} from "./helpers/app";
 
 /**
  * The consumption domain, end to end.
@@ -21,8 +28,7 @@ async function freshVehicle(page: import("@playwright/test").Page): Promise<{
   await signIn(page, ALICE);
   await createVehicle(page, { make: "מאזדה", model: "3" });
   const uid = await uidOf(ALICE);
-  const vehicles = await listDocuments(`users/${uid}/vehicles`);
-  return { uid, vehicleId: vehicles[0].id };
+  return { uid, vehicleId: await firstVehicleId(uid) };
 }
 
 test("the first filled-to-full record creates a baseline and shows no consumption", async ({

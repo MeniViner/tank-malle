@@ -139,9 +139,12 @@ test("a migrated rule awaiting review says it is not in force", async ({ page })
     timeout: 25_000,
   });
 
+  // Matched on `reviewed`, not on `legacy`: the document already exists with
+  // legacy true, so matching on that would return the pre-confirmation copy
+  // before the update had landed.
   const rule = await waitForDocument(
     `users/${uid}/personalPriceRules`,
-    (data) => data.legacy === true,
+    (data) => data.legacy === true && data.reviewed === true,
   );
   expect(rule.reviewed).toBe(true);
   // The value itself was never altered.

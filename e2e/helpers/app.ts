@@ -107,6 +107,27 @@ export async function switchAccount(page: Page): Promise<void> {
   });
 }
 
+/**
+ * The id of a user's first vehicle.
+ *
+ * Polled: `createVehicle` returns when the UI shows the vehicle, which means
+ * the local cache has it — the server may not yet, and a REST read straight
+ * after can legitimately miss it. That is the same
+ * accepted-locally-vs-acknowledged distinction the app itself is careful about,
+ * so the test has to be careful about it too.
+ */
+export async function firstVehicleId(uid: string, timeoutMs = 15_000): Promise<string> {
+  const { listDocuments } = await import("./emulator");
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const vehicles = await listDocuments(`users/${uid}/vehicles`);
+    if (vehicles.length > 0) return vehicles[0].id;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+  throw new Error(`no vehicle appeared for ${uid} within ${timeoutMs}ms`);
+}
+
 export async function uidOf(account: TestAccount): Promise<string> {
   const uid = await uidForEmail(account.email);
   if (!uid) throw new Error(`no emulator account for ${account.email}`);

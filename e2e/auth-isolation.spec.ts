@@ -6,7 +6,15 @@ import {
   seedVehicle,
   setActiveVehicle,
 } from "./helpers/emulator";
-import { ALICE, BOB, createVehicle, signIn, signOut, uidOf } from "./helpers/app";
+import {
+  ALICE,
+  BOB,
+  createVehicle,
+  firstVehicleId,
+  signIn,
+  signOut,
+  uidOf,
+} from "./helpers/app";
 
 /**
  * Account isolation.
@@ -57,7 +65,7 @@ test("A → B → A never shows the other account's data", async ({ page }) => {
   await signIn(page, ALICE);
   await createVehicle(page, { make: "מאזדה", model: "3" });
   const aliceUid = await uidOf(ALICE);
-  await seedFillups(aliceUid, (await firstVehicleId(aliceUid)), [
+  await seedFillups(aliceUid, await firstVehicleId(aliceUid), [
     { id: "a1", date: new Date(2026, 0, 5), odometer: 111111, liters: 40 },
   ]);
   await page.goto("/");
@@ -232,14 +240,6 @@ test("previous login advances only after a genuine new authentication", async ({
   await expect(row).toContainText(/היום|אתמול|\d/);
   await expect(page.getByText("אין עדיין התחברות קודמת")).toHaveCount(0);
 });
-
-/** The vehicle id of a user's first vehicle, for seeding. */
-async function firstVehicleId(uid: string): Promise<string> {
-  const { listDocuments } = await import("./helpers/emulator");
-  const vehicles = await listDocuments(`users/${uid}/vehicles`);
-  if (vehicles.length === 0) throw new Error("no vehicles seeded yet");
-  return vehicles[0].id;
-}
 
 // Keep the seeding helpers referenced so the import is not stripped.
 void seedVehicle;
