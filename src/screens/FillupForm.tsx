@@ -30,7 +30,9 @@ import {
   toStation,
   type GeoResult,
 } from "../lib/stations";
-import type { Station } from "../lib/types";
+import type { FuelPrices, FuelType, Station } from "../lib/types";
+import { adaptLegacyConfig } from "../lib/prices/regulated";
+import { priceDisplay, resolveStationPrice } from "../lib/prices/resolver";
 import { Button } from "../components/Button";
 import { Field, InfoStrip, SoftWarningBanner } from "../components/Field";
 import { Card, Label, IconTile } from "../components/Card";
@@ -636,6 +638,8 @@ export function FillupForm() {
       </div>
 
       <StationSheet
+        fuelType={activeVehicle?.fuelType ?? "95"}
+        prices={prices}
         open={stationSheetOpen}
         onClose={() => setStationSheetOpen(false)}
         stations={pastStations}
@@ -676,6 +680,8 @@ export function FillupForm() {
 /* ---------------- station picker ---------------- */
 
 function StationSheet({
+  fuelType,
+  prices,
   open,
   onClose,
   stations,
@@ -685,6 +691,9 @@ function StationSheet({
   current,
   onPick,
 }: {
+  /** The ACTIVE vehicle's fuel type. Every price shown is for this and only this. */
+  fuelType: FuelType;
+  prices: FuelPrices | null;
   open: boolean;
   onClose: () => void;
   stations: Station[];
@@ -694,6 +703,23 @@ function StationSheet({
   current: Station | null;
   onPick: (station: Station | null) => void;
 }) {
+  const regulated = useMemo(() => adaptLegacyConfig(prices), [prices]);
+
+  /**
+   * The price to show on a station row, for THIS vehicle's fuel type.
+   *
+   * Everything goes through the one resolver, so a diesel vehicle can never be
+   * shown a 95 figure — it is shown "מחיר סולר לא ידוע" instead. With community
+   * reporting not yet running, the best available answer is usually the
+   * regulated ceiling, and it is rendered as a ceiling.
+   */
+  const priceFor = useCallback(
+    (stationId: string | null) => {
+      const resolved = resolveStationPrice({ stationId, fuelType, regulated });
+      return priceDisplay(resolved);
+    },
+    [fuelType, regulated],
+  );
   const [query, setQuery] = useState("");
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
 
@@ -786,15 +812,20 @@ function StationSheet({
                   איתור תחנות בקרבת מקום
                 </button>
               ) : (
-                nearby.map((entry) => (
-                  <StationRow
-                    key={`near-${entry.n}-${entry.lat}`}
-                    label={entry.n}
-                    meta={`${formatDistance(entry.distance)}${entry.a ? ` · ${entry.a}` : ""}`}
-                    selected={current?.name === entry.n}
-                    onClick={() => onPick(toStation(entry))}
-                  />
-                ))
+                nearby.map((entry) => {
+                  const price = priceFor(entry.i ?? null);
+                  return (
+                    <StationRow
+                      key={`near-${entry.n}-${entry.lat}`}
+                      label={entry.n}
+                      meta={formatDistance(entry.distance)}
+                      price={price.text}
+                      priceDetail={price.detail}
+                      selected={current?.name === entry.n}
+                      onClick={() => onPick(toStation(entry))}
+                    />
+                  );
+                })
               )}
 
               {stations.length > 0 ? (
@@ -837,11 +868,17 @@ function SheetGroupLabel({ children }: { children: React.ReactNode }) {
 function StationRow({
   label,
   meta,
+  price,
+  priceDetail,
   selected,
   onClick,
 }: {
   label: string;
   meta?: string;
+  /** Already resolved for the active vehicle's fuel type. "—" when unknown. */
+  price?: string;
+  /** Source, age and confidence — never omitted when a price is shown. */
+  priceDetail?: string;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -849,12 +886,25 @@ function StationRow({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
+      className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 py-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
     >
       <PinIcon size={17} className="flex-none text-muted" />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
-        {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
+        <span className="truncate text-[12px] text-muted">
+          {meta}
+          {price && price !== "—" ? (
+            <>
+              {meta ? " · " : ""}
+              <Num className="font-semibold text-ink">{price}</Num>
+            </>
+          ) : null}
+        </span>
+        {/* Source, age and confidence travel with the number, always. A price
+            with no provenance is worse than no price. */}
+        {priceDetail ? (
+          <span className="truncate text-[11.5px] text-muted/80">{priceDetail}</span>
+        ) : null}
       </span>
       {selected ? <CheckIcon size={18} className="flex-none text-accent" /> : null}
     </button>
