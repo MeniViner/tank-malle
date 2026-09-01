@@ -188,6 +188,42 @@ service cloud.firestore {
        * created carries the batch id, and deleting the batch removes exactly
        * those rows and nothing a person entered by hand.
        */
+      /**
+       * Explicit personal pricing rules.
+       *
+       * Private in both directions: a discount someone negotiated is theirs,
+       * and it must never leak into a public station price. `legacy` marks a
+       * rule carried over from the pre-upgrade vehicle fields; it does nothing
+       * until `reviewed` is true.
+       */
+      match /personalPriceRules/{ruleId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly([
+               'vehicleId', 'stationId', 'stationName', 'fuelType',
+               'discountPerLiter', 'fixedPricePerLiter', 'label',
+               'expiresAt', 'legacy', 'reviewed', 'migratedAt'
+             ])
+          && optionalString(request.resource.data, 'vehicleId', 64)
+          && optionalString(request.resource.data, 'stationId', 64)
+          && optionalString(request.resource.data, 'stationName', 120)
+          && optionalString(request.resource.data, 'label', 80)
+          && (!('fuelType' in request.resource.data)
+              || request.resource.data.fuelType == null
+              || request.resource.data.fuelType in ['95', '98', 'diesel', 'other'])
+          && isNumber(request.resource.data.discountPerLiter)
+          && request.resource.data.discountPerLiter > -50
+          && request.resource.data.discountPerLiter < 50
+          && (!('fixedPricePerLiter' in request.resource.data)
+              || request.resource.data.fixedPricePerLiter == null
+              || (isNumber(request.resource.data.fixedPricePerLiter)
+                  && request.resource.data.fixedPricePerLiter >= 0
+                  && request.resource.data.fixedPricePerLiter < 100))
+          && optionalEpochMillis(request.resource.data, 'expiresAt')
+          && optionalBool(request.resource.data, 'legacy')
+          && optionalBool(request.resource.data, 'reviewed');
+      }
+
       match /importBatches/{batchId} {
         allow read, delete: if isOwner(uid);
         allow create, update: if isOwner(uid)

@@ -29,6 +29,8 @@ export type MutationKind =
   | "import.batch"
   | "import.rollback"
   | "priceReport.add"
+  | "priceRule.save"
+  | "priceRule.delete"
   | "account.delete";
 
 export type MutationState = "pending" | "synced" | "failed";
@@ -78,6 +80,8 @@ const LABELS: Record<MutationKind, string> = {
   "import.batch": "ייבוא נתונים",
   "import.rollback": "ביטול ייבוא",
   "priceReport.add": "דיווח מחיר",
+  "priceRule.save": "שמירת כלל תמחור",
+  "priceRule.delete": "מחיקת כלל תמחור",
   "account.delete": "מחיקת חשבון",
 };
 

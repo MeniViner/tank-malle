@@ -42,6 +42,7 @@ import {
   DEFAULT_SETTINGS,
   type Fillup,
   type FuelPrices,
+  type FuelType,
   type UserSettings,
   type Vehicle,
 } from "../lib/types";
@@ -92,6 +93,10 @@ interface DataContextValue {
   ) => Promise<{ written: number; receipt: MutationReceipt }>;
   /** Completed imports, newest first. Read on demand, not kept in a listener. */
   listImportBatches: () => Promise<ImportBatch[]>;
+  /** The user's explicit personal pricing rules. */
+  priceRules: StoredPriceRule[];
+  savePriceRule: (rule: StoredPriceRule) => Promise<void>;
+  deletePriceRule: (ruleId: string) => Promise<void>;
   /**
    * Undo one import. Deletes ONLY the records carrying that batch id, and then
    * the batch record itself.
@@ -185,6 +190,33 @@ function subscribeResilient<T>(
  * ended.
  */
 let sessionCounter = 0;
+
+/**
+ * A personal pricing rule as stored.
+ *
+ * Deliberately scoped. The thing it replaces — `vehicle.priceAdjustment` and
+ * `vehicle.manualPricePerLiter` — was vehicle-wide, permanent and invisible:
+ * set once, then quietly setting the price of every future fill-up.
+ */
+export interface StoredPriceRule {
+  id: string;
+  /** null means every vehicle. */
+  vehicleId: string | null;
+  /** null means every station. A real rule normally names one. */
+  stationId: string | null;
+  stationName: string | null;
+  fuelType: FuelType | null;
+  /** ₪ per litre off the posted price. Negative is a surcharge. */
+  discountPerLiter: number;
+  /** A flat price that replaces the resolved one, when that is the deal. */
+  fixedPricePerLiter: number | null;
+  label: string | null;
+  expiresAt: number | null;
+  /** Carried over from the pre-upgrade vehicle fields. */
+  legacy: boolean;
+  /** A legacy rule does nothing until the user has confirmed it. */
+  reviewed: boolean;
+}
 
 /** What an import batch records about itself, for a later rollback. */
 export interface ImportBatchMeta {
@@ -291,6 +323,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [offline, setOffline] = useState(!navigator.onLine);
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
+  const [priceRules, setPriceRules] = useState<StoredPriceRule[]>([]);
 
   /**
    * User generation.
@@ -344,6 +377,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoadingFillups(Boolean(uid));
     setFromCache(false);
     setWrites(EMPTY_WRITE_STATUS);
+    setPriceRules([]);
 
     const unsubscribe = tracker.subscribe(setWrites);
 
@@ -555,6 +589,40 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
     );
   }, [uid, activeVehicle, isCurrent]);
+
+  /* ---------- personal pricing rules ---------- */
+
+  useEffect(() => {
+    if (!uid) return;
+    const generation = generationRef.current;
+
+    return subscribeResilient<QuerySnapshot<DocumentData>>(
+      (onNext, onError) =>
+        onSnapshot(collection(db, "users", uid, "personalPriceRules"), onNext, onError),
+      (snapshot) => {
+        setPriceRules(
+          snapshot.docs.map((entry) => {
+            const data = entry.data();
+            return {
+              id: entry.id,
+              vehicleId: data.vehicleId ?? null,
+              stationId: data.stationId ?? null,
+              stationName: data.stationName ?? null,
+              fuelType: (data.fuelType ?? null) as FuelType | null,
+              discountPerLiter:
+                typeof data.discountPerLiter === "number" ? data.discountPerLiter : 0,
+              fixedPricePerLiter: toNumberOrNull(data.fixedPricePerLiter),
+              label: data.label ?? null,
+              expiresAt: toNumberOrNull(data.expiresAt),
+              legacy: data.legacy === true,
+              reviewed: data.reviewed === true,
+            } satisfies StoredPriceRule;
+          }),
+        );
+      },
+      { isCurrent: isCurrent(generation), label: "price rules" },
+    );
+  }, [uid, isCurrent]);
 
   /* ---------- global fuel prices ---------- */
 
@@ -825,6 +893,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [uid, track],
   );
 
+  const savePriceRule = useCallback(
+    async (rule: StoredPriceRule) => {
+      if (!uid) return;
+      const { id, ...rest } = rule;
+      track(
+        "priceRule.save",
+        setDoc(doc(db, "users", uid, "personalPriceRules", id), stripUndefined(rest), {
+          merge: true,
+        }),
+      );
+    },
+    [uid, track],
+  );
+
+  const deletePriceRule = useCallback(
+    async (ruleId: string) => {
+      if (!uid) return;
+      track(
+        "priceRule.delete",
+        deleteDoc(doc(db, "users", uid, "personalPriceRules", ruleId)),
+      );
+    },
+    [uid, track],
+  );
+
   const listImportBatches = useCallback(async (): Promise<ImportBatch[]> => {
     if (!uid) return [];
     const snapshot = await getDocs(
@@ -1030,6 +1123,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addFillupBatch,
       listImportBatches,
       deleteImportBatch,
+      priceRules,
+      savePriceRule,
+      deletePriceRule,
       deleteAccount,
     }),
     [
@@ -1059,6 +1155,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       addFillupBatch,
       listImportBatches,
       deleteImportBatch,
+      priceRules,
+      savePriceRule,
+      deletePriceRule,
       deleteAccount,
     ],
   );

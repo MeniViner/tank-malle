@@ -513,3 +513,87 @@ describe("default deny", () => {
     await assertFails(getDoc(doc(alice(), "somethingElse", "x")));
   });
 });
+
+/* ------------------------------------------------------------------ *
+ * Import batches and personal pricing rules
+ * ------------------------------------------------------------------ */
+
+describe("import batches", () => {
+  const batch = (over: Record<string, unknown> = {}) => ({
+    vehicleId: "v1",
+    format: "legacy-fuel-tracker",
+    fileName: "old-log.xlsx",
+    recordCount: 25,
+    vehicleLabel: "מאזדה 3",
+    ...over,
+  });
+
+  const ref = (db: ReturnType<typeof alice>, uid = ALICE, id = "b1") =>
+    doc(db, "users", uid, "importBatches", id);
+
+  it("lets the owner record and remove a batch", async () => {
+    await assertSucceeds(setDoc(ref(alice()), batch()));
+    await assertSucceeds(getDoc(ref(alice())));
+    await assertSucceeds(deleteDoc(ref(alice())));
+  });
+
+  it("refuses another user", async () => {
+    await assertFails(setDoc(ref(bob(), ALICE), batch()));
+    await assertFails(getDoc(ref(bob(), ALICE)));
+  });
+
+  it("rejects an unknown field or an absurd record count", async () => {
+    await assertFails(setDoc(ref(alice()), batch({ secret: "x" })));
+    await assertFails(setDoc(ref(alice()), batch({ recordCount: -1 })));
+    await assertFails(setDoc(ref(alice()), batch({ recordCount: 10_000_000 })));
+  });
+});
+
+describe("personal price rules", () => {
+  const rule = (over: Record<string, unknown> = {}) => ({
+    vehicleId: "v1",
+    stationId: "st-42",
+    stationName: "פז חגור",
+    fuelType: "95",
+    discountPerLiter: 0.25,
+    fixedPricePerLiter: null,
+    label: "כרטיס דלק",
+    expiresAt: null,
+    legacy: false,
+    reviewed: true,
+    ...over,
+  });
+
+  const ref = (db: ReturnType<typeof alice>, uid = ALICE, id = "r1") =>
+    doc(db, "users", uid, "personalPriceRules", id);
+
+  it("lets the owner create, read and delete a rule", async () => {
+    await assertSucceeds(setDoc(ref(alice()), rule()));
+    await assertSucceeds(getDoc(ref(alice())));
+    await assertSucceeds(deleteDoc(ref(alice())));
+  });
+
+  it("is private — not readable by another user, nor by an admin", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(
+        doc(context.firestore(), "users", ALICE, "personalPriceRules", "r1"),
+        rule(),
+      );
+    });
+    // A negotiated discount is nobody else's business.
+    await assertFails(getDoc(ref(bob(), ALICE)));
+    await assertFails(getDoc(ref(admin(), ALICE)));
+  });
+
+  it("accepts a migrated legacy rule awaiting review", async () => {
+    await assertSucceeds(
+      setDoc(ref(alice()), rule({ legacy: true, reviewed: false, stationId: null })),
+    );
+  });
+
+  it("rejects an unknown field or an implausible discount", async () => {
+    await assertFails(setDoc(ref(alice()), rule({ ownerEmail: "a@b.c" })));
+    await assertFails(setDoc(ref(alice()), rule({ discountPerLiter: 500 })));
+    await assertFails(setDoc(ref(alice()), rule({ fuelType: "kerosene" })));
+  });
+});
