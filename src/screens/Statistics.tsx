@@ -36,7 +36,7 @@ import {
   type BenchmarkComparison,
   type InsufficientPeers,
 } from "../lib/benchmarks";
-import { Distance, Quantity, SignedPercent } from "../components/Fmt";
+import { ConsumptionValue, Distance, Quantity, SignedPercent } from "../components/Fmt";
 import { Card, Label, Skeleton } from "../components/Card";
 import { Segmented } from "../components/Segmented";
 import { Num } from "../components/Num";
@@ -44,7 +44,6 @@ import { ChartIcon, UserIcon } from "../components/icons";
 import { InfoTip } from "../components/InfoTip";
 import {
   FUEL_TYPE_SHORT,
-  consumption,
   dayMonthShort,
   monthYear,
   num,
@@ -426,7 +425,11 @@ export function Statistics() {
                         מול נתוני היצרן
                       </span>
                       <span className="text-[12.5px] text-muted">
-                        מוצהר: <Num>{num(activeVehicle?.declaredKmPerLiter ?? 0, 1)}</Num> קמ״ל
+                        מוצהר:{" "}
+                        <ConsumptionValue
+                          kmPerLiter={activeVehicle?.declaredKmPerLiter ?? null}
+                          units={units}
+                        />{" "}
                         · מבוסס על כל ההיסטוריה
                       </span>
                     </span>
@@ -776,20 +779,31 @@ function PeerSection({
   comparison: import("../lib/benchmarks").BenchmarkComparison;
   units: "kmPerLiter" | "litersPer100";
 }) {
-  const yours = consumption(comparison.yourAverage, units);
-  const peers = consumption(comparison.peerAverage, units);
   const ahead = comparison.percentile >= 50;
 
+  /**
+   * Everything on this screen is stored in km/L and converted here, together.
+   * Relabelling a title while leaving the values and the tooltip in the other
+   * unit is the specific failure this single conversion point prevents — and
+   * it was still happening in this section's comparison chart.
+   */
+  const unitLabel = units === "litersPer100" ? "ל׳/100 ק״מ" : "קמ״ל";
+  const toUnit = (kmPerLiter: number) =>
+    units === "litersPer100"
+      ? Math.round((100 / kmPerLiter) * 100) / 100
+      : Math.round(kmPerLiter * 100) / 100;
+
   const distribution = comparison.distribution.map((bucket) => ({
-    label: bucket.bucket,
+    // The bucket boundary is a km/L figure too, so its axis label converts.
+    label: String(toUnit(Number(bucket.bucket))),
     count: bucket.count,
     isYou: bucket.isYou,
   }));
 
   const versus = [
-    { label: "שלכם", value: comparison.yourAverage, isYou: true },
-    { label: "ממוצע הקבוצה", value: comparison.peerAverage, isYou: false },
-    { label: "הטוב ביותר", value: comparison.best, isYou: false },
+    { label: "שלכם", value: toUnit(comparison.yourAverage), isYou: true },
+    { label: "ממוצע הקבוצה", value: toUnit(comparison.peerAverage), isYou: false },
+    { label: "הטוב ביותר", value: toUnit(comparison.best), isYou: false },
   ];
 
   return (
@@ -835,10 +849,20 @@ function PeerSection({
 
         <div className="flex items-center justify-between text-[12.5px] text-muted">
           <span>
-            שלכם: <Num className="font-bold text-ink">{yours.value}</Num> {yours.unit}
+            שלכם:{" "}
+            <ConsumptionValue
+              kmPerLiter={comparison.yourAverage}
+              units={units}
+              className="font-bold text-ink"
+            />
           </span>
           <span>
-            ממוצע הקבוצה: <Num className="font-bold text-ink">{peers.value}</Num>
+            ממוצע הקבוצה:{" "}
+            <ConsumptionValue
+              kmPerLiter={comparison.peerAverage}
+              units={units}
+              className="font-bold text-ink"
+            />
           </span>
         </div>
       </Card>
@@ -865,7 +889,7 @@ function PeerSection({
       </ChartCard>
 
       {/* Direct side-by-side */}
-      <ChartCard title={units === "litersPer100" ? "השוואה · ל׳/100 ק״מ" : "השוואה · קמ״ל"}>
+      <ChartCard title={`השוואה · ${unitLabel}`}>
         <BarChart data={versus} layout="vertical" margin={{ ...CHART_MARGIN, left: 8 }}>
           <CartesianGrid stroke="var(--line)" horizontal={false} />
           <XAxis type="number" {...yAxis} orientation="bottom" />
@@ -878,7 +902,7 @@ function PeerSection({
             axisLine={false}
             width={78}
           />
-          <Tooltip content={<ChartTooltip suffix=" קמ״ל" />} />
+          <Tooltip content={<ChartTooltip suffix={` ${unitLabel}`} />} />
           <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22}>
             {versus.map((row, index) => (
               <Cell key={index} fill={row.isYou ? "var(--accent)" : "var(--surface-2)"} />

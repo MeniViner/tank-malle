@@ -20,6 +20,9 @@ const BASE_URL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
   testDir: "./e2e",
+  // The emulator hub answers before Auth and Firestore are listening, so the
+  // webServer readiness check below is not sufficient on its own.
+  globalSetup: "./e2e/global-setup.ts",
   // The emulators are a single shared instance and every spec resets their
   // data, so specs must not overlap.
   fullyParallel: false,

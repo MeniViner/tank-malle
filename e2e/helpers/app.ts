@@ -214,7 +214,19 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
 
   const toast = page.locator("[data-toast-title]").first();
   await expect(toast).toBeVisible({ timeout: 20_000 });
-  return (await toast.innerText()).trim();
+  const title = (await toast.innerText()).trim();
+
+  // The form navigates home on save, but the record is only in the app's list
+  // once the Firestore listener has delivered it. Adding another fill-up
+  // before that happens makes the engine evaluate the new draft against a
+  // history that is missing the previous one — a test artefact, not a bug,
+  // but one that produces a confusingly wrong message.
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
+  await expect(
+    page.getByText(new RegExp(`${input.liters.toFixed(1).replace(".", "\\.")}\\s*ל׳`)).first(),
+  ).toBeVisible({ timeout: 20_000 });
+
+  return title;
 }
 
 /* ------------------------------------------------------------------ *
