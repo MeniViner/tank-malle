@@ -181,6 +181,29 @@ service cloud.firestore {
         allow update: if false;
       }
 
+      /**
+       * Import batch records.
+       *
+       * These exist so an import stays reversible: every record an import
+       * created carries the batch id, and deleting the batch removes exactly
+       * those rows and nothing a person entered by hand.
+       */
+      match /importBatches/{batchId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && request.resource.data.keys().hasOnly([
+               'vehicleId', 'format', 'fileName', 'recordCount',
+               'vehicleLabel', 'importedAt'
+             ])
+          && isString(request.resource.data.vehicleId, 64)
+          && isString(request.resource.data.format, 40)
+          && optionalString(request.resource.data, 'fileName', 200)
+          && optionalString(request.resource.data, 'vehicleLabel', 120)
+          && isNumber(request.resource.data.recordCount)
+          && request.resource.data.recordCount >= 0
+          && request.resource.data.recordCount <= 100000;
+      }
+
       match /vehicles/{vehicleId} {
         allow read: if isOwner(uid) || isAdmin();
         allow delete: if isOwner(uid);

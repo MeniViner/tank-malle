@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
@@ -8,7 +8,9 @@ import { Card, IconTile, Label } from "../components/Card";
 import { Num } from "../components/Num";
 import { Money, Quantity } from "../components/Fmt";
 import { CarIcon, CheckIcon, WarningIcon } from "../components/icons";
-import { dayMonthShort, vehicleLabel } from "../lib/format";
+import { dayMonthShort, fullDate, vehicleLabel } from "../lib/format";
+import { ConfirmDialog } from "../components/Sheet";
+import type { ImportBatch } from "../context/DataContext";
 import type { Fillup } from "../lib/types";
 import type { ImportPlan, ImportReport } from "../lib/import/plan";
 
@@ -31,7 +33,14 @@ type Stage = "choose" | "parsing" | "preview" | "importing" | "done";
 export function ImportData() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { activeVehicles, activeVehicle, fillups, addFillupBatch } = useData();
+  const {
+    activeVehicles,
+    activeVehicle,
+    fillups,
+    addFillupBatch,
+    listImportBatches,
+    deleteImportBatch,
+  } = useData();
 
   const [stage, setStage] = useState<Stage>("choose");
   const [error, setError] = useState<string | null>(null);
@@ -141,7 +150,12 @@ export function ImportData() {
     }));
 
     try {
-      const { written, receipt } = await addFillupBatch(plan.vehicleId, records);
+      const { written, receipt } = await addFillupBatch(plan.vehicleId, records, {
+        format: plan.format,
+        fileName,
+        recordCount: records.length,
+        vehicleLabel: targetVehicle ? vehicleLabel(targetVehicle) : "",
+      });
 
       // The records are in the local cache immediately; whether the SERVER has
       // taken them is a separate question, and the report answers it honestly.
@@ -237,6 +251,11 @@ export function ImportData() {
             >
               בחירת קובץ
             </Button>
+
+            <ImportHistory
+              listBatches={listImportBatches}
+              deleteBatch={deleteImportBatch}
+            />
           </>
         ) : null}
 
@@ -543,5 +562,136 @@ function ErrorNote({ text }: { text: string }) {
       <WarningIcon size={17} className="mt-px flex-none" />
       <span className="text-[13px] leading-relaxed">{text}</span>
     </div>
+  );
+}
+
+
+/**
+ * Import history, with a rollback per batch.
+ *
+ * A five-second undo is not a rollback — a mistake in an import is usually
+ * noticed minutes later, on the History screen, not in the moment. Every
+ * imported record carries its `importBatchId`, so the whole batch stays
+ * reversible for as long as it exists.
+ */
+function ImportHistory({
+  listBatches,
+  deleteBatch,
+}: {
+  listBatches: () => Promise<ImportBatch[]>;
+  deleteBatch: (batch: ImportBatch) => Promise<{
+    deleted: number;
+    ok: boolean;
+    pending?: boolean;
+    reason?: string;
+  }>;
+}) {
+  const { showToast } = useToast();
+  const [batches, setBatches] = useState<ImportBatch[] | null>(null);
+  const [confirming, setConfirming] = useState<ImportBatch | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const refresh = useCallback(() => {
+    listBatches()
+      .then(setBatches)
+      .catch(() => setBatches([]));
+  }, [listBatches]);
+
+  useEffect(refresh, [refresh]);
+
+  async function rollBack(batch: ImportBatch) {
+    setBusy(true);
+    setConfirming(null);
+    try {
+      const result = await deleteBatch(batch);
+
+      if (!result.ok) {
+        showToast({
+          tone: "error",
+          title: "ביטול הייבוא נכשל",
+          detail: result.reason ?? "נסו שוב בעוד רגע",
+        });
+      } else if (result.pending) {
+        // Locally applied, not yet acknowledged. Saying "deleted" here would be
+        // the same lie the write states exist to prevent.
+        showToast({
+          tone: "info",
+          title: `${result.deleted} רשומות הוסרו במכשיר`,
+          detail: "המחיקה תסונכרן לשרת כשיהיה חיבור",
+        });
+      } else {
+        showToast({
+          tone: "success",
+          title: `הייבוא בוטל · ${result.deleted} רשומות נמחקו`,
+        });
+      }
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  }
+
+  if (batches === null) return null;
+  if (batches.length === 0) {
+    return (
+      <Card className="flex flex-col gap-1 p-4">
+        <Label>ייבואים קודמים</Label>
+        <span className="text-[12.5px] leading-relaxed text-muted">
+          עוד לא ביצעתם ייבוא. אחרי ייבוא הוא יופיע כאן, ותוכלו לבטל אותו כולו אם
+          ייבאתם לרכב הלא נכון או בטעות.
+        </span>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card className="flex flex-col gap-3 p-4">
+        <Label>ייבואים קודמים</Label>
+        {batches.map((batch) => (
+          <div key={batch.id} className="flex flex-col gap-1.5">
+            <div className="flex items-start justify-between gap-3">
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate text-[14px] font-semibold text-ink">
+                  {batch.fileName || FORMAT_NAMES[batch.format] || "ייבוא"}
+                </span>
+                <span className="text-[12px] text-muted">
+                  <Num>{batch.recordCount}</Num> רשומות · {batch.vehicleLabel || "רכב"}
+                </span>
+                <span className="text-[11.5px] text-muted/80">
+                  {fullDate(batch.importedAt)}
+                </span>
+              </span>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setConfirming(batch)}
+                className="min-h-[36px] flex-none rounded-pill bg-danger-soft px-3 text-[12.5px] font-semibold text-danger-ink disabled:opacity-50"
+              >
+                ביטול הייבוא
+              </button>
+            </div>
+          </div>
+        ))}
+        <span className="text-[11.5px] leading-relaxed text-muted">
+          ביטול מוחק רק את הרשומות שהגיעו מאותו ייבוא. רשומות שהזנתם ידנית לא ייגעו,
+          גם אם הן באותו תאריך ובאותה תחנה.
+        </span>
+      </Card>
+
+      <ConfirmDialog
+        open={confirming !== null}
+        title="לבטל את הייבוא?"
+        body={
+          confirming
+            ? `יימחקו ${confirming.recordCount} רשומות שיובאו אל ${confirming.vehicleLabel || "הרכב"}. רשומות שהזנתם ידנית יישארו. אפשר לייבא את הקובץ שוב אחר כך.`
+            : ""
+        }
+        confirmLabel="ביטול הייבוא"
+        tone="danger"
+        onConfirm={() => confirming && void rollBack(confirming)}
+        onCancel={() => setConfirming(null)}
+      />
+    </>
   );
 }

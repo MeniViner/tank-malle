@@ -27,6 +27,7 @@ export type MutationKind =
   | "vehicle.delete"
   | "settings.update"
   | "import.batch"
+  | "import.rollback"
   | "priceReport.add"
   | "account.delete";
 
@@ -75,6 +76,7 @@ const LABELS: Record<MutationKind, string> = {
   "vehicle.delete": "מחיקת רכב",
   "settings.update": "עדכון הגדרות",
   "import.batch": "ייבוא נתונים",
+  "import.rollback": "ביטול ייבוא",
   "priceReport.add": "דיווח מחיר",
   "account.delete": "מחיקת חשבון",
 };

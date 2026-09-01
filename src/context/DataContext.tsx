@@ -14,10 +14,13 @@ import {
   deleteDoc,
   doc,
   getDocs,
+  limit,
   onSnapshot,
+  query,
   serverTimestamp,
   setDoc,
   updateDoc,
+  where,
   writeBatch,
   type DocumentData,
   type DocumentSnapshot,
@@ -85,7 +88,15 @@ interface DataContextValue {
   addFillupBatch: (
     vehicleId: string,
     fillups: Omit<Fillup, "id" | "createdAt">[],
+    meta: ImportBatchMeta,
   ) => Promise<{ written: number; receipt: MutationReceipt }>;
+  /** Completed imports, newest first. Read on demand, not kept in a listener. */
+  listImportBatches: () => Promise<ImportBatch[]>;
+  /**
+   * Undo one import. Deletes ONLY the records carrying that batch id, and then
+   * the batch record itself.
+   */
+  deleteImportBatch: (batch: ImportBatch) => Promise<ImportRollbackResult>;
 
   /** Reports exactly what was and was not deleted. Never claims a clean sweep. */
   deleteAccount: () => Promise<DeletionResult>;
@@ -174,6 +185,33 @@ function subscribeResilient<T>(
  * ended.
  */
 let sessionCounter = 0;
+
+/** What an import batch records about itself, for a later rollback. */
+export interface ImportBatchMeta {
+  /** The detected source format, e.g. "legacy-fuel-tracker". */
+  format: string;
+  /** The file the user chose, for recognising the batch later. */
+  fileName: string;
+  recordCount: number;
+  vehicleLabel: string;
+}
+
+export interface ImportBatch extends ImportBatchMeta {
+  id: string;
+  vehicleId: string;
+  importedAt: number;
+}
+
+/** Outcome of rolling one import back. Never claims more than it did. */
+export interface ImportRollbackResult {
+  /** Records actually removed. */
+  deleted: number;
+  /** True when every record and the batch record itself were removed. */
+  ok: boolean;
+  /** Set when the server has not acknowledged the deletions yet. */
+  pending?: boolean;
+  reason?: string;
+}
 
 /** Outcome of an account deletion. */
 export interface DeletionResult {
@@ -740,10 +778,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * import report can distinguish "written" from "queued while offline".
    */
   const addFillupBatch = useCallback(
-    async (vehicleId: string, list: Omit<Fillup, "id" | "createdAt">[]) => {
+    async (
+      vehicleId: string,
+      list: Omit<Fillup, "id" | "createdAt">[],
+      meta: ImportBatchMeta,
+    ) => {
       if (!uid) throw new Error("not signed in");
 
       const path = collection(db, "users", uid, "vehicles", vehicleId, "fillups");
+      const batchId = list[0]?.importBatchId;
+      if (!batchId) throw new Error("import records must carry a batch id");
+
       const commits: Promise<void>[] = [];
 
       for (let i = 0; i < list.length; i += 400) {
@@ -761,8 +806,101 @@ export function DataProvider({ children }: { children: ReactNode }) {
         commits.push(batch.commit());
       }
 
+      // The batch record is what makes the import undoable later. Written with
+      // the rest so a rollback can find every row it created.
+      commits.push(
+        setDoc(doc(db, "users", uid, "importBatches", batchId), {
+          vehicleId,
+          format: meta.format,
+          fileName: meta.fileName,
+          recordCount: meta.recordCount,
+          vehicleLabel: meta.vehicleLabel,
+          importedAt: serverTimestamp(),
+        }),
+      );
+
       const receipt = track("import.batch", Promise.all(commits));
       return { written: list.length, receipt };
+    },
+    [uid, track],
+  );
+
+  const listImportBatches = useCallback(async (): Promise<ImportBatch[]> => {
+    if (!uid) return [];
+    const snapshot = await getDocs(
+      query(collection(db, "users", uid, "importBatches"), limit(50)),
+    );
+    return snapshot.docs
+      .map((entry) => {
+        const data = entry.data();
+        return {
+          id: entry.id,
+          vehicleId: String(data.vehicleId ?? ""),
+          format: String(data.format ?? "unknown"),
+          fileName: String(data.fileName ?? ""),
+          recordCount: Number(data.recordCount ?? 0),
+          vehicleLabel: String(data.vehicleLabel ?? ""),
+          importedAt: toMillis(data.importedAt),
+        } satisfies ImportBatch;
+      })
+      .sort((a, b) => b.importedAt - a.importedAt);
+  }, [uid]);
+
+  /**
+   * Undo one import.
+   *
+   * Scoped by importBatchId, so it removes exactly the rows that import
+   * created and nothing a person entered by hand — even at the same station on
+   * the same day. Deleting the batch record last means an interrupted rollback
+   * leaves the batch visible and retryable rather than orphaning its rows.
+   *
+   * Re-importing the same file afterwards behaves deterministically: the
+   * identity hash is a pure function of the row, so the rows are simply new
+   * again.
+   */
+  const deleteImportBatch = useCallback(
+    async (batch: ImportBatch): Promise<ImportRollbackResult> => {
+      if (!uid) return { deleted: 0, ok: false, reason: "not signed in" };
+
+      try {
+        const fillupsRef = collection(
+          db,
+          "users",
+          uid,
+          "vehicles",
+          batch.vehicleId,
+          "fillups",
+        );
+        const snapshot = await getDocs(
+          query(fillupsRef, where("importBatchId", "==", batch.id)),
+        );
+
+        const commits: Promise<void>[] = [];
+        for (let i = 0; i < snapshot.docs.length; i += 400) {
+          const writeChunk = writeBatch(db);
+          snapshot.docs.slice(i, i + 400).forEach((entry) => writeChunk.delete(entry.ref));
+          commits.push(writeChunk.commit());
+        }
+        commits.push(deleteDoc(doc(db, "users", uid, "importBatches", batch.id)));
+
+        const receipt = track("import.rollback", Promise.all(commits));
+
+        // The local cache has already applied the deletions; whether the
+        // SERVER has is a separate question, and the caller is told which.
+        const acknowledged = await Promise.race([
+          receipt.settled,
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 6_000)),
+        ]);
+
+        return {
+          deleted: snapshot.docs.length,
+          ok: acknowledged !== false,
+          pending: acknowledged === null,
+          reason: acknowledged === false ? "השרת דחה את המחיקה" : undefined,
+        };
+      } catch {
+        return { deleted: 0, ok: false, reason: "המחיקה נכשלה" };
+      }
     },
     [uid, track],
   );
@@ -890,6 +1028,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteFillup,
       restoreFillup,
       addFillupBatch,
+      listImportBatches,
+      deleteImportBatch,
       deleteAccount,
     }),
     [
@@ -917,6 +1057,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteFillup,
       restoreFillup,
       addFillupBatch,
+      listImportBatches,
+      deleteImportBatch,
       deleteAccount,
     ],
   );
