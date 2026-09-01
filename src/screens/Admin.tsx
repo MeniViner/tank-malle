@@ -4,6 +4,7 @@ import {
   collection,
   collectionGroup,
   doc,
+  getCountFromServer,
   getDoc,
   getDocs,
   limit,
@@ -11,6 +12,8 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  startAfter,
+  type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
@@ -53,16 +56,32 @@ interface AdminUser {
   photoURL: string | null;
   createdAt: number | null;
   isAdmin: boolean;
+  /** From a COUNT aggregation, not from reading the documents. */
   vehicles: number;
   fillups: number;
+  lastFillup: number | null;
+  /** Populated only when an admin expands the row. */
+  detail: AdminUserDetail | null;
+}
+
+/** The figures that genuinely require reading fill-up documents. */
+export interface AdminUserDetail {
   totalLiters: number;
   totalCost: number;
+  /** Valid segment distance, summed per vehicle — never a mixed odometer span. */
   totalKm: number;
   avgKmPerLiter: number | null;
   lastFillup: number | null;
 }
 
 type SortKey = "recent" | "activity" | "joined";
+
+/** One page of users per request. */
+const PAGE_SIZE = 25;
+/** Bound on the fan-out of count queries for a single user. */
+const MAX_VEHICLES_TO_COUNT = 10;
+/** Bound on a detail read, so one enormous account cannot blow the quota. */
+const MAX_FILLUPS_PER_VEHICLE = 1_000;
 
 export function Admin() {
   const navigate = useNavigate();
@@ -71,85 +90,179 @@ export function Admin() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("recent");
+  const [pageCursor, setPageCursor] = useState<QueryDocumentSnapshot | null>(null);
+  const [exhausted, setExhausted] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [detailLoading, setDetailLoading] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const usersSnapshot = await getDocs(query(collection(db, "users"), limit(500)));
+  /**
+   * Load one PAGE of users.
+   *
+   * The previous implementation read every user document, then every vehicle
+   * of every user, then every fill-up of every vehicle — an unbounded N+1 scan
+   * that, at 500 users, could be tens of thousands of document reads on a
+   * single screen load, against a Spark daily quota of 50,000.
+   *
+   * Now: one paged query for the users, and a COUNT aggregation for vehicles
+   * and fill-ups. A count query bills one read per query rather than one per
+   * document, so a page of 25 users costs roughly 25 + 25 + (a count per
+   * vehicle) reads instead of thousands. Nothing reads a fill-up document at
+   * all unless an admin explicitly expands a row.
+   */
+  const load = useCallback(
+    async (cursor: QueryDocumentSnapshot | null) => {
+      setError(null);
+      setLoadingMore(true);
+      try {
+        const constraints = [orderBy("createdAt", "desc"), limit(PAGE_SIZE)];
+        const usersSnapshot = await getDocs(
+          cursor
+            ? query(collection(db, "users"), ...constraints, startAfter(cursor))
+            : query(collection(db, "users"), ...constraints),
+        );
 
-      const rows = await Promise.all(
-        usersSnapshot.docs.map(async (userDoc) => {
-          const data = userDoc.data();
-          const vehiclesSnapshot = await getDocs(collection(userDoc.ref, "vehicles"));
+        const rows = await Promise.all(
+          usersSnapshot.docs.map(async (userDoc) => {
+            const data = userDoc.data();
 
-          let fillups: Fillup[] = [];
-          let bestAvg: number | null = null;
+            // Counts only. No fill-up document is read here.
+            const vehiclesRef = collection(userDoc.ref, "vehicles");
+            let vehicles = 0;
+            let fillups = 0;
+            try {
+              const vehicleCount = await getCountFromServer(vehiclesRef);
+              vehicles = vehicleCount.data().count;
 
-          for (const vehicleDoc of vehiclesSnapshot.docs) {
-            const fillupsSnapshot = await getDocs(collection(vehicleDoc.ref, "fillups"));
-            const list = fillupsSnapshot.docs.map((entry) => {
-              const raw = entry.data();
-              return {
-                id: entry.id,
-                date: raw.date?.toMillis?.() ?? 0,
-                odometer: Number(raw.odometer ?? 0),
-                liters: Number(raw.liters ?? 0),
-                pricePerLiter: Number(raw.pricePerLiter ?? 0),
-                totalCost: Number(raw.totalCost ?? 0),
-                isFullTank: raw.isFullTank !== false,
-              } satisfies Fillup;
-            });
-            fillups = fillups.concat(list);
-
-            const stats = computeStats(list);
-            if (stats.avgKmPerLiter !== null) {
-              bestAvg = bestAvg === null ? stats.avgKmPerLiter : (bestAvg + stats.avgKmPerLiter) / 2;
+              if (vehicles > 0 && vehicles <= MAX_VEHICLES_TO_COUNT) {
+                const vehicleDocs = await getDocs(query(vehiclesRef, limit(MAX_VEHICLES_TO_COUNT)));
+                const counts = await Promise.all(
+                  vehicleDocs.docs.map((vehicleDoc) =>
+                    getCountFromServer(collection(vehicleDoc.ref, "fillups"))
+                      .then((snapshot) => snapshot.data().count)
+                      .catch(() => 0),
+                  ),
+                );
+                fillups = counts.reduce((sum, count) => sum + count, 0);
+              }
+            } catch {
+              // A count that fails leaves the row with zeroes rather than
+              // failing the whole page.
             }
-          }
 
-          const totals = fillups.reduce(
-            (acc, entry) => {
-              acc.liters += entry.liters;
-              acc.cost += entry.totalCost;
-              acc.last = Math.max(acc.last, entry.date);
-              return acc;
-            },
-            { liters: 0, cost: 0, last: 0 },
-          );
+            return {
+              uid: userDoc.id,
+              displayName: data.displayName ?? null,
+              email: data.email ?? null,
+              photoURL: data.photoURL ?? null,
+              createdAt: data.createdAt?.toMillis?.() ?? null,
+              isAdmin: Boolean(data.isAdmin),
+              vehicles,
+              fillups,
+              lastFillup:
+                typeof data.currentLoginAt === "number" ? data.currentLoginAt : null,
+              detail: null,
+            } satisfies AdminUser;
+          }),
+        );
 
-          const combined = computeStats(fillups);
+        setUsers((previous) => (cursor ? [...(previous ?? []), ...rows] : rows));
+        setPageCursor(
+          usersSnapshot.docs.length === PAGE_SIZE
+            ? usersSnapshot.docs[usersSnapshot.docs.length - 1]
+            : null,
+        );
+        setExhausted(usersSnapshot.docs.length < PAGE_SIZE);
+      } catch (caught) {
+        setError(
+          (caught as { code?: string }).code === "permission-denied"
+            ? "אין הרשאת אדמין לחשבון הזה. התנתקו והתחברו מחדש כדי לרענן את ההרשאות."
+            : "טעינת הנתונים נכשלה.",
+        );
+        if (!cursor) setUsers([]);
+      } finally {
+        setLoadingMore(false);
+      }
+    },
+    [],
+  );
 
+  /**
+   * Read one user's fill-ups, on request only.
+   *
+   * Per vehicle, never combined. Merging two vehicles' odometer histories into
+   * one computeStats call produces a nonsense distance — the readings are two
+   * unrelated sequences — and the previous averaging, `(running + next) / 2`,
+   * gave the last vehicle half the weight of everything before it. The average
+   * here is distance-weighted across vehicles, which is the same rule the app
+   * uses within one vehicle.
+   */
+  const loadDetail = useCallback(async (uid: string) => {
+    setDetailLoading(uid);
+    try {
+      const vehiclesSnapshot = await getDocs(
+        query(collection(db, "users", uid, "vehicles"), limit(MAX_VEHICLES_TO_COUNT)),
+      );
+
+      let liters = 0;
+      let cost = 0;
+      let last = 0;
+      let segmentKm = 0;
+      let segmentLiters = 0;
+
+      for (const vehicleDoc of vehiclesSnapshot.docs) {
+        const fillupsSnapshot = await getDocs(
+          query(collection(vehicleDoc.ref, "fillups"), limit(MAX_FILLUPS_PER_VEHICLE)),
+        );
+
+        const list = fillupsSnapshot.docs.map((entry) => {
+          const raw = entry.data();
           return {
-            uid: userDoc.id,
-            displayName: data.displayName ?? null,
-            email: data.email ?? null,
-            photoURL: data.photoURL ?? null,
-            createdAt: data.createdAt?.toMillis?.() ?? null,
-            isAdmin: Boolean(data.isAdmin),
-            vehicles: vehiclesSnapshot.size,
-            fillups: fillups.length,
-            totalLiters: Math.round(totals.liters * 10) / 10,
-            totalCost: Math.round(totals.cost * 100) / 100,
-            totalKm: combined.records.totalKm,
-            avgKmPerLiter: bestAvg === null ? null : Math.round(bestAvg * 100) / 100,
-            lastFillup: totals.last || null,
-          } satisfies AdminUser;
-        }),
-      );
+            id: entry.id,
+            date: raw.date?.toMillis?.() ?? 0,
+            odometer: Number(raw.odometer ?? 0),
+            liters: Number(raw.liters ?? 0),
+            pricePerLiter: Number(raw.pricePerLiter ?? 0),
+            totalCost: Number(raw.totalCost ?? 0),
+            isFullTank: raw.isFullTank !== false,
+            continuityBreakBefore: raw.continuityBreakBefore === true,
+          } satisfies Fillup;
+        });
 
-      setUsers(rows);
-    } catch (caught) {
-      setError(
-        (caught as { code?: string }).code === "permission-denied"
-          ? "אין הרשאת אדמין לחשבון הזה. התנתקו והתחברו מחדש כדי לרענן את ההרשאות."
-          : "טעינת הנתונים נכשלה.",
+        for (const entry of list) {
+          liters += entry.liters;
+          cost += entry.totalCost;
+          last = Math.max(last, entry.date);
+        }
+
+        // One vehicle at a time. Distance-weighted, so a long-distance car
+        // does not count the same as one driven twice a year.
+        for (const segment of computeStats(list).segments) {
+          segmentKm += segment.km;
+          segmentLiters += segment.liters;
+        }
+      }
+
+      const detail: AdminUserDetail = {
+        totalLiters: Math.round(liters * 10) / 10,
+        totalCost: Math.round(cost * 100) / 100,
+        totalKm: Math.round(segmentKm),
+        avgKmPerLiter:
+          segmentLiters > 0 ? Math.round((segmentKm / segmentLiters) * 100) / 100 : null,
+        lastFillup: last || null,
+      };
+
+      setUsers((previous) =>
+        (previous ?? []).map((entry) => (entry.uid === uid ? { ...entry, detail } : entry)),
       );
-      setUsers([]);
+    } catch {
+      /* leave the row without detail rather than failing the page */
+    } finally {
+      setDetailLoading(null);
     }
   }, []);
 
   useEffect(() => {
-    if (claimsLoaded && isAdmin) void load();
+    if (claimsLoaded && isAdmin) void load(null);
   }, [claimsLoaded, isAdmin, load]);
 
   const sorted = useMemo(() => {
@@ -161,24 +274,45 @@ export function Admin() {
     return copy;
   }, [users, sort]);
 
+  /**
+   * Totals across the users LOADED SO FAR.
+   *
+   * Labelled as such in the UI rather than presented as a global figure: a
+   * paginated list cannot honestly claim to cover the whole population, and
+   * fetching everything to make it true is exactly the read pattern this
+   * screen was rewritten to remove. A real global count belongs in a
+   * backend-maintained aggregate document (Blaze).
+   */
   const totals = useMemo(() => {
     if (!users) return null;
     const active = users.filter(
       (entry) => entry.lastFillup && Date.now() - entry.lastFillup < 30 * 86_400_000,
     ).length;
-    const withData = users.filter((entry) => entry.avgKmPerLiter !== null);
+    const withDetail = users.filter((entry) => entry.detail !== null);
+
+    // Distance-weighted across the users whose detail has been loaded — not an
+    // iterative running mean, which gave whoever came last half the weight of
+    // everyone before them combined.
+    const km = withDetail.reduce((sum, entry) => sum + (entry.detail?.totalKm ?? 0), 0);
+    const liters = withDetail.reduce(
+      (sum, entry) =>
+        sum +
+        (entry.detail?.avgKmPerLiter
+          ? entry.detail.totalKm / entry.detail.avgKmPerLiter
+          : 0),
+      0,
+    );
+
     return {
       users: users.length,
       active,
       vehicles: users.reduce((sum, entry) => sum + entry.vehicles, 0),
       fillups: users.reduce((sum, entry) => sum + entry.fillups, 0),
-      liters: users.reduce((sum, entry) => sum + entry.totalLiters, 0),
-      cost: users.reduce((sum, entry) => sum + entry.totalCost, 0),
-      avgKmPerLiter:
-        withData.length > 0
-          ? withData.reduce((sum, entry) => sum + (entry.avgKmPerLiter ?? 0), 0) /
-            withData.length
-          : null,
+      liters: withDetail.reduce((sum, entry) => sum + (entry.detail?.totalLiters ?? 0), 0),
+      cost: withDetail.reduce((sum, entry) => sum + (entry.detail?.totalCost ?? 0), 0),
+      avgKmPerLiter: liters > 0 ? km / liters : null,
+      /** True when some rows have not had their detail loaded. */
+      partial: withDetail.length < users.length,
     };
   }, [users]);
 
@@ -238,7 +372,10 @@ export function Admin() {
         ) : (
           <>
             <section className="flex flex-col gap-2">
-              <Label>סקירה כללית</Label>
+              {/* Scoped honestly: this is what has been loaded, not a census. */}
+              <Label>
+                {exhausted ? "סקירה כללית" : "סקירה · המשתמשים שנטענו עד כה"}
+              </Label>
               <div className="flex gap-3">
                 <StatTile
                   icon={<UserIcon size={17} />}
@@ -263,12 +400,25 @@ export function Admin() {
                   icon={<ChartIcon size={17} />}
                   label="צריכה ממוצעת"
                   value={totals?.avgKmPerLiter ? num(totals.avgKmPerLiter, 1) : "—"}
-                  meta="קמ״ל בכל המשתמשים"
+                  meta={
+                    totals?.partial
+                      ? "קמ״ל · רק לפי פירוט שנטען"
+                      : "קמ״ל · משוקלל לפי מרחק"
+                  }
                   accent
                 />
               </div>
               <Card className="flex items-center justify-between px-4 py-3">
-                <span className="text-[14px] font-semibold text-ink">סך ההוצאה שתועדה</span>
+                <span className="flex flex-col">
+                  <span className="text-[14px] font-semibold text-ink">
+                    סך ההוצאה שתועדה
+                  </span>
+                  {totals?.partial ? (
+                    <span className="text-[11.5px] text-muted">
+                      מחושב רק ממשתמשים שנטען עבורם פירוט
+                    </span>
+                  ) : null}
+                </span>
                 <Num className="text-[17px] font-bold text-ink">
                   {shekel(totals?.cost ?? 0)}
                 </Num>
@@ -329,23 +479,60 @@ export function Admin() {
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5 ps-[50px]">
+                      <div className="flex flex-wrap items-center gap-1.5 ps-[50px]">
                         <MiniStat label="רכבים" value={num(entry.vehicles, 0)} />
                         <MiniStat label="תדלוקים" value={num(entry.fillups, 0)} />
-                        <MiniStat
-                          label="קמ״ל"
-                          value={entry.avgKmPerLiter ? num(entry.avgKmPerLiter, 1) : "—"}
-                        />
-                        <MiniStat label="הוצאה" value={shekel(entry.totalCost)} />
                         <MiniStat
                           label="הצטרף"
                           value={entry.createdAt ? dayMonthShort(entry.createdAt) : "—"}
                         />
+
+                        {/* Reading a person's fill-up records is a deliberate
+                            act, not something that happens to every admin on
+                            every page load. */}
+                        {entry.detail ? (
+                          <>
+                            <MiniStat
+                              label="קמ״ל"
+                              value={
+                                entry.detail.avgKmPerLiter
+                                  ? num(entry.detail.avgKmPerLiter, 1)
+                                  : "—"
+                              }
+                            />
+                            <MiniStat label="הוצאה" value={shekel(entry.detail.totalCost)} />
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={detailLoading === entry.uid}
+                            onClick={() => void loadDetail(entry.uid)}
+                            className="min-h-[28px] rounded-pill bg-surface-2 px-2.5 text-[11.5px] font-semibold text-accent disabled:opacity-50"
+                          >
+                            {detailLoading === entry.uid ? "טוען…" : "טעינת פירוט"}
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
                 </ListCard>
               )}
+
+              {!exhausted ? (
+                <button
+                  type="button"
+                  disabled={loadingMore}
+                  onClick={() => void load(pageCursor)}
+                  className="min-h-[44px] rounded-[12px] bg-surface-2 text-[13.5px] font-semibold text-accent disabled:opacity-50"
+                >
+                  {loadingMore ? "טוען…" : `טעינת ${PAGE_SIZE} משתמשים נוספים`}
+                </button>
+              ) : null}
+
+              <p className="px-1 text-[11.5px] leading-relaxed text-muted">
+                הרשימה נטענת בעמודים. מספרי הרכבים והתדלוקים מגיעים משאילתות ספירה ולא
+                מקריאת הרשומות עצמן, ופירוט הצריכה וההוצאה נטען רק כשמבקשים אותו במפורש.
+              </p>
             </section>
 
             <FeedbackInbox />
