@@ -21,11 +21,45 @@ export interface Fillup {
   liters: number;
   pricePerLiter: number;
   totalCost: number;
-  /** A partial fill-up does not close a consumption segment. */
+  /**
+   * True when the tank was FULL at the END of this fill-up — regardless of how
+   * much was in it on arrival. A partial fill-up does not close a consumption
+   * segment; its liters roll into the open one.
+   */
   isFullTank: boolean;
-  station?: { name: string; lat?: number; lng?: number } | null;
+  station?: StationRef | null;
   notes?: string | null;
   createdAt?: number;
+
+  /**
+   * The user declared that undocumented fill-ups happened before this record.
+   * No metric may cross it. Absent on every pre-upgrade document, and absence
+   * means `false`, so existing data computes exactly as it did before.
+   */
+  continuityBreakBefore?: boolean;
+  /** Provenance of `isFullTank`, so a legacy assumption is never passed off
+   *  as an explicit user statement. */
+  fullTankSource?: "user" | "legacy-assumption";
+  /** Pump price, when the user confirmed it matched. Never inferred. */
+  postedPricePerLiter?: number | null;
+  /** Snapshot; falls back to the vehicle's fuel type when absent. */
+  fuelType?: FuelType | null;
+
+  /* --- import provenance --- */
+  importSource?: string | null;
+  importBatchId?: string | null;
+  importRowHash?: string | null;
+  schemaVersion?: number;
+}
+
+/** A station reference. `stationId` is the identity; the rest are snapshots. */
+export interface StationRef {
+  name: string;
+  lat?: number;
+  lng?: number;
+  /** Stable id from the government catalog. Absent on legacy records. */
+  stationId?: string | null;
+  brand?: string | null;
 }
 
 export interface Vehicle {
@@ -53,6 +87,27 @@ export interface FuelPrices {
   current?: { pricePerLiter: number; effectiveFrom?: number; updatedAt?: number } | null;
   /** Month-keyed history, e.g. { "2026-08": 7.31 }. */
   history?: Record<string, number>;
+}
+
+/**
+ * The stretch after the most recent full tank that the next full fill-up will
+ * close. Exposed explicitly so the UI can tell the user that partial fill-ups
+ * are being retained rather than quietly dropped.
+ */
+export interface OpenSegment {
+  /** False until a full fill-up has established a starting point. */
+  hasBaseline: boolean;
+  baselineId: string | null;
+  baselineDate: number | null;
+  baselineOdometer: number | null;
+  /** Liters added since the baseline, across every pending partial. */
+  liters: number;
+  cost: number;
+  /** Distance covered since the baseline. */
+  km: number;
+  pendingFillups: number;
+  /** True when the next fill-up marked full will produce a consumption result. */
+  nextFullWillClose: boolean;
 }
 
 /** A stretch between two full tanks; consumption is only meaningful here. */
@@ -143,15 +198,32 @@ export interface Stats {
   avgPricePaid: number | null;
   /** Signed ₪ difference between the average paid price and the official one. */
   avgPriceVsOfficial: number | null;
+  /**
+   * Σ over continuity islands of (last odometer − first odometer).
+   * NOT max(odometer) − min(odometer): that would bridge a declared break.
+   */
   totalKm: number;
+  /** The live open segment — what the next full fill-up will close. */
+  openSegment: OpenSegment;
+  /** Continuity islands, oldest → newest. One island means no declared break. */
+  islands: Fillup[][];
+  /** Number of declared continuity breaks. */
+  breakCount: number;
   records: Records;
   anomalies: Anomaly[];
   stationStats: StationStat[];
   /** Series ready for the charts, oldest → newest. */
-  consumptionSeries: { date: number; kmPerLiter: number; label: string }[];
-  priceSeries: { date: number; paid: number; official: number | null; label: string }[];
-  odometerSeries: { date: number; odometer: number; label: string }[];
+  consumptionSeries: SeriesPoint<{ kmPerLiter: number }>[];
+  priceSeries: SeriesPoint<{ paid: number; official: number | null }>[];
+  odometerSeries: SeriesPoint<{ odometer: number }>[];
 }
+
+/**
+ * A chart point. `gapBefore` marks the first point of a new continuity island:
+ * the line must break there rather than interpolating across history the user
+ * told us is missing.
+ */
+export type SeriesPoint<T> = T & { date: number; label: string; gapBefore: boolean };
 
 const DAY_MS = 86_400_000;
 
@@ -171,23 +243,53 @@ export function monthKey(date: number): string {
 }
 
 /**
- * Build consumption segments.
+ * Split the canonical list into continuity islands.
+ *
+ * A fill-up carrying `continuityBreakBefore` is the FIRST record of a new
+ * island: the user told us that history is missing before it, so nothing may
+ * be computed across that boundary. Records before the break stay visible —
+ * they are simply in a different island.
+ *
+ * Elapsed time and distance alone never create a break. A month without
+ * refuelling is a real thing that happens, not evidence of missing data.
+ */
+export function buildIslands(fillups: Fillup[]): Fillup[][] {
+  // Sorted defensively: a break is positional, so an unsorted list would split
+  // in the wrong place. sortFillups is idempotent, so this is free when the
+  // caller already sorted.
+  const islands: Fillup[][] = [];
+  let current: Fillup[] = [];
+
+  for (const fill of sortFillups(fillups)) {
+    if (fill.continuityBreakBefore === true && current.length > 0) {
+      islands.push(current);
+      current = [];
+    }
+    current.push(fill);
+  }
+  if (current.length > 0) islands.push(current);
+  return islands;
+}
+
+/**
+ * Build consumption segments inside a single island.
  *
  * A segment opens at a full tank and closes at the *next* full tank. Partial
  * fill-ups in between do not close it — their liters are added to the open
- * segment, because the tank level at a partial fill is unknown.
+ * segment, because the tank level at a partial fill is unknown. The opening
+ * fill-up's own liters are NOT counted: they were burnt before it.
  *
  *   kmPerLiter = (odoEnd − odoStart) / Σ liters(fills after the start,
  *                                               through the closing full tank)
  */
-export function buildSegments(sorted: Fillup[]): Segment[] {
+function segmentsForIsland(island: Fillup[]): Segment[] {
   const segments: Segment[] = [];
   let start: Fillup | null = null;
   let liters = 0;
   let cost = 0;
   let count = 0;
 
-  for (const fill of sorted) {
+  for (const fill of island) {
     if (start === null) {
       // A segment can only start from a known-full tank.
       if (fill.isFullTank) start = fill;
@@ -227,6 +329,77 @@ export function buildSegments(sorted: Fillup[]): Segment[] {
   }
 
   return segments;
+}
+
+/**
+ * Every closed segment across every island, in chronological order.
+ * A segment never spans a continuity break.
+ */
+export function buildSegments(sorted: Fillup[]): Segment[] {
+  return buildIslands(sorted).flatMap(segmentsForIsland);
+}
+
+/**
+ * The live open segment: the stretch after the most recent full tank in the
+ * LAST island, which the next full fill-up will close.
+ *
+ * Open segments in earlier islands are discarded — the break declared that
+ * their history is incomplete, so they can never be closed validly.
+ */
+export function buildOpenSegment(sorted: Fillup[]): OpenSegment {
+  const empty: OpenSegment = {
+    hasBaseline: false,
+    baselineId: null,
+    baselineDate: null,
+    baselineOdometer: null,
+    liters: 0,
+    cost: 0,
+    km: 0,
+    pendingFillups: 0,
+    nextFullWillClose: false,
+  };
+
+  const islands = buildIslands(sorted);
+  const island = islands[islands.length - 1];
+  if (!island || island.length === 0) return empty;
+
+  // Walk back to the last full tank; everything after it is the open segment.
+  let baselineIndex = -1;
+  for (let i = island.length - 1; i >= 0; i -= 1) {
+    if (island[i].isFullTank) {
+      baselineIndex = i;
+      break;
+    }
+  }
+  if (baselineIndex === -1) return empty;
+
+  const baseline = island[baselineIndex];
+  const after = island.slice(baselineIndex + 1);
+  const liters = after.reduce((sum, f) => sum + f.liters, 0);
+  const cost = after.reduce((sum, f) => sum + f.totalCost, 0);
+  const latest = after.length > 0 ? after[after.length - 1] : baseline;
+
+  return {
+    hasBaseline: true,
+    baselineId: baseline.id,
+    baselineDate: baseline.date,
+    baselineOdometer: baseline.odometer,
+    liters: round(liters, 3),
+    cost: round(cost, 2),
+    km: latest.odometer - baseline.odometer,
+    pendingFillups: after.length,
+    // A next full fill-up closes a segment as long as it adds distance, which
+    // it will unless the odometer is unchanged.
+    nextFullWillClose: true,
+  };
+}
+
+/** Σ over islands of (last odometer − first odometer). Never bridges a break. */
+export function validTrackedKm(sorted: Fillup[]): number {
+  return buildIslands(sorted).reduce((sum, island) => {
+    if (island.length < 2) return sum;
+    return sum + (island[island.length - 1].odometer - island[0].odometer);
+  }, 0);
 }
 
 function buildMonths(sorted: Fillup[], segments: Segment[]): MonthBucket[] {
@@ -379,8 +552,8 @@ function buildRecords(sorted: Fillup[], months: MonthBucket[]): Records {
     }
   }
 
-  const totalKm =
-    sorted.length >= 2 ? sorted[sorted.length - 1].odometer - sorted[0].odometer : 0;
+  // Island-aware: distance is only "tracked" inside a continuity island.
+  const totalKm = validTrackedKm(sorted);
 
   return {
     mostExpensive,
@@ -424,9 +597,13 @@ export function computeStats(
   now: number = Date.now(),
 ): Stats {
   const sorted = sortFillups(fillups);
-  const segments = buildSegments(sorted);
+  const islands = buildIslands(sorted);
+  const segments = islands.flatMap(segmentsForIsland);
   const months = buildMonths(sorted, segments);
   const records = buildRecords(sorted, months);
+  const openSegment = buildOpenSegment(sorted);
+  // Ids that open a new island — the charts break their line at these points.
+  const islandOpeners = new Set(islands.slice(1).map((island) => island[0].id));
 
   // Distance-weighted: a 900 km segment should count for more than a 200 km
   // one, which a plain mean of per-segment kmPerLiter would get wrong.
@@ -460,8 +637,13 @@ export function computeStats(
     2,
   );
 
-  const spanDays =
-    sorted.length >= 2 ? (sorted[sorted.length - 1].date - sorted[0].date) / DAY_MS : 0;
+  // Summed per island, so an undocumented gap does not inflate the denominator
+  // with days the odometer distance never covered.
+  const spanDays = islands.reduce((sum, island) => {
+    if (island.length < 2) return sum;
+    const dates = island.map((f) => f.date);
+    return sum + (Math.max(...dates) - Math.min(...dates)) / DAY_MS;
+  }, 0);
   const kmPerDay = spanDays > 0 ? round(records.totalKm / spanDays, 1) : null;
   const kmPerMonth = kmPerDay !== null ? round(kmPerDay * 30.44, 0) : null;
 
@@ -500,6 +682,9 @@ export function computeStats(
     avgPricePaid,
     avgPriceVsOfficial,
     totalKm: records.totalKm,
+    openSegment,
+    islands,
+    breakCount: Math.max(0, islands.length - 1),
     records,
     anomalies: buildAnomalies(sorted, segments, vehicle),
     stationStats: buildStationStats(sorted),
@@ -507,6 +692,7 @@ export function computeStats(
       date: s.endDate,
       kmPerLiter: s.kmPerLiter,
       label: shortLabel(s.endDate),
+      gapBefore: islandOpeners.has(s.startId),
     })),
     priceSeries: [...sorted]
       .sort((a, b) => a.date - b.date)
@@ -515,6 +701,7 @@ export function computeStats(
         paid: f.pricePerLiter,
         official: officialFor(f.date),
         label: shortLabel(f.date),
+        gapBefore: islandOpeners.has(f.id),
       })),
     odometerSeries: [...sorted]
       .sort((a, b) => a.date - b.date)
@@ -522,6 +709,7 @@ export function computeStats(
         date: f.date,
         odometer: f.odometer,
         label: shortLabel(f.date),
+        gapBefore: islandOpeners.has(f.id),
       })),
   };
 }
@@ -564,7 +752,7 @@ export interface SoftWarning {
  * an amber note, because the user is always the authority on their own data.
  */
 export function softWarnings(
-  draft: { date: number; odometer: number; liters: number; pricePerLiter: number },
+  draft: DraftFillup,
   fillups: Fillup[],
   vehicle?: Vehicle | null,
   excludeId?: string,
@@ -597,17 +785,15 @@ export function softWarnings(
       });
     }
 
-    if (deltaKm > 0 && draft.liters > 0) {
-      const implied = deltaKm / draft.liters;
-      if (implied > 40 || implied < 3) {
-        warnings.push({
-          field: "consumption",
-          message: "הצריכה המחושבת נראית חריגה",
-          detail: `הערכים שהוזנו מייצרים ${round(implied, 1)} קמ״ל. ודאו שהקילומטראז׳ והליטרים נכונים.`,
-        });
-      }
-    }
   }
+
+  // Consumption is only checkable when the draft actually CLOSES a segment.
+  // Dividing the distance since the previous record by only this record's
+  // liters is wrong whenever a partial sits in between, whenever the previous
+  // record is not the opening full tank, or across a continuity break — so
+  // the check runs through the same engine everything else uses.
+  const evaluation = evaluateDraft(draft, fillups, excludeId);
+  if (evaluation.consumptionWarning) warnings.push(evaluation.consumptionWarning);
 
   if (draft.pricePerLiter <= 0 || draft.pricePerLiter > 20) {
     warnings.push({
@@ -700,4 +886,142 @@ export function filterByRange(
   const from = new Date(now);
   from.setMonth(from.getMonth() - months);
   return fillups.filter((f) => f.date >= from.getTime());
+}
+
+
+/* ------------------------------------------------------------------ *
+ * Canonical draft evaluation
+ * ------------------------------------------------------------------ */
+
+/** The subset of a fill-up the engine needs to evaluate an unsaved draft. */
+export interface DraftFillup {
+  date: number;
+  odometer: number;
+  liters: number;
+  pricePerLiter: number;
+  totalCost?: number;
+  isFullTank?: boolean;
+  continuityBreakBefore?: boolean;
+}
+
+/** Sentinel id for the draft while it sits in the temporary canonical list. */
+export const DRAFT_ID = "__draft__";
+
+export type DraftOutcome =
+  /** The draft closed a valid segment — a real consumption figure exists. */
+  | "closedSegment"
+  /** The draft is a full tank that starts (or restarts) a baseline. */
+  | "baseline"
+  /** The draft is partial; its liters wait for the next full tank. */
+  | "partialRetained"
+  /** The draft is partial and no baseline exists yet, so nothing accumulates
+   *  toward a result until a full tank is recorded. */
+  | "partialNoBaseline";
+
+export interface DraftEvaluation {
+  outcome: DraftOutcome;
+  /** The segment this draft closed, or null. Never an approximation. */
+  segment: Segment | null;
+  /** Open-segment state as it will be AFTER the draft is saved. */
+  openSegment: OpenSegment;
+  /** True when the draft declared a break in recorded history. */
+  startsNewPeriod: boolean;
+  /** Only ever produced from a real closed segment. */
+  consumptionWarning: SoftWarning | null;
+}
+
+/**
+ * Evaluate an unsaved draft against the real history.
+ *
+ * The draft is inserted into a temporary canonical list, continuity islands
+ * and segments are rebuilt exactly as they are everywhere else, and the result
+ * reports what the draft actually did. This is the single authority: no screen,
+ * toast, validator or chart may derive consumption any other way.
+ */
+export function evaluateDraft(
+  draft: DraftFillup,
+  fillups: Fillup[],
+  excludeId?: string,
+): DraftEvaluation {
+  const isFull = draft.isFullTank !== false;
+
+  const candidate: Fillup = {
+    id: DRAFT_ID,
+    date: draft.date,
+    odometer: draft.odometer,
+    liters: draft.liters,
+    pricePerLiter: draft.pricePerLiter,
+    totalCost: draft.totalCost ?? draft.liters * draft.pricePerLiter,
+    isFullTank: isFull,
+    continuityBreakBefore: draft.continuityBreakBefore === true,
+  };
+
+  const merged = sortFillups([
+    ...fillups.filter((f) => f.id !== excludeId && f.id !== DRAFT_ID),
+    candidate,
+  ]);
+
+  const segments = buildSegments(merged);
+  const closed = segments.find((segment) => segment.endId === DRAFT_ID) ?? null;
+
+  // The open segment as it stands once the draft is saved. When the draft is
+  // not the newest record, the trailing open segment belongs to whatever comes
+  // after it — which is still the correct thing to show.
+  const openSegment = buildOpenSegment(merged);
+
+  let outcome: DraftOutcome;
+  if (closed) {
+    outcome = "closedSegment";
+  } else if (isFull) {
+    outcome = "baseline";
+  } else {
+    // Does a baseline exist before the draft inside its own island?
+    const island =
+      buildIslands(merged).find((group) => group.some((f) => f.id === DRAFT_ID)) ?? [];
+    const index = island.findIndex((f) => f.id === DRAFT_ID);
+    const hasBaseline = island.slice(0, index).some((f) => f.isFullTank);
+    outcome = hasBaseline ? "partialRetained" : "partialNoBaseline";
+  }
+
+  let consumptionWarning: SoftWarning | null = null;
+  if (closed && (closed.kmPerLiter > 40 || closed.kmPerLiter < 3)) {
+    consumptionWarning = {
+      field: "consumption",
+      message: "הצריכה המחושבת נראית חריגה",
+      detail:
+        `המקטע שנסגר מייצר ${round(closed.kmPerLiter, 1)} קמ״ל ` +
+        `(${int(closed.km)} ק״מ על ${round(closed.liters, 2)} ל׳). ` +
+        `ודאו שהקילומטראז׳ והליטרים נכונים.`,
+    };
+  }
+
+  return {
+    outcome,
+    segment: closed,
+    openSegment,
+    startsNewPeriod: candidate.continuityBreakBefore === true,
+    consumptionWarning,
+  };
+}
+
+function int(value: number): string {
+  return Math.round(value).toLocaleString("he-IL");
+}
+
+/**
+ * Restrict CLOSED SEGMENTS to a window by their closing date.
+ *
+ * Segments must be built on the complete history first and only then filtered,
+ * otherwise a valid segment vanishes whenever its opening full tank happens to
+ * sit one day outside the selected range.
+ */
+export function filterSegmentsByRange(
+  segments: Segment[],
+  from: number | null,
+  to: number | null,
+): Segment[] {
+  return segments.filter(
+    (segment) =>
+      (from === null || segment.endDate >= from) && (to === null || segment.endDate <= to),
+  );
 }
