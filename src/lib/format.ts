@@ -72,9 +72,9 @@ export function shekel(value: number, digits?: number): string {
   })}`;
 }
 
-/** Signed shekel delta, e.g. "-₪0.05". */
+/** Signed shekel delta, e.g. "\u2212₪0.05" / "+₪1.20". */
 export function shekelSigned(value: number, digits = 2): string {
-  const sign = value < 0 ? "-" : value > 0 ? "+" : "";
+  const sign = value < 0 ? "\u2212" : value > 0 ? "+" : "";
   return `${sign}${shekel(value, digits)}`;
 }
 
@@ -86,13 +86,30 @@ export function price(value: number): string {
   })}`;
 }
 
-/** 5.2 → "5.2%+" — the trailing sign reads correctly once mirrored in RTL. */
+/**
+ * 5.2 → "+5%".
+ *
+ * The sign LEADS. The previous implementation put it last ("35%+") on the
+ * theory that RTL mirroring would move it — it does not, because the whole run
+ * is rendered inside an LTR island, where "35%+" stays "35%+". The sign, the
+ * digits and the percent symbol are one atomic LTR run; render it through
+ * <SignedPercent> (or any dir="ltr" island) and it reads correctly.
+ */
 export function percent(value: number, digits = 0): string {
   const rounded = Math.abs(value).toLocaleString("he-IL", {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
-  return `${rounded}%${value >= 0 ? "+" : "-"}`;
+  const sign = value > 0 ? "+" : value < 0 ? "\u2212" : "";
+  return `${sign}${rounded}%`;
+}
+
+/** Unsigned percentage, e.g. "72%". */
+export function percentPlain(value: number, digits = 0): string {
+  return `${value.toLocaleString("he-IL", {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  })}%`;
 }
 
 /** "28 באוג׳" */
@@ -229,3 +246,23 @@ export function toDateTimeLocal(date: Date | number): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+
+/* ------------------------------------------------------------------ *
+ * Hebrew unit words
+ *
+ * Kept OUT of the LTR island: a Hebrew unit inside a dir="ltr" span is
+ * reordered against the surrounding text. The number is the LTR run; the unit
+ * is ordinary RTL content beside it.
+ * ------------------------------------------------------------------ */
+
+export const UNITS = {
+  km: "ק״מ",
+  liters: "ל׳",
+  litersLong: "ליטר",
+  kmPerLiter: "קמ״ל",
+  litersPer100: "ל׳/100 ק״מ",
+  perLiter: "לליטר",
+  perKm: "לק״מ",
+  days: "ימים",
+} as const;

@@ -254,6 +254,13 @@
   font-feature-settings: "tnum" 1;
 }
 
+/* The Hebrew unit word that sits beside an LTR numeric island. It stays in the
+   surrounding RTL flow — pulling it inside the island reorders it. */
+@utility unit {
+  font-variant-numeric: normal;
+  white-space: nowrap;
+}
+
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

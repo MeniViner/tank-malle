@@ -5,6 +5,7 @@ import { AppHeader } from "../components/AppHeader";
 import { Card, Label, ListCard, SectionTitle, Skeleton } from "../components/Card";
 import { InfoStrip } from "../components/Field";
 import { Num } from "../components/Num";
+import { Quantity, SignedPercent } from "../components/Fmt";
 import {
   ArrowDown,
   ArrowUp,
@@ -18,7 +19,6 @@ import {
   fullDate,
   heMonthName,
   num,
-  percent,
   price,
   shekel,
 } from "../lib/format";
@@ -70,7 +70,7 @@ export function Home() {
                     }`}
                   >
                     {better ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
-                    <Num>{percent(delta)}</Num>
+                    <SignedPercent value={delta} />
                     {better ? "מעל הממוצע" : "מתחת לממוצע"}
                   </span>
                 ) : null}
@@ -80,12 +80,16 @@ export function Home() {
                 {stats.avgKmPerLiter !== null ? (
                   <>
                     ממוצע הרכב: <Num>{average.value}</Num> {average.unit} · מבוסס על{" "}
+                    <Num>{stats.segments.length}</Num>{" "}
+                    {stats.segments.length === 1 ? "מקטע צריכה" : "מקטעי צריכה"} ·{" "}
                     <Num>{stats.records.fillupCount}</Num> תדלוקים
                   </>
                 ) : (
-                  "צריכה תחושב אחרי שני תדלוקים במיכל מלא"
+                  "הצריכה תחושב אחרי שני תדלוקים שבסיומם המיכל היה מלא"
                 )}
               </span>
+
+              <OpenSegmentNote stats={stats} />
             </Card>
 
             <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
@@ -193,13 +197,57 @@ export function Home() {
   );
 }
 
-/** "המחיר הרשמי ל<חודש הבא> יתעדכן ב־1 בחודש". */
+/**
+ * Open-segment status.
+ *
+ * Partial fill-ups are retained, not ignored — but nothing in the UI said so,
+ * which made a partial look like it had been thrown away. This states the
+ * pending liters explicitly.
+ */
+function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
+  const open = stats.openSegment;
+
+  if (!open.hasBaseline) {
+    if (stats.records.fillupCount === 0) return null;
+    return (
+      <span className="text-[13px] text-muted">
+        עדיין אין נקודת התחלה. סמנו “מילאתי עד מלא” בתדלוק הבא כדי להתחיל חישוב.
+      </span>
+    );
+  }
+
+  if (open.pendingFillups === 0) return null;
+
+  return (
+    <span className="text-[13px] text-muted">
+      במקטע הפתוח נשמרו <Quantity value={open.liters} digits={1} /> מ־
+      <Num>{open.pendingFillups}</Num>{" "}
+      {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} — הם ייכללו בחישוב
+      במילוי הבא עד מלא.
+    </span>
+  );
+}
+
+/**
+ * Freshness of the regulated maximum price.
+ *
+ * It used to promise "the official price will update on the 1st of the month",
+ * which no component in the running system actually does: the scheduled updater
+ * is written but undeployed (Spark). This reports what is true instead.
+ */
 function NextPriceStrip() {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const { prices } = useData();
+  const updatedAt = prices?.current?.updatedAt ?? null;
+  const thisMonth = updatedAt !== null && new Date(updatedAt).getMonth() === new Date().getMonth()
+    && new Date(updatedAt).getFullYear() === new Date().getFullYear();
+
   return (
     <InfoStrip icon={<CalendarIcon size={17} />}>
-      המחיר הרשמי ל{heMonthName(next.getMonth() + 1)} יתעדכן ב־{fullDate(next)}
+      {updatedAt === null
+        ? "מחיר מרבי מפוקח לבנזין 95 בשירות עצמי — עדיין לא הוזן"
+        : thisMonth
+          ? `המחיר המרבי המפוקח עודכן ידנית ב־${fullDate(updatedAt)}`
+          : `המחיר המרבי המפוקח לא עודכן החודש · עדכון אחרון ${fullDate(updatedAt)}`}
     </InfoStrip>
   );
 }
