@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
+import { useStats } from "../hooks/useStats";
 import {
   evaluateDraft,
   hardBlock,
@@ -33,6 +34,15 @@ import {
 import type { FuelPrices, FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
 import { priceDisplay, resolveStationPrice } from "../lib/prices/resolver";
+import {
+  BEST_VALUE_UNAVAILABLE,
+  SORT_LABELS,
+  bestValueBlocker,
+  isStale,
+  rankStations,
+  type StationCandidate,
+  type StationSort,
+} from "../lib/prices/ranking";
 import { Button } from "../components/Button";
 import { Field, InfoStrip, SoftWarningBanner } from "../components/Field";
 import { Card, Label, IconTile } from "../components/Card";
@@ -73,6 +83,10 @@ export function FillupForm() {
     deleteFillup,
     restoreFillup,
   } = useData();
+
+  // Whole-history statistics for this vehicle, used only for the best-value
+  // station ranking — which needs a real measured consumption or nothing.
+  const vehicleStats = useStats();
 
   const editing = fillupId ? fillups.find((f) => f.id === fillupId) ?? null : null;
   const isEdit = Boolean(fillupId);
@@ -639,6 +653,8 @@ export function FillupForm() {
 
       <StationSheet
         fuelType={activeVehicle?.fuelType ?? "95"}
+        kmPerLiter={vehicleStats.avgKmPerLiter}
+        litersToBuy={Number.isFinite(litersValue) && litersValue > 0 ? litersValue : 40}
         prices={prices}
         open={stationSheetOpen}
         onClose={() => setStationSheetOpen(false)}
@@ -681,6 +697,8 @@ export function FillupForm() {
 
 function StationSheet({
   fuelType,
+  kmPerLiter,
+  litersToBuy,
   prices,
   open,
   onClose,
@@ -693,6 +711,9 @@ function StationSheet({
 }: {
   /** The ACTIVE vehicle's fuel type. Every price shown is for this and only this. */
   fuelType: FuelType;
+  /** Measured consumption, for the best-value ranking. Null until one exists. */
+  kmPerLiter: number | null;
+  litersToBuy: number;
   prices: FuelPrices | null;
   open: boolean;
   onClose: () => void;
@@ -713,12 +734,47 @@ function StationSheet({
    * reporting not yet running, the best available answer is usually the
    * regulated ceiling, and it is rendered as a ceiling.
    */
-  const priceFor = useCallback(
-    (stationId: string | null) => {
-      const resolved = resolveStationPrice({ stationId, fuelType, regulated });
-      return priceDisplay(resolved);
-    },
+  const resolveFor = useCallback(
+    (stationId: string | null) => resolveStationPrice({ stationId, fuelType, regulated }),
     [fuelType, regulated],
+  );
+
+  const priceFor = useCallback(
+    (stationId: string | null) => priceDisplay(resolveFor(stationId)),
+    [resolveFor],
+  );
+
+  const [sort, setSort] = useState<StationSort>("nearest");
+
+  /**
+   * Nearby stations, ordered.
+   *
+   * Every price is resolved for the ACTIVE vehicle's fuel type before ranking,
+   * so no order can end up comparing diesel against petrol.
+   */
+  const nearbyCandidates: StationCandidate[] = useMemo(
+    () =>
+      nearby.map((entry) => ({
+        station: entry,
+        distanceMeters: entry.distance,
+        price: resolveFor(entry.i ?? null),
+      })),
+    [nearby, resolveFor],
+  );
+
+  const blocker = useMemo(
+    () => bestValueBlocker(nearbyCandidates, { fuelType, kmPerLiter, litersToBuy }),
+    [nearbyCandidates, fuelType, kmPerLiter, litersToBuy],
+  );
+
+  const rankedNearby = useMemo(
+    () =>
+      rankStations(nearbyCandidates, sort === "bestValue" && blocker ? "nearest" : sort, {
+        fuelType,
+        kmPerLiter,
+        litersToBuy,
+      }),
+    [nearbyCandidates, sort, blocker, fuelType, kmPerLiter, litersToBuy],
   );
   const [query, setQuery] = useState("");
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
@@ -817,20 +873,57 @@ function StationSheet({
                   איתור תחנות בקרבת מקום
                 </button>
               ) : (
-                nearby.map((entry) => {
-                  const price = priceFor(entry.i ?? null);
-                  return (
-                    <StationRow
-                      key={`near-${entry.n}-${entry.lat}`}
-                      label={entry.n}
-                      meta={formatDistance(entry.distance)}
-                      price={price.text}
-                      priceDetail={price.detail}
-                      selected={current?.name === entry.n}
-                      onClick={() => onPick(toStation(entry))}
-                    />
-                  );
-                })
+                <>
+                  <div className="flex gap-1.5 overflow-x-auto pb-2">
+                    {(
+                      ["nearest", "cheapest", "freshest", "bestValue"] as StationSort[]
+                    ).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        aria-pressed={sort === option}
+                        onClick={() => setSort(option)}
+                        className={`min-h-[32px] flex-none rounded-pill px-3 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+                          sort === option
+                            ? "bg-accent text-accent-contrast"
+                            : "bg-surface-2 text-muted"
+                        }`}
+                      >
+                        {SORT_LABELS[option]}
+                      </button>
+                    ))}
+                  </div>
+
+                  {sort === "bestValue" && blocker ? (
+                    <p className="pb-2 text-[12px] leading-relaxed text-muted">
+                      {BEST_VALUE_UNAVAILABLE[blocker]} מוצג לפי מרחק בינתיים.
+                    </p>
+                  ) : null}
+
+                  {rankedNearby.map((entry) => {
+                    const display = priceDisplay(entry.price);
+                    const detour =
+                      sort === "bestValue" && entry.detourCost !== null
+                        ? ` · נסיעה ${price(entry.detourCost)}`
+                        : "";
+                    return (
+                      <StationRow
+                        key={`near-${entry.station.n}-${entry.station.lat}`}
+                        label={entry.station.n}
+                        meta={
+                          entry.distanceMeters !== null
+                            ? formatDistance(entry.distanceMeters)
+                            : undefined
+                        }
+                        price={display.text}
+                        priceDetail={`${display.detail}${detour}`}
+                        stale={isStale(entry.price) && entry.price.price !== null}
+                        selected={current?.name === entry.station.n}
+                        onClick={() => onPick(toStation(entry.station))}
+                      />
+                    );
+                  })}
+                </>
               )}
 
               {stations.length > 0 ? (
@@ -880,6 +973,7 @@ function StationRow({
   meta,
   price,
   priceDetail,
+  stale,
   selected,
   onClick,
 }: {
@@ -889,6 +983,8 @@ function StationRow({
   price?: string;
   /** Source, age and confidence — never omitted when a price is shown. */
   priceDetail?: string;
+  /** A price old enough that it may have moved. Marked, not hidden. */
+  stale?: boolean;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -906,7 +1002,10 @@ function StationRow({
           {price && price !== "—" ? (
             <>
               {meta ? " · " : ""}
-              <Num className="font-semibold text-ink">{price}</Num>
+              <Num className={`font-semibold ${stale ? "text-muted" : "text-ink"}`}>
+                {price}
+              </Num>
+              {stale ? <span className="text-[11px] text-warning-ink"> · ישן</span> : null}
             </>
           ) : null}
         </span>

@@ -85,9 +85,26 @@ async function fetchPage(offset, limit) {
   return payload.result;
 }
 
+/** The resource's last-modified date, from CKAN's package metadata. */
+async function fetchSourceUpdatedAt() {
+  try {
+    const url = new URL("https://data.gov.il/api/3/action/resource_show");
+    url.searchParams.set("id", RESOURCE);
+    const response = await fetch(url, { headers: { accept: "application/json" } });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload?.result?.last_modified ?? payload?.result?.created ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function main() {
   const first = await fetchPage(0, 1);
   const total = first.total ?? 0;
+  // The register's own last-modified stamp, so the catalog can say how old the
+  // authoritative data is rather than only when we happened to fetch it.
+  const sourceUpdatedAt = await fetchSourceUpdatedAt();
   console.log(`  register reports ${total} stations`);
 
   const records = [];
@@ -98,20 +115,56 @@ async function main() {
     console.log(`  fetched ${records.length}/${total}`);
   }
 
+  /**
+   * Two concepts, deliberately kept apart.
+   *
+   * `stations` is the GEO-ENABLED subset: entries with usable coordinates,
+   * which is what nearby-station detection needs. `registry` is the
+   * AUTHORITATIVE list: every station the register holds, coordinates or not.
+   *
+   * Conflating them silently discards real stations. A station with a broken
+   * coordinate is still a station a driver can be standing at, and it must
+   * remain findable by name — it simply cannot be detected automatically.
+   */
   const seen = new Set();
   const stations = [];
+  const registry = [];
+  const audit = {
+    fetched: records.length,
+    reportedTotal: total,
+    noIdentifier: 0,
+    noName: 0,
+    missingCoordinates: 0,
+    coordinatesOutOfRange: 0,
+    duplicateIdentifier: 0,
+  };
 
   for (const row of records) {
-    const lat = coord(row[FIELD.lat]);
-    const lng = coord(row[FIELD.lng]);
-    // Israel's bounding box — drops the handful of rows with unset or
-    // projected (ITM) coordinates that would otherwise land in the ocean.
-    if (lat === null || lng === null) continue;
-    if (lat < 29.4 || lat > 33.4 || lng < 34.2 || lng > 35.9) continue;
+    const rawLat = coord(row[FIELD.lat]);
+    const rawLng = coord(row[FIELD.lng]);
+
+    // Israel's bounding box. A coordinate outside it is unset or projected
+    // (ITM) and would otherwise land the station in the ocean.
+    const inRange =
+      rawLat !== null &&
+      rawLng !== null &&
+      rawLat >= 29.4 &&
+      rawLat <= 33.4 &&
+      rawLng >= 34.2 &&
+      rawLng <= 35.9;
+
+    if (rawLat === null || rawLng === null) audit.missingCoordinates += 1;
+    else if (!inRange) audit.coordinatesOutOfRange += 1;
+
+    const lat = inRange ? rawLat : null;
+    const lng = inRange ? rawLng : null;
 
     const company = normalizeBrand(row[FIELD.company]);
     const name = clean(row[FIELD.name]);
-    if (!company && !name) continue;
+    if (!company && !name) {
+      audit.noName += 1;
+      continue;
+    }
 
     // The register splits brand and branch; the app shows them joined, the
     // way a driver would say it out loud ("פז צומת גולני"). Many branch names
@@ -124,45 +177,88 @@ async function main() {
           ? branch
           : `${company} ${branch}`
         : company || branch;
-    const key = clean(row[FIELD.id]) ?? `${label}|${lat}|${lng}`;
-    if (seen.has(key)) continue;
+    const identifier = clean(row[FIELD.id]);
+    if (!identifier) audit.noIdentifier += 1;
+
+    const key = identifier ?? `${label}|${lat}|${lng}`;
+    if (seen.has(key)) {
+      audit.duplicateIdentifier += 1;
+      continue;
+    }
     seen.add(key);
 
-    stations.push({
+    const entry = {
       // The government's own station number. This is the STABLE IDENTITY:
       // display names change, branches are renamed and brands are re-signed,
       // but this does not. It was read from the register and then dropped,
       // which is why stored fill-ups could only ever reference a station by
       // name and coordinates.
-      i: clean(row[FIELD.id]),
+      i: identifier,
       n: label,
       c: company,
       a: clean(row[FIELD.address]) ?? clean(row[FIELD.authority]),
       lat,
       lng,
-    });
+    };
+
+    // Every station goes in the registry, coordinates or not.
+    registry.push(entry);
+    // Only those we can actually place go in the geo subset.
+    if (lat !== null && lng !== null) stations.push(entry);
   }
 
   stations.sort((a, b) => a.lat - b.lat);
+  registry.sort((a, b) => a.n.localeCompare(b.n, "he"));
 
-  const companies = [...new Set(stations.map((s) => s.c).filter(Boolean))].sort((a, b) =>
+  const companies = [...new Set(registry.map((s) => s.c).filter(Boolean))].sort((a, b) =>
     a.localeCompare(b, "he"),
   );
+
+  const withoutCoordinates = registry.filter((s) => s.lat === null || s.lng === null);
 
   const output = {
     generatedAt: new Date().toISOString(),
     source: "data.gov.il — Ministry of Energy public fuel-station register",
+    sourceUpdatedAt: sourceUpdatedAt ?? null,
+
+    /** Authoritative station count — every station the register holds. */
+    registryCount: registry.length,
+    /** The subset that can be placed on a map, for nearby detection. */
     count: stations.length,
+
     companies,
+
+    /**
+     * Geo-enabled subset, sorted by latitude so a latitude band prunes the
+     * search cheaply. Nearby detection uses this and only this.
+     */
     stations,
+
+    /**
+     * Stations the register holds that have no usable coordinate. They are
+     * NOT discarded: they remain searchable by name and carry the same stable
+     * identifier, they simply cannot be detected automatically.
+     */
+    registryOnly: withoutCoordinates,
   };
 
   await mkdir(dirname(OUT), { recursive: true });
   await writeFile(OUT, JSON.stringify(output), "utf8");
 
-  console.log(
-    `\nWrote ${OUT}\n  ${stations.length} stations, ${companies.length} companies`,
-  );
+  console.log(`\nWrote ${OUT}`);
+  console.log("\nStation catalog audit");
+  console.log(`  register reports:            ${audit.reportedTotal}`);
+  console.log(`  rows fetched:                ${audit.fetched}`);
+  console.log(`  authoritative stations:      ${registry.length}`);
+  console.log(`  geo-enabled (has coords):    ${stations.length}`);
+  console.log(`  registry-only (no coords):   ${withoutCoordinates.length}`);
+  console.log(`    missing coordinates:       ${audit.missingCoordinates}`);
+  console.log(`    coordinates out of range:  ${audit.coordinatesOutOfRange}`);
+  console.log(`  skipped, no brand or name:   ${audit.noName}`);
+  console.log(`  skipped, duplicate id:       ${audit.duplicateIdentifier}`);
+  console.log(`  rows with no station number: ${audit.noIdentifier}`);
+  console.log(`  companies:                   ${companies.length}`);
+  console.log(`  source last updated:         ${sourceUpdatedAt ?? "unknown"}`);
 }
 
 main().catch((error) => {

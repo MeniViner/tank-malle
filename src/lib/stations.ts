@@ -24,17 +24,39 @@ export interface CatalogStation {
   c: string | null;
   /** Street address or local authority. */
   a: string | null;
+  /**
+   * Coordinates, when the register has usable ones.
+   *
+   * Null for a station the register holds but cannot place. Such a station is
+   * still real and still searchable by name — it simply cannot be detected
+   * automatically from the driver's position.
+   */
+  lat: number | null;
+  lng: number | null;
+}
+
+/** A station we can actually place on a map. */
+export interface GeoStation extends CatalogStation {
   lat: number;
   lng: number;
 }
 
 interface Catalog {
+  /** Geo-enabled count. */
   count: number;
+  /** Authoritative count — every station the register holds. */
+  registryCount?: number;
   companies: string[];
-  stations: CatalogStation[];
+  /** Sorted by latitude; nearby detection uses this and only this. */
+  stations: GeoStation[];
+  /**
+   * Stations with no usable coordinate. Searchable by name, never returned by
+   * proximity. Absent on a catalog generated before this split existed.
+   */
+  registryOnly?: CatalogStation[];
 }
 
-export interface NearbyStation extends CatalogStation {
+export interface NearbyStation extends GeoStation {
   /** Metres from the supplied position. */
   distance: number;
 }
@@ -134,22 +156,43 @@ export function findNearby(
 }
 
 /** Free-text search over the catalog, for the manual station picker. */
+/**
+ * Search the AUTHORITATIVE registry by name or address.
+ *
+ * Both the geo-enabled subset and the stations with no usable coordinate are
+ * searched. A broken coordinate in a government dataset is not a reason to
+ * pretend a petrol station does not exist — the driver may well be standing at
+ * it. It simply will not turn up in nearby detection.
+ */
 export function searchStations(
   catalog: Catalog | null,
   query: string,
   limit = 30,
 ): CatalogStation[] {
   const term = query.trim();
-  if (!catalog?.stations?.length || term.length < 2) return [];
+  if (!catalog || term.length < 2) return [];
 
   const results: CatalogStation[] = [];
-  for (const station of catalog.stations) {
+  const consider = (station: CatalogStation): boolean => {
     if (station.n.includes(term) || station.a?.includes(term)) {
       results.push(station);
-      if (results.length >= limit) break;
     }
+    return results.length < limit;
+  };
+
+  for (const station of catalog.stations ?? []) {
+    if (!consider(station)) return results;
+  }
+  for (const station of catalog.registryOnly ?? []) {
+    if (!consider(station)) return results;
   }
   return results;
+}
+
+/** Authoritative station count, when the catalog reports one. */
+export function registrySize(catalog: Catalog | null): number {
+  if (!catalog) return 0;
+  return catalog.registryCount ?? catalog.stations?.length ?? 0;
 }
 
 export type GeoStatus = "idle" | "locating" | "ok" | "denied" | "unavailable" | "none";
@@ -210,8 +253,11 @@ export function locateStations(
 export function toStation(entry: CatalogStation): Station {
   return {
     name: entry.n,
-    lat: entry.lat,
-    lng: entry.lng,
+    // Coordinates are omitted rather than stored as null when the register has
+    // none, so a fill-up never claims a position it does not have.
+    ...(entry.lat !== null && entry.lng !== null
+      ? { lat: entry.lat, lng: entry.lng }
+      : {}),
     stationId: entry.i ?? null,
     brand: entry.c ?? null,
   };
