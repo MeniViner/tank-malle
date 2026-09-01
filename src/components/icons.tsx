@@ -222,6 +222,15 @@ export const DownloadIcon = (props: IconProps) => (
   </Svg>
 );
 
+/** Arrow into a tray — data coming in. */
+export const UploadIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.8} {...props}>
+    <path d="M4.8 15.4v3.2a1.6 1.6 0 0 0 1.6 1.6h11.2a1.6 1.6 0 0 0 1.6-1.6v-3.2" />
+    <path d="M8 8.6 12 4.6l4 4" />
+    <path d="M12 4.6v10.8" />
+  </Svg>
+);
+
 export const LogoutIcon = (props: IconProps) => (
   <Svg strokeWidth={1.8} {...props}>
     <path d="M14.5 7.5V5.9a1.6 1.6 0 0 0-1.6-1.6H6.4A1.6 1.6 0 0 0 4.8 5.9v12.2a1.6 1.6 0 0 0 1.6 1.6h6.5a1.6 1.6 0 0 0 1.6-1.6v-1.6" />

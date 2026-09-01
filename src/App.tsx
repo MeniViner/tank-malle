@@ -16,6 +16,7 @@ import { History } from "./screens/History";
 import { Settings } from "./screens/Settings";
 import { Profile } from "./screens/Profile";
 import { VehicleManager } from "./screens/VehicleManager";
+import { ImportData } from "./screens/ImportData";
 import { Legal } from "./screens/Legal";
 import { Feedback } from "./screens/Feedback";
 
@@ -132,6 +133,7 @@ function Shell() {
         <Route path="/settings" element={<Settings />} />
         <Route path="/settings/profile" element={<Profile />} />
         <Route path="/settings/vehicles" element={<VehicleManager />} />
+        <Route path="/settings/import" element={<ImportData />} />
         <Route path="/legal/:doc" element={<Legal />} />
         <Route path="/feedback" element={<Feedback />} />
         <Route

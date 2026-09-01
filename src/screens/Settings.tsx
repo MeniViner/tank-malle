@@ -21,6 +21,7 @@ import {
   PlusIcon,
   ShieldIcon,
   SunIcon,
+  UploadIcon,
   UserIcon,
 } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
@@ -244,7 +245,7 @@ export function Settings() {
                 </IconTile>
               }
               title="ייצוא הנתונים שלי"
-              subtitle="קובץ CSV עם כל התדלוקים"
+              subtitle="קובץ CSV שאפשר גם לייבא בחזרה"
               onClick={() => {
                 if (fillups.length === 0) {
                   showToast({ tone: "info", title: "אין עדיין תדלוקים לייצוא" });
@@ -253,6 +254,16 @@ export function Settings() {
                 downloadFillupsCsv(fillups, activeVehicle);
                 showToast({ tone: "success", title: "הקובץ הורד" });
               }}
+            />
+            <RowButton
+              icon={
+                <IconTile tone="muted">
+                  <UploadIcon size={18} />
+                </IconTile>
+              }
+              title="ייבוא נתונים"
+              subtitle="CSV או Excel — כולל יומני תדלוק ישנים"
+              onClick={() => navigate("/settings/import")}
             />
             <RowButton
               icon={
