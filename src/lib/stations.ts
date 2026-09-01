@@ -9,6 +9,15 @@ import type { Station } from "./types";
  */
 
 export interface CatalogStation {
+  /**
+   * The government's station number — the STABLE IDENTITY.
+   *
+   * Display names change and brands get re-signed; this does not. Absent on
+   * catalogs generated before this field was added, in which case a fill-up is
+   * stored without a station id and is treated as legacy/unresolved rather
+   * than force-matched later.
+   */
+  i?: string | null;
   /** Display label, e.g. "פז צומת גולני". */
   n: string;
   /** Brand. */
@@ -191,8 +200,21 @@ export function locateStations(
 }
 
 /** Turn a catalog entry into the shape stored on a fill-up. */
+/**
+ * Catalog entry → the station reference stored on a fill-up.
+ *
+ * The id is the identity; the name, brand and coordinates are SNAPSHOTS taken
+ * at the moment of the fill-up, so a station being renamed later does not
+ * rewrite the user's history.
+ */
 export function toStation(entry: CatalogStation): Station {
-  return { name: entry.n, lat: entry.lat, lng: entry.lng };
+  return {
+    name: entry.n,
+    lat: entry.lat,
+    lng: entry.lng,
+    stationId: entry.i ?? null,
+    brand: entry.c ?? null,
+  };
 }
 
 export function formatDistance(meters: number): string {

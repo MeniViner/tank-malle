@@ -124,11 +124,17 @@ async function main() {
           ? branch
           : `${company} ${branch}`
         : company || branch;
-    const key = `${label}|${lat}|${lng}`;
+    const key = clean(row[FIELD.id]) ?? `${label}|${lat}|${lng}`;
     if (seen.has(key)) continue;
     seen.add(key);
 
     stations.push({
+      // The government's own station number. This is the STABLE IDENTITY:
+      // display names change, branches are renamed and brands are re-signed,
+      // but this does not. It was read from the register and then dropped,
+      // which is why stored fill-ups could only ever reference a station by
+      // name and coordinates.
+      i: clean(row[FIELD.id]),
       n: label,
       c: company,
       a: clean(row[FIELD.address]) ?? clean(row[FIELD.authority]),

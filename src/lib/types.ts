@@ -1,6 +1,6 @@
-import type { Fillup, FuelPrices, FuelType, Vehicle } from "./stats";
+import type { Fillup, FuelPrices, FuelType, StationRef, Vehicle } from "./stats";
 
-export type { Fillup, FuelPrices, FuelType, Vehicle };
+export type { Fillup, FuelPrices, FuelType, StationRef, Vehicle };
 
 export type ThemeSetting = "system" | "light" | "dark";
 export type Units = "kmPerLiter" | "litersPer100";
@@ -36,11 +36,12 @@ export interface UserProfile {
   createdAt?: number;
 }
 
-export interface Station {
-  name: string;
-  lat?: number;
-  lng?: number;
-}
+/**
+ * A station on a fill-up. `stationId` is the identity; everything else is a
+ * snapshot of how the station looked at the time, so a later rename does not
+ * rewrite history. Defined once, in stats.ts, and re-exported here.
+ */
+export type Station = StationRef;
 
 /** Everything the add/edit form needs to produce a Fillup document. */
 export interface FillupDraft {
@@ -50,6 +51,8 @@ export interface FillupDraft {
   pricePerLiter: string;
   totalCost: string;
   isFullTank: boolean;
+  /** True when the user declared undocumented fill-ups before this record. */
+  continuityBreakBefore: boolean;
   station: Station | null;
   notes: string;
 }
