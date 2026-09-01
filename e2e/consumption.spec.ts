@@ -174,8 +174,13 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await page.goto("/history");
   await page.getByText(/10\.0 ל׳/).first().click();
   await page.getByRole("button", { name: "מחיקת רשומה" }).click();
-  const confirm = page.getByRole("button", { name: /^מחיקה$/ });
-  if (await confirm.count()) await confirm.first().click();
+
+  // Waited for, not conditionally clicked: a `if (await count())` here races
+  // the dialog's own render, and when it loses it skips the confirmation
+  // silently — the test then fails much later, on an assertion about a record
+  // that was never deleted.
+  await expect(page.getByText("למחוק את התדלוק?")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "מחיקה", exact: true }).click();
 
   await page.goto("/");
   await expect(

@@ -42,3 +42,7 @@ firestore-debug.log*
 ui-debug.log*
 functions/node_modules
 functions/lib
+
+# Playwright output. Traces and screenshots are run artefacts, not source.
+test-results/
+playwright-report/
