@@ -296,3 +296,31 @@ export async function seedRegulatedPrice(pricePerLiter: number): Promise<void> {
     history: { [key]: pricePerLiter },
   });
 }
+
+/**
+ * Wait for a document matching `match` to appear in a collection.
+ *
+ * A write that the UI has confirmed is queued locally, not necessarily
+ * acknowledged by the server — which is the distinction the app itself is
+ * careful about — so a REST read straight after a toast can legitimately miss
+ * it. This polls instead of racing.
+ */
+export async function waitForDocument(
+  collectionPath: string,
+  match: (data: Record<string, unknown>) => boolean,
+  timeoutMs = 15_000,
+): Promise<Record<string, unknown>> {
+  const deadline = Date.now() + timeoutMs;
+  let last: { id: string; data: Record<string, unknown> }[] = [];
+
+  while (Date.now() < deadline) {
+    last = await listDocuments(collectionPath);
+    const found = last.find((entry) => match(entry.data));
+    if (found) return found.data;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+
+  throw new Error(
+    `no document in ${collectionPath} matched within ${timeoutMs}ms (saw ${last.length})`,
+  );
+}

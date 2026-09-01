@@ -758,15 +758,20 @@ function StationSheet({
         <div className="no-scrollbar flex flex-col overflow-y-auto">
           {trimmed.length >= 2 ? (
             matches.length > 0 ? (
-              matches.map((entry) => (
-                <StationRow
-                  key={`${entry.n}-${entry.lat}`}
-                  label={entry.n}
-                  meta={entry.a ?? undefined}
-                  selected={current?.name === entry.n}
-                  onClick={() => onPick(toStation(entry))}
-                />
-              ))
+              matches.map((entry) => {
+                const resolved = priceFor(entry.i ?? null);
+                return (
+                  <StationRow
+                    key={`${entry.n}-${entry.lat}`}
+                    label={entry.n}
+                    meta={entry.a ?? undefined}
+                    price={resolved.text}
+                    priceDetail={resolved.detail}
+                    selected={current?.name === entry.n}
+                    onClick={() => onPick(toStation(entry))}
+                  />
+                );
+              })
             ) : (
               <div className="flex flex-col gap-2 py-5">
                 <p className="text-center text-[13.5px] text-muted">
@@ -831,14 +836,19 @@ function StationSheet({
               {stations.length > 0 ? (
                 <>
                   <SheetGroupLabel>תחנות שתדלקתי בהן</SheetGroupLabel>
-                  {stations.map((entry) => (
-                    <StationRow
-                      key={`past-${entry.name}`}
-                      label={entry.name}
-                      selected={current?.name === entry.name}
-                      onClick={() => onPick(entry)}
-                    />
-                  ))}
+                  {stations.map((entry) => {
+                    const resolved = priceFor(entry.stationId ?? null);
+                    return (
+                      <StationRow
+                        key={`past-${entry.name}`}
+                        label={entry.name}
+                        price={resolved.text}
+                        priceDetail={resolved.detail}
+                        selected={current?.name === entry.name}
+                        onClick={() => onPick(entry)}
+                      />
+                    );
+                  })}
                 </>
               ) : null}
             </>

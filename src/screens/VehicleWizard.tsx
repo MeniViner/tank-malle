@@ -63,6 +63,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   const [lookupError, setLookupError] = useState<string | null>(null);
   /** Only a temporary failure is worth retrying; a confirmed miss is not. */
   const [canRetryLookup, setCanRetryLookup] = useState(false);
+  /** Follows the user to the confirm step when cached details were used. */
+  const [lookupNotice, setLookupNotice] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
 
@@ -94,17 +96,22 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
       // "this vehicle does not exist" — and when we hold a previous good
       // answer for the same plate, it is offered rather than discarded.
       if (outcome.status === "unavailable") {
-        setLookupError(
-          outcome.cached ? LOOKUP_MESSAGES.cachedFallback : LOOKUP_MESSAGES.unavailable,
-        );
+        const message = outcome.cached
+          ? LOOKUP_MESSAGES.cachedFallback
+          : LOOKUP_MESSAGES.unavailable;
+        setLookupError(message);
         setCanRetryLookup(true);
+        // Cached details are still shown, but never as if they were fresh.
+        setLookupNotice(outcome.cached ? message : null);
         if (!outcome.cached) return;
       } else if (outcome.status === "not-found") {
         setLookupError(LOOKUP_MESSAGES.notFound);
         setCanRetryLookup(false);
+        setLookupNotice(null);
         return;
       } else {
         setCanRetryLookup(false);
+        setLookupNotice(null);
       }
 
       const result: PlateLookupResult =
@@ -161,6 +168,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   }
 
   function goManual() {
+    setLookupNotice(null);
     setDraft({ ...EMPTY_DRAFT, plateNumber: plate.replace(/\D/g, "") });
     setStep("confirm");
   }
@@ -229,7 +237,12 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           onManual={goManual}
         />
       ) : step === "confirm" ? (
-        <ConfirmStep draft={draft} setDraft={setDraft} onNext={() => setStep("extras")} />
+        <ConfirmStep
+          draft={draft}
+          setDraft={setDraft}
+          onNext={() => setStep("extras")}
+          notice={lookupNotice}
+        />
       ) : (
         <ExtrasStep
           tankLiters={tankLiters}
@@ -410,17 +423,25 @@ function ConfirmStep({
   draft,
   setDraft,
   onNext,
+  notice,
 }: {
   draft: Draft;
   setDraft: (draft: Draft) => void;
   onNext: () => void;
+  /**
+   * Carried over from the lookup step. When the registry was down and we fell
+   * back to a previously cached answer, the user has to be told HERE — the
+   * step where the message was raised is unmounted the moment the details are
+   * filled in, so showing it only there told nobody anything.
+   */
+  notice?: string | null;
 }) {
   const [catalogOpen, setCatalogOpen] = useState(false);
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
-        {draft.fromRegistry ? (
+        {draft.fromRegistry && !notice ? (
           <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1 text-[12.5px] font-semibold text-success-ink">
             <CheckIcon size={14} />
             נמצא במאגר משרד התחבורה
@@ -430,6 +451,13 @@ function ConfirmStep({
           {draft.fromRegistry ? "זה הרכב שלך?" : "פרטי הרכב"}
         </h1>
       </div>
+
+      {notice ? (
+        <div className="flex items-start gap-2.5 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
+          <WarningIcon size={17} className="mt-px flex-none" />
+          <span className="text-[13px] leading-relaxed">{notice}</span>
+        </div>
+      ) : null}
 
       {draft.plateNumber ? (
         <Card className="flex items-center gap-3 p-3.5">

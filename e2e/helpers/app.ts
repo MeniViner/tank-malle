@@ -2,6 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import {
   resetEmulators,
   seedFillups,
+  seedRegulatedPrice,
   seedVehicle,
   setActiveVehicle,
   uidForEmail,
@@ -244,6 +245,8 @@ export async function signedInWithData(
     vehicle?: SeedVehicle;
     fillups?: SeedFillup[];
     vehicleId?: string;
+    /** The regulated maximum, seeded AFTER the reset so it survives. */
+    regulatedPrice?: number;
   } = {},
 ): Promise<ReadyAccount> {
   const account = options.account ?? ALICE;
@@ -252,6 +255,10 @@ export async function signedInWithData(
   await resetEmulators();
   await signIn(page, account);
   const uid = await uidOf(account);
+
+  if (options.regulatedPrice !== undefined) {
+    await seedRegulatedPrice(options.regulatedPrice);
+  }
 
   await seedVehicle(uid, vehicleId, options.vehicle ?? { make: "מאזדה", model: "3" });
   if (options.fillups?.length) await seedFillups(uid, vehicleId, options.fillups);
