@@ -13,8 +13,8 @@ import {
 /**
  * Driving the app itself.
  *
- * Sign-in goes through the REAL flow — the consent checkbox, the Google button
- * and `signInWithPopup` — landing on the Auth emulator's own account chooser.
+ * Sign-in goes through the REAL flow — the Google button and `signInWithPopup`
+ * — landing on the Auth emulator's own account chooser.
  * There is no test-only back door in the application code, so what these tests
  * exercise is what a user exercises.
  */
@@ -48,19 +48,10 @@ async function reachSignIn(page: Page): Promise<void> {
   }
 }
 
-/**
- * Sign in as `account`, creating it in the Auth emulator on first use.
- *
- * Consent is an affirmative act in this app: the Google button does nothing
- * until the checkbox is ticked, so the helper ticks it exactly as a user must.
- */
+/** Sign in as `account`, creating it in the Auth emulator on first use. */
 export async function signIn(page: Page, account: TestAccount): Promise<void> {
   await page.goto("/");
   await reachSignIn(page);
-
-  const consent = page.getByRole("checkbox").first();
-  await expect(consent).toBeVisible();
-  if (!(await consent.isChecked())) await consent.click({ force: true });
 
   const [popup] = await Promise.all([
     page.waitForEvent("popup"),
