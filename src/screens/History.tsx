@@ -335,9 +335,9 @@ function EmptyState() {
       <span className="flex size-[64px] items-center justify-center rounded-[22px] bg-accent-soft text-accent">
         <PumpIcon size={30} />
       </span>
-      <span className="text-[17px] font-bold text-ink">עוד אין תדלוקים</span>
+      <span className="text-[17px] font-bold text-ink">אין עדיין תדלוקים</span>
       <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
-        הוסיפו את התדלוק הראשון בלחיצה על כפתור התדלוק — זה לוקח בערך 15 שניות.
+        הוסיפו תדלוק ראשון כדי להתחיל.
       </span>
     </Card>
   );
