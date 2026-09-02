@@ -7,7 +7,7 @@ import { Button, Spinner } from "../components/Button";
 import { Card, IconTile, Label } from "../components/Card";
 import { Num } from "../components/Num";
 import { Money, Quantity } from "../components/Fmt";
-import { CarIcon, CheckIcon, WarningIcon } from "../components/icons";
+import { CarIcon, CheckIcon, ChevronDown, WarningIcon } from "../components/icons";
 import { dayMonthShort, fullDate, vehicleLabel } from "../lib/format";
 import { ConfirmDialog } from "../components/Sheet";
 import type { ImportBatch } from "../context/DataContext";
@@ -110,14 +110,23 @@ export function ImportData() {
         }
 
         const parsed = parseRows(table, formulaCells);
+
+        // A Tank Maleh export carries the id of the vehicle it came from. When
+        // that vehicle still exists, it IS the target — asking the user to
+        // re-pick it (and showing them the raw id to decide with) was noise.
+        const matchedId = parsed.vehicleIds.find((id) =>
+          activeVehicles.some((entry) => entry.id === id),
+        );
+        const resolvedVehicleId = matchedId ?? vehicleId;
+
         const nextPlan = planImport(
           parsed,
-          vehicleId,
+          resolvedVehicleId,
           fillups,
-          activeVehicles.find((entry) => entry.id === vehicleId)?.fuelType,
+          activeVehicles.find((entry) => entry.id === resolvedVehicleId)?.fuelType,
         );
 
-        setTargetVehicleId(vehicleId);
+        setTargetVehicleId(resolvedVehicleId);
         setPlan(nextPlan);
         setStage("preview");
       } catch {
@@ -199,16 +208,13 @@ export function ImportData() {
       <div className="flex flex-col gap-3 px-5 pb-10">
         {stage === "choose" || stage === "parsing" ? (
           <>
-            <Card className="flex flex-col gap-2 p-4">
-              <Label>איך זה עובד</Label>
-              <p className="text-[13.5px] leading-relaxed text-muted">
-                בחרו קובץ CSV או XLSX. אנחנו מזהים את המבנה לבד — גם את הפורמט של
-                האפליקציה וגם של יומני תדלוק ישנים — ומראים לכם בדיוק מה ייובא לפני
-                שנשמר משהו.
-              </p>
-              <p className="text-[12.5px] leading-relaxed text-muted">
-                הקובץ נקרא במכשיר שלכם בלבד ואינו נשלח לשום שרת.
-              </p>
+            <Card className="flex flex-col gap-1 p-4">
+              <span className="text-[13.5px] leading-relaxed text-ink">
+                בחרו קובץ CSV או Excel. נראה לכם בדיוק מה ייובא לפני שנשמר משהו.
+              </span>
+              <span className="text-[12.5px] text-muted">
+                הקובץ נקרא במכשיר שלכם בלבד.
+              </span>
             </Card>
 
             {activeVehicles.length === 0 ? (
@@ -233,11 +239,17 @@ export function ImportData() {
 
             {error ? <ErrorNote text={error} /> : null}
 
+            {/* The file input is opened by a real <label for>, not by a
+                JS .click() on the next render. Android's picker starts on the
+                gesture itself that way, and nothing — no parse, no dynamic
+                import, no Firestore read — runs in between. */}
             <input
+              id="import-file"
               ref={inputRef}
               type="file"
               accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               className="sr-only"
+              disabled={activeVehicles.length === 0 || stage === "parsing"}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 // Reset so choosing the same file twice still fires.
@@ -246,14 +258,18 @@ export function ImportData() {
               }}
             />
 
-            <Button
-              full
-              loading={stage === "parsing"}
-              disabled={activeVehicles.length === 0}
-              onClick={() => inputRef.current?.click()}
+            <label
+              htmlFor="import-file"
+              aria-disabled={activeVehicles.length === 0}
+              className={`flex min-h-[52px] w-full items-center justify-center gap-2 rounded-pill bg-accent text-[16px] font-bold text-accent-contrast transition-[filter,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] active:brightness-[0.97] ${
+                activeVehicles.length === 0 || stage === "parsing"
+                  ? "pointer-events-none opacity-50"
+                  : "cursor-pointer"
+              }`}
             >
-              בחירת קובץ
-            </Button>
+              {stage === "parsing" ? <Spinner size={18} /> : null}
+              {stage === "parsing" ? "קורא את הקובץ…" : "בחירת קובץ"}
+            </label>
 
             <ImportHistory
               listBatches={listImportBatches}
@@ -309,8 +325,9 @@ function VehiclePicker({
   return (
     <Card className="flex flex-col gap-2 p-4">
       <Label>ייבוא לרכב</Label>
-      {/* The vehicle column in a legacy file is import metadata, not a
-          make/model, so a vehicle is never created from it. */}
+      {/* A vehicle is never created from the file: the column that names one
+          is import metadata, and the machine id in a Tank Maleh export only
+          decides which existing vehicle is preselected. */}
       <div className="flex flex-col gap-1.5">
         {vehicles.map((vehicle) => (
           <button
@@ -359,6 +376,14 @@ function PreviewStep({
   onConfirm: () => void;
 }) {
   const nothingToDo = plan.toImport.length === 0;
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const hasDetails =
+    plan.assumptions.length > 0 ||
+    plan.warnings.length > 0 ||
+    plan.dateRange !== null ||
+    plan.breakCount > 0 ||
+    plan.toImport.length > 0;
 
   return (
     <>
@@ -369,45 +394,23 @@ function PreviewStep({
           זוהה כ{FORMAT_NAMES[plan.format] ?? FORMAT_NAMES.unknown} · ייובא אל{" "}
           {vehicleName}
         </span>
-      </Card>
-
-      <Card className="flex flex-col gap-2.5 p-4">
-        <Label>מה יקרה</Label>
-        <StatRow label="רשומות שנקראו" value={plan.parsed} />
-        <StatRow label="ייובאו" value={plan.toImport.length} tone="accent" />
-        <StatRow label="כבר קיימות — יידלגו" value={plan.duplicates.length} />
-        <StatRow label="לא ניתנות לייבוא" value={plan.rejected.length} tone="danger" />
-        <StatRow label="נקודות התחלת תקופה חדשה" value={plan.breakCount} />
-        {plan.dateRange ? (
-          <div className="flex items-center justify-between gap-3 text-[13.5px]">
-            <span className="text-muted">טווח תאריכים</span>
-            <span className="text-ink">
-              {dayMonthShort(plan.dateRange.from)} – {dayMonthShort(plan.dateRange.to)}
-            </span>
-          </div>
+        {/* A file exported from a DIFFERENT vehicle is worth saying out loud —
+            by its human name. The machine id that identifies it stays internal. */}
+        {!plan.sameVehicle && plan.sourceVehicleIds.length > 0 && plan.vehicleLabels[0] ? (
+          <span className="text-[12.5px] text-warning-ink">
+            הקובץ יוצא מ{plan.vehicleLabels[0]}
+          </span>
         ) : null}
       </Card>
 
-      {plan.assumptions.length > 0 ? (
-        <Card className="flex flex-col gap-2 p-4">
-          <Label>הנחות שנעשו</Label>
-          {plan.assumptions.map((text) => (
-            <span key={text} className="text-[12.5px] leading-relaxed text-muted">
-              • {text}
-            </span>
-          ))}
-        </Card>
-      ) : null}
-
-      {plan.vehicleLabels.length > 0 ? (
-        <Card className="flex flex-col gap-1 p-4">
-          <Label>עמודת הרכב בקובץ</Label>
-          <span className="text-[12.5px] leading-relaxed text-muted">
-            בקובץ מופיע “{plan.vehicleLabels.join("”, “")}”. זהו מידע טכני של הייצוא ולא
-            יצירת רכב חדש — הרשומות ייובאו לרכב שבחרתם.
-          </span>
-        </Card>
-      ) : null}
+      {/* Counts that add up. "שורות בקובץ" is every data row; the three below
+          it partition that number exactly. */}
+      <Card className="flex flex-col gap-2.5 p-4">
+        <StatRow label="שורות בקובץ" value={plan.totalRows} />
+        <StatRow label="ייובאו" value={plan.toImport.length} tone="accent" />
+        <StatRow label="כבר קיימות" value={plan.duplicates.length} />
+        <StatRow label="לא תקינות" value={plan.rejected.length} tone="danger" />
+      </Card>
 
       {plan.rejected.length > 0 ? (
         <Card className="flex flex-col gap-2 p-4">
@@ -425,35 +428,73 @@ function PreviewStep({
         </Card>
       ) : null}
 
-      {plan.warnings.length > 0 ? (
-        <Card className="flex flex-col gap-2 p-4">
-          <Label>אזהרות</Label>
-          {plan.warnings.slice(0, 6).map((text) => (
-            <span key={text} className="text-[12.5px] text-muted">
-              • {text}
-            </span>
-          ))}
-        </Card>
-      ) : null}
+      {/* Everything that is true but not a decision: assumptions, the date
+          span, sample rows. Collapsed, because it read like debug output. */}
+      {hasDetails ? (
+        <Card className="overflow-hidden">
+          <button
+            type="button"
+            aria-expanded={detailsOpen}
+            onClick={() => setDetailsOpen((current) => !current)}
+            className="flex min-h-[48px] w-full items-center justify-between px-4 text-[14px] font-semibold text-ink"
+          >
+            פרטים נוספים
+            <ChevronDown
+              size={17}
+              className={`text-muted transition-transform duration-200 ${
+                detailsOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
 
-      {plan.toImport.length > 0 ? (
-        <Card className="flex flex-col gap-2 p-4">
-          <Label>דוגמה מהשורות הראשונות</Label>
-          {plan.toImport.slice(0, 3).map((row) => (
-            <div key={row.rowHash} className="flex items-center justify-between gap-3">
-              <span className="text-[12.5px] text-muted">
-                {dayMonthShort(row.date)} · <Num>{row.odometer.toLocaleString("he-IL")}</Num>{" "}
-                ק״מ
-              </span>
-              <span className="text-[12.5px] text-ink">
-                <Quantity value={row.liters} digits={2} /> · <Money value={row.totalCost} />
-              </span>
+          {detailsOpen ? (
+            <div className="flex flex-col gap-2.5 border-t border-line px-4 py-3.5">
+              {plan.dateRange ? (
+                <div className="flex items-center justify-between gap-3 text-[13px]">
+                  <span className="text-muted">טווח תאריכים</span>
+                  <span className="text-ink">
+                    {dayMonthShort(plan.dateRange.from)} –{" "}
+                    {dayMonthShort(plan.dateRange.to)}
+                  </span>
+                </div>
+              ) : null}
+
+              {plan.breakCount > 0 ? (
+                <StatRow label="נקודות התחלת תקופה חדשה" value={plan.breakCount} />
+              ) : null}
+
+              {plan.assumptions.map((text) => (
+                <span key={text} className="text-[12.5px] leading-relaxed text-muted">
+                  • {text}
+                </span>
+              ))}
+
+              {plan.warnings.slice(0, 6).map((text) => (
+                <span key={text} className="text-[12.5px] leading-relaxed text-muted">
+                  • {text}
+                </span>
+              ))}
+
+              {plan.toImport.slice(0, 3).map((row) => (
+                <div key={row.rowHash} className="flex items-center justify-between gap-3">
+                  <span className="text-[12.5px] text-muted">
+                    {dayMonthShort(row.date)} ·{" "}
+                    <Num>{row.odometer.toLocaleString("he-IL")}</Num> ק״מ
+                  </span>
+                  <span className="text-[12.5px] text-ink">
+                    <Quantity value={row.liters} digits={2} /> ·{" "}
+                    <Money value={row.totalCost} />
+                  </span>
+                </div>
+              ))}
             </div>
-          ))}
+          ) : null}
         </Card>
       ) : null}
 
-      <div className="flex gap-2">
+      {/* Sticky above the safe area. The tab bar is hidden on this route, so
+          nothing sits on top of the one button that matters. */}
+      <div className="sticky bottom-0 -mx-5 flex gap-2 border-t border-line bg-bg px-5 pb-safe pt-3">
         <Button variant="ghost" full onClick={onCancel}>
           ביטול
         </Button>
@@ -495,8 +536,8 @@ function ReportStep({
           {report.queued > 0 ? (
             <StatRow label="נשמרו במכשיר, ממתינים לסנכרון" value={report.queued} />
           ) : null}
-          <StatRow label="דילגנו — כבר היו קיימות" value={report.skippedDuplicates} />
-          <StatRow label="לא ניתנות לייבוא" value={report.skippedInvalid} tone="danger" />
+          <StatRow label="כבר היו קיימות" value={report.skippedDuplicates} />
+          <StatRow label="לא תקינות" value={report.skippedInvalid} tone="danger" />
           {report.failed > 0 ? (
             <StatRow label="נכשלו" value={report.failed} tone="danger" />
           ) : null}
@@ -517,8 +558,7 @@ function ReportStep({
 
         {plan && plan.rejected.length > 0 ? (
           <span className="text-[12.5px] leading-relaxed text-muted">
-            השורות שלא ניתנות לייבוא נותרו בקובץ המקורי — אפשר לתקן אותן ולייבא שוב.
-            ייבוא חוזר לא ייצור כפילויות.
+            אפשר לתקן את השורות בקובץ ולייבא שוב — ייבוא חוזר לא ייצור כפילויות.
           </span>
         ) : null}
       </Card>
@@ -600,7 +640,18 @@ function ImportHistory({
       .catch(() => setBatches([]));
   }, [listBatches]);
 
-  useEffect(refresh, [refresh]);
+  // Deferred to idle. This is a Firestore query behind a section most people
+  // scroll past, and running it on mount competed with the one interaction
+  // that matters on this screen — opening the file picker.
+  useEffect(() => {
+    const idle = window.requestIdleCallback;
+    if (typeof idle === "function") {
+      const handle = idle(() => refresh(), { timeout: 2_000 });
+      return () => window.cancelIdleCallback?.(handle);
+    }
+    const timer = setTimeout(refresh, 400);
+    return () => clearTimeout(timer);
+  }, [refresh]);
 
   async function rollBack(batch: ImportBatch) {
     setBusy(true);
@@ -640,8 +691,7 @@ function ImportHistory({
       <Card className="flex flex-col gap-1 p-4">
         <Label>ייבואים קודמים</Label>
         <span className="text-[12.5px] leading-relaxed text-muted">
-          עוד לא ביצעתם ייבוא. אחרי ייבוא הוא יופיע כאן, ותוכלו לבטל אותו כולו אם
-          ייבאתם לרכב הלא נכון או בטעות.
+          אחרי ייבוא הוא יופיע כאן, ואפשר יהיה לבטל אותו כולו.
         </span>
       </Card>
     );
@@ -677,8 +727,7 @@ function ImportHistory({
           </div>
         ))}
         <span className="text-[11.5px] leading-relaxed text-muted">
-          ביטול מוחק רק את הרשומות שהגיעו מאותו ייבוא. רשומות שהזנתם ידנית לא ייגעו,
-          גם אם הן באותו תאריך ובאותה תחנה.
+          ביטול מוחק רק את הרשומות שהגיעו מאותו ייבוא.
         </span>
       </Card>
 

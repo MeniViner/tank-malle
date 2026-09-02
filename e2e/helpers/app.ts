@@ -180,8 +180,6 @@ export interface FillupInput {
   odometer: number;
   liters: number;
   pricePerLiter?: number;
-  /** Defaults to a full tank, matching the form. */
-  fullToTheTop?: boolean;
   /** Declare undocumented fill-ups before this record. */
   continuityBreak?: boolean;
   /** "YYYY-MM-DD", typed into the date field. */
@@ -219,11 +217,8 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
     await page.getByLabel("מחיר לליטר").fill(String(input.pricePerLiter));
   }
 
-  const fullToggle = page.getByRole("switch", { name: "מילאתי עד מלא" });
-  const wantsFull = input.fullToTheTop !== false;
-  if ((await fullToggle.getAttribute("aria-checked")) !== String(wantsFull)) {
-    await fullToggle.click();
-  }
+  // No full-tank toggle any more: a manual entry IS a full tank. A partial
+  // record can only arrive by import, so tests that need one seed it.
 
   if (input.continuityBreak) {
     await page

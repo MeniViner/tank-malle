@@ -75,15 +75,23 @@ function ageText(observedAt: number, now: number): string {
   if (minutes < 1) return "עודכן זה עתה";
   if (minutes < 60) return `אומת לפני ${minutes} דקות`;
 
+  // Hebrew has a dual form. "לפני 2 שעות" is what a machine writes.
   const hours = Math.round(minutes / 60);
-  if (hours < 24) return hours === 1 ? "אומת לפני שעה" : `אומת לפני ${hours} שעות`;
+  if (hours < 24) {
+    if (hours === 1) return "אומת לפני שעה";
+    if (hours === 2) return "אומת לפני שעתיים";
+    return `אומת לפני ${hours} שעות`;
+  }
 
   const days = Math.round(hours / 24);
   if (days === 1) return "אומת אתמול";
+  if (days === 2) return "אומת לפני יומיים";
   if (days < 30) return `אומת לפני ${days} ימים`;
 
   const months = Math.round(days / 30.44);
-  return months <= 1 ? "אומת לפני חודש" : `אומת לפני ${months} חודשים`;
+  if (months <= 1) return "אומת לפני חודש";
+  if (months === 2) return "אומת לפני חודשיים";
+  return `אומת לפני ${months} חודשים`;
 }
 
 function unknown(
@@ -340,7 +348,66 @@ export function applyPersonalRule(
 }
 
 /**
- * How a resolved price should be worded in a station row.
+ * What a STATION ROW should show.
+ *
+ * The regulated maximum is a nationwide ceiling, identical for every station
+ * and unchanged for a month. Printing it on every row — "עד ₪8.25 · מחיר מרבי
+ * מפוקח · אין דיווח עדכני מהתחנה", over and over — is not a station price and
+ * makes the list unreadable. So it is deliberately NOT shown here; it stays an
+ * internal reference for plausibility checks and ranking.
+ *
+ * What a row may show, in order:
+ *   1. a real station-specific figure, with its source and age;
+ *   2. what this driver themselves last paid here, labelled as exactly that;
+ *   3. nothing but a compact "מחיר לא זמין".
+ */
+export interface StationPriceView {
+  /** Rendered amount, or "" when there is nothing station-specific to show. */
+  text: string;
+  /** One short line of provenance. Never omitted when a number is shown. */
+  detail: string;
+  kind: "station" | "personal" | "none";
+  /** A figure old enough that it may have moved. Marked, never hidden. */
+  stale: boolean;
+}
+
+function money(value: number): string {
+  return `₪${value.toLocaleString("he-IL", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
+export function stationPriceView(
+  resolved: ResolvedPrice,
+  /** What this user last paid at this station, from their own history. */
+  personal?: { price: number; observedAt: number } | null,
+  now: number = Date.now(),
+): StationPriceView {
+  if (resolved.price !== null && !resolved.isCeiling) {
+    return {
+      text: money(resolved.price),
+      detail: resolved.explanation,
+      kind: "station",
+      stale: resolved.freshness === "stale" || resolved.freshness === "unknown",
+    };
+  }
+
+  if (personal && personal.price > 0) {
+    return {
+      text: "",
+      // Explicitly the driver's own price, not the station's current one.
+      detail: `שילמת כאן לאחרונה ${money(personal.price)} · ${ageText(personal.observedAt, now)}`,
+      kind: "personal",
+      stale: false,
+    };
+  }
+
+  return { text: "", detail: "מחיר לא זמין", kind: "none", stale: false };
+}
+
+/**
+ * How a resolved price should be worded where the ceiling IS the subject.
  *
  * A ceiling reads "עד ₪7.31", an observation reads "₪7.18", and an unknown
  * reads as an unknown. This is the single place that decision is made.

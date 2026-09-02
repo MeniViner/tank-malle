@@ -147,12 +147,15 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         )
           .then((found) => {
             setSpecs(found);
-            if (found.declaredKmPerLiter) {
+            // Only an exact-year certified figure is pre-filled. A hit on
+            // another year of the same model is offered as a suggestion, not
+            // typed into the field as though it were this car's.
+            if (found.declaredKmPerLiter && found.consumptionIsOfficial) {
               setDeclaredKmPerLiter(String(found.declaredKmPerLiter));
             }
-            if (found.estimatedTankLiters) {
-              setTankLiters(String(found.estimatedTankLiters));
-            }
+            // Tank capacity is deliberately NOT pre-filled. Our figure is a
+            // body-type guess, and a guess written into the field becomes a
+            // stored "specification" that then drives a range headline.
           })
           .catch(() => undefined)
           .finally(() => setLoadingSpecs(false));
@@ -184,7 +187,15 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         plateNumber: draft.plateNumber || null,
         fuelType: draft.fuelType,
         tankLiters: tankLiters ? parseDecimal(tankLiters) : null,
+        // Typed or confirmed in this form, so it is the user's own number.
+        tankLitersSource: tankLiters ? ("user" as const) : null,
         declaredKmPerLiter: declaredKmPerLiter ? parseDecimal(declaredKmPerLiter) : null,
+        declaredSource: declaredKmPerLiter
+          ? specs?.consumptionIsOfficial &&
+            declaredKmPerLiter === String(specs.declaredKmPerLiter)
+            ? ("exact-year" as const)
+            : ("user" as const)
+          : null,
         priceAdjustment: 0,
         manualPricePerLiter: null,
         nickname: nickname.trim() || null,
@@ -749,7 +760,7 @@ function ExtrasStep({
   saving: boolean;
   onSave: () => void;
 }) {
-  const autoFilled = Boolean(specs?.declaredKmPerLiter || specs?.estimatedTankLiters);
+  const autoFilled = Boolean(specs?.consumptionIsOfficial);
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
@@ -764,7 +775,7 @@ function ExtrasStep({
           {loadingSpecs
             ? "מושכים את נתוני היצרן…"
             : autoFilled
-              ? "מילאנו מראש לפי נתוני היצרן. אפשר לשנות הכול."
+              ? "מילאנו את הצריכה המוצהרת לפי נתוני היצרן. אפשר לשנות הכול."
               : "אפשר לדלג ולהשלים מאוחר יותר בהגדרות."}
         </p>
       </div>
@@ -783,11 +794,11 @@ function ExtrasStep({
           suffix="ליטר"
           value={tankLiters}
           onChange={(event) => setTankLiters(event.target.value)}
-          placeholder="51"
+          placeholder={specs?.suggestedTankLiters ? String(specs.suggestedTankLiters) : "51"}
           hint={
-            specs?.estimatedTankLiters && tankLiters === String(specs.estimatedTankLiters)
-              ? "הערכה לפי סוג הרכב — כדאי לאמת במדריך למשתמש"
-              : "משמש לחישוב טווח הנסיעה המשוער"
+            specs?.suggestedTankLiters
+              ? `הערכה לפי סוג הרכב: ${specs.suggestedTankLiters} ל׳ — מלאו את הערך מהמדריך למשתמש`
+              : "מופיע במדריך למשתמש. משמש לחישוב טווח נסיעה"
           }
         />
         <Field
@@ -800,8 +811,10 @@ function ExtrasStep({
           hint={
             specs?.consumptionIsOfficial &&
             declaredKmPerLiter === String(specs.declaredKmPerLiter)
-              ? `לפי נתוני זיהום רשמיים (${specs.co2WltpGramsPerKm} גר׳ CO₂ לק״מ)`
-              : "לפי נתוני היצרן — נשווה אליה את הצריכה בפועל"
+              ? `נתון יצרן מאושר לשנתון (${specs.co2WltpGramsPerKm} גר׳ CO₂ לק״מ)`
+              : specs?.declaredKmPerLiter
+                ? `הערכה לפי שנתון אחר של אותו דגם: ${specs.declaredKmPerLiter} קמ״ל`
+                : "לפי נתוני היצרן — נשווה אליה את הצריכה בפועל"
           }
         />
         <Field

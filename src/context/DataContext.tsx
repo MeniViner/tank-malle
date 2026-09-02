@@ -497,7 +497,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             plateNumber: data.plateNumber ?? null,
             fuelType: (data.fuelType ?? "95") as Vehicle["fuelType"],
             tankLiters: toNumberOrNull(data.tankLiters),
+            // Absent on every pre-provenance document, and absence is treated
+            // as "unknown", not "confirmed".
+            tankLitersSource: (data.tankLitersSource ?? null) as Vehicle["tankLitersSource"],
             declaredKmPerLiter: toNumberOrNull(data.declaredKmPerLiter),
+            declaredSource: (data.declaredSource ?? null) as Vehicle["declaredSource"],
             priceAdjustment: typeof data.priceAdjustment === "number" ? data.priceAdjustment : 0,
             manualPricePerLiter: toNumberOrNull(data.manualPricePerLiter),
             nickname: data.nickname ?? null,

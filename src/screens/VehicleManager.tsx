@@ -258,6 +258,8 @@ function EditVehicleSheet({
   const [nickname, setNickname] = useState("");
   const [tankLiters, setTankLiters] = useState("");
   const [declared, setDeclared] = useState("");
+  /** Our class-based tank approximation, shown as a hint. Never auto-saved. */
+  const [tankHint, setTankHint] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
 
@@ -274,6 +276,7 @@ function EditVehicleSheet({
     setTankLiters(vehicle.tankLiters ? String(vehicle.tankLiters) : "");
     setDeclared(vehicle.declaredKmPerLiter ? String(vehicle.declaredKmPerLiter) : "");
     setRefreshNote(null);
+    setTankHint(null);
   }
 
   /** Re-run the plate lookup and refresh every registry-derived field. */
@@ -313,10 +316,13 @@ function EditVehicleSheet({
         year: found.year,
         fuelType: found.fuelType,
       });
-      if (specs.declaredKmPerLiter) setDeclared(String(specs.declaredKmPerLiter));
-      if (specs.estimatedTankLiters && !tankLiters) {
-        setTankLiters(String(specs.estimatedTankLiters));
+      // Exact-year certified figures only. Tank capacity is never written
+      // from our body-type approximation — it is offered as a hint below and
+      // stays the user's to confirm.
+      if (specs.declaredKmPerLiter && specs.consumptionIsOfficial) {
+        setDeclared(String(specs.declaredKmPerLiter));
       }
+      setTankHint(specs.suggestedTankLiters);
       if (outcome.status === "found") {
         setRefreshNote("הפרטים עודכנו ממאגר משרד התחבורה");
       }
@@ -411,7 +417,14 @@ function EditVehicleSheet({
           suffix="ליטר"
           value={tankLiters}
           onChange={(event) => setTankLiters(event.target.value)}
-          placeholder="51"
+          placeholder={tankHint ? String(tankHint) : "51"}
+          hint={
+            tankHint
+              ? `הערכה לפי סוג הרכב: ${tankHint} ל׳ — אשרו או תקנו לפי המדריך למשתמש`
+              : vehicle?.tankLiters && !vehicle.tankLitersSource
+                ? "הערך הקיים נשמר בלי מקור ידוע — אשרו אותו כדי שנציג טווח נסיעה"
+                : "מופיע במדריך למשתמש. משמש לחישוב טווח נסיעה"
+          }
         />
         <Field
           label="צריכה מוצהרת"
@@ -434,6 +447,9 @@ function EditVehicleSheet({
               fuelType,
               nickname: nickname.trim() || null,
               tankLiters: tankLiters ? parseDecimal(tankLiters) : null,
+              // Saving this form IS the confirmation, which is what turns an
+              // unknown-provenance value into one the range figure may use.
+              tankLitersSource: tankLiters ? "user" : null,
               declaredKmPerLiter: declared ? parseDecimal(declared) : null,
             })
           }

@@ -18,8 +18,13 @@ export interface PlannedRow extends ImportedRow {
 export interface ImportPlan {
   format: SourceFormat;
   vehicleId: string;
+  /**
+   * Every data row in the source file: `validRows + rejected.length`.
+   * "Rows read" must mean rows read, not rows that happened to parse.
+   */
+  totalRows: number;
   /** Rows that parsed successfully, before duplicate filtering. */
-  parsed: number;
+  validRows: number;
   toImport: PlannedRow[];
   duplicates: PlannedRow[];
   rejected: ParseResult["rejected"];
@@ -29,6 +34,10 @@ export interface ImportPlan {
   breakCount: number;
   /** Labels found in the source's vehicle column — metadata, never a vehicle. */
   vehicleLabels: string[];
+  /** Machine vehicle ids from a Tank Maleh export. Never displayed. */
+  sourceVehicleIds: string[];
+  /** True when the file was exported from the vehicle being imported into. */
+  sameVehicle: boolean;
 }
 
 export function planImport(
@@ -64,7 +73,8 @@ export function planImport(
   return {
     format: parsed.format,
     vehicleId,
-    parsed: parsed.rows.length,
+    totalRows: parsed.totalRows,
+    validRows: parsed.rows.length,
     toImport,
     duplicates,
     rejected: parsed.rejected,
@@ -74,6 +84,9 @@ export function planImport(
       dates.length > 0 ? { from: Math.min(...dates), to: Math.max(...dates) } : null,
     breakCount: parsed.breakCount,
     vehicleLabels: parsed.vehicleLabels,
+    sourceVehicleIds: parsed.vehicleIds,
+    sameVehicle:
+      parsed.vehicleIds.length > 0 && parsed.vehicleIds.every((id) => id === vehicleId),
   };
 }
 

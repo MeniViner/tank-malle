@@ -34,6 +34,7 @@ export type Field =
   | "fuelType"
   | "notes"
   | "vehicleLabel"
+  | "vehicleId"
   | "recordId"
   | "postedPricePerLiter"
   | "personalDiscountPerLiter"
@@ -66,7 +67,11 @@ alias("longitude", "longitude", "lng", "lon", "קו אורך");
 alias("notes", "הערות", "הערה", "notes", "note", "comment");
 alias("isFullTank", "מיכל מלא", "מילאתי עד מלא", "is_full_tank", "filled_to_full", "full_tank", "full");
 alias("continuityBreakBefore", "continuity_break_before", "התחלת תקופה חדשה", "break_before");
-alias("vehicleLabel", "הרכב הנבחר", "רכב", "vehicle", "vehicle_label", "vehicle_id");
+// Two different things, and conflating them is why the preview used to show a
+// raw Firestore id where a human vehicle name belongs. `vehicle_id` is machine
+// identity for auto-selecting the target; `vehicle_label` is for people.
+alias("vehicleLabel", "הרכב הנבחר", "רכב", "vehicle", "vehicle_label");
+alias("vehicleId", "vehicle_id", "מזהה רכב");
 alias("recordId", "record_id", "id");
 
 // Legacy derived columns. Their VALUES are never imported — the engine
@@ -133,7 +138,13 @@ export function detectFormat(headerRow: unknown[]): SourceFormat {
     headerRow.map((cell) => fieldForHeader(cell)).filter((f): f is Field => f !== null),
   );
 
-  if (fields.has("continuityBreakBefore") || fields.has("recordId")) return "tank-maleh-v2";
+  if (
+    fields.has("continuityBreakBefore") ||
+    fields.has("recordId") ||
+    fields.has("vehicleId")
+  ) {
+    return "tank-maleh-v2";
+  }
   if (legacyDerivedColumns(headerRow).length >= 3) return "legacy-fuel-tracker";
   if (fields.has("isFullTank") && fields.has("odometer")) return "tank-maleh-v1";
   if (fields.has("odometer") && fields.has("liters") && fields.has("date")) {

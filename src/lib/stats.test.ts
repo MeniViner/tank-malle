@@ -44,6 +44,7 @@ const vehicle: Vehicle = {
   year: 2018,
   fuelType: "95",
   tankLiters: 51,
+  tankLitersSource: "user",
   declaredKmPerLiter: 16.2,
   priceAdjustment: 0,
   manualPricePerLiter: null,
@@ -170,9 +171,23 @@ describe("computeStats — averages", () => {
     expect(stats.vsDeclaredPercent).toBeCloseTo(((1000 / 90 - 16.2) / 16.2) * 100, 1);
   });
 
-  it("computes estimated range from tank size", () => {
+  it("computes estimated range from a confirmed tank size", () => {
     const stats = computeStats(list, vehicle);
     expect(stats.estimatedRangeKm).toBe(Math.round(51 * (1000 / 90)));
+  });
+
+  it("refuses a range when the tank size has no confirmed provenance", () => {
+    // The old body-type estimator wrote capacities nobody was told about, so a
+    // value with no source is unknown — not a specification to multiply out.
+    expect(
+      computeStats(list, { ...vehicle, tankLitersSource: undefined }).estimatedRangeKm,
+    ).toBeNull();
+    expect(
+      computeStats(list, { ...vehicle, tankLitersSource: "estimate" }).estimatedRangeKm,
+    ).toBeNull();
+    expect(
+      computeStats(list, { ...vehicle, tankLitersSource: "trusted" }).estimatedRangeKm,
+    ).toBe(Math.round(51 * (1000 / 90)));
   });
 
   it("returns nulls, not NaN, when there is nothing to derive", () => {

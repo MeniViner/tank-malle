@@ -30,6 +30,19 @@ function history(): SeedFillup[] {
   return records;
 }
 
+/**
+ * Pick a date range.
+ *
+ * The six-pill segmented control is gone — at 360px "6 חודשים" broke onto two
+ * lines and the row doubled in height. It is now one chip that opens a sheet.
+ */
+async function selectRange(page: import("@playwright/test").Page, label: string) {
+  await page.getByRole("button", { name: /^(החודש|3 חודשים אחרונים|6 חודשים אחרונים|מתחילת השנה|12 חודשים אחרונים|כל התקופה)$/ })
+    .first()
+    .click();
+  await page.getByRole("button", { name: label, exact: true }).click();
+}
+
 test("the five sections are navigable", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
@@ -57,12 +70,13 @@ test("changing the range changes the figures and says which range they are", asy
   await page.goto("/stats");
   await page.getByRole("button", { name: "הוצאות", exact: true }).click();
 
-  // Every heading names its range, so no metric can look lifetime-based.
-  await page.getByRole("radio", { name: "3 חודשים", exact: true }).click();
-  await expect(page.getByText(/סה״כ · 3 החודשים האחרונים/)).toBeVisible({ timeout: 20_000 });
+  // The card names the range it is showing; the ₪ sign already says it is
+  // money spent, so the label no longer carries "סה״כ ·" as well.
+  await selectRange(page, "3 חודשים אחרונים");
+  await expect(page.getByText("3 חודשים אחרונים").first()).toBeVisible({ timeout: 20_000 });
 
-  await page.getByRole("radio", { name: "הכול", exact: true }).click();
-  await expect(page.getByText(/סה״כ · כל התקופה/)).toBeVisible();
+  await selectRange(page, "כל התקופה");
+  await expect(page.getByText("כל התקופה").first()).toBeVisible();
 });
 
 test("grouping is a separate control from the range", async ({ page }) => {
@@ -71,34 +85,32 @@ test("grouping is a separate control from the range", async ({ page }) => {
   await page.getByRole("button", { name: "הוצאות", exact: true }).click();
 
   // A one-month range grouped WEEKLY.
-  await page.getByRole("radio", { name: "החודש", exact: true }).click();
+  await selectRange(page, "החודש");
   await page.getByRole("radio", { name: "שבועי", exact: true }).click();
-  await expect(page.getByText(/הוצאה · החודש הנוכחי · שבועי/)).toBeVisible({
-    timeout: 20_000,
-  });
+  await expect(page.getByText("הוצאה · שבועי")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("החודש").first()).toBeVisible();
 
   // A one-year range grouped MONTHLY — same range control, different grouping.
-  await page.getByRole("radio", { name: "שנה", exact: true }).click();
+  await selectRange(page, "12 חודשים אחרונים");
   await page.getByRole("radio", { name: "חודשי", exact: true }).click();
-  await expect(page.getByText(/הוצאה · 12 החודשים האחרונים · חודשי/)).toBeVisible();
+  await expect(page.getByText("הוצאה · חודשי")).toBeVisible();
 
   // And yearly, over everything.
-  await page.getByRole("radio", { name: "הכול", exact: true }).click();
+  await selectRange(page, "כל התקופה");
   await page.getByRole("radio", { name: "שנתי", exact: true }).click();
-  await expect(page.getByText(/הוצאה · כל התקופה · שנתי/)).toBeVisible();
+  await expect(page.getByText("הוצאה · שנתי")).toBeVisible();
 });
 
 test("weekly, monthly and year-to-date spending are all available", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
   await page.getByRole("button", { name: "הוצאות", exact: true }).click();
-  await page.getByRole("radio", { name: "הכול", exact: true }).click();
+  await selectRange(page, "כל התקופה");
 
   await expect(page.getByText("ממוצע שבועי")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("ממוצע חודשי")).toBeVisible();
-  // Two matches on purpose: one is the range chip, the other is the
-  // year-to-date figure, which is reported regardless of the selected range.
-  await expect(page.getByText("מתחילת השנה")).toHaveCount(2);
+  // Reported regardless of the selected range.
+  await expect(page.getByText("מתחילת השנה")).toBeVisible();
 });
 
 test("a continuity break does not corrupt the range metrics", async ({ page }) => {
@@ -111,11 +123,13 @@ test("a continuity break does not corrupt the range metrics", async ({ page }) =
 
   await signedInWithData(page, { fillups: records });
   await page.goto("/stats");
-  await page.getByRole("radio", { name: "הכול", exact: true }).click();
+  await selectRange(page, "כל התקופה");
 
   // The 5,000 km jump belongs to nobody: tracked distance is the sum of the
-  // island spans, and the basis card says a break exists.
-  await expect(page.getByText(/נקודת התחלה מחדש אחת/)).toBeVisible({ timeout: 25_000 });
+  // island spans, and the calculation-basis sheet says a break exists.
+  await page.getByRole("button", { name: "בסיס החישוב" }).click();
+  await expect(page.getByText(/נקודת התחלה מחדש/)).toBeVisible({ timeout: 25_000 });
+  await page.getByRole("button", { name: "סגירה" }).click();
 
   await page.getByRole("button", { name: "צריכה", exact: true }).click();
   await expect(page.getByText(/הקו נקטע שם בכוונה/)).toBeVisible();
@@ -182,7 +196,7 @@ test("the Statistics range does not move the canonical community benchmark", asy
 
   // Now narrow the chart range hard, and come back.
   await page.getByRole("button", { name: "צריכה", exact: true }).click();
-  await page.getByRole("radio", { name: "3 חודשים", exact: true }).click();
+  await selectRange(page, "3 חודשים אחרונים");
   await page.waitForTimeout(2500);
   await page.getByRole("button", { name: "קהילה", exact: true }).click();
   await page.waitForTimeout(2500);

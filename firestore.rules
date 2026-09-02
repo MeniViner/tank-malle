@@ -120,8 +120,12 @@ service cloud.firestore {
         && isNumber(data.priceAdjustment)
         && (!('tankLiters' in data) || data.tankLiters == null
             || (isNumber(data.tankLiters) && data.tankLiters > 0))
+        && (!('tankLitersSource' in data) || data.tankLitersSource == null
+            || data.tankLitersSource in ['user', 'trusted', 'estimate', 'legacy'])
         && (!('declaredKmPerLiter' in data) || data.declaredKmPerLiter == null
             || (isNumber(data.declaredKmPerLiter) && data.declaredKmPerLiter > 0))
+        && (!('declaredSource' in data) || data.declaredSource == null
+            || data.declaredSource in ['user', 'exact-year', 'other-year'])
         && (!('manualPricePerLiter' in data) || data.manualPricePerLiter == null
             || (isNumber(data.manualPricePerLiter) && data.manualPricePerLiter >= 0))
         && (!('year' in data) || data.year == null

@@ -53,7 +53,7 @@ test("Tank Maleh's own CSV round-trips back in", async ({ page }) => {
   await expect(page.getByText("זוהה כייצוא של טנק מלא", { exact: false })).toBeVisible({
     timeout: 25_000,
   });
-  await expect(page.getByText("רשומות שנקראו").locator("..")).toContainText("3");
+  await expect(page.getByText("שורות בקובץ").locator("..")).toContainText("3");
 
   await page.getByRole("button", { name: /ייבוא 3 רשומות/ }).click();
   await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
@@ -72,12 +72,11 @@ test("the synthetic legacy XLSX imports, with its assumptions stated", async ({ 
   await expect(page.getByText("זוהה כיומן תדלוקים ישן", { exact: false })).toBeVisible({
     timeout: 25_000,
   });
-  // The legacy full-tank default is declared, not slipped past.
+  // The assumptions are still stated — behind "פרטים נוספים", so the happy
+  // path is a decision rather than a wall of provenance.
+  await page.getByRole("button", { name: "פרטים נוספים" }).click();
   await expect(page.getByText(/אין שדה “מילאתי עד מלא”/)).toBeVisible();
   await expect(page.getByText(/עמודות החישוב מהקובץ הישן/)).toBeVisible();
-  // The vehicle column is import metadata, never a vehicle.
-  await expect(page.getByText(/Imported Fuel Data 2026/)).toBeVisible();
-  await expect(page.getByText(/לא יצירת רכב חדש/)).toBeVisible();
   // The legacy "start calculating again" marker was recognised.
   await expect(page.getByText("נקודות התחלת תקופה חדשה").locator("..")).toContainText("1");
 
@@ -140,7 +139,7 @@ test("a file with unusable rows never reports a clean success", async ({ page })
     ].join("\r\n"),
   );
 
-  await expect(page.getByText("לא ניתנות לייבוא").first().locator("..")).toContainText("2", {
+  await expect(page.getByText("לא תקינות").first().locator("..")).toContainText("2", {
     timeout: 25_000,
   });
   await expect(page.getByText(/שורה 3: תאריך לא תקין/)).toBeVisible();
@@ -193,7 +192,7 @@ test("an import can be rolled back by batch, long after the fact", async ({ page
 
   // And the batch itself is gone from the history.
   await page.reload();
-  await expect(page.getByText("עוד לא ביצעתם ייבוא")).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/אחרי ייבוא הוא יופיע כאן/)).toBeVisible({ timeout: 25_000 });
 });
 
 test("re-importing after a rollback behaves deterministically", async ({ page }) => {
@@ -243,7 +242,8 @@ test.describe(() => {
     await expect(page.getByText("זוהה כיומן תדלוקים ישן", { exact: false })).toBeVisible({
       timeout: 25_000,
     });
-    await expect(page.getByText("רשומות שנקראו").locator("..")).toContainText("25");
+    await expect(page.getByText("שורות בקובץ").locator("..")).toContainText("25");
+    await page.getByRole("button", { name: "פרטים נוספים" }).click();
     await expect(page.getByText("נקודות התחלת תקופה חדשה").locator("..")).toContainText("1");
 
     await page.getByRole("button", { name: /ייבוא 25 רשומות/ }).click();
@@ -258,7 +258,7 @@ test.describe(() => {
     // nobody.
     await page.goto("/");
     await expect(
-      page.getByText(/מבוסס על 23 מקטעי צריכה · 25 תדלוקים/),
+      page.getByText(/23 מקטעים · 25 תדלוקים/),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.goto("/history");

@@ -18,10 +18,10 @@ import type { Confidence, Freshness, ResolvedPrice } from "./types";
 export type StationSort = "nearest" | "cheapest" | "freshest" | "bestValue";
 
 export const SORT_LABELS: Record<StationSort, string> = {
-  nearest: "הקרובה ביותר",
-  cheapest: "הזולה ביותר",
-  freshest: "המידע העדכני ביותר",
-  bestValue: "המשתלמת ביותר",
+  nearest: "הכי קרוב",
+  cheapest: "הכי זול",
+  freshest: "הכי מעודכן",
+  bestValue: "הכי משתלם",
 };
 
 export interface StationCandidate {

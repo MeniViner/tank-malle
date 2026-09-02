@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseTypedTime } from "../lib/format";
 import { parseDate } from "../lib/import/normalize";
+
+const SOURCE = readFileSync(new URL("./DateTimePicker.tsx", import.meta.url), "utf8");
 
 describe("typed time entry", () => {
   it("accepts any minute, not just multiples of five", () => {
@@ -57,5 +60,38 @@ describe("typed date entry", () => {
   it("rejects an impossible date instead of rolling it forward", () => {
     expect(parseDate("31/02/2026")).toBeNull();
     expect(parseDate("32/01/2026")).toBeNull();
+  });
+});
+
+/**
+ * The steppers are gone.
+ *
+ * They duplicated the typed field and the OS time picker, cost the sheet a
+ * whole row of height, and needed nine taps to reach 18:47. Asserted against
+ * the source so the removal cannot quietly come back with a refactor.
+ */
+describe("time controls", () => {
+  it("keeps the manual field and both OS pickers", () => {
+    expect(SOURCE).toContain('aria-label="שעה — הקלדה ידנית"');
+    expect(SOURCE).toContain('aria-label="תאריך — הקלדה ידנית"');
+    expect(SOURCE).toContain('aria-label="בחירת שעה מהמכשיר"');
+    expect(SOURCE).toContain('aria-label="בחירת תאריך מהמכשיר"');
+    // Month/year jump and the calendar itself stay too.
+    expect(SOURCE).toContain('aria-label="חודש"');
+    expect(SOURCE).toContain('aria-label="שנה"');
+    expect(SOURCE).toContain('aria-label="חודש קודם"');
+  });
+
+  it("no longer renders hour and minute steppers", () => {
+    expect(SOURCE).not.toContain("TimeRow");
+    expect(SOURCE).not.toContain("function Stepper");
+    expect(SOURCE).not.toContain("function Caret");
+    expect(SOURCE).not.toContain("— הגדלה");
+    expect(SOURCE).not.toContain("— הקטנה");
+  });
+
+  it("still accepts the exact minutes the steppers could not reach", () => {
+    expect(parseTypedTime("14:14")).toEqual({ hours: 14, minutes: 14 });
+    expect(parseTypedTime("18:47")).toEqual({ hours: 18, minutes: 47 });
   });
 });

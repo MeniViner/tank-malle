@@ -110,11 +110,13 @@ function Shell() {
 
   if (needsFirstVehicle) return <VehicleWizard firstRun />;
 
-  // Full-screen flows (the fill-up form, the vehicle wizard) replace the tab
-  // bar rather than sitting under it.
+  // Full-screen flows (the fill-up form, the vehicle wizard, import) replace
+  // the tab bar rather than sitting under it. Import is on this list because
+  // its primary action sat directly behind the centre fuel FAB.
   const showTabBar =
     !location.pathname.startsWith("/fillup/") &&
     !location.pathname.startsWith("/vehicles/new") &&
+    !location.pathname.startsWith("/settings/import") &&
     !location.pathname.startsWith("/legal");
 
   return (

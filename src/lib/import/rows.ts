@@ -52,6 +52,19 @@ export interface ParseResult {
    * make/model — "Imported Fuel Data 2026" must never become a vehicle.
    */
   vehicleLabels: string[];
+  /**
+   * Machine vehicle identity from a Tank Maleh export's `vehicle_id` column.
+   * Used to auto-select the target vehicle; NEVER shown to the user — an
+   * opaque Firestore id in the preview is noise, not information.
+   */
+  vehicleIds: string[];
+  /**
+   * Every data row the source contained: `rows.length + rejected.length`.
+   *
+   * Kept explicitly because "rows read" previously meant "rows that parsed",
+   * which produced the impossible-looking "2 rows read · 3 not importable".
+   */
+  totalRows: number;
   breakCount: number;
   /** Every row-level warning, flattened, so the preview can show them all. */
   warnings: string[];
@@ -107,6 +120,7 @@ export function parseRows(
   const rows: ImportedRow[] = [];
   const assumptions: string[] = [];
   const vehicleLabels = new Set<string>();
+  const vehicleIds = new Set<string>();
 
   const headerRow = table[0] ?? [];
   const format = detectFormat(headerRow);
@@ -125,6 +139,8 @@ export function parseRows(
       ],
       assumptions: [],
       vehicleLabels: [],
+      vehicleIds: [],
+      totalRows: 0,
       breakCount: 0,
       warnings: [],
     };
@@ -156,6 +172,8 @@ export function parseRows(
 
     const label = cleanText(cell(raw, columns.vehicleLabel));
     if (label) vehicleLabels.add(label);
+    const sourceVehicleId = cleanText(cell(raw, columns.vehicleId));
+    if (sourceVehicleId) vehicleIds.add(sourceVehicleId);
 
     const when = combineDateTime(cell(raw, columns.date), cell(raw, columns.time));
     if (!when) {
@@ -271,6 +289,8 @@ export function parseRows(
     rejected,
     assumptions,
     vehicleLabels: [...vehicleLabels],
+    vehicleIds: [...vehicleIds],
+    totalRows: rows.length + rejected.length,
     breakCount: rows.filter((row) => row.continuityBreakBefore).length,
     warnings: rows.flatMap((row) => row.warnings),
   };

@@ -38,7 +38,8 @@ import { APP_VERSION } from "../lib/version";
 import type { ThemeSetting, Units } from "../lib/types";
 
 const THEME_OPTIONS: { value: ThemeSetting; label: string; icon: React.ReactNode }[] = [
-  { value: "system", label: "לפי המכשיר", icon: <DeviceIcon size={15} /> },
+  // "לפי המכשיר" wrapped onto two lines inside a third of a 360px screen.
+  { value: "system", label: "אוטומטי", icon: <DeviceIcon size={15} /> },
   { value: "light", label: "בהיר", icon: <SunIcon size={15} /> },
   { value: "dark", label: "כהה", icon: <MoonIcon size={15} /> },
 ];
@@ -181,8 +182,6 @@ export function Settings() {
               disabled={!activeVehicle}
             />
           </Card>
-
-          <LegacyPricingReview />
         </section>
 
         {/* Appearance */}
@@ -286,17 +285,14 @@ export function Settings() {
             <span className="flex flex-1 flex-col gap-0.5">
               <span className="flex items-center gap-0.5">
                 <span className="text-[15px] font-semibold text-ink">השוואה אנונימית</span>
-                <InfoTip label="מה זו השוואה אנונימית" align="start">
-                  <b className="text-ink">מה משותף:</b> דגם הרכב, שנה, סוג דלק, ממוצע
-                  צריכה ומחיר ממוצע ששולם.
-                  <br />
-                  <br />
-                  <b className="text-ink">מה לא:</b> שם, כתובת מייל, מספר רישוי,
-                  קילומטראז׳, תאריכים, שמות תחנות ומיקום.
-                  <br />
-                  <br />
-                  חוקי האבטחה של מסד הנתונים אוכפים את המבנה הזה טכנית. כיבוי מוחק את
-                  הרשומה מיידית.
+                <InfoTip label="השוואה אנונימית">
+                  <span>
+                    <b className="text-ink">משותף:</b> דגם ושנה, סוג דלק, ממוצע צריכה.
+                  </span>
+                  <span>
+                    <b className="text-ink">לא משותף:</b> שם, מייל, מספר רישוי,
+                    קילומטראז׳, תאריכים, תחנה ומיקום.
+                  </span>
                 </InfoTip>
               </span>
               <span className="text-[12.5px] leading-relaxed text-muted">
@@ -533,187 +529,5 @@ function NumberSheet({
         </div>
       </div>
     </Sheet>
-  );
-}
-
-
-/**
- * Review of pre-upgrade pricing settings.
- *
- * `vehicle.priceAdjustment` and `vehicle.manualPricePerLiter` are vehicle-wide,
- * permanent and invisible: set once, then quietly setting the price of every
- * future fill-up, with nothing on screen to say why the suggested price is what
- * it is. People forget they exist.
- *
- * Nothing is discarded. The value is shown, explained, and the user chooses:
- * keep it for now, convert it to an explicit scoped rule, or turn it off. The
- * one thing that no longer happens is it going on silently.
- */
-function LegacyPricingReview() {
-  const { vehicles, updateVehicle, priceRules, savePriceRule, deletePriceRule } = useData();
-  const { showToast } = useToast();
-  const [dismissed, setDismissed] = useState<string[]>([]);
-
-  /** Vehicles still carrying a pre-upgrade pricing setting. */
-  const affected = vehicles.filter(
-    (vehicle) =>
-      !vehicle.archived &&
-      !dismissed.includes(vehicle.id) &&
-      ((vehicle.priceAdjustment ?? 0) !== 0 ||
-        (vehicle.manualPricePerLiter ?? 0) > 0),
-  );
-
-  /** Rules already migrated but not yet confirmed — they do nothing until then. */
-  const unreviewed = priceRules.filter((rule) => rule.legacy && !rule.reviewed);
-
-  if (affected.length === 0 && unreviewed.length === 0) return null;
-
-  async function convert(vehicle: (typeof vehicles)[number]) {
-    await savePriceRule({
-      id: `legacy_${vehicle.id}`,
-      vehicleId: vehicle.id,
-      // Scoped to the vehicle and its fuel type. The station is left open
-      // because the old setting never recorded one — the user can narrow it.
-      stationId: null,
-      stationName: null,
-      fuelType: vehicle.fuelType,
-      discountPerLiter: -(vehicle.priceAdjustment ?? 0),
-      fixedPricePerLiter: vehicle.manualPricePerLiter ?? null,
-      label: "הועבר מהגדרה ישנה",
-      expiresAt: null,
-      legacy: true,
-      // Converting IS the review.
-      reviewed: true,
-    });
-    await updateVehicle(vehicle.id, { priceAdjustment: 0, manualPricePerLiter: null });
-    showToast({
-      tone: "success",
-      title: "ההגדרה הומרה לכלל מפורש",
-      detail: "אפשר לצמצם אותה לתחנה מסוימת או לבטל אותה בכל רגע",
-    });
-  }
-
-  async function turnOff(vehicle: (typeof vehicles)[number]) {
-    await updateVehicle(vehicle.id, { priceAdjustment: 0, manualPricePerLiter: null });
-    showToast({ tone: "success", title: "ההגדרה בוטלה" });
-  }
-
-  return (
-    <>
-      {affected.map((vehicle) => (
-        <Card key={vehicle.id} className="flex flex-col gap-3 p-4">
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[15px] font-semibold text-ink">
-              הגדרת תמחור ישנה · {vehicleLabel(vehicle)}
-            </span>
-            <span className="text-[12.5px] leading-relaxed text-muted">
-              ההגדרה הזו חלה על <b>כל תדלוק ברכב הזה, בכל תחנה, ללא תאריך סיום</b> —
-              והיא נקבעה פעם אחת ומאז פועלת ברקע. כדאי לוודא שהיא עדיין נכונה.
-            </span>
-          </span>
-
-          <div className="flex flex-col gap-1.5 rounded-[12px] bg-surface-2 px-3 py-2.5">
-            {(vehicle.priceAdjustment ?? 0) !== 0 ? (
-              <span className="flex items-center justify-between text-[13px]">
-                <span className="text-muted">הנחה קבועה</span>
-                <Num className="font-bold text-ink">
-                  {shekelSigned(vehicle.priceAdjustment ?? 0)}
-                </Num>
-              </span>
-            ) : null}
-            {(vehicle.manualPricePerLiter ?? 0) > 0 ? (
-              <span className="flex items-center justify-between text-[13px]">
-                <span className="text-muted">מחיר קבוע שמחליף את המוצע</span>
-                <Num className="font-bold text-ink">
-                  {price(vehicle.manualPricePerLiter as number)}
-                </Num>
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => void convert(vehicle)}
-              className="min-h-[40px] flex-1 rounded-pill bg-accent px-3 text-[13.5px] font-bold text-accent-contrast"
-            >
-              המרה לכלל מפורש
-            </button>
-            <button
-              type="button"
-              onClick={() => void turnOff(vehicle)}
-              className="min-h-[40px] flex-1 rounded-pill bg-danger-soft px-3 text-[13.5px] font-semibold text-danger-ink"
-            >
-              ביטול ההגדרה
-            </button>
-            <button
-              type="button"
-              onClick={() => setDismissed((list) => [...list, vehicle.id])}
-              className="min-h-[40px] w-full rounded-pill bg-surface-2 text-[13.5px] font-semibold text-muted"
-            >
-              להשאיר בינתיים
-            </button>
-          </div>
-        </Card>
-      ))}
-
-      {unreviewed.map((rule) => (
-        <Card key={rule.id} className="flex flex-col gap-3 p-4">
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[15px] font-semibold text-ink">
-              כלל תמחור שהועבר וממתין לאישור
-            </span>
-            <span className="text-[12.5px] leading-relaxed text-muted">
-              הערך נשמר, אבל <b>הוא לא מופעל</b> עד שתאשרו אותו — כדי שהגדרה ישנה לא
-              תמשיך לקבוע מחירים בלי שתדעו.
-            </span>
-          </span>
-
-          <div className="flex flex-col gap-1.5 rounded-[12px] bg-surface-2 px-3 py-2.5 text-[13px]">
-            <span className="flex items-center justify-between">
-              <span className="text-muted">היקף</span>
-              <span className="text-ink">
-                {rule.stationId
-                  ? `תחנה: ${rule.stationName ?? rule.stationId}`
-                  : rule.vehicleId
-                    ? "כל התחנות · רכב אחד"
-                    : "כל התחנות · כל הרכבים"}
-              </span>
-            </span>
-            {rule.discountPerLiter !== 0 ? (
-              <span className="flex items-center justify-between">
-                <span className="text-muted">הנחה לליטר</span>
-                <Num className="font-bold text-ink">
-                  {shekelSigned(rule.discountPerLiter)}
-                </Num>
-              </span>
-            ) : null}
-            {rule.fixedPricePerLiter ? (
-              <span className="flex items-center justify-between">
-                <span className="text-muted">מחיר קבוע</span>
-                <Num className="font-bold text-ink">{price(rule.fixedPricePerLiter)}</Num>
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => void savePriceRule({ ...rule, reviewed: true })}
-              className="min-h-[40px] flex-1 rounded-pill bg-accent text-[13.5px] font-bold text-accent-contrast"
-            >
-              אישור והפעלה
-            </button>
-            <button
-              type="button"
-              onClick={() => void deletePriceRule(rule.id)}
-              className="min-h-[40px] flex-1 rounded-pill bg-danger-soft text-[13.5px] font-semibold text-danger-ink"
-            >
-              מחיקה
-            </button>
-          </div>
-        </Card>
-      ))}
-    </>
   );
 }

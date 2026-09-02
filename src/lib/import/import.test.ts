@@ -283,7 +283,8 @@ describe("duplicate prevention", () => {
   it("reports the plan the preview screen shows", () => {
     const parsed = parseRows(parseCsv(csvFixture()));
     const plan = planImport(parsed, "v1", []);
-    expect(plan.parsed).toBe(7);
+    expect(plan.totalRows).toBe(7);
+    expect(plan.validRows).toBe(7);
     expect(plan.breakCount).toBe(1);
     expect(plan.dateRange).not.toBeNull();
     expect(plan.vehicleLabels).toEqual(["Imported Fuel Data 2026"]);

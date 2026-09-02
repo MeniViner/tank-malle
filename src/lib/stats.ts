@@ -70,7 +70,15 @@ export interface Vehicle {
   plateNumber?: string | null;
   fuelType: FuelType;
   tankLiters?: number | null;
+  /**
+   * Where `tankLiters` came from. Absent means "stored before provenance
+   * existed", which is NOT the same as confirmed — see `isTankCapacityTrusted`.
+   * Only a trusted capacity may drive a user-facing range figure.
+   */
+  tankLitersSource?: "user" | "trusted" | "estimate" | "legacy" | null;
   declaredKmPerLiter?: number | null;
+  /** Whether `declaredKmPerLiter` is an exact-year certified figure. */
+  declaredSource?: "user" | "exact-year" | "other-year" | null;
   /** ₪/liter delta applied on top of the official price. */
   priceAdjustment: number;
   /** Overrides the official price + adjustment entirely. */
@@ -81,6 +89,22 @@ export interface Vehicle {
   /** Registry codes, kept so the WLTP spec register can be re-queried. */
   tozeretCd?: number | null;
   degemCd?: number | null;
+}
+
+/**
+ * True when a stored tank capacity may drive a user-facing range figure.
+ *
+ * Only a value the user entered or confirmed, or one from a vehicle-specific
+ * trustworthy source, qualifies. A pre-provenance value is treated as unknown
+ * rather than assumed correct: most of those were written by the body-type
+ * estimator without anybody being told, and a guessed capacity produces a
+ * confident-looking range that is simply made up.
+ */
+export function isTankCapacityTrusted(
+  vehicle: Pick<Vehicle, "tankLiters" | "tankLitersSource"> | null | undefined,
+): boolean {
+  if (!vehicle?.tankLiters || vehicle.tankLiters <= 0) return false;
+  return vehicle.tankLitersSource === "user" || vehicle.tankLitersSource === "trusted";
 }
 
 export interface FuelPrices {
@@ -193,7 +217,7 @@ export interface Stats {
   currentYearCost: number;
   kmPerDay: number | null;
   kmPerMonth: number | null;
-  /** tankLiters × avgKmPerLiter. */
+  /** tankLiters × avgKmPerLiter — only when the capacity is trusted. */
   estimatedRangeKm: number | null;
   avgPricePaid: number | null;
   /** Signed ₪ difference between the average paid price and the official one. */
@@ -647,8 +671,11 @@ export function computeStats(
   const kmPerDay = spanDays > 0 ? round(records.totalKm / spanDays, 1) : null;
   const kmPerMonth = kmPerDay !== null ? round(kmPerDay * 30.44, 0) : null;
 
+  // Only a capacity the user entered or confirmed may produce a range figure.
+  // A class-based guess multiplied by a real average still reads as a fact on
+  // screen, which is exactly the fabrication this gate exists to stop.
   const estimatedRangeKm =
-    vehicle?.tankLiters && avgKmPerLiter
+    isTankCapacityTrusted(vehicle) && vehicle?.tankLiters && avgKmPerLiter
       ? Math.round(vehicle.tankLiters * avgKmPerLiter)
       : null;
 

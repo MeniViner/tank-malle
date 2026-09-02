@@ -58,10 +58,11 @@ test("a 98 vehicle is never given the 95 figure", async ({ page }) => {
   await expect(page.getByText("7.31")).toHaveCount(0);
 });
 
-test("station rows show a price with its source, and none at all for diesel", async ({
+test("station rows never print the regulated ceiling as a station price", async ({
   page,
 }) => {
-  // A 95 vehicle sees the regulated ceiling, rendered AS a ceiling.
+  // The nationwide ceiling is the same figure at every station and does not
+  // describe any of them. It used to be printed on every row in the list.
   await signedInWithData(page, {
     regulatedPrice: 7.31,
     vehicle: { make: "מאזדה", model: "3", fuelType: "95" },
@@ -72,13 +73,12 @@ test("station rows show a price with its source, and none at all for diesel", as
 
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
 
-  // "עד ₪7.31" — an upper bound, never presented as the pump price.
-  await expect(page.getByText(/עד ₪7\.31/).first()).toBeVisible({ timeout: 20_000 });
-  // And the provenance travels with it.
-  await expect(page.getByText(/מחיר מרבי מפוקח · אין דיווח עדכני מהתחנה/).first()).toBeVisible();
+  await expect(page.getByText("מחיר לא זמין").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText(/עד ₪7\.31/)).toHaveCount(0);
+  await expect(page.getByText(/אין דיווח עדכני מהתחנה/)).toHaveCount(0);
 });
 
-test("the diesel station list says the price is unknown", async ({ page }) => {
+test("the diesel station list shows no price at all", async ({ page }) => {
   await signedInWithData(page, {
     regulatedPrice: 7.31,
     vehicle: { make: "פורד", model: "טרנזיט", fuelType: "diesel" },
@@ -90,7 +90,7 @@ test("the diesel station list says the price is unknown", async ({ page }) => {
 
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
 
-  await expect(page.getByText(/מחיר סולר לא ידוע/).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("מחיר לא זמין").first()).toBeVisible({ timeout: 20_000 });
   // Not one 95 price anywhere in the list.
   await expect(page.getByText(/₪7\.31/)).toHaveCount(0);
 });

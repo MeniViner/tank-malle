@@ -33,12 +33,15 @@ import {
 } from "../lib/stations";
 import type { FuelPrices, FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
-import { priceDisplay, resolveStationPrice } from "../lib/prices/resolver";
+import {
+  resolveStationPrice,
+  stationPriceView,
+  type StationPriceView,
+} from "../lib/prices/resolver";
 import {
   BEST_VALUE_UNAVAILABLE,
   SORT_LABELS,
   bestValueBlocker,
-  isStale,
   rankStations,
   type StationCandidate,
   type StationSort,
@@ -55,6 +58,7 @@ import { ScreenHeader } from "../components/AppHeader";
 import {
   CalendarIcon,
   CheckIcon,
+  ChevronDown,
   ChevronStart,
   PinIcon,
   SearchIcon,
@@ -101,7 +105,16 @@ export function FillupForm() {
   );
   const [pricePerLiter, setPricePerLiter] = useState("");
   const [priceTouched, setPriceTouched] = useState(false);
-  const [isFullTank, setIsFullTank] = useState(editing?.isFullTank ?? true);
+  /**
+   * Full tank at the END of this fill-up.
+   *
+   * Not a question any more. Practically every manual entry is a full fill-up,
+   * and the toggle plus its paragraph cost more attention than the rare
+   * partial saved. New records are full; an EXISTING record keeps exactly what
+   * it was stored with — an imported partial must not be silently promoted to
+   * a full tank just because the screen no longer shows the switch.
+   */
+  const isFullTank = editing ? editing.isFullTank : true;
   const [continuityBreak, setContinuityBreak] = useState(
     editing?.continuityBreakBefore === true,
   );
@@ -166,6 +179,23 @@ export function FillupForm() {
       if (name && !map.has(name)) map.set(name, fillup.station as Station);
     }
     return [...map.values()];
+  }, [fillups]);
+
+  /**
+   * What this driver last paid at each station, keyed by station id AND by
+   * name (legacy records carry no id). Their own receipt is real knowledge
+   * about a station; the nationwide regulated ceiling is not.
+   */
+  const lastPaidByStation = useMemo(() => {
+    const map = new Map<string, { price: number; observedAt: number }>();
+    for (const fillup of [...fillups].sort((a, b) => b.date - a.date)) {
+      const entry = { price: fillup.pricePerLiter, observedAt: fillup.date };
+      const id = fillup.station?.stationId;
+      const name = fillup.station?.name?.trim();
+      if (id && !map.has(id)) map.set(id, entry);
+      if (name && !map.has(name)) map.set(name, entry);
+    }
+    return map;
   }, [fillups]);
 
   const [geo, setGeo] = useState<GeoResult>({ status: "idle", position: null, nearby: [] });
@@ -338,8 +368,9 @@ export function FillupForm() {
         ? totalValue
         : Math.round(litersValue * priceValue * 100) / 100,
       isFullTank,
-      // Provenance: an explicit user statement, never a guess.
-      fullTankSource: "user" as const,
+      // Provenance is preserved on an edit: a record imported under the legacy
+      // full-tank assumption does not become a user statement by being opened.
+      fullTankSource: editing?.fullTankSource ?? ("user" as const),
       continuityBreakBefore: continuityBreak,
       // Only ever set from an explicit answer. "לא יודע" and no answer both
       // leave it null, so nothing unverified can reach a public aggregate.
@@ -506,29 +537,10 @@ export function FillupForm() {
           />
         ) : null}
 
-        {/* Full-tank toggle — drives the whole segment model.
-            The label says "I filled up to full", not "full tank": the flag
-            means the tank was full at the END of this fill-up, whatever was in
-            it on arrival. */}
-        <Card className="flex flex-col gap-3 p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-semibold text-ink">מילאתי עד מלא</span>
-              <span className="text-[12.5px] leading-relaxed text-muted">
-                {isFullTank
-                  ? "סמנו אם בסיום התדלוק המיכל היה מלא — גם אם לא התחלתם ממיכל ריק."
-                  : "תדלוק חלקי — הליטרים ייצברו וייכללו בחישוב בפעם הבאה שתמלאו עד מלא."}
-              </span>
-            </span>
-            <Toggle
-              checked={isFullTank}
-              onChange={setIsFullTank}
-              ariaLabel="מילאתי עד מלא"
-            />
-          </div>
-
-          {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
-        </Card>
+        {/* What this entry will do to the calculation. One line, from the
+            engine itself — not a description of a control that no longer
+            exists. */}
+        {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
 
         {/* Missing history. Never inferred from elapsed time or distance — a
             month without refuelling is a real thing, not evidence of a gap. */}
@@ -659,6 +671,7 @@ export function FillupForm() {
         open={stationSheetOpen}
         onClose={() => setStationSheetOpen(false)}
         stations={pastStations}
+        lastPaid={lastPaidByStation}
         nearby={geo.nearby}
         geoStatus={geo.status}
         onLocate={() => void detectStation(true)}
@@ -703,6 +716,7 @@ function StationSheet({
   open,
   onClose,
   stations,
+  lastPaid,
   nearby,
   geoStatus,
   onLocate,
@@ -718,6 +732,8 @@ function StationSheet({
   open: boolean;
   onClose: () => void;
   stations: Station[];
+  /** Station id or name → the price this user last paid there. */
+  lastPaid: Map<string, { price: number; observedAt: number }>;
   nearby: GeoResult["nearby"];
   geoStatus: GeoResult["status"];
   onLocate: () => void;
@@ -730,18 +746,25 @@ function StationSheet({
    * The price to show on a station row, for THIS vehicle's fuel type.
    *
    * Everything goes through the one resolver, so a diesel vehicle can never be
-   * shown a 95 figure — it is shown "מחיר סולר לא ידוע" instead. With community
-   * reporting not yet running, the best available answer is usually the
-   * regulated ceiling, and it is rendered as a ceiling.
+   * shown a 95 figure. What the ROW shows is then decided by `stationPriceView`,
+   * which deliberately drops the regulated ceiling: it is the same nationwide
+   * number on every station and repeating it down the list said nothing about
+   * any of them.
    */
   const resolveFor = useCallback(
     (stationId: string | null) => resolveStationPrice({ stationId, fuelType, regulated }),
     [fuelType, regulated],
   );
 
-  const priceFor = useCallback(
-    (stationId: string | null) => priceDisplay(resolveFor(stationId)),
-    [resolveFor],
+  const viewFor = useCallback(
+    (stationId: string | null, name?: string | null) =>
+      stationPriceView(
+        resolveFor(stationId),
+        (stationId ? lastPaid.get(stationId) : null) ??
+          (name ? lastPaid.get(name.trim()) : null) ??
+          null,
+      ),
+    [resolveFor, lastPaid],
   );
 
   const [sort, setSort] = useState<StationSort>("nearest");
@@ -806,7 +829,7 @@ function StationSheet({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="חיפוש מתוך 1,250 תחנות…"
+            placeholder="חיפוש תחנה…"
             className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
           />
         </div>
@@ -814,20 +837,16 @@ function StationSheet({
         <div className="no-scrollbar flex flex-col overflow-y-auto">
           {trimmed.length >= 2 ? (
             matches.length > 0 ? (
-              matches.map((entry) => {
-                const resolved = priceFor(entry.i ?? null);
-                return (
-                  <StationRow
-                    key={`${entry.n}-${entry.lat}`}
-                    label={entry.n}
-                    meta={entry.a ?? undefined}
-                    price={resolved.text}
-                    priceDetail={resolved.detail}
-                    selected={current?.name === entry.n}
-                    onClick={() => onPick(toStation(entry))}
-                  />
-                );
-              })
+              matches.map((entry) => (
+                <StationRow
+                  key={`${entry.n}-${entry.lat}`}
+                  label={entry.n}
+                  meta={entry.a ?? undefined}
+                  view={viewFor(entry.i ?? null, entry.n)}
+                  selected={current?.name === entry.n}
+                  onClick={() => onPick(toStation(entry))}
+                />
+              ))
             ) : (
               <div className="flex flex-col gap-2 py-5">
                 <p className="text-center text-[13.5px] text-muted">
@@ -874,25 +893,9 @@ function StationSheet({
                 </button>
               ) : (
                 <>
-                  <div className="flex gap-1.5 overflow-x-auto pb-2">
-                    {(
-                      ["nearest", "cheapest", "freshest", "bestValue"] as StationSort[]
-                    ).map((option) => (
-                      <button
-                        key={option}
-                        type="button"
-                        aria-pressed={sort === option}
-                        onClick={() => setSort(option)}
-                        className={`min-h-[32px] flex-none rounded-pill px-3 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
-                          sort === option
-                            ? "bg-accent text-accent-contrast"
-                            : "bg-surface-2 text-muted"
-                        }`}
-                      >
-                        {SORT_LABELS[option]}
-                      </button>
-                    ))}
-                  </div>
+                  {/* One control, not a four-pill rail that spilled sideways
+                      over the first result on a 360px screen. */}
+                  <SortControl value={sort} onChange={setSort} />
 
                   {sort === "bestValue" && blocker ? (
                     <p className="pb-2 text-[12px] leading-relaxed text-muted">
@@ -900,48 +903,35 @@ function StationSheet({
                     </p>
                   ) : null}
 
-                  {rankedNearby.map((entry) => {
-                    const display = priceDisplay(entry.price);
-                    const detour =
-                      sort === "bestValue" && entry.detourCost !== null
-                        ? ` · נסיעה ${price(entry.detourCost)}`
-                        : "";
-                    return (
-                      <StationRow
-                        key={`near-${entry.station.n}-${entry.station.lat}`}
-                        label={entry.station.n}
-                        meta={
-                          entry.distanceMeters !== null
-                            ? formatDistance(entry.distanceMeters)
-                            : undefined
-                        }
-                        price={display.text}
-                        priceDetail={`${display.detail}${detour}`}
-                        stale={isStale(entry.price) && entry.price.price !== null}
-                        selected={current?.name === entry.station.n}
-                        onClick={() => onPick(toStation(entry.station))}
-                      />
-                    );
-                  })}
+                  {rankedNearby.map((entry) => (
+                    <StationRow
+                      key={`near-${entry.station.n}-${entry.station.lat}`}
+                      label={entry.station.n}
+                      meta={
+                        entry.distanceMeters !== null
+                          ? formatDistance(entry.distanceMeters)
+                          : undefined
+                      }
+                      view={viewFor(entry.station.i ?? null, entry.station.n)}
+                      selected={current?.name === entry.station.n}
+                      onClick={() => onPick(toStation(entry.station))}
+                    />
+                  ))}
                 </>
               )}
 
               {stations.length > 0 ? (
                 <>
                   <SheetGroupLabel>תחנות שתדלקתי בהן</SheetGroupLabel>
-                  {stations.map((entry) => {
-                    const resolved = priceFor(entry.stationId ?? null);
-                    return (
-                      <StationRow
-                        key={`past-${entry.name}`}
-                        label={entry.name}
-                        price={resolved.text}
-                        priceDetail={resolved.detail}
-                        selected={current?.name === entry.name}
-                        onClick={() => onPick(entry)}
-                      />
-                    );
-                  })}
+                  {stations.map((entry) => (
+                    <StationRow
+                      key={`past-${entry.name}`}
+                      label={entry.name}
+                      view={viewFor(entry.stationId ?? null, entry.name)}
+                      selected={current?.name === entry.name}
+                      onClick={() => onPick(entry)}
+                    />
+                  ))}
                 </>
               ) : null}
             </>
@@ -968,23 +958,78 @@ function SheetGroupLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * One compact sort control.
+ *
+ * The four pills it replaces were laid out in a horizontally scrolling rail
+ * that, at 360px, ran under the first station row and looked like part of it.
+ */
+function SortControl({
+  value,
+  onChange,
+}: {
+  value: StationSort;
+  onChange: (value: StationSort) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const options: StationSort[] = ["nearest", "cheapest", "freshest", "bestValue"];
+
+  return (
+    <div className="flex flex-col pb-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-[34px] w-fit items-center gap-1 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-ink"
+      >
+        מיון: {SORT_LABELS[value]}
+        <ChevronDown size={14} className="text-muted" />
+      </button>
+
+      {open ? (
+        <div
+          role="listbox"
+          aria-label="מיון תחנות"
+          className="mt-1.5 flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface"
+        >
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={value === option}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`flex min-h-[42px] items-center justify-between px-3.5 text-[13.5px] transition-[background-color] duration-150 active:bg-surface-2 ${
+                value === option ? "font-bold text-accent" : "text-ink"
+              }`}
+            >
+              {SORT_LABELS[option]}
+              {value === option ? <CheckIcon size={16} /> : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function StationRow({
   label,
   meta,
-  price,
-  priceDetail,
-  stale,
+  view,
   selected,
   onClick,
 }: {
   label: string;
   meta?: string;
-  /** Already resolved for the active vehicle's fuel type. "—" when unknown. */
-  price?: string;
-  /** Source, age and confidence — never omitted when a price is shown. */
-  priceDetail?: string;
-  /** A price old enough that it may have moved. Marked, not hidden. */
-  stale?: boolean;
+  /**
+   * What to show for the price, already decided for the active vehicle's fuel
+   * type. A regulated ceiling never reaches this — see `stationPriceView`.
+   */
+  view: StationPriceView;
   selected: boolean;
   onClick: () => void;
 }) {
@@ -997,23 +1042,22 @@ function StationRow({
       <PinIcon size={17} className="flex-none text-muted" />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
+        {/* One short metadata line. Distance, then the price when there is a
+            real one — never a nationwide ceiling dressed as this station's. */}
         <span className="truncate text-[12px] text-muted">
           {meta}
-          {price && price !== "—" ? (
+          {view.text ? (
             <>
               {meta ? " · " : ""}
-              <Num className={`font-semibold ${stale ? "text-muted" : "text-ink"}`}>
-                {price}
+              <Num className={`font-semibold ${view.stale ? "text-muted" : "text-ink"}`}>
+                {view.text}
               </Num>
-              {stale ? <span className="text-[11px] text-warning-ink"> · ישן</span> : null}
+              {view.stale ? <span className="text-[11px] text-warning-ink"> · ישן</span> : null}
             </>
           ) : null}
         </span>
-        {/* Source, age and confidence travel with the number, always. A price
-            with no provenance is worse than no price. */}
-        {priceDetail ? (
-          <span className="truncate text-[11.5px] text-muted/80">{priceDetail}</span>
-        ) : null}
+        {/* Provenance travels with the number, always. */}
+        <span className="truncate text-[11.5px] text-muted/80">{view.detail}</span>
       </span>
       {selected ? <CheckIcon size={18} className="flex-none text-accent" /> : null}
     </button>
@@ -1112,8 +1156,7 @@ function DraftExplanation({
   if (evaluation.outcome === "partialNoBaseline") {
     return (
       <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
-        עדיין אין נקודת התחלה, אז התדלוק הזה לא ייכנס לחישוב. סמנו “מילאתי עד מלא”
-        בתדלוק הבא כדי להתחיל.
+        עדיין אין נקודת התחלה, אז התדלוק הזה לא ייכנס לחישוב.
       </span>
     );
   }

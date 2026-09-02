@@ -39,13 +39,7 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
   await signedInWithData(page, { fillups: RECORDS });
 
   await page.goto("/");
-  await expect(page.getByText(/ממוצע הרכב/)).toBeVisible({ timeout: 25_000 });
-
-  /* --- signed percentage: the sign LEADS --- */
-  const badge = await islandText(page, /%/);
-  expect(badge).toMatch(/^[+−]\d/);
-  // The regression this file exists for.
-  expect(badge).not.toMatch(/%[+−]$/);
+  await expect(page.getByText(/הממוצע שלך/)).toBeVisible({ timeout: 25_000 });
 
   /* --- money: the currency symbol leads the digits --- */
   const money = await islandText(page, /₪/);

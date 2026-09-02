@@ -21,7 +21,9 @@ import { parseDate } from "../lib/import/normalize";
  *   3. Open the operating system's own picker.
  *
  * And for time: type HH:MM at one-minute precision, or open the OS time
- * picker. The old five-minute stepper could not express 18:47 at all.
+ * picker. Those two are the whole time story — the hour/minute steppers that
+ * used to sit under the calendar duplicated both, at the cost of a taller
+ * sheet, and could not express 18:47 in fewer than nine taps.
  *
  * A typed value that does not parse leaves what the user typed alone and shows
  * why, rather than snapping the field back and losing their work.
@@ -100,13 +102,6 @@ export function DateTimePicker({
     const next = new Date(day);
     next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
     // Picking "today" must not produce a future time when today is capped.
-    if (maxDate && next.getTime() > maxDate) onChange(maxDate);
-    else onChange(next.getTime());
-  };
-
-  const setTime = (hours: number, minutes: number) => {
-    const next = new Date(selected);
-    next.setHours(hours, minutes, 0, 0);
     if (maxDate && next.getTime() > maxDate) onChange(maxDate);
     else onChange(next.getTime());
   };
@@ -402,110 +397,9 @@ export function DateTimePicker({
           );
         })}
       </div>
-
-      <TimeRow
-        hours={selected.getHours()}
-        minutes={selected.getMinutes()}
-        onChange={setTime}
-      />
     </div>
   );
 }
-
-/** Two steppers rather than a dropdown — faster with a thumb, and no bidi risk. */
-function TimeRow({
-  hours,
-  minutes,
-  onChange,
-}: {
-  hours: number;
-  minutes: number;
-  onChange: (hours: number, minutes: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-[14px] bg-surface-2 px-4 py-3">
-      <span className="text-[14px] font-semibold text-ink">שעה</span>
-
-      <div dir="ltr" className="flex items-center gap-1">
-        <Stepper
-          label="שעות"
-          value={hours}
-          onChange={(next) => onChange((next + 24) % 24, minutes)}
-        />
-        <span className="px-0.5 text-[18px] font-bold text-muted">:</span>
-        {/* One minute per step. The old five-minute step could not express
-            18:47 at all; typing above is the fast path, this is the nudge. */}
-        <Stepper
-          label="דקות"
-          value={minutes}
-          step={1}
-          max={60}
-          onChange={(next) => onChange(hours, (next + 60) % 60)}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Stepper({
-  label,
-  value,
-  onChange,
-  step = 1,
-  max = 24,
-}: {
-  label: string;
-  value: number;
-  onChange: (value: number) => void;
-  step?: number;
-  max?: number;
-}) {
-  return (
-    <span className="flex flex-col items-center">
-      <button
-        type="button"
-        aria-label={`${label} — הגדלה`}
-        onClick={() => onChange(value + step >= max ? 0 : value + step)}
-        className="flex h-8 w-12 items-center justify-center rounded-t-[10px] text-muted transition-[background-color,scale] duration-150 active:scale-[0.92] active:bg-surface"
-      >
-        <Caret up />
-      </button>
-      <span className="num w-12 text-center text-[20px] font-bold text-ink">
-        {String(value).padStart(2, "0")}
-      </span>
-      <button
-        type="button"
-        aria-label={`${label} — הקטנה`}
-        onClick={() => onChange(value - step < 0 ? max - step : value - step)}
-        className="flex h-8 w-12 items-center justify-center rounded-b-[10px] text-muted transition-[background-color,scale] duration-150 active:scale-[0.92] active:bg-surface"
-      >
-        <Caret />
-      </button>
-    </span>
-  );
-}
-
-function Caret({ up = false }: { up?: boolean }) {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      className={up ? "" : "rotate-180"}
-    >
-      <path
-        d="M6 15l6-6 6 6"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 
 function toIso(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");

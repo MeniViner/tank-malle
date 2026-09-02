@@ -19,13 +19,12 @@ import { useBenchmark } from "../hooks/useBenchmark";
 import { computeStats, filterSegmentsByRange } from "../lib/stats";
 import {
   GROUPING_LABELS,
-  RANGE_LABELS,
+  RANGE_COMPACT,
   bucketSpend,
   buildRange,
   inRange,
   resolveGrouping,
   summariseSpend,
-  withRange,
   type DateRange,
   type Grouping,
   type RangeKey,
@@ -39,8 +38,9 @@ import {
 import { ConsumptionValue, Distance, Quantity, SignedPercent } from "../components/Fmt";
 import { Card, Label, Skeleton } from "../components/Card";
 import { Segmented } from "../components/Segmented";
+import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
-import { ChartIcon, UserIcon } from "../components/icons";
+import { CheckIcon, ChartIcon, ChevronDown, UserIcon } from "../components/icons";
 import { InfoTip } from "../components/InfoTip";
 import {
   FUEL_TYPE_SHORT,
@@ -49,6 +49,7 @@ import {
   num,
   price,
   shekel,
+  vehicleLabel,
   vehicleShort,
 } from "../lib/format";
 
@@ -72,13 +73,14 @@ const SECTIONS: { value: Section; label: string }[] = [
   { value: "community", label: "קהילה" },
 ];
 
-const RANGES: { value: RangeKey; label: string }[] = [
-  { value: "thisMonth", label: RANGE_LABELS.thisMonth },
-  { value: "3m", label: RANGE_LABELS["3m"] },
-  { value: "6m", label: RANGE_LABELS["6m"] },
-  { value: "ytd", label: RANGE_LABELS.ytd },
-  { value: "1y", label: RANGE_LABELS["1y"] },
-  { value: "all", label: RANGE_LABELS.all },
+/** Every range the picker offers, in the order it lists them. */
+const RANGE_OPTIONS: Exclude<RangeKey, "custom">[] = [
+  "thisMonth",
+  "3m",
+  "6m",
+  "ytd",
+  "1y",
+  "all",
 ];
 
 const GROUPINGS: { value: Grouping; label: string }[] = [
@@ -98,10 +100,19 @@ const GROUPINGS: { value: Grouping; label: string }[] = [
  * measurement rather than just hiding it.
  */
 export function Statistics() {
-  const { fillups, activeVehicle, prices, settings, loadingFillups } = useData();
+  const {
+    fillups,
+    activeVehicle,
+    activeVehicles,
+    setActiveVehicle,
+    prices,
+    settings,
+    loadingFillups,
+  } = useData();
   const [section, setSection] = useState<Section>("overview");
   const [rangeKey, setRangeKey] = useState<RangeKey>("6m");
   const [grouping, setGrouping] = useState<Grouping>("auto");
+  const [vehicleSheetOpen, setVehicleSheetOpen] = useState(false);
 
   const now = Date.now();
   const range = useMemo(() => buildRange(rangeKey, now), [rangeKey, now]);
@@ -197,16 +208,28 @@ export function Statistics() {
 
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-      <header className="flex flex-none items-baseline justify-between gap-2 px-5 pb-3 pt-4">
+      <header className="flex flex-none items-center justify-between gap-2 px-5 pb-3 pt-4">
         <h1 className="text-[22px] font-bold text-ink">סטטיסטיקות</h1>
-        <span className="truncate text-[13px] text-muted">{vehicleShort(activeVehicle)}</span>
+        {/* A loose vehicle name floating in the header said nothing and had no
+            affordance. With one vehicle it is redundant; with several it needs
+            to be a control, so that is what it is. */}
+        {activeVehicles.length > 1 ? (
+          <button
+            type="button"
+            onClick={() => setVehicleSheetOpen(true)}
+            className="flex min-h-[32px] max-w-[52%] items-center gap-1 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-ink"
+          >
+            <span className="truncate">{vehicleShort(activeVehicle)}</span>
+            <ChevronDown size={14} className="flex-none text-muted" />
+          </button>
+        ) : null}
       </header>
 
-      {/* Section navigation. Community is one of five peers, always reachable,
-          rather than something buried at the bottom of a long scroll. */}
+      {/* Section navigation. Five equal columns that fit 360px without
+          scrolling — the old rail clipped its last tab off the edge. */}
       <nav
         aria-label="מדורי סטטיסטיקה"
-        className="flex flex-none gap-1.5 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]{display:none}"
+        className="grid flex-none grid-cols-5 gap-1 px-5 pb-3"
       >
         {SECTIONS.map((entry) => (
           <button
@@ -214,7 +237,7 @@ export function Statistics() {
             type="button"
             aria-current={section === entry.value ? "page" : undefined}
             onClick={() => setSection(entry.value)}
-            className={`min-h-[36px] flex-none rounded-pill px-3.5 text-[13.5px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[34px] rounded-pill px-1 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
               section === entry.value
                 ? "bg-accent text-accent-contrast"
                 : "bg-surface-2 text-muted"
@@ -226,16 +249,10 @@ export function Statistics() {
       </nav>
 
       <div className="flex flex-col gap-3 px-5">
-        {/* Range applies to every section; grouping only to the charts that
-            bucket, so it is shown next to them rather than pretending to be
-            global. */}
+        {/* One range control, not six pills on two lines. Grouping stays with
+            the charts that actually bucket. */}
         {section !== "community" ? (
-          <Segmented
-            value={rangeKey}
-            options={RANGES}
-            onChange={setRangeKey}
-            ariaLabel="טווח תאריכים"
-          />
+          <RangePicker value={rangeKey} onChange={setRangeKey} />
         ) : null}
 
         {loadingFillups ? (
@@ -269,7 +286,7 @@ export function Statistics() {
                     accent
                   />
                   <SummaryCard
-                    label="ממוצע משוקלל"
+                    label="ממוצע צריכה"
                     value={averageLine !== null ? String(averageLine) : "—"}
                     unit={unitLabel}
                   />
@@ -282,34 +299,37 @@ export function Statistics() {
                     unit="ק״מ"
                   />
                   <SummaryCard
-                    label="עלות לק״מ תקף"
+                    label="עלות לק״מ"
                     value={rangeCostPerKm !== null ? shekel(rangeCostPerKm, 2) : "—"}
                   />
                 </div>
 
                 <div className="tm-rise flex gap-3" style={{ animationDelay: "140ms" }}>
-                  <SummaryCard label={withRange("הוצאה", range)} value={shekel(spend.total)} />
+                  {/* The label names the period; the ₪ sign already says it is
+                      money spent. "הוצאה · 6 החודשים האחרונים" wrapped to three
+                      lines and read like a broken sentence. */}
+                  <SummaryCard label={range.compactLabel} value={shekel(spend.total)} />
                   <SummaryCard
                     label="ממוצע חודשי"
                     value={spend.perMonth !== null ? shekel(spend.perMonth) : "—"}
                   />
                 </div>
 
-                <BasisCard
+                <BasisNote
                   segments={segments.length}
                   fillups={spend.fillups}
                   range={range}
                   breaks={stats.breakCount}
                 />
 
-                <OpenSegmentCard stats={stats} units={units} />
+                <OpenSegmentCard stats={stats} />
               </>
             ) : null}
 
             {section === "costs" ? (
               <>
                 <div className="flex gap-3">
-                  <SummaryCard label={withRange("סה״כ", range)} value={shekel(spend.total)} />
+                  <SummaryCard label={range.compactLabel} value={shekel(spend.total)} />
                   <SummaryCard
                     label="ליטרים"
                     value={num(spend.liters, 1)}
@@ -329,7 +349,7 @@ export function Statistics() {
                 <div className="flex gap-3">
                   <SummaryCard label="מתחילת השנה" value={shekel(spend.yearToDate)} />
                   <SummaryCard
-                    label="עלות לק״מ תקף"
+                    label="עלות לק״מ"
                     value={rangeCostPerKm !== null ? shekel(rangeCostPerKm, 2) : "—"}
                   />
                 </div>
@@ -341,9 +361,7 @@ export function Statistics() {
                   ariaLabel="קיבוץ"
                 />
 
-                <ChartCard
-                  title={`${withRange("הוצאה", range)} · ${GROUPING_LABELS[resolvedGrouping]}`}
-                >
+                <ChartCard title={`הוצאה · ${GROUPING_LABELS[resolvedGrouping]}`}>
                   <BarChart data={spendData} margin={CHART_MARGIN}>
                     <CartesianGrid stroke="var(--line)" vertical={false} />
                     <XAxis {...xAxis} />
@@ -369,7 +387,7 @@ export function Statistics() {
               <>
                 <div className="flex gap-3">
                   <SummaryCard
-                    label="ממוצע משוקלל"
+                    label="ממוצע צריכה"
                     value={averageLine !== null ? String(averageLine) : "—"}
                     unit={unitLabel}
                     accent
@@ -378,7 +396,7 @@ export function Statistics() {
                 </div>
 
                 <ChartCard
-                  title={`${withRange("צריכה", range)} · ${unitLabel}`}
+                  title={`צריכה · ${unitLabel}`}
                   legend={
                     <>
                       <LegendDot color="var(--accent)" label="בפועל" />
@@ -416,7 +434,7 @@ export function Statistics() {
                   </LineChart>
                 </ChartCard>
 
-                <OpenSegmentCard stats={stats} units={units} />
+                <OpenSegmentCard stats={stats} />
 
                 {stats.vsDeclaredPercent !== null ? (
                   <Card className="flex items-center justify-between gap-3 p-4">
@@ -445,7 +463,7 @@ export function Statistics() {
                   </Card>
                 ) : null}
 
-                <ChartCard title={withRange("קילומטראז׳ מצטבר", range)}>
+                <ChartCard title="קילומטראז׳ מצטבר">
                   <AreaChart data={odometerData} margin={CHART_MARGIN}>
                     <defs>
                       <linearGradient id="odoFill" x1="0" y1="0" x2="0" y2="1">
@@ -492,7 +510,7 @@ export function Statistics() {
                 </div>
 
                 <ChartCard
-                  title={withRange("מחיר לליטר", range)}
+                  title="מחיר לליטר"
                   legend={
                     <>
                       <LegendDot color="var(--accent)" label="ששולם" />
@@ -615,12 +633,108 @@ export function Statistics() {
           </>
         )}
       </div>
+
+      <Sheet
+        open={vehicleSheetOpen}
+        onClose={() => setVehicleSheetOpen(false)}
+        title={<h2 className="text-[17px] font-bold text-ink">רכב</h2>}
+      >
+        <div className="flex flex-col gap-1.5">
+          {activeVehicles.map((vehicle) => (
+            <button
+              key={vehicle.id}
+              type="button"
+              aria-pressed={vehicle.id === activeVehicle?.id}
+              onClick={() => {
+                void setActiveVehicle(vehicle.id);
+                setVehicleSheetOpen(false);
+              }}
+              className={`flex min-h-[48px] items-center justify-between gap-3 rounded-[12px] px-3.5 text-start text-[14.5px] font-semibold transition-[background-color] duration-150 ${
+                vehicle.id === activeVehicle?.id
+                  ? "bg-accent-soft text-accent"
+                  : "bg-surface-2 text-ink"
+              }`}
+            >
+              <span className="truncate">{vehicleLabel(vehicle)}</span>
+              {vehicle.id === activeVehicle?.id ? (
+                <CheckIcon size={18} className="flex-none" />
+              ) : null}
+            </button>
+          ))}
+        </div>
+      </Sheet>
     </main>
   );
 }
 
-/** "מבוסס על 2 מקטעי צריכה · 3 תדלוקים" — never fill-ups alone. */
-function BasisCard({
+/**
+ * The date range, as ONE control.
+ *
+ * Six pills in a segmented track could not fit 360px: "6 חודשים" broke across
+ * two lines and the whole row grew to double height. A single chip that says
+ * what is selected and opens the rest costs one tap and no layout.
+ */
+function RangePicker({
+  value,
+  onChange,
+}: {
+  value: RangeKey;
+  onChange: (value: RangeKey) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        className="flex min-h-[38px] w-fit items-center gap-1.5 rounded-pill bg-surface-2 px-3.5 text-[13.5px] font-semibold text-ink"
+      >
+        {RANGE_COMPACT[value === "custom" ? "all" : value]}
+        <ChevronDown size={15} className="text-muted" />
+      </button>
+
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={<h2 className="text-[17px] font-bold text-ink">טווח תאריכים</h2>}
+      >
+        <div className="flex flex-col gap-1.5">
+          {RANGE_OPTIONS.map((option) => (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={option === value}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`flex min-h-[46px] items-center justify-between gap-3 rounded-[12px] px-3.5 text-start text-[14.5px] font-semibold transition-[background-color] duration-150 ${
+                option === value
+                  ? "bg-accent-soft text-accent"
+                  : "bg-surface-2 text-ink"
+              }`}
+            >
+              {RANGE_COMPACT[option]}
+              {option === value ? <CheckIcon size={18} className="flex-none" /> : null}
+            </button>
+          ))}
+        </div>
+      </Sheet>
+    </>
+  );
+}
+
+/**
+ * What the numbers above are based on.
+ *
+ * One quiet line plus an info button. The card this replaces spent five lines
+ * of the primary overview explaining the calculation engine to someone who had
+ * come to read their own consumption.
+ */
+function BasisNote({
   segments,
   fillups,
   range,
@@ -632,30 +746,32 @@ function BasisCard({
   breaks: number;
 }) {
   return (
-    <Card className="flex flex-col gap-1 p-4">
-      <Label className="text-[12.5px]">בסיס החישוב</Label>
-      <span className="text-[13.5px] leading-relaxed text-ink">
-        מבוסס על <Num>{segments}</Num>{" "}
-        {segments === 1 ? "מקטע צריכה" : "מקטעי צריכה"} · <Num>{fillups}</Num> תדלוקים
+    <div className="flex items-center gap-0.5 px-1">
+      <span className="text-[12px] text-muted">
+        <Num>{segments}</Num> {segments === 1 ? "מקטע" : "מקטעים"} ·{" "}
+        <Num>{fillups}</Num> תדלוקים · {range.compactLabel}
       </span>
-      <span className="text-[12px] leading-relaxed text-muted">
-        {range.label}
-        {breaks > 0
-          ? ` · ${breaks === 1 ? "נקודת התחלה מחדש אחת" : `${breaks} נקודות התחלה מחדש`} — שום חישוב לא חוצה אותן`
-          : ""}
-      </span>
-    </Card>
+      <InfoTip label="בסיס החישוב">
+        <span>
+          <b className="text-ink">מקטע</b> — המרחק בין שני תדלוקים שבסיומם המיכל היה
+          מלא. רק ממקטע סגור אפשר לחשב צריכה.
+        </span>
+        <span>הממוצע משוקלל לפי מרחק, כך שמקטע ארוך שוקל יותר מקצר.</span>
+        {breaks > 0 ? (
+          <span>
+            בהיסטוריה יש{" "}
+            <Num>{breaks}</Num>{" "}
+            {breaks === 1 ? "נקודת התחלה מחדש" : "נקודות התחלה מחדש"} — שום חישוב לא
+            חוצה אותן.
+          </span>
+        ) : null}
+      </InfoTip>
+    </div>
   );
 }
 
 /** Open-segment status, so retained partial fill-ups are visibly retained. */
-function OpenSegmentCard({
-  stats,
-  units,
-}: {
-  stats: ReturnType<typeof computeStats>;
-  units: "kmPerLiter" | "litersPer100";
-}) {
+function OpenSegmentCard({ stats }: { stats: ReturnType<typeof computeStats> }) {
   const open = stats.openSegment;
   if (!open.hasBaseline) {
     if (stats.records.fillupCount === 0) return null;
@@ -663,7 +779,7 @@ function OpenSegmentCard({
       <Card className="flex flex-col gap-1 p-4">
         <Label className="text-[12.5px]">מקטע פתוח</Label>
         <span className="text-[13.5px] leading-relaxed text-ink">
-          עדיין אין נקודת התחלה. סמנו “מילאתי עד מלא” בתדלוק הבא כדי להתחיל חישוב.
+          עדיין אין נקודת התחלה. התדלוק הבא יפתח את החישוב.
         </span>
       </Card>
     );
@@ -680,9 +796,7 @@ function OpenSegmentCard({
         <Distance value={open.km} /> מאז המילוי האחרון עד מלא
       </span>
       <span className="text-[12px] leading-relaxed text-muted">
-        הליטרים האלה נשמרים וייכללו בחישוב במילוי הבא עד מלא. עדיין לא מוצגת מהם צריכה,
-        כי המקטע לא נסגר.{" "}
-        {units === "litersPer100" ? "" : ""}
+        הליטרים נשמרים וייכללו בחישוב בתדלוק הבא.
       </span>
     </Card>
   );
@@ -725,8 +839,7 @@ function CommunitySection({
       <Card className="flex flex-col gap-2 p-5">
         <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
         <span className="text-[13.5px] leading-relaxed text-muted">
-          צריך לפחות שני מקטעי צריכה סגורים כדי שיהיה מה להשוות. מלאו עד מלא פעמיים
-          ונחשב לכם ממוצע.
+          צריך לפחות שני מקטעי צריכה סגורים כדי שיהיה מה להשוות.
         </span>
       </Card>
     );
@@ -811,16 +924,14 @@ function PeerSection({
       <div className="flex items-center justify-between gap-1">
         <div className="flex items-center gap-0.5">
           <Label>מול נהגים דומים</Label>
-          <InfoTip label="מה זו השוואה אנונימית" align="start">
-            <b className="text-ink">השוואה אנונימית</b> מציגה איפה אתם עומדים מול נהגים
-            עם רכב דומה.
-            <br />
-            <br />
-            כל משתמש מפרסם רשומה אחת שכוללת <b className="text-ink">רק</b> דגם, סוג דלק,
-            שנה וממוצע צריכה — בלי שם, מייל, מספר רישוי, קילומטראז׳, תאריכים או מיקום.
-            <br />
-            <br />
-            אפשר לכבות בכל רגע בהגדרות ← קהילה, והרשומה תימחק מיד.
+          <InfoTip label="השוואה אנונימית">
+            <span>
+              <b className="text-ink">משותף:</b> דגם ושנה, סוג דלק, ממוצע צריכה.
+            </span>
+            <span>
+              <b className="text-ink">לא משותף:</b> שם, מייל, מספר רישוי, קילומטראז׳,
+              תאריכים, תחנה ומיקום.
+            </span>
           </InfoTip>
         </div>
         <span className="flex items-center gap-1 text-[11.5px] text-muted">

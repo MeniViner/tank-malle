@@ -35,6 +35,11 @@ export interface DateRange {
   to: number | null;
   /** Shown in section subtitles and chart titles, e.g. "6 החודשים האחרונים". */
   label: string;
+  /**
+   * The same range, short enough to sit on one line inside a summary card.
+   * "הוצאה · 6 החודשים האחרונים" wrapped to three lines on a 360px screen.
+   */
+  compactLabel: string;
 }
 
 export const RANGE_LABELS: Record<Exclude<RangeKey, "custom">, string> = {
@@ -44,6 +49,19 @@ export const RANGE_LABELS: Record<Exclude<RangeKey, "custom">, string> = {
   ytd: "מתחילת השנה",
   "1y": "שנה",
   all: "הכול",
+};
+
+/**
+ * Compact wording, for a card label that must not wrap.
+ * Read together with the amount beside it, so it names the period only.
+ */
+export const RANGE_COMPACT: Record<Exclude<RangeKey, "custom">, string> = {
+  thisMonth: "החודש",
+  "3m": "3 חודשים אחרונים",
+  "6m": "6 חודשים אחרונים",
+  ytd: "מתחילת השנה",
+  "1y": "12 חודשים אחרונים",
+  all: "כל התקופה",
 };
 
 /** Longer wording, for a subtitle that has to stand on its own. */
@@ -75,6 +93,7 @@ export function buildRange(
       from: startOfDay(custom.from),
       to: endOfDay(custom.to),
       label: `${shortDate(custom.from)} – ${shortDate(custom.to)}`,
+      compactLabel: `${shortDate(custom.from)} – ${shortDate(custom.to)}`,
     };
   }
 
@@ -104,7 +123,13 @@ export function buildRange(
   }
 
   const resolved = key === "custom" ? "all" : key;
-  return { key, from, to, label: RANGE_SUBTITLES[resolved] };
+  return {
+    key,
+    from,
+    to,
+    label: RANGE_SUBTITLES[resolved],
+    compactLabel: RANGE_COMPACT[resolved],
+  };
 }
 
 function monthsBack(from: Date, months: number): number {
@@ -315,6 +340,7 @@ export function previousRange(range: DateRange, now: number = Date.now()): DateR
     from: range.from - span,
     to: range.from - 1,
     label: "התקופה הקודמת",
+    compactLabel: "התקופה הקודמת",
   };
 }
 
