@@ -57,7 +57,7 @@ interface Fillup {
 ```
 
 `isFullTank` semantics are unchanged on the wire and restated in the UI:
-**"מילאתי עד מלא"** — full at the *end*, not filled from empty.
+**"מילאתי טנק מלא"** — full at the *end*, not filled from empty.
 
 `continuityBreakBefore` is the only new field that changes a calculation. It is
 absent on every existing document and defaults to `false`, so existing data

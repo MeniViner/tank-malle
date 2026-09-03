@@ -47,7 +47,7 @@ test("the first filled-to-full record creates a baseline and shows no consumptio
 /**
  * Partial fill-ups are SEEDED, not entered.
  *
- * The "מילאתי עד מלא" toggle is gone from the form: a manual entry is a full
+ * The " טנק מלא" toggle is gone from the form: a manual entry is a full
  * tank, and a partial now only reaches the app through an import or a record
  * created before the toggle was removed. Those records must still compute
  * correctly, which is exactly what these tests establish.
@@ -125,7 +125,7 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
   // 600 km / (20 + 25) L = 13.33 km/L — NOT 300 / 25 = 12, which is what the
   // pre-upgrade toast computed.
   expect(toast).toContain("13.3");
-  expect(toast).toContain("מאז המילוי הקודם עד מלא");
+  expect(toast).toContain("מאז המילוי הקודם טנק מלא");
   expect(toast).not.toContain("12.0");
 
   // The dashboard agrees with the toast, because both come from one engine.

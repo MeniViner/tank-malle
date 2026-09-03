@@ -163,7 +163,7 @@ describe.each([
     const result = parseRows((await load()) as unknown[][]);
     expect(result.rows.every((row) => row.isFullTank)).toBe(true);
     expect(result.rows.every((row) => row.fullTankSource === "legacy-assumption")).toBe(true);
-    expect(result.assumptions.join(" ")).toContain("מילאתי עד מלא");
+    expect(result.assumptions.join(" ")).toContain(" טנק מלא");
   });
 
   it("does not turn the vehicle-label column into a vehicle", async () => {

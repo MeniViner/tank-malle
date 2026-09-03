@@ -65,7 +65,7 @@ alias("stationId", "station_id", "station id", "מזהה תחנה");
 alias("latitude", "latitude", "lat", "קו רוחב");
 alias("longitude", "longitude", "lng", "lon", "קו אורך");
 alias("notes", "הערות", "הערה", "notes", "note", "comment");
-alias("isFullTank", "מיכל מלא", "מילאתי עד מלא", "is_full_tank", "filled_to_full", "full_tank", "full");
+alias("isFullTank", "מיכל מלא", " טנק מלא", "is_full_tank", "filled_to_full", "full_tank", "full");
 alias("continuityBreakBefore", "continuity_break_before", "התחלת תקופה חדשה", "break_before");
 // Two different things, and conflating them is why the preview used to show a
 // raw Firestore id where a human vehicle name belongs. `vehicle_id` is machine

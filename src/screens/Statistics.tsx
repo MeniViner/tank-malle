@@ -793,7 +793,7 @@ function OpenSegmentCard({ stats }: { stats: ReturnType<typeof computeStats> }) 
       <span className="text-[13.5px] leading-relaxed text-ink">
         <Quantity value={open.liters} digits={1} /> מ־<Num>{open.pendingFillups}</Num>{" "}
         {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} ·{" "}
-        <Distance value={open.km} /> מאז המילוי האחרון עד מלא
+        <Distance value={open.km} /> מאז המילוי האחרון טנק מלא
       </span>
       <span className="text-[12px] leading-relaxed text-muted">
         הליטרים נשמרים וייכללו בחישוב בתדלוק הבא.

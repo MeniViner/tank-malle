@@ -331,7 +331,7 @@ export function DateTimePicker({
       </div>
 
       {/* Month navigation. In RTL the "previous" chevron points right. */}
-      <div className="flex items-center justify-between">
+      {/* <div className="flex items-center justify-between">
         <button
           type="button"
           aria-label="חודש קודם"
@@ -396,7 +396,7 @@ export function DateTimePicker({
             </button>
           );
         })}
-      </div>
+      </div> */}
     </div>
   );
 }

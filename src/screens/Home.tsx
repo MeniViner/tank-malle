@@ -209,7 +209,7 @@ export function Home() {
                         />
                       ) : (
                         <span className="flex-none rounded-pill bg-surface-2 px-[11px] py-1 text-[12.5px] font-semibold text-muted">
-                          מולא עד מלא
+                          טנק מלא
                         </span>
                       )}
                     </Link>

@@ -75,7 +75,7 @@ test("the synthetic legacy XLSX imports, with its assumptions stated", async ({ 
   // The assumptions are still stated — behind "פרטים נוספים", so the happy
   // path is a decision rather than a wall of provenance.
   await page.getByRole("button", { name: "פרטים נוספים" }).click();
-  await expect(page.getByText(/אין שדה “מילאתי עד מלא”/)).toBeVisible();
+  await expect(page.getByText(/אין שדה “מילאתי טנק מלא”/)).toBeVisible();
   await expect(page.getByText(/עמודות החישוב מהקובץ הישן/)).toBeVisible();
   // The legacy "start calculating again" marker was recognised.
   await expect(page.getByText("נקודות התחלת תקופה חדשה").locator("..")).toContainText("1");

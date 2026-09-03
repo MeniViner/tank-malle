@@ -1147,8 +1147,8 @@ function DraftExplanation({
     return (
       <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
         {evaluation.startsNewPeriod
-          ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב במילוי הבא עד מלא."
-          : "יוצר נקודת התחלה. הצריכה תחושב במילוי הבא עד מלא."}
+          ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב במילוי הבא טנק מלא."
+          : "יוצר נקודת התחלה. הצריכה תחושב במילוי הבא טנק מלא."}
       </span>
     );
   }
@@ -1163,7 +1163,7 @@ function DraftExplanation({
 
   return (
     <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
-      הליטרים ייכללו בחישוב במילוי הבא עד מלא · במקטע הפתוח יהיו{" "}
+      הליטרים ייכללו בחישוב במילוי הבא טנק מלא · במקטע הפתוח יהיו{" "}
       <Quantity value={evaluation.openSegment.liters} digits={1} className="font-semibold" />
     </span>
   );
@@ -1182,14 +1182,14 @@ function savedMessage(
       units === "kmPerLiter"
         ? `${kmPerLiter.toLocaleString("he-IL", { maximumFractionDigits: 1 })} קמ״ל`
         : `${(100 / kmPerLiter).toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל׳/100 ק״מ`;
-    return { title: `נשמר · ${value} מאז המילוי הקודם עד מלא`, detail: undo };
+    return { title: `נשמר · ${value} מאז המילוי הקודם טנק מלא`, detail: undo };
   }
 
   if (evaluation.outcome === "baseline") {
     return {
       title: evaluation.startsNewPeriod
-        ? "התחילה תקופת חישוב חדשה. הצריכה תחושב במילוי הבא עד מלא."
-        : "נקודת התחלה נוצרה. הצריכה תחושב במילוי הבא עד מלא.",
+        ? "התחילה תקופת חישוב חדשה. הצריכה תחושב במילוי הבא טנק מלא."
+        : "נקודת התחלה נוצרה. הצריכה תחושב במילוי הבא טנק מלא.",
       detail: undo,
     };
   }
@@ -1205,7 +1205,7 @@ function savedMessage(
     maximumFractionDigits: 1,
   });
   return {
-    title: "התדלוק נשמר. הליטרים ייכללו בחישוב במילוי הבא עד מלא.",
+    title: "התדלוק נשמר. הליטרים ייכללו בחישוב במילוי הבא טנק מלא.",
     detail: `נשמרו ${liters} ל׳ במקטע הפתוח · ${undo}`,
   };
 }

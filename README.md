@@ -149,7 +149,7 @@ Full field semantics, and how every pre-upgrade shape is read, are in
 ### Consumption model
 
 `isFullTank` means **the tank was full at the END of the fill-up** — whatever
-was in it on arrival. The UI says so: *מילאתי עד מלא*, not *מיכל מלא*.
+was in it on arrival. The UI says so: *מילאתי טנק מלא*, not *מיכל מלא*.
 
 Consumption is only meaningful between two such fill-ups. A partial does not
 close a segment; its liters roll into the open one, because the tank level at a

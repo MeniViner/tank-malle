@@ -28,7 +28,7 @@ type Filter = "all" | "full" | "partial" | "anomaly";
 
 const FILTERS: { value: Filter; label: string }[] = [
   { value: "all", label: "הכול" },
-  { value: "full", label: "עד מלא" },
+  { value: "full", label: "טנק מלא" },
   { value: "partial", label: "חלקי" },
   { value: "anomaly", label: "חריגים" },
 ];
@@ -207,7 +207,7 @@ export function History() {
                           <span className="truncate text-[12.5px] text-muted">
                             <Num>{num(fillup.liters, 1)}</Num> ל׳ ·{" "}
                             <Num>{shekel(fillup.totalCost)}</Num> ·{" "}
-                            {fillup.isFullTank ? "מולא עד מלא" : "תדלוק חלקי"}
+                            {fillup.isFullTank ? "טנק מלא" : "תדלוק חלקי"}
                           </span>
                         </span>
 
