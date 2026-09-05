@@ -23,6 +23,19 @@
   --accent-contrast: var(--accent-contrast-l, #ffffff);
   --accent-soft: var(--accent-soft-l, #e3f0ed);
 
+  /* The home hero is a dark card in BOTH themes — a deliberate inversion, so
+     it carries its own foreground set instead of the surface tokens. The
+     accent on it is always the dark-theme variant: the light one is mixed for
+     white backgrounds and loses contrast on a near-black card. */
+  --hero: #26302a;
+  --hero-ink: #f4f8f5;
+  --hero-muted: #a7b7ae;
+  --hero-line: rgb(255 255 255 / 0.13);
+  --hero-soft: rgb(255 255 255 / 0.11);
+  --hero-accent: var(--accent-d, #3fbfa8);
+  --hero-good: #8fe3b0;
+  --hero-bad: #f5a99c;
+
   --success: #2e9e5b;
   --success-soft: #e1f3e7;
   --success-ink: #1d7a43;
@@ -59,6 +72,10 @@
     --accent-contrast: var(--accent-contrast-d, #0b1613);
     --accent-soft: var(--accent-soft-d, #123a34);
 
+    --hero: #22302a;
+    --hero-line: rgb(255 255 255 / 0.1);
+    --hero-soft: rgb(255 255 255 / 0.09);
+
     --success: #58c98b;
     --success-soft: #12331f;
     --success-ink: #8fe3b0;
@@ -90,6 +107,10 @@
   --accent: var(--accent-d, #3fbfa8);
   --accent-contrast: var(--accent-contrast-d, #0b1613);
   --accent-soft: var(--accent-soft-d, #123a34);
+
+  --hero: #22302a;
+  --hero-line: rgb(255 255 255 / 0.1);
+  --hero-soft: rgb(255 255 255 / 0.09);
 
   --success: #58c98b;
   --success-soft: #12331f;
@@ -132,11 +153,19 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-ink: var(--danger-ink);
+  --color-hero: var(--hero);
+  --color-hero-ink: var(--hero-ink);
+  --color-hero-muted: var(--hero-muted);
+  --color-hero-line: var(--hero-line);
+  --color-hero-soft: var(--hero-soft);
+  --color-hero-accent: var(--hero-accent);
+  --color-hero-good: var(--hero-good);
+  --color-hero-bad: var(--hero-bad);
 
   --font-sans: "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   --radius-card: 18px;
-  --radius-hero: 20px;
+  --radius-hero: 24px;
   --radius-tile: 11px;
   --radius-sheet: 28px;
   --radius-pill: 99px;

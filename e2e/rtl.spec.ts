@@ -39,7 +39,7 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
   await signedInWithData(page, { fillups: RECORDS });
 
   await page.goto("/");
-  await expect(page.getByText(/הממוצע שלך/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/ממוצע כולל/)).toBeVisible({ timeout: 25_000 });
 
   /* --- money: the currency symbol leads the digits --- */
   const money = await islandText(page, /₪/);

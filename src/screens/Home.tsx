@@ -4,7 +4,7 @@ import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
 import { usePublishSummary } from "../hooks/usePublishSummary";
 import { AppHeader } from "../components/AppHeader";
-import { Card, Label, ListCard, SectionTitle, Skeleton } from "../components/Card";
+import { Card, Label, SectionTitle, Skeleton } from "../components/Card";
 import { InfoStrip } from "../components/Field";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
@@ -12,6 +12,7 @@ import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
 import { adaptLegacyConfig, regulatedMaxPrice } from "../lib/prices/regulated";
+import type { Segment } from "../lib/stats";
 import {
   FUEL_TYPE_SHORT,
   consumption,
@@ -22,7 +23,17 @@ import {
   shekel,
 } from "../lib/format";
 
-/** Home dashboard (design 09 / 21). */
+/** How many closed segments the hero sparkline plots. */
+const SPARK_SEGMENTS = 6;
+
+/**
+ * Home dashboard.
+ *
+ * One dark hero card carries the single number the screen exists for, two
+ * light cards under it carry the supporting pair, and the recent fill-ups are
+ * a timeline rather than a boxed list — so the eye lands on the consumption
+ * first and everything else reads as context to it.
+ */
 export function Home() {
   const { settings, fillups, loadingFillups } = useData();
   const stats = useStats();
@@ -51,6 +62,7 @@ export function Home() {
   );
 
   const recent = [...stats.fillups].sort((a, b) => b.date - a.date).slice(0, 3);
+  const lastFillup = recent[0] ?? null;
   const consumptionByEndId = new Map(stats.segments.map((s) => [s.endId, s.kmPerLiter]));
 
   return (
@@ -64,37 +76,30 @@ export function Home() {
           <>
             {/* Hero: the last measured consumption, the personal average, and
                 which of the two is the more economical result. */}
-            <Card className="tm-rise flex flex-col gap-2 rounded-hero p-[17px_18px_15px]">
-              <span className="flex items-center justify-between">
-                <Label>צריכה אחרונה</Label>
-                <button
-                  type="button"
-                  aria-label="מה המספרים האלה"
-                  aria-haspopup="dialog"
-                  aria-expanded={explainerOpen}
-                  onClick={() => setExplainerOpen(true)}
-                  className="-me-2 flex size-9 items-center justify-center rounded-full text-muted/70 transition-[color,scale] duration-200 active:scale-[0.96]"
-                >
-                  <InfoIcon size={16} />
-                </button>
-              </span>
-
-              <span className="flex flex-wrap items-center gap-3">
-                <span className="flex items-baseline gap-1.5">
-                  <Num className="text-[34px] font-bold leading-none text-accent">
-                    {hero.value}
-                  </Num>
-                  <span className="text-[16px] font-semibold text-muted">{hero.unit}</span>
+            <section className="tm-rise flex flex-col gap-3 rounded-hero bg-hero p-[16px_18px_17px] text-hero-ink shadow-raised">
+              <div className="flex items-start justify-between gap-2">
+                <span className="flex flex-none items-center">
+                  <Label className="text-hero-muted">צריכה אחרונה</Label>
+                  <button
+                    type="button"
+                    aria-label="מה המספרים האלה"
+                    aria-haspopup="dialog"
+                    aria-expanded={explainerOpen}
+                    onClick={() => setExplainerOpen(true)}
+                    className="flex size-9 items-center justify-center rounded-full text-hero-muted transition-[color,scale] duration-200 active:scale-[0.96]"
+                  >
+                    <InfoIcon size={15} />
+                  </button>
                 </span>
 
                 {comparison ? (
                   <span
-                    className={`inline-flex items-center gap-1.5 rounded-pill px-[11px] py-1 text-[12.5px] font-semibold ${
+                    className={`mt-1 inline-flex items-center gap-1.5 rounded-pill bg-hero-soft px-[11px] py-1 text-[12px] font-semibold ${
                       comparison.outcome === "better"
-                        ? "bg-success-soft text-success-ink"
+                        ? "text-hero-good"
                         : comparison.outcome === "worse"
-                          ? "bg-danger-soft text-danger-ink"
-                          : "bg-surface-2 text-muted"
+                          ? "text-hero-bad"
+                          : "text-hero-muted"
                     }`}
                   >
                     {comparison.outcome === "better" ? (
@@ -105,43 +110,40 @@ export function Home() {
                     {comparison.label}
                   </span>
                 ) : null}
+              </div>
+
+              <span className="flex items-baseline gap-2">
+                <Num className="text-[52px] font-bold leading-[0.92] tracking-[-0.01em]">
+                  {hero.value}
+                </Num>
+                <span className="text-[15px] font-semibold text-hero-muted">{hero.unit}</span>
               </span>
 
+              <HeroSpark segments={stats.segments} />
+
               {stats.avgKmPerLiter !== null ? (
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-[13.5px] text-ink/85">
-                    הממוצע שלך: <Num className="font-semibold">{average.value}</Num>{" "}
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-hero-line pt-3 text-[12.5px]">
+                  <span>
+                    ממוצע כולל <Num className="font-semibold">{average.value}</Num>{" "}
                     {average.unit}
                   </span>
-                  <span className="text-[12px] text-muted">
-                    <Num>{stats.segments.length}</Num>{" "}
+                  <span className="text-hero-muted">
+                    מבוסס על <Num>{stats.segments.length}</Num>{" "}
                     {stats.segments.length === 1 ? "מקטע" : "מקטעים"} ·{" "}
                     <Num>{stats.records.fillupCount}</Num> תדלוקים
                   </span>
-                </span>
+                </div>
               ) : (
-                <span className="text-[13px] text-muted">
+                <div className="border-t border-hero-line pt-3 text-[12.5px] text-hero-muted">
                   הצריכה תחושב אחרי שני תדלוקים
-                </span>
+                </div>
               )}
 
               <OpenSegmentNote stats={stats} />
-            </Card>
+            </section>
 
             <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
-              <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-                <Label className="text-[12.5px]">הוצאה החודש</Label>
-                {/* dir="ltr" inside an RTL card left-aligns by default; the
-                    amount belongs on the card's start edge, which is the right. */}
-                <Num className="text-end text-[24px] font-bold leading-tight text-ink">
-                  {shekel(stats.currentMonth?.cost ?? 0)}
-                </Num>
-                <span className="text-[12.5px] text-muted">
-                  <Num>{stats.currentMonth?.count ?? 0}</Num> תדלוקים ·{" "}
-                  {heMonthName(new Date().getMonth() + 1)}
-                </span>
-              </Card>
-
+              <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
               <FuelPriceCard />
             </div>
 
@@ -154,7 +156,6 @@ export function Home() {
               </InfoStrip>
             ) : null}
 
-            <div className="tm-rise" style={{ animationDelay: "170ms" }} />
             <SectionTitle
               action={
                 fillups.length > 0 ? (
@@ -178,16 +179,26 @@ export function Home() {
                 </span>
               </Card>
             ) : (
-              <ListCard className="tm-rise" style={{ animationDelay: "210ms" }}>
-                {recent.map((fillup) => {
+              /* A timeline, not a list card: the rail runs down the end edge
+                 and each record hangs off its own node, newest at the top. */
+              <div
+                className="tm-rise relative flex flex-col"
+                style={{ animationDelay: "150ms" }}
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-6 end-[12px] w-px bg-line"
+                />
+
+                {recent.map((fillup, index) => {
                   const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
                   return (
                     <Link
                       key={fillup.id}
                       to={`/fillup/${fillup.id}`}
-                      className="flex min-h-[58px] items-center justify-between gap-3 px-4 py-3 transition-[background-color] duration-150 active:bg-surface-2"
+                      className="relative flex min-h-[58px] items-center gap-2.5 rounded-[16px] px-1 py-2.5 transition-[background-color] duration-150 active:bg-surface-2"
                     >
-                      <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="truncate text-[15px] font-semibold text-ink">
                           {fillup.station?.name || "ללא מיקום"}
                         </span>
@@ -198,24 +209,34 @@ export function Home() {
                       </span>
 
                       {!fillup.isFullTank ? (
-                        <span className="flex-none rounded-pill border border-line px-[11px] py-1 text-[12.5px] font-semibold text-muted">
+                        <span className="flex-none text-[12.5px] font-semibold text-muted">
                           חלקי
                         </span>
                       ) : kmPerLiter !== null ? (
                         <ConsumptionValue
                           kmPerLiter={kmPerLiter}
                           units={units}
-                          className="flex-none rounded-pill bg-success-soft px-[11px] py-1.5 text-[12.5px] font-semibold text-success-ink"
+                          className="flex-none text-[15px] font-bold text-ink"
+                          unitClassName="text-[11.5px] font-semibold text-muted"
                         />
-                      ) : (
-                        <span className="flex-none rounded-pill bg-surface-2 px-[11px] py-1 text-[12.5px] font-semibold text-muted">
-                          טנק מלא
-                        </span>
-                      )}
+                      ) : null}
+
+                      {/* The node sits on the rail; its ring in the page
+                          background is what makes the line stop at the dot. */}
+                      <span
+                        aria-hidden="true"
+                        className="flex w-[24px] flex-none justify-center"
+                      >
+                        <span
+                          className={`size-[9px] rounded-full ring-4 ring-bg ${
+                            index === 0 ? "bg-accent" : "border border-line bg-surface"
+                          }`}
+                        />
+                      </span>
                     </Link>
                   );
                 })}
-              </ListCard>
+              </div>
             )}
           </>
         )}
@@ -231,7 +252,7 @@ export function Home() {
             <b className="text-ink">צריכה אחרונה</b> — התוצאה של המקטע האחרון שנסגר.
           </span>
           <span>
-            <b className="text-ink">הממוצע שלך</b> — ממוצע כל המקטעים, משוקלל לפי מרחק.
+            <b className="text-ink">ממוצע כולל</b> — ממוצע כל המקטעים, משוקלל לפי מרחק.
           </span>
           <span>
             חישוב לא חוצה נקודה שסימנתם בה תדלוקים שלא תועדו.
@@ -239,6 +260,83 @@ export function Home() {
         </div>
       </Sheet>
     </main>
+  );
+}
+
+/**
+ * The last few closed segments as bars, newest at the reading start of the
+ * row (the left end, in RTL). Decoration for the number above it — every
+ * figure it encodes is already written out in text, so it is hidden from
+ * assistive tech rather than given labels nobody asked for.
+ */
+function HeroSpark({ segments }: { segments: Segment[] }) {
+  const recent = segments.slice(-SPARK_SEGMENTS);
+  if (recent.length < 2) return null;
+
+  const values = recent.map((segment) => segment.kmPerLiter);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min;
+
+  return (
+    <div className="flex h-[42px] items-end gap-1.5" aria-hidden="true">
+      {recent.map((segment, index) => (
+        <span
+          key={segment.endId}
+          className={`flex-1 rounded-[5px] ${
+            index === recent.length - 1 ? "bg-hero-accent" : "bg-hero-soft"
+          }`}
+          /* A flat run of near-identical results would otherwise collapse to
+             a row of slivers, so the scale starts at a third of the height. */
+          style={{
+            height: span > 0 ? `${34 + (66 * (segment.kmPerLiter - min)) / span}%` : "70%",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * This month's spend.
+ *
+ * A month with no fill-up in it is not a ₪0 month — it is a month that has not
+ * happened yet — so it says so and points at the last one that did.
+ */
+function MonthSpendCard({
+  stats,
+  lastFillupDate,
+}: {
+  stats: ReturnType<typeof useStats>;
+  lastFillupDate: number | null;
+}) {
+  const month = stats.currentMonth;
+
+  return (
+    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+      <Label className="text-[12.5px]">הוצאה החודש</Label>
+
+      {month ? (
+        <>
+          {/* dir="ltr" inside an RTL card left-aligns by default; the amount
+              belongs on the card's start edge, which is the right. */}
+          <Num className="text-end text-[24px] font-bold leading-tight text-ink">
+            {shekel(month.cost)}
+          </Num>
+          <span className="text-[12.5px] text-muted">
+            <Num>{month.count}</Num> {month.count === 1 ? "תדלוק" : "תדלוקים"} ·{" "}
+            {heMonthName(new Date().getMonth() + 1)}
+          </span>
+        </>
+      ) : (
+        <>
+          <span className="text-[19px] font-bold leading-tight text-ink">טרם תודלק</span>
+          <span className="text-[12.5px] text-muted">
+            {lastFillupDate !== null ? `אחרון: ${dayMonthShort(lastFillupDate)}` : "עדיין אין תדלוקים"}
+          </span>
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -293,7 +391,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
   if (!open.hasBaseline) {
     if (stats.records.fillupCount === 0) return null;
     return (
-      <span className="text-[13px] text-muted">
+      <span className="text-[12.5px] text-hero-muted">
         עדיין אין נקודת התחלה. התדלוק הבא יפתח את החישוב.
       </span>
     );
@@ -302,7 +400,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
   if (open.pendingFillups === 0) return null;
 
   return (
-    <span className="text-[13px] text-muted">
+    <span className="text-[12.5px] text-hero-muted">
       במקטע הפתוח נשמרו <Quantity value={open.liters} digits={1} /> מ־
       <Num>{open.pendingFillups}</Num>{" "}
       {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} — הם ייכללו בחישוב
@@ -314,7 +412,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
 function HomeSkeleton() {
   return (
     <div className="flex flex-col gap-3">
-      <Skeleton className="h-[118px] rounded-hero" />
+      <Skeleton className="h-[208px] rounded-hero" />
       <div className="flex gap-3">
         <Skeleton className="h-[92px] flex-1 rounded-card" />
         <Skeleton className="h-[92px] flex-1 rounded-card" />

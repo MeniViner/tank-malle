@@ -26,6 +26,10 @@ Semantic tokens, light on bare `:root`, dark under `[data-theme="dark"]` and
 | `--warning-soft`    | `#FDF0DC` | `#3A2A11` | Warning banner background               |
 | `--danger`          | `#CC3D2E` | `#EF7A69` | Destructive / hard blocks only          |
 | `--danger-soft`     | `#FCE7E3` | `#3A1A16` | Danger banner background                |
+| `--hero`            | `#26302A` | `#22302A` | Home hero card — dark in both themes    |
+| `--hero-ink`        | `#F4F8F5` | `#F4F8F5` | Text on the hero card                   |
+| `--hero-muted`      | `#A7B7AE` | `#A7B7AE` | Secondary text on the hero card         |
+| `--hero-accent`     | `--accent-d` | `--accent-d` | Accent ON the hero (always the dark variant) |
 
 Accent is **reserved** for the primary action and each screen's hero number.
 Semantic colors are independent of the accent choice.
@@ -43,7 +47,7 @@ Heebo (400 / 600 / 700) via Google Fonts, `system-ui` fallback.
 
 | Role                   | Style                    |
 | ---------------------- | ------------------------ |
-| Hero number            | `700 34px/1`, accent, `tabular-nums` |
+| Hero number            | `700 52px/0.92` on the Home hero, `700 34px/1` elsewhere, `tabular-nums` |
 | Screen title           | `700 22px` (in-app headers use `700 18px`) |
 | Card title             | `700 17px`               |
 | Body                   | `400 16px`               |
@@ -57,7 +61,7 @@ Every digit run uses `font-variant-numeric: tabular-nums` and is wrapped in
 
 ## Shape & elevation
 
-- Cards: `border-radius: 18px` (hero card `20px`), `1px solid var(--line)`, `var(--surface)`.
+- Cards: `border-radius: 18px` (hero card `24px`), `1px solid var(--line)`, `var(--surface)`.
 - Pills/chips/FAB: `border-radius: 99px` / `50%`.
 - Icon tiles: `36px` square, `border-radius: 11px`, `--accent-soft` background.
 - Phone frame in the kit: `30px` radius (app itself is edge-to-edge).
@@ -99,9 +103,15 @@ Every digit run uses `font-variant-numeric: tabular-nums` and is wrapped in
 ## Component patterns
 
 - **Vehicle switcher pill** — white pill with car icon + `מאזדה 3 · 2018` + chevron, top-right avatar.
-- **Hero consumption card** — label, big accent number + `קמ״ל`, delta chip
-  (`5%+ מעל הממוצע`, success-soft), sub-line `ממוצע הרכב: 11.8 קמ״ל · מבוסס על 47 תדלוקים`.
-- **Stat pair** — two equal cards: `הוצאה החודש` / `מחיר דלק נוכחי`.
+- **Hero consumption card** (Home) — a DARK card in both themes, on its own
+  `--hero*` tokens: label + outcome chip, 52px number + `קמ״ל`, a sparkline of
+  the last six closed segments (newest bar in `--hero-accent`), then a hairline
+  and the footer pair `ממוצע כולל 14.1 קמ״ל` / `מבוסס על 3 מקטעים · 5 תדלוקים`.
+- **Stat pair** — two equal cards: `הוצאה החודש` / `מחיר דלק נוכחי`. A month with
+  no fill-up in it reads `טרם תודלק` + `אחרון: 31 באוג׳`, never `₪0`.
+- **Timeline** (Home history) — rail down the end edge, one node per record
+  (newest filled in `--accent`, the rest hollow); row = name + meta at the
+  start, consumption at the end. No card around it.
 - **Info strip** — `--surface-2`, radius 14, icon + 13px text.
 - **List card** — rows separated by `1px solid` hairline; row = title + meta, trailing chip.
 - **Form card** — grouped rows with a 36px icon tile, label above value, trailing action link.
