@@ -92,6 +92,80 @@ export function adaptLegacyConfig(
   return { ...typed, byFuelType };
 }
 
+/**
+ * Firestore timestamps → epoch milliseconds, everywhere in the price document.
+ *
+ * The document is read in two places (the app's live listener and the admin
+ * console) and every consumer of it — freshness text, staleness checks — does
+ * date arithmetic on `updatedAt`. A Timestamp object reaching them produces
+ * "NaN" on screen, which is how this was found. Duck-typed on purpose: this
+ * module stays free of the Firebase SDK so the price rules can be unit tested
+ * without it.
+ */
+function millis(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "number") return value;
+  if (typeof value === "object") {
+    const candidate = value as { toMillis?: () => number; seconds?: number };
+    if (typeof candidate.toMillis === "function") return candidate.toMillis();
+    if (typeof candidate.seconds === "number") return candidate.seconds * 1000;
+  }
+  if (value instanceof Date) return value.getTime();
+  return undefined;
+}
+
+function normalizeSeries(raw: unknown): RegulatedSeries | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const series = raw as RegulatedSeries;
+  const price = Number(series.current?.pricePerLiter);
+
+  return {
+    history: (series.history ?? {}) as Record<string, number>,
+    current: Number.isFinite(price)
+      ? {
+          pricePerLiter: price,
+          effectiveFrom: millis(series.current?.effectiveFrom),
+          updatedAt: millis(series.current?.updatedAt),
+        }
+      : null,
+    source: series.source,
+    retrievedAt: millis(series.retrievedAt),
+  };
+}
+
+/** The stored `appConfig/fuelPrices` document, with every date as a number. */
+export function normalizePriceDocument(raw: unknown): RegulatedPriceConfig {
+  if (!raw || typeof raw !== "object") return { byFuelType: {} };
+  const data = raw as RegulatedPriceConfig;
+
+  const byFuelType: NonNullable<RegulatedPriceConfig["byFuelType"]> = {};
+  for (const [fuelType, modes] of Object.entries(data.byFuelType ?? {})) {
+    const normalized: Record<string, RegulatedSeries> = {};
+    for (const [mode, series] of Object.entries(modes ?? {})) {
+      const value = normalizeSeries(series);
+      if (value) normalized[mode] = value;
+    }
+    byFuelType[fuelType as FuelType] = normalized as NonNullable<
+      RegulatedPriceConfig["byFuelType"]
+    >[FuelType];
+  }
+
+  const currentPrice = Number(data.current?.pricePerLiter);
+
+  return {
+    byFuelType,
+    region: data.region,
+    current: Number.isFinite(currentPrice)
+      ? {
+          pricePerLiter: currentPrice,
+          effectiveFrom: millis(data.current?.effectiveFrom),
+          updatedAt: millis(data.current?.updatedAt),
+        }
+      : null,
+    history: (data.history ?? {}) as Record<string, number>,
+  };
+}
+
 export interface RegulatedLookup {
   price: number | null;
   /** True when the figure is that month's own record, not a carried-forward one. */

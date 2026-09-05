@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   adaptLegacyConfig,
   hasRegulatedPrice,
+  normalizePriceDocument,
   regulatedFreshnessText,
   regulatedMaxPrice,
   type RegulatedPriceConfig,
@@ -384,5 +385,73 @@ describe("price display", () => {
     const none = resolveStationPrice({ stationId: "st-1", fuelType: "diesel", now: NOW });
     expect(priceDisplay(none).text).toBe("—");
     expect(priceDisplay(none).detail).toBe("מחיר סולר לא ידוע");
+  });
+});
+
+/**
+ * Reading the stored document.
+ *
+ * Two bugs lived here at once: Firestore Timestamps were handed to code that
+ * does date arithmetic (printing "NaN" as a date), and the app's listener
+ * copied only the legacy top-level fields — so a per-fuel price an admin had
+ * entered reached nobody.
+ */
+describe("normalizePriceDocument", () => {
+  const timestamp = (millis: number) => ({
+    seconds: Math.floor(millis / 1000),
+    nanoseconds: 0,
+    toMillis: () => millis,
+  });
+
+  it("turns every timestamp into epoch milliseconds", () => {
+    const config = normalizePriceDocument({
+      byFuelType: {
+        "95": {
+          self: {
+            current: {
+              pricePerLiter: 8.25,
+              effectiveFrom: timestamp(NOW - 10 * 86_400_000),
+              updatedAt: timestamp(NOW - 3 * 86_400_000),
+            },
+            history: { "2026-08": 8.25 },
+            source: "scheduled",
+          },
+        },
+      },
+    });
+
+    const lookup = regulatedMaxPrice(config, "95", NOW);
+    expect(lookup.price).toBe(8.25);
+    expect(lookup.updatedAt).toBe(NOW - 3 * 86_400_000);
+    expect(Number.isNaN(Number(lookup.updatedAt))).toBe(false);
+  });
+
+  it("keeps the per-fuel series, not only the legacy fields", () => {
+    const config = normalizePriceDocument({
+      current: { pricePerLiter: 8.25, updatedAt: timestamp(NOW) },
+      history: { "2026-08": 8.25 },
+      byFuelType: {
+        diesel: {
+          self: {
+            current: { pricePerLiter: 7.4, updatedAt: timestamp(NOW) },
+            history: {},
+            source: "manual",
+          },
+        },
+      },
+    });
+
+    expect(regulatedMaxPrice(config, "diesel", NOW).price).toBe(7.4);
+    // And still no cross-fuel fallback in either direction.
+    expect(regulatedMaxPrice(config, "98", NOW).price).toBeNull();
+  });
+
+  it("survives a document that is missing, empty or malformed", () => {
+    expect(normalizePriceDocument(undefined).byFuelType).toEqual({});
+    expect(normalizePriceDocument({}).byFuelType).toEqual({});
+    expect(
+      regulatedMaxPrice(normalizePriceDocument({ byFuelType: { "95": { self: {} } } }), "95", NOW)
+        .price,
+    ).toBeNull();
   });
 });

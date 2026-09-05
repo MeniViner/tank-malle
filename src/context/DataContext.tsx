@@ -41,11 +41,14 @@ import { useTheme } from "./ThemeContext";
 import {
   DEFAULT_SETTINGS,
   type Fillup,
-  type FuelPrices,
   type FuelType,
   type UserSettings,
   type Vehicle,
 } from "../lib/types";
+import {
+  normalizePriceDocument,
+  type RegulatedPriceConfig,
+} from "../lib/prices/regulated";
 
 interface DataContextValue {
   ready: boolean;
@@ -54,7 +57,7 @@ interface DataContextValue {
   activeVehicles: Vehicle[];
   activeVehicle: Vehicle | null;
   fillups: Fillup[];
-  prices: FuelPrices | null;
+  prices: RegulatedPriceConfig | null;
   /** True while the initial fill-up snapshot is still loading. */
   loadingFillups: boolean;
   /** True when the current view came from the local cache, not the server. */
@@ -316,7 +319,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [fillups, setFillups] = useState<Fillup[]>([]);
-  const [prices, setPrices] = useState<FuelPrices | null>(null);
+  const [prices, setPrices] = useState<RegulatedPriceConfig | null>(null);
   const [ready, setReady] = useState(false);
   const [loadingFillups, setLoadingFillups] = useState(true);
   const [offline, setOffline] = useState(!navigator.onLine);
@@ -395,7 +398,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const cachedSettings = readCache<UserSettings>(uid, "settings");
     const cachedVehicles = readCache<Vehicle[]>(uid, "vehicles");
-    const cachedPrices = readCache<FuelPrices>(uid, "prices");
+    const cachedPrices = readCache<RegulatedPriceConfig>(uid, "prices");
     if (generation !== generationRef.current) return;
 
     if (cachedSettings) setSettings({ ...DEFAULT_SETTINGS, ...cachedSettings });
@@ -640,19 +643,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           setPrices(null);
           return;
         }
-        const data = snapshot.data();
-        const next: FuelPrices = {
-          current: data.current
-            ? {
-                pricePerLiter: Number(data.current.pricePerLiter),
-                effectiveFrom: data.current.effectiveFrom
-                  ? toMillis(data.current.effectiveFrom)
-                  : undefined,
-                updatedAt: data.current.updatedAt ? toMillis(data.current.updatedAt) : undefined,
-              }
-            : null,
-          history: (data.history ?? {}) as Record<string, number>,
-        };
+        // The whole document, including the per-fuel-type series. Reading only
+        // the legacy top-level fields — which is what this did — meant an
+        // admin could set a diesel or 98 price that no client ever saw.
+        const next = normalizePriceDocument(snapshot.data());
         setPrices(next);
         writeCache(uid, "prices", next);
       },
