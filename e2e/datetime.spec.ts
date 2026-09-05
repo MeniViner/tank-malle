@@ -6,8 +6,9 @@ import { ALICE, createVehicle, signIn } from "./helpers/app";
  * Date and time entry.
  *
  * The old picker paged month by month and stepped minutes in fives, so a
- * record from two years ago took two dozen taps and 18:47 was not expressible
- * at all.
+ * record from two years ago took two dozen taps and 00:47 was not expressible
+ * at all. What is left is two fields: type it, or open the device's own
+ * picker from the icon.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -34,13 +35,16 @@ test("an exact minute can be typed", async ({ page }) => {
   await openDateSheet(page);
 
   const time = page.getByLabel("שעה — הקלדה ידנית");
-  await time.fill("18:47");
+  // 47 is not a multiple of five; the old stepper could not reach it. The hour
+  // is 00 so the value is in the past whatever time of day the suite runs —
+  // a future time is legitimately refused, and used to fail this test at
+  // certain hours.
+  await time.fill("00:47");
   await time.press("Enter");
 
-  // 47 is not a multiple of five; the old stepper could not reach it.
-  await expect(time).toHaveValue("18:47");
+  await expect(time).toHaveValue("00:47");
   await page.getByRole("button", { name: "אישור", exact: true }).click();
-  await expect(page.getByText("18:47")).toBeVisible();
+  await expect(page.getByText("00:47")).toBeVisible();
 });
 
 test("a nonsense time is refused and the typing is not thrown away", async ({ page }) => {
@@ -63,34 +67,21 @@ test("an old date is reached by typing, with no month-by-month paging", async ({
   await date.press("Enter");
 
   // Day-first, as an Israeli user writes it: June, not the 6th of the 15th.
-  await expect(page.getByRole("combobox", { name: "שנה" })).toHaveValue("2024");
-  await expect(page.getByRole("combobox", { name: "חודש" })).toHaveValue("5");
+  await expect(date).toHaveValue("15/06/2024");
 });
 
-test("the ISO form is accepted too", async ({ page }) => {
+test("the ISO and two-digit-year forms are accepted too", async ({ page }) => {
   await openDateSheet(page);
 
   const date = page.getByLabel("תאריך — הקלדה ידנית");
   await date.fill("2024-06-15");
   await date.press("Enter");
+  // Whatever was typed, the field settles on one written form.
+  await expect(date).toHaveValue("15/06/2024");
 
-  await expect(page.getByRole("combobox", { name: "שנה" })).toHaveValue("2024");
-  await expect(page.getByRole("combobox", { name: "חודש" })).toHaveValue("5");
-});
-
-test("month and year can be jumped to directly", async ({ page }) => {
-  await openDateSheet(page);
-
-  await page.getByRole("combobox", { name: "שנה" }).selectOption("2023");
-  await page.getByRole("combobox", { name: "חודש" }).selectOption("2");
-
-  // The grid header follows, without a single chevron tap. Asserted on the
-  // heading rather than on the text, because the month name also appears in
-  // every <option> of the select itself.
-  await expect(page.getByRole("combobox", { name: "חודש" })).toHaveValue("2");
-  await expect(
-    page.locator("span", { hasText: /^מרץ\s/ }).first(),
-  ).toBeVisible();
+  await date.fill("05/09/24");
+  await date.press("Enter");
+  await expect(date).toHaveValue("05/09/2024");
 });
 
 test("a future date is refused", async ({ page }) => {

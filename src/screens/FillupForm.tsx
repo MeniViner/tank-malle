@@ -18,6 +18,7 @@ import {
   parseDecimal,
   price,
   relativeDate,
+  shekel,
   time,
   timeAgo,
   vehicleShort,
@@ -52,14 +53,16 @@ import { Card, Label, IconTile } from "../components/Card";
 import { Toggle } from "../components/Segmented";
 import { Sheet, ConfirmDialog } from "../components/Sheet";
 import { Num } from "../components/Num";
+import { StationBrandMark } from "../components/StationBrand";
 import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { DateTimePicker } from "../components/DateTimePicker";
-import { ScreenHeader } from "../components/AppHeader";
 import {
   CalendarIcon,
+  CarIcon,
   CheckIcon,
   ChevronDown,
   ChevronStart,
+  CloseIcon,
   PinIcon,
   SearchIcon,
   TrashIcon,
@@ -343,6 +346,13 @@ export function FillupForm() {
 
   const isBackdated = date < Date.now() - 12 * 3600_000;
 
+  /** What the receipt shows: the typed total, else litres × price. */
+  const totalDue = Number.isFinite(totalValue) && totalValue > 0
+    ? totalValue
+    : Number.isFinite(litersValue) && litersValue > 0 && Number.isFinite(priceValue)
+      ? Math.round(litersValue * priceValue * 100) / 100
+      : 0;
+
   const canSave =
     Number.isFinite(odometerValue) &&
     odometerValue > 0 &&
@@ -352,6 +362,26 @@ export function FillupForm() {
     priceValue > 0 &&
     !blockMessage &&
     !saving;
+
+  /**
+   * The line under the save button says what is ACTUALLY missing.
+   *
+   * "מלאו קילומטראז׳ וליטרים או סכום" was printed whatever the state, so it
+   * asked for the field you had just filled and stayed on screen while the
+   * real blocker — an odometer below the previous record — went unnamed.
+   */
+  const saveHint = useMemo(() => {
+    if (blockMessage) return blockMessage;
+
+    const missing: string[] = [];
+    if (!(Number.isFinite(odometerValue) && odometerValue > 0)) missing.push("קילומטראז׳");
+    if (!(Number.isFinite(litersValue) && litersValue > 0)) missing.push("ליטרים או סכום");
+    if (!(Number.isFinite(priceValue) && priceValue > 0)) missing.push("מחיר לליטר");
+
+    if (missing.length === 0) return "הכול מוכן — אפשר לשמור";
+    if (missing.length === 1) return `נשאר למלא ${missing[0]}`;
+    return `נשאר למלא ${missing.slice(0, -1).join(", ")} ו${missing[missing.length - 1]}`;
+  }, [blockMessage, odometerValue, litersValue, priceValue]);
 
   /* ---------- save ---------- */
 
@@ -439,29 +469,91 @@ export function FillupForm() {
 
   return (
     <main className="flex min-h-dvh flex-1 flex-col bg-bg pt-safe">
-      <ScreenHeader
-        title={isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
-        onBack={() => navigate(-1)}
-        trailing={
-          isEdit ? (
+      {/* The title leads and the vehicle sits under it as a quiet tag, rather
+          than a centred title with the car floating opposite it. */}
+      <header className="flex flex-none items-start justify-between gap-3 px-5 pb-3 pt-2.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <h1 className="truncate text-[24px] font-bold leading-tight text-ink">
+            {isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
+          </h1>
+          <span className="flex w-fit max-w-full items-center gap-1.5 truncate rounded-pill border border-line bg-surface px-2.5 py-1 text-[12px] font-semibold text-muted">
+            <CarIcon size={13} />
+            {vehicleShort(activeVehicle)}
+          </span>
+        </div>
+
+        <div className="flex flex-none items-center gap-2">
+          {isEdit ? (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
               aria-label="מחיקת רשומה"
-              className="flex size-[38px] items-center justify-center rounded-full text-danger"
+              className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-danger transition-[background-color,scale] duration-200 active:scale-[0.96]"
             >
-              <TrashIcon size={19} />
+              <TrashIcon size={18} />
             </button>
-          ) : (
-            <span className="truncate rounded-pill bg-surface-2 px-[11px] py-1.5 text-[12.5px] font-semibold text-muted">
-              {vehicleShort(activeVehicle)}
-            </span>
-          )
-        }
-      />
+          ) : null}
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            aria-label="סגירה"
+            className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
+          >
+            <CloseIcon size={17} />
+          </button>
+        </div>
+      </header>
 
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 pb-40">
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-5 pb-40">
+        {/* A live receipt, on the same dark card the home screen uses. It adds
+            up while you type, so the number you are about to be charged is on
+            screen before you save it. */}
+        <div className="mt-1 flex flex-col rounded-hero bg-hero p-[18px_20px_15px] text-hero-ink shadow-raised">
+          <span className="text-[12.5px] text-hero-muted">סה״כ לתשלום</span>
+          <span
+            className={`mt-0.5 flex items-baseline gap-1.5 ${
+              totalDue > 0 ? "" : "text-hero-muted"
+            }`}
+          >
+            <Num className="text-[40px] font-bold leading-none tracking-[-0.02em]">
+              {shekel(totalDue, 2)}
+            </Num>
+          </span>
+
+          <div className="mt-4 grid grid-cols-3 border-t border-hero-line pt-3">
+            <ReceiptCell label="ליטרים">
+              {Number.isFinite(litersValue) && litersValue > 0 ? (
+                <Num>{num(litersValue, 1)}</Num>
+              ) : (
+                "—"
+              )}
+            </ReceiptCell>
+            <ReceiptCell label="מחיר לליטר" divided>
+              {Number.isFinite(priceValue) && priceValue > 0 ? (
+                <Num>{price(priceValue)}</Num>
+              ) : (
+                "—"
+              )}
+            </ReceiptCell>
+            {/* From the engine, never from (distance ÷ litres) on the spot:
+                that ignores partials and open segments, and prints a four-digit
+                "consumption" the moment an odometer is mistyped. */}
+            <ReceiptCell label="צריכה" divided>
+              {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? (
+                <ConsumptionValue
+                  kmPerLiter={draftEvaluation.segment.kmPerLiter}
+                  units={settings.units}
+                  unitClassName="text-[11px] font-normal text-hero-muted"
+                />
+              ) : (
+                "—"
+              )}
+            </ReceiptCell>
+          </div>
+        </div>
+
         {/* Pre-filled context: date, station, price. */}
+        <Eyebrow>פרטי התדלוק</Eyebrow>
         <Card className="overflow-hidden">
           <button
             type="button"
@@ -537,33 +629,7 @@ export function FillupForm() {
           />
         ) : null}
 
-        {/* What this entry will do to the calculation. One line, from the
-            engine itself — not a description of a control that no longer
-            exists. */}
-        {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
-
-        {/* Missing history. Never inferred from elapsed time or distance — a
-            month without refuelling is a real thing, not evidence of a gap. */}
-        <Card className="flex flex-col gap-3 p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex flex-1 flex-col gap-0.5">
-              <span className="text-[15px] font-semibold text-ink">
-                היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת
-              </span>
-              <span className="text-[12.5px] leading-relaxed text-muted">
-                {continuityBreak
-                  ? "מתחיל תקופת חישוב חדשה. הרשומות הישנות נשמרות — פשוט לא יחושב שום נתון שחוצה את הנקודה הזו."
-                  : "סמנו רק אם באמת תדלקתם בלי לתעד. אחרת השאירו כבוי."}
-              </span>
-            </span>
-            <Toggle
-              checked={continuityBreak}
-              onChange={setContinuityBreak}
-              ariaLabel="היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת"
-            />
-          </div>
-        </Card>
-
+        <Eyebrow>קילומטראז׳</Eyebrow>
         <Card className="flex flex-col gap-3 p-4">
           <Field
             big
@@ -600,8 +666,8 @@ export function FillupForm() {
             ))}
         </Card>
 
+        <Eyebrow>כמות וסכום</Eyebrow>
         <Card className="flex flex-col gap-3 p-4">
-          <Label>כמות וסכום</Label>
           <div className="flex gap-3">
             <div className="min-w-0 flex-1">
               <Field
@@ -641,13 +707,48 @@ export function FillupForm() {
             ))}
         </Card>
 
-        <Field
-          label="הערה"
-          dir="rtl"
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="לא חובה"
-        />
+        {/* What this entry will do to the calculation. One line, from the
+            engine itself — not a description of a control that no longer
+            exists. */}
+        {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
+
+        {/* Missing history. Never inferred from elapsed time or distance — a
+            month without refuelling is a real thing, not evidence of a gap. */}
+        <Eyebrow>תיעוד</Eyebrow>
+        <Card className="flex flex-col p-4">
+          <div className="flex items-center gap-3">
+            <span className="flex-1 text-[14.5px] font-semibold text-ink">
+              היו תדלוקים שלא תיעדתי
+            </span>
+            <Toggle
+              checked={continuityBreak}
+              onChange={setContinuityBreak}
+              ariaLabel="היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת"
+            />
+          </div>
+          {/* Off is the normal state and needs no paragraph; the consequence
+              is worth spelling out only once it is actually on. */}
+          {continuityBreak ? (
+            <p className="pt-2.5 text-[12.5px] leading-relaxed text-muted">
+              מתחיל תקופת חישוב חדשה. הרשומות הישנות נשמרות — פשוט לא יחושב שום נתון
+              שחוצה את הנקודה הזו.
+            </p>
+          ) : null}
+        </Card>
+
+        <Eyebrow>הערה</Eyebrow>
+        <Card className="p-4">
+          {/* The eyebrow above is the label, so the field carries only an
+              accessible name — a second visible "הערה" said it twice. */}
+          <input
+            aria-label="הערה"
+            dir="rtl"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="לא חובה"
+            className="min-h-[52px] w-full rounded-[14px] border border-line bg-bg px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
+          />
+        </Card>
 
         {warnings.length > 0 ? (
           <InfoStrip>
@@ -661,6 +762,13 @@ export function FillupForm() {
         <Button full onClick={save} disabled={!canSave} loading={saving}>
           {isEdit ? "שמירת שינויים" : "שמירת תדלוק"}
         </Button>
+        <p
+          className={`pt-2 text-center text-[12.5px] ${
+            blockMessage ? "text-danger-ink" : "text-muted"
+          }`}
+        >
+          {saveHint}
+        </p>
       </div>
 
       <StationSheet
@@ -842,6 +950,7 @@ function StationSheet({
                   key={`${entry.n}-${entry.lat}`}
                   label={entry.n}
                   meta={entry.a ?? undefined}
+                  brand={entry.c}
                   view={viewFor(entry.i ?? null, entry.n)}
                   selected={current?.name === entry.n}
                   onClick={() => onPick(toStation(entry))}
@@ -912,6 +1021,7 @@ function StationSheet({
                           ? formatDistance(entry.distanceMeters)
                           : undefined
                       }
+                      brand={entry.station.c}
                       view={viewFor(entry.station.i ?? null, entry.station.n)}
                       selected={current?.name === entry.station.n}
                       onClick={() => onPick(toStation(entry.station))}
@@ -927,6 +1037,7 @@ function StationSheet({
                     <StationRow
                       key={`past-${entry.name}`}
                       label={entry.name}
+                      brand={entry.brand}
                       view={viewFor(entry.stationId ?? null, entry.name)}
                       selected={current?.name === entry.name}
                       onClick={() => onPick(entry)}
@@ -1019,46 +1130,60 @@ function SortControl({
 function StationRow({
   label,
   meta,
+  brand,
   view,
   selected,
   onClick,
 }: {
   label: string;
   meta?: string;
+  /** Company from the register, for the brand badge. */
+  brand?: string | null;
   /**
    * What to show for the price, already decided for the active vehicle's fuel
-   * type. A regulated ceiling never reaches this — see `stationPriceView`.
+   * type — see `stationPriceView` for which figure wins.
    */
   view: StationPriceView;
   selected: boolean;
   onClick: () => void;
 }) {
+  // A figure someone actually observed at this station is the only one worth
+  // colouring; the nationwide ceiling stays quiet so it cannot be mistaken
+  // for one.
+  const known = view.kind === "station" || view.kind === "personal";
+
   return (
     <button
       type="button"
       onClick={onClick}
       className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 py-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
     >
-      <PinIcon size={17} className="flex-none text-muted" />
+      <StationBrandMark brand={brand} name={label} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
-        {/* One short metadata line. Distance, then the price when there is a
-            real one — never a nationwide ceiling dressed as this station's. */}
-        <span className="truncate text-[12px] text-muted">
-          {meta}
-          {view.text ? (
-            <>
-              {meta ? " · " : ""}
-              <Num className={`font-semibold ${view.stale ? "text-muted" : "text-ink"}`}>
-                {view.text}
-              </Num>
-              {view.stale ? <span className="text-[11px] text-warning-ink"> · ישן</span> : null}
-            </>
-          ) : null}
-        </span>
-        {/* Provenance travels with the number, always. */}
-        <span className="truncate text-[11.5px] text-muted/80">{view.detail}</span>
+        {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
       </span>
+
+      {view.text ? (
+        <span className="flex flex-none flex-col items-end gap-0.5">
+          <Num
+            className={`text-[14.5px] font-bold ${
+              view.stale ? "text-muted" : known ? "text-success-ink" : "text-ink"
+            }`}
+          >
+            {view.text}
+          </Num>
+          {/* Three words at most: what kind of figure this is. */}
+          <span
+            className={`text-[10.5px] ${view.stale ? "text-warning-ink" : "text-muted"}`}
+          >
+            {view.stale ? `${view.detail} · ישן` : view.detail}
+          </span>
+        </span>
+      ) : (
+        <span className="flex-none text-[10.5px] text-muted">{view.detail}</span>
+      )}
+
       {selected ? <CheckIcon size={18} className="flex-none text-accent" /> : null}
     </button>
   );
@@ -1147,8 +1272,8 @@ function DraftExplanation({
     return (
       <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
         {evaluation.startsNewPeriod
-          ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב במילוי הבא טנק מלא."
-          : "יוצר נקודת התחלה. הצריכה תחושב במילוי הבא טנק מלא."}
+          ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב בתדלוק הבא."
+          : "יוצר נקודת התחלה. הצריכה תחושב בתדלוק הבא."}
       </span>
     );
   }
@@ -1163,7 +1288,7 @@ function DraftExplanation({
 
   return (
     <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
-      הליטרים ייכללו בחישוב במילוי הבא טנק מלא · במקטע הפתוח יהיו{" "}
+      הליטרים ייכללו בחישוב בתדלוק הבא · במקטע הפתוח יהיו{" "}
       <Quantity value={evaluation.openSegment.liters} digits={1} className="font-semibold" />
     </span>
   );
@@ -1182,14 +1307,14 @@ function savedMessage(
       units === "kmPerLiter"
         ? `${kmPerLiter.toLocaleString("he-IL", { maximumFractionDigits: 1 })} קמ״ל`
         : `${(100 / kmPerLiter).toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל׳/100 ק״מ`;
-    return { title: `נשמר · ${value} מאז המילוי הקודם טנק מלא`, detail: undo };
+    return { title: `נשמר · ${value} מאז התדלוק הקודם`, detail: undo };
   }
 
   if (evaluation.outcome === "baseline") {
     return {
       title: evaluation.startsNewPeriod
-        ? "התחילה תקופת חישוב חדשה. הצריכה תחושב במילוי הבא טנק מלא."
-        : "נקודת התחלה נוצרה. הצריכה תחושב במילוי הבא טנק מלא.",
+        ? "התחילה תקופת חישוב חדשה. הצריכה תחושב בתדלוק הבא."
+        : "נקודת התחלה נוצרה. הצריכה תחושב בתדלוק הבא.",
       detail: undo,
     };
   }
@@ -1205,7 +1330,7 @@ function savedMessage(
     maximumFractionDigits: 1,
   });
   return {
-    title: "התדלוק נשמר. הליטרים ייכללו בחישוב במילוי הבא טנק מלא.",
+    title: "התדלוק נשמר. הליטרים ייכללו בחישוב בתדלוק הבא.",
     detail: `נשמרו ${liters} ל׳ במקטע הפתוח · ${undo}`,
   };
 }
@@ -1341,5 +1466,32 @@ function PumpPriceQuestion({
         </span>
       ) : null}
     </Card>
+  );
+}
+
+/** Small section label above each group, as in the form's design. */
+function Eyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-1 pb-0.5 pt-3 text-[11.5px] font-bold tracking-[0.01em] text-muted">
+      {children}
+    </p>
+  );
+}
+
+/** One cell of the receipt's bottom row. */
+function ReceiptCell({
+  label,
+  divided = false,
+  children,
+}: {
+  label: string;
+  divided?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={divided ? "border-e border-hero-line pe-2.5 ps-2.5" : "pe-2.5"}>
+      <div className="text-[11px] font-semibold text-hero-muted">{label}</div>
+      <div className="mt-[3px] text-[15px] font-bold">{children}</div>
+    </div>
   );
 }

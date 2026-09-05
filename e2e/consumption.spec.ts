@@ -47,7 +47,7 @@ test("the first filled-to-full record creates a baseline and shows no consumptio
 /**
  * Partial fill-ups are SEEDED, not entered.
  *
- * The " טנק מלא" toggle is gone from the form: a manual entry is a full
+ * The full-tank toggle is gone from the form: a manual entry is a full
  * tank, and a partial now only reaches the app through an import or a record
  * created before the toggle was removed. Those records must still compute
  * correctly, which is exactly what these tests establish.
@@ -73,7 +73,7 @@ test("a partial fill-up retains its liters and shows no consumption figure", asy
   await page.goto("/");
   await expect(page.getByText(/במקטע הפתוח נשמרו/)).toBeVisible({ timeout: 25_000 });
   await expect(page.getByText(/20/).first()).toBeVisible();
-  await expect(page.getByText(/הממוצע שלך/)).toHaveCount(0);
+  await expect(page.getByText(/ממוצע כולל/)).toHaveCount(0);
 });
 
 test("multiple partials accumulate into the open segment", async ({ page }) => {
@@ -125,12 +125,12 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
   // 600 km / (20 + 25) L = 13.33 km/L — NOT 300 / 25 = 12, which is what the
   // pre-upgrade toast computed.
   expect(toast).toContain("13.3");
-  expect(toast).toContain("מאז המילוי הקודם טנק מלא");
+  expect(toast).toContain("מאז התדלוק הקודם");
   expect(toast).not.toContain("12.0");
 
   // The dashboard agrees with the toast, because both come from one engine.
   await page.goto("/");
-  await expect(page.getByText(/הממוצע שלך: 13\.3 קמ״ל/)).toBeVisible();
+  await expect(page.getByText(/ממוצע כולל 13\.3 קמ״ל/)).toBeVisible();
   await expect(page.getByText(/1 מקטע · 3 תדלוקים/)).toBeVisible();
 });
 
@@ -180,7 +180,7 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await setActiveVehicle(uid, vehicleId);
   await page.goto("/");
   // 600 km / 50 L = 12.0 km/L
-  await expect(page.getByText(/הממוצע שלך: 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
   await expect(page.getByText(/1 מקטע · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
 
   // A BACKDATED partial lands between them and changes the answer: the same
@@ -199,7 +199,7 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   // 600 / 60 = 10.0 — the same distance, now covered by 50 + 10 litres. The
   // fill-up count is asserted in the same string so the check cannot pass
   // against a list that has not finished loading the third record.
-  await expect(page.getByText(/הממוצע שלך: 10\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/ממוצע כולל 10\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
   await expect(page.getByText(/1 מקטע · 3 תדלוקים/)).toBeVisible({ timeout: 25_000 });
 
   // Delete the backdated record; the figure returns to 12.0. History rows are
@@ -216,6 +216,6 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await page.getByRole("button", { name: "מחיקה", exact: true }).click();
 
   await page.goto("/");
-  await expect(page.getByText(/הממוצע שלך: 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
   await expect(page.getByText(/1 מקטע · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
 });

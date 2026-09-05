@@ -64,30 +64,44 @@ describe("typed date entry", () => {
 });
 
 /**
- * The steppers are gone.
+ * Two fields, and nothing between them.
  *
- * They duplicated the typed field and the OS time picker, cost the sheet a
- * whole row of height, and needed nine taps to reach 18:47. Asserted against
- * the source so the removal cannot quietly come back with a refactor.
+ * The steppers went first — nine taps to reach 18:47 — and the month grid with
+ * them: it paged one month at a time, so a record from two years back cost two
+ * dozen taps, and it duplicated a device picker that does the same job better.
+ * Asserted against the source so neither can quietly come back in a refactor.
  */
-describe("time controls", () => {
+describe("date and time controls", () => {
   it("keeps the manual field and both OS pickers", () => {
     expect(SOURCE).toContain('aria-label="שעה — הקלדה ידנית"');
     expect(SOURCE).toContain('aria-label="תאריך — הקלדה ידנית"');
     expect(SOURCE).toContain('aria-label="בחירת שעה מהמכשיר"');
     expect(SOURCE).toContain('aria-label="בחירת תאריך מהמכשיר"');
-    // Month/year jump and the calendar itself stay too.
-    expect(SOURCE).toContain('aria-label="חודש"');
-    expect(SOURCE).toContain('aria-label="שנה"');
-    expect(SOURCE).toContain('aria-label="חודש קודם"');
   });
 
-  it("no longer renders hour and minute steppers", () => {
+  it("opens the device picker from an icon, not from a label naming the device", () => {
+    expect(SOURCE).toContain('pickerLabel="פתיחת לוח השנה"');
+    expect(SOURCE).toContain('pickerLabel="פתיחת בורר השעה"');
+    expect(SOURCE).not.toContain("לוח שנה של המכשיר");
+    expect(SOURCE).not.toContain("שעון של המכשיר");
+  });
+
+  it("renders neither steppers nor a calendar grid", () => {
     expect(SOURCE).not.toContain("TimeRow");
     expect(SOURCE).not.toContain("function Stepper");
     expect(SOURCE).not.toContain("function Caret");
     expect(SOURCE).not.toContain("— הגדלה");
     expect(SOURCE).not.toContain("— הקטנה");
+    expect(SOURCE).not.toContain('aria-label="חודש קודם"');
+    expect(SOURCE).not.toContain('aria-label="חודש הבא"');
+    expect(SOURCE).not.toContain("WEEKDAYS");
+  });
+
+  it("accepts the two-digit year form the field is used with", () => {
+    const short = parseDate("05/09/26");
+    expect(short?.getFullYear()).toBe(2026);
+    expect(short?.getMonth()).toBe(8);
+    expect(short?.getDate()).toBe(5);
   });
 
   it("still accepts the exact minutes the steppers could not reach", () => {
