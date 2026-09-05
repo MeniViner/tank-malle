@@ -5,6 +5,7 @@ import {
   collectionGroup,
   doc,
   getDoc,
+  getDocFromServer,
   getDocs,
   limit,
   orderBy,
@@ -24,10 +25,10 @@ import {
 import { ScreenHeader } from "../components/AppHeader";
 import { Card, IconTile, Label, ListCard, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
+import { StationBrandMark } from "../components/StationBrand";
 import { Avatar } from "../components/Avatar";
 import { Segmented } from "../components/Segmented";
 import { Button } from "../components/Button";
-import { Field } from "../components/Field";
 import { useToast } from "../context/ToastContext";
 import {
   CarIcon,
@@ -36,12 +37,20 @@ import {
   LightbulbIcon,
   MessageIcon,
   PumpIcon,
+  RefreshIcon,
   ShieldIcon,
   UserIcon,
   WarningIcon,
 } from "../components/icons";
 import { dayMonthShort, num, parseDecimal, price, shekel, timeAgo } from "../lib/format";
-import { monthKey } from "../lib/stats";
+import { monthKey, type FuelType } from "../lib/stats";
+import {
+  REGULATED_SERVICE_MODE,
+  adaptLegacyConfig,
+  regulatedMaxPrice,
+  type RegulatedLookup,
+  type RegulatedPriceConfig,
+} from "../lib/prices/regulated";
 
 /**
  * Admin dashboard.
@@ -424,6 +433,8 @@ export function Admin() {
 
             <FuelPriceEditor />
 
+            <StationDataPanel />
+
             <BenchmarkPool />
 
             <p className="pb-2 text-center text-[11.5px] leading-relaxed text-muted/80">
@@ -567,117 +578,452 @@ function FeedbackInbox() {
 }
 
 /**
- * In-app control for the official price.
+ * In-app control for the official prices — every fuel type, not just 95.
  *
- * Until the scheduled function can run (Blaze), this is the fastest correct
- * path: an admin sees the live value, its age, and can set it in one tap —
- * no service-account key, no terminal.
+ * The old editor wrote one number into the legacy top-level field, which the
+ * adapter files under 95/self. A driver on diesel or 98 therefore had no
+ * official figure at all and nothing an admin could do about it. Each fuel
+ * type is now its own series, written where `regulatedMaxPrice` reads it.
+ *
+ * Nothing here scrapes: the ministry publishes the figure on a Cloudflare-
+ * protected HTML page with no CORS headers, so a browser physically cannot
+ * read it, and the scheduled function that can needs a Blaze project. The
+ * refresh below therefore re-reads the stored document from the server —
+ * which is exactly how an admin can tell whether an automatic update landed —
+ * and says so, instead of pretending to fetch from the ministry.
  */
+const EDITABLE_FUELS: { fuelType: FuelType; label: string }[] = [
+  { fuelType: "95", label: "בנזין 95" },
+  { fuelType: "98", label: "בנזין 98" },
+  { fuelType: "diesel", label: "סולר" },
+  { fuelType: "other", label: "אחר" },
+];
+
 function FuelPriceEditor() {
   const { showToast } = useToast();
-  const [current, setCurrent] = useState<{ value: number; updatedAt: number | null } | null>(
-    null,
-  );
-  const [draft, setDraft] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [config, setConfig] = useState<RegulatedPriceConfig | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    const snapshot = await getDoc(doc(db, "appConfig", "fuelPrices"));
-    if (!snapshot.exists()) {
-      setCurrent(null);
-      return;
+  const load = useCallback(async (fromServer = false) => {
+    setLoading(true);
+    try {
+      const ref = doc(db, "appConfig", "fuelPrices");
+      // The refresh must not be answered by the offline cache — the whole
+      // point of it is to see what the server holds right now.
+      const snapshot = fromServer
+        ? await getDocFromServer(ref).catch(() => getDoc(ref))
+        : await getDoc(ref);
+      setConfig(snapshot.exists() ? adaptLegacyConfig(snapshot.data()) : { byFuelType: {} });
+    } finally {
+      setLoading(false);
     }
-    const data = snapshot.data();
-    const value = Number(data.current?.pricePerLiter);
-    setCurrent({
-      value,
-      updatedAt: data.current?.updatedAt?.toMillis?.() ?? null,
-    });
-    setDraft(Number.isFinite(value) ? String(value) : "");
   }, []);
 
   useEffect(() => {
-    void load().catch(() => undefined);
+    void load().catch(() => setLoading(false));
   }, [load]);
 
-  const parsed = parseDecimal(draft);
-  const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
-  const changed = valid && parsed !== current?.value;
-
-  const stale =
-    current?.updatedAt !== null &&
-    current?.updatedAt !== undefined &&
-    Date.now() - current.updatedAt > 40 * 86_400_000;
-
-  async function save() {
-    if (!changed) return;
-    setSaving(true);
-    try {
-      const now = new Date();
-      await setDoc(
-        doc(db, "appConfig", "fuelPrices"),
-        {
-          current: {
-            pricePerLiter: parsed,
-            effectiveFrom: new Date(now.getFullYear(), now.getMonth(), 1),
-            updatedAt: serverTimestamp(),
+  async function save(fuelType: FuelType, value: number) {
+    const now = new Date();
+    await setDoc(
+      doc(db, "appConfig", "fuelPrices"),
+      {
+        byFuelType: {
+          [fuelType]: {
+            [REGULATED_SERVICE_MODE]: {
+              current: {
+                pricePerLiter: value,
+                effectiveFrom: new Date(now.getFullYear(), now.getMonth(), 1),
+                updatedAt: serverTimestamp(),
+              },
+              history: { [monthKey(now.getTime())]: value },
+              source: "manual",
+            },
           },
-          history: { [monthKey(now.getTime())]: parsed },
-          source: "admin",
         },
-        { merge: true },
-      );
-      // serverTimestamp() resolves only after the server acks, and the local
-      // cache would report it as null in the meantime — so reflect the new
-      // value directly instead of re-reading.
-      setCurrent({ value: parsed, updatedAt: Date.now() });
-      showToast({ tone: "success", title: "מחיר הדלק עודכן" });
-    } catch {
-      showToast({ tone: "error", title: "עדכון המחיר נכשל" });
-    } finally {
-      setSaving(false);
-    }
+      },
+      { merge: true },
+    );
+    // serverTimestamp() resolves only after the server acks, so reflect the
+    // new value locally rather than re-reading a null timestamp.
+    setConfig((previous) => {
+      const base = previous ?? { byFuelType: {} };
+      const series = base.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
+      return {
+        ...base,
+        byFuelType: {
+          ...base.byFuelType,
+          [fuelType]: {
+            ...base.byFuelType?.[fuelType],
+            [REGULATED_SERVICE_MODE]: {
+              history: {
+                ...(series?.history ?? {}),
+                [monthKey(now.getTime())]: value,
+              },
+              current: {
+                pricePerLiter: value,
+                effectiveFrom: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
+                updatedAt: Date.now(),
+              },
+              source: "manual" as const,
+            },
+          },
+        },
+      };
+    });
+    showToast({ tone: "success", title: "המחיר עודכן לכל המשתמשים" });
   }
 
   return (
     <section className="flex flex-col gap-2">
-      <Label>מחיר דלק רשמי</Label>
+      <div className="flex items-center justify-between gap-2">
+        <Label>מחירי דלק רשמיים</Label>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() =>
+            void load(true)
+              .then(() => showToast({ tone: "success", title: "הנתונים נקראו מהשרת" }))
+              .catch(() => showToast({ tone: "error", title: "הקריאה מהשרת נכשלה" }))
+          }
+          className="flex min-h-[32px] items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent disabled:opacity-50"
+        >
+          <RefreshIcon size={14} />
+          {loading ? "בודק…" : "בדיקת עדכון"}
+        </button>
+      </div>
+
       <Card className="flex flex-col gap-3 p-4">
-        <div className="flex items-center justify-between">
-          <span className="flex flex-col">
-            <span className="text-[14px] font-semibold text-ink">המחיר הפעיל כעת</span>
-            <span className="text-[12px] text-muted">
-              {current?.updatedAt
-                ? `עודכן ${dayMonthShort(current.updatedAt)}`
-                : "טרם עודכן"}
-            </span>
-          </span>
-          <Num className="text-[20px] font-bold text-ink">
-            {current ? price(current.value) : "—"}
-          </Num>
-        </div>
+        {EDITABLE_FUELS.map(({ fuelType, label }) => (
+          <FuelPriceRow
+            key={fuelType}
+            label={label}
+            lookup={regulatedMaxPrice(config, fuelType, Date.now())}
+            onSave={(value) => save(fuelType, value)}
+          />
+        ))}
 
-        {stale ? (
-          <div className="rounded-[12px] bg-warning-soft px-3 py-2.5 text-[12.5px] text-warning-ink">
-            המחיר לא עודכן מעל חודש. תדלוקים חדשים ממולאים לפי הערך הזה.
-          </div>
-        ) : null}
-
-        <Field
-          label="מחיר חדש לליטר"
-          inputMode="decimal"
-          suffix="₪"
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="8.10"
-          hint="נשמר גם בהיסטוריית החודש הנוכחי, כדי שתדלוקים בתאריך עבר ימשיכו לקבל את המחיר הנכון."
-        />
-
-        <Button full disabled={!changed} loading={saving} onClick={() => void save()}>
-          עדכון המחיר לכל המשתמשים
-        </Button>
+        <p className="text-[11.5px] leading-relaxed text-muted">
+          כל משתמש מקבל את המחיר לסוג הדלק של הרכב שלו מיד עם הכניסה לאפליקציה —
+          המסמך הזה נקרא בזמן אמת, בלי צורך בפעולה נוספת. אין כרגע משיכה אוטומטית:
+          העמוד של משרד האנרגיה חסום לקריאה מדפדפן, והמשימה המתוזמנת דורשת תוכנית
+          Blaze. „בדיקת עדכון” קוראת מחדש מהשרת, כך שאפשר לראות אם עדכון אוטומטי נחת.
+        </p>
       </Card>
     </section>
+  );
+}
+
+/** One fuel type: the stored figure, how fresh it is, and an inline edit. */
+function FuelPriceRow({
+  label,
+  lookup,
+  onSave,
+}: {
+  label: string;
+  lookup: RegulatedLookup;
+  onSave: (value: number) => Promise<void>;
+}) {
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const parsed = parseDecimal(draft);
+  const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
+  const changed = valid && parsed !== lookup.price;
+
+  const currentMonth = lookup.effectiveMonth === monthKey(Date.now());
+
+  return (
+    <div className="flex flex-col gap-2 border-b border-line pb-3 last:border-b-0 last:pb-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-[14px] font-semibold text-ink">{label}</span>
+        <span className="flex items-baseline gap-2">
+          <span
+            className={`text-[11.5px] ${currentMonth ? "text-muted" : "text-warning-ink"}`}
+          >
+            {lookup.price === null
+              ? "לא הוזן"
+              : `${lookup.source === "scheduled" ? "אוטומטי" : "ידני"}${
+                  lookup.updatedAt ? ` · ${dayMonthShort(lookup.updatedAt)}` : ""
+                }${currentMonth ? "" : " · לא לחודש הנוכחי"}`}
+          </span>
+          <Num className="text-[17px] font-bold text-ink">
+            {lookup.price !== null ? price(lookup.price) : "—"}
+          </Num>
+        </span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {/* A compact inline input rather than a full Field: four labelled
+            fields stacked would say the fuel name twice per row. */}
+        <label className="flex min-h-[44px] flex-1 items-center gap-2 rounded-[12px] border border-line bg-surface px-3 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
+          <span className="text-[13px] text-muted">₪</span>
+          <input
+            inputMode="decimal"
+            aria-label={`מחיר חדש לליטר · ${label}`}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder={lookup.price !== null ? String(lookup.price) : "8.10"}
+            className="num min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
+          />
+        </label>
+        <Button
+          disabled={!changed}
+          loading={saving}
+          onClick={() => {
+            setSaving(true);
+            void onSave(parsed)
+              .then(() => setDraft(""))
+              .finally(() => setSaving(false));
+          }}
+        >
+          שמירה
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Where station data comes from, and whether any of it is actually arriving.
+ *
+ * There is no live pump-price feed anywhere in this system, and the admin
+ * screen used to imply otherwise by simply not mentioning it. This states the
+ * three real sources separately and checks each one on demand:
+ *
+ *   1. the station CATALOG — a static file built from the Ministry of Energy
+ *      register by `scripts/buildStationCatalog.mjs` and shipped with the app;
+ *   2. that register, live, so a stale shipped catalog is visible;
+ *   3. station PRICES — community reports aggregated by a backend that needs
+ *      Blaze, so until it runs the count here is honestly zero.
+ */
+const REGISTER_RESOURCE = "5537a0ef-3eeb-449c-90c8-51e27564f0cb";
+const CATALOG_CACHE_KEY = "tm.stations.v1";
+const AGGREGATE_FRESH_MS = 14 * 86_400_000;
+
+interface StationDiagnostics {
+  catalog:
+    | { ok: true; count: number; registryCount: number | null; generatedAt: string | null; sourceUpdatedAt: string | null; brands: [string, number][] }
+    | { ok: false; error: string };
+  register: { ok: true; total: number } | { ok: false; error: string };
+  prices: { ok: true; count: number; fresh: number; newest: number | null } | { ok: false; error: string };
+}
+
+function StationDataPanel() {
+  const { showToast } = useToast();
+  const [data, setData] = useState<StationDiagnostics | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const check = useCallback(async () => {
+    setChecking(true);
+
+    // 1. The shipped catalog, read past every cache so the figure is the one
+    //    currently being served — not the copy this browser saved last week.
+    let catalog: StationDiagnostics["catalog"];
+    try {
+      localStorage.removeItem(CATALOG_CACHE_KEY);
+      const response = await fetch(`/fuel-stations.json?t=${Date.now()}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = (await response.json()) as {
+        count?: number;
+        registryCount?: number;
+        generatedAt?: string;
+        sourceUpdatedAt?: string;
+        stations?: { c?: string | null }[];
+      };
+      const counts = new Map<string, number>();
+      for (const station of payload.stations ?? []) {
+        const brand = station.c?.trim() || "ללא חברה";
+        counts.set(brand, (counts.get(brand) ?? 0) + 1);
+      }
+      catalog = {
+        ok: true,
+        count: payload.count ?? payload.stations?.length ?? 0,
+        registryCount: payload.registryCount ?? null,
+        generatedAt: payload.generatedAt ?? null,
+        sourceUpdatedAt: payload.sourceUpdatedAt ?? null,
+        brands: [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6),
+      };
+    } catch (error) {
+      catalog = { ok: false, error: (error as Error).message };
+    }
+
+    // 2. The live register. CKAN answers CORS, so this runs in the browser
+    //    with no function and no key.
+    let register: StationDiagnostics["register"];
+    try {
+      const url = new URL("https://data.gov.il/api/3/action/datastore_search");
+      url.searchParams.set("resource_id", REGISTER_RESOURCE);
+      url.searchParams.set("limit", "1");
+      const response = await fetch(url.toString(), {
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const payload = (await response.json()) as { result?: { total?: number } };
+      const total = payload.result?.total;
+      if (typeof total !== "number") throw new Error("תשובה לא צפויה מהמרשם");
+      register = { ok: true, total };
+    } catch (error) {
+      register = { ok: false, error: (error as Error).message };
+    }
+
+    // 3. Station-specific prices.
+    let prices: StationDiagnostics["prices"];
+    try {
+      const snapshot = await getDocs(
+        query(collection(db, "stationPriceAggregates"), limit(500)),
+      );
+      let fresh = 0;
+      let newest: number | null = null;
+      for (const document of snapshot.docs) {
+        const verified = Number(document.data().lastVerifiedAt) || null;
+        if (verified === null) continue;
+        if (Date.now() - verified < AGGREGATE_FRESH_MS) fresh += 1;
+        if (newest === null || verified > newest) newest = verified;
+      }
+      prices = { ok: true, count: snapshot.size, fresh, newest };
+    } catch (error) {
+      prices = { ok: false, error: (error as Error).message };
+    }
+
+    setData({ catalog, register, prices });
+    setChecking(false);
+  }, []);
+
+  useEffect(() => {
+    void check();
+  }, [check]);
+
+  const catalogStale =
+    data?.catalog.ok &&
+    data.register.ok &&
+    data.catalog.registryCount !== null &&
+    data.catalog.registryCount !== data.register.total;
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <Label>נתוני תחנות</Label>
+        <button
+          type="button"
+          disabled={checking}
+          onClick={() =>
+            void check().then(() => showToast({ tone: "success", title: "הבדיקה הושלמה" }))
+          }
+          className="flex min-h-[32px] items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent disabled:opacity-50"
+        >
+          <RefreshIcon size={14} />
+          {checking ? "בודק…" : "בדיקה עכשיו"}
+        </button>
+      </div>
+
+      <Card className="flex flex-col gap-3 p-4">
+        {!data ? (
+          <Skeleton className="h-[120px] rounded-[12px]" />
+        ) : (
+          <>
+            <DiagnosticRow
+              title="קטלוג התחנות (קובץ סטטי)"
+              ok={data.catalog.ok}
+              value={
+                data.catalog.ok
+                  ? `${num(data.catalog.count, 0)} עם נ״צ · ${num(data.catalog.registryCount ?? data.catalog.count, 0)} במרשם`
+                  : "לא נטען"
+              }
+              detail={
+                data.catalog.ok
+                  ? `נבנה ${data.catalog.generatedAt ? new Date(data.catalog.generatedAt).toLocaleDateString("he-IL") : "—"} · מקור עודכן ${
+                      data.catalog.sourceUpdatedAt
+                        ? new Date(data.catalog.sourceUpdatedAt).toLocaleDateString("he-IL")
+                        : "—"
+                    }`
+                  : data.catalog.error
+              }
+            />
+
+            {data.catalog.ok ? (
+              <div className="flex flex-wrap gap-1.5">
+                {data.catalog.brands.map(([brand, count]) => (
+                  <span
+                    key={brand}
+                    className="flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted"
+                  >
+                    <StationBrandMark brand={brand} size={18} />
+                    {brand} <Num>{count}</Num>
+                  </span>
+                ))}
+              </div>
+            ) : null}
+
+            <DiagnosticRow
+              title="מרשם משרד האנרגיה (data.gov.il)"
+              ok={data.register.ok}
+              value={data.register.ok ? `${num(data.register.total, 0)} תחנות` : "לא נקרא"}
+              detail={
+                data.register.ok
+                  ? catalogStale
+                    ? "המרשם השתנה — יש להריץ scripts/buildStationCatalog.mjs ולפרוס"
+                    : "הקטלוג המשולח תואם למרשם"
+                  : data.register.error
+              }
+            />
+
+            <DiagnosticRow
+              title="מחירים לפי תחנה"
+              ok={data.prices.ok && data.prices.count > 0}
+              value={
+                data.prices.ok
+                  ? `${num(data.prices.count, 0)} תחנות · ${num(data.prices.fresh, 0)} עדכניות`
+                  : "לא נקרא"
+              }
+              detail={
+                !data.prices.ok
+                  ? data.prices.error
+                  : data.prices.count === 0
+                    ? "אין אף מחיר ספציפי לתחנה. אין ספק חיצוני מחובר, ודיווחי נהגים נצברים רק על ידי פונקציית שרת (Blaze)."
+                    : `העדכני ביותר: ${data.prices.newest ? dayMonthShort(data.prices.newest) : "—"}`
+              }
+            />
+
+            <p className="text-[11.5px] leading-relaxed text-muted">
+              כל עוד אין מחיר ספציפי לתחנה, שורת תחנה מציגה את המחיר הארצי בסימון
+              „מחיר ארצי”. מחיר שדווח או נמשך באמת מוצג בירוק עם מקורו וגילו.
+            </p>
+          </>
+        )}
+      </Card>
+    </section>
+  );
+}
+
+/** One checked source: a status dot, the figure, and one line of detail. */
+function DiagnosticRow({
+  title,
+  ok,
+  value,
+  detail,
+}: {
+  title: string;
+  ok: boolean;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 border-b border-line pb-3 last:border-b-0 last:pb-0">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+          <span
+            aria-hidden="true"
+            className={`size-[7px] flex-none rounded-full ${ok ? "bg-success" : "bg-warning"}`}
+          />
+          {title}
+        </span>
+        <span className="flex-none text-[12.5px] font-semibold text-ink">{value}</span>
+      </div>
+      <span className="text-[11.5px] leading-relaxed text-muted">{detail}</span>
+    </div>
   );
 }
 

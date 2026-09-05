@@ -6,10 +6,12 @@ import type { StationPriceAggregate } from "./types";
 /**
  * What a station ROW is allowed to say.
  *
- * The picker used to print "עד ₪8.25 · מחיר מרבי מפוקח · אין דיווח עדכני
- * מהתחנה" on every station in the list. That is a nationwide monthly ceiling,
- * identical everywhere, and repeating it station after station told the driver
- * nothing while burying the rows that did have real information.
+ * Two failure modes, both real. Printing "עד ₪8.25 · מחיר מרבי מפוקח · אין
+ * דיווח עדכני מהתחנה" on every station buried the rows that did have real
+ * information; printing "מחיר לא זמין" instead gave the driver nothing at all.
+ * So a row always carries a figure, and the label — three words at most — says
+ * which kind it is: a station report, the driver's own receipt, or the
+ * nationwide ceiling.
  */
 
 const NOW = Date.UTC(2026, 8, 2, 12, 0);
@@ -39,13 +41,13 @@ function view(
 }
 
 describe("station row price", () => {
-  it("does not show the regulated ceiling as the station's price", () => {
+  it("shows the national ceiling as a labelled reference, never as this station's price", () => {
     const result = view("95");
-    expect(result.kind).toBe("none");
-    expect(result.text).toBe("");
-    expect(result.detail).toBe("מחיר לא זמין");
+    expect(result.kind).toBe("reference");
+    // "עד" is doing the work: this is a ceiling, not what the pump charges.
+    expect(result.text).toBe("עד ₪8.25");
+    expect(result.detail).toBe("מחיר ארצי");
     expect(result.detail).not.toContain("מחיר מרבי מפוקח");
-    expect(result.detail).not.toContain("8.25");
   });
 
   it("shows a real station-specific price with its freshness", () => {
@@ -72,10 +74,11 @@ describe("station row price", () => {
   it("labels the user's own last pump price as exactly that", () => {
     const result = view("95", { personal: { price: 8.02, observedAt: NOW - 3 * 24 * HOUR } });
     expect(result.kind).toBe("personal");
-    expect(result.detail).toContain("שילמת כאן לאחרונה");
-    expect(result.detail).toContain("₪8.02");
-    // It is the driver's receipt, not a claim about the station right now.
-    expect(result.text).toBe("");
+    // The label says whose number it is; it is a receipt, not a claim about
+    // what the pump charges right now.
+    expect(result.detail).toContain("שילמת כאן");
+    expect(result.detail).toContain("לפני 3 ימים");
+    expect(result.text).toBe("₪8.02");
   });
 
   it("prefers a real station price over the user's own history", () => {
@@ -102,7 +105,7 @@ describe("station row price", () => {
     for (const fuelType of ["diesel", "98"] as const) {
       const result = view(fuelType);
       expect(result.text).toBe("");
-      expect(result.detail).toBe("מחיר לא זמין");
+      expect(result.detail).toBe("אין מחיר לסוג הדלק");
       expect(result.detail).not.toContain("8.25");
     }
   });

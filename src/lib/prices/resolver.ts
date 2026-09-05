@@ -350,23 +350,26 @@ export function applyPersonalRule(
 /**
  * What a STATION ROW should show.
  *
- * The regulated maximum is a nationwide ceiling, identical for every station
- * and unchanged for a month. Printing it on every row — "עד ₪8.25 · מחיר מרבי
- * מפוקח · אין דיווח עדכני מהתחנה", over and over — is not a station price and
- * makes the list unreadable. So it is deliberately NOT shown here; it stays an
- * internal reference for plausibility checks and ranking.
+ * Every row carries a figure, because "מחיר לא זמין" on a whole list told the
+ * driver nothing they could act on. What changes between rows is WHICH figure
+ * and how much it is worth:
  *
- * What a row may show, in order:
- *   1. a real station-specific figure, with its source and age;
+ *   1. a real station-specific figure — reported or fetched — shown as the
+ *      price, and marked as the one to trust;
  *   2. what this driver themselves last paid here, labelled as exactly that;
- *   3. nothing but a compact "מחיר לא זמין".
+ *   3. the nationwide regulated maximum, as a clearly-labelled ceiling, so a
+ *      row without station data still says roughly what a litre costs;
+ *   4. nothing at all, only where even the ceiling is unknown for this fuel.
+ *
+ * The provenance line is deliberately two or three words: it sits under every
+ * row in a scrolling list, and a sentence there is noise.
  */
 export interface StationPriceView {
-  /** Rendered amount, or "" when there is nothing station-specific to show. */
+  /** Rendered amount, or "" only when nothing at all is known. */
   text: string;
-  /** One short line of provenance. Never omitted when a number is shown. */
+  /** Two or three words of provenance. Never omitted when a number is shown. */
   detail: string;
-  kind: "station" | "personal" | "none";
+  kind: "station" | "personal" | "reference" | "none";
   /** A figure old enough that it may have moved. Marked, never hidden. */
   stale: boolean;
 }
@@ -378,6 +381,30 @@ function money(value: number): string {
   })}`;
 }
 
+/** "לפני יומיים" — the age alone, for the compact row line. */
+function shortAge(observedAt: number | null, now: number): string {
+  if (observedAt === null) return "";
+
+  const minutes = Math.round((now - observedAt) / 60_000);
+  if (minutes < 1) return "עכשיו";
+  if (minutes < 60) return `לפני ${minutes} דק׳`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) {
+    if (hours === 1) return "לפני שעה";
+    if (hours === 2) return "לפני שעתיים";
+    return `לפני ${hours} שעות`;
+  }
+
+  const days = Math.round((now - observedAt) / 86_400_000);
+  if (days <= 0) return "היום";
+  if (days === 1) return "אתמול";
+  if (days === 2) return "לפני יומיים";
+  if (days < 31) return `לפני ${days} ימים`;
+  const months = Math.round(days / 30);
+  return months === 1 ? "לפני חודש" : `לפני ${months} חודשים`;
+}
+
 export function stationPriceView(
   resolved: ResolvedPrice,
   /** What this user last paid at this station, from their own history. */
@@ -385,9 +412,16 @@ export function stationPriceView(
   now: number = Date.now(),
 ): StationPriceView {
   if (resolved.price !== null && !resolved.isCeiling) {
+    const age = shortAge(resolved.observedAt, now);
+    const label =
+      resolved.source === "external-provider"
+        ? "מחיר מהתחנה"
+        : resolved.source === "personal-history"
+          ? "שילמת כאן"
+          : "דיווח נהגים";
     return {
       text: money(resolved.price),
-      detail: resolved.explanation,
+      detail: age ? `${label} · ${age}` : label,
       kind: "station",
       stale: resolved.freshness === "stale" || resolved.freshness === "unknown",
     };
@@ -395,15 +429,25 @@ export function stationPriceView(
 
   if (personal && personal.price > 0) {
     return {
-      text: "",
-      // Explicitly the driver's own price, not the station's current one.
-      detail: `שילמת כאן לאחרונה ${money(personal.price)} · ${ageText(personal.observedAt, now)}`,
+      text: money(personal.price),
+      detail: `שילמת כאן · ${shortAge(personal.observedAt, now)}`,
       kind: "personal",
       stale: false,
     };
   }
 
-  return { text: "", detail: "מחיר לא זמין", kind: "none", stale: false };
+  // The nationwide ceiling. Not this station's price, and labelled as such —
+  // but a real number beats an apology.
+  if (resolved.price !== null) {
+    return {
+      text: `עד ${money(resolved.price)}`,
+      detail: "מחיר ארצי",
+      kind: "reference",
+      stale: false,
+    };
+  }
+
+  return { text: "", detail: "אין מחיר לסוג הדלק", kind: "none", stale: false };
 }
 
 /**
