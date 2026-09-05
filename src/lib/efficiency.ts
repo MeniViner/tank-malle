@@ -66,12 +66,12 @@ export function compareToPersonalAverage(
         outcome: "better",
         signedPercent,
         percent,
-        label: `חסכוני ב־${percent}% מהממוצע שלך`,
+        label: `פחות ${percent}% מהממוצע`,
       }
     : {
         outcome: "worse",
         signedPercent,
         percent,
-        label: `צריכה גבוהה ב־${percent}% מהממוצע שלך`,
+        label: `גבוה ב ${percent}% מהממוצע`,
       };
 }

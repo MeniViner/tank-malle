@@ -18,7 +18,7 @@ describe("compareToPersonalAverage", () => {
     const result = compareToPersonalAverage(LATEST_6_8_L100, AVERAGE_7_1_L100);
     expect(result?.outcome).toBe("better");
     expect(result?.percent).toBe(4);
-    expect(result?.label).toBe("חסכוני ב־4% מהממוצע שלך");
+    expect(result?.label).toBe("חסכוני ב־4%");
   });
 
   it("never says 'above' or 'below' the average without naming what is compared", () => {
@@ -38,7 +38,7 @@ describe("compareToPersonalAverage", () => {
     const result = compareToPersonalAverage(13.15, AVERAGE_7_1_L100);
     expect(result?.outcome).toBe("worse");
     expect(result?.percent).toBe(7);
-    expect(result?.label).toBe("צריכה גבוהה ב־7% מהממוצע שלך");
+    expect(result?.label).toBe("צריכה גבוהה ב־7%");
   });
 
   it("gives the SAME verdict whichever unit the screen is showing", () => {

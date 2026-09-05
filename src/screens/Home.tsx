@@ -249,13 +249,15 @@ export function Home() {
       >
         <div className="flex flex-col gap-3 px-1 text-[13.5px] leading-relaxed text-ink/85">
           <span>
-            <b className="text-ink">צריכה אחרונה</b> — התוצאה של המקטע האחרון שנסגר.
+            <b className="text-ink">צריכה אחרונה</b> — צריכת הדלק שנמדדה מאז התדלוק המלא הקודם.
           </span>
+
           <span>
-            <b className="text-ink">ממוצע כולל</b> — ממוצע כל המקטעים, משוקלל לפי מרחק.
+            <b className="text-ink">ממוצע כולל</b> — ממוצע צריכת הדלק מכל הנסיעות שנמדדו, לפי המרחק שנסעת.
           </span>
+
           <span>
-            חישוב לא חוצה נקודה שסימנתם בה תדלוקים שלא תועדו.
+            אם סימנת שהיה תדלוק שלא תועד, החישוב מתחיל מחדש מאותה נקודה כדי לשמור על דיוק.
           </span>
         </div>
       </Sheet>

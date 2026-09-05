@@ -379,8 +379,8 @@ export function FillupForm() {
     if (!(Number.isFinite(priceValue) && priceValue > 0)) missing.push("מחיר לליטר");
 
     if (missing.length === 0) return "הכול מוכן — אפשר לשמור";
-    if (missing.length === 1) return `נשאר למלא ${missing[0]}`;
-    return `נשאר למלא ${missing.slice(0, -1).join(", ")} ו${missing[missing.length - 1]}`;
+    if (missing.length === 1) return `מלאו ${missing[0]}`;
+    return `מלאו ${missing.slice(0, -1).join(", ")} ו${missing[missing.length - 1]}`;
   }, [blockMessage, odometerValue, litersValue, priceValue]);
 
   /* ---------- save ---------- */
@@ -521,7 +521,7 @@ export function FillupForm() {
           </span>
 
           <div className="mt-4 grid grid-cols-3 border-t border-hero-line pt-3">
-            <ReceiptCell label="ליטרים">
+            <ReceiptCell label="ליטרים" divided>
               {Number.isFinite(litersValue) && litersValue > 0 ? (
                 <Num>{num(litersValue, 1)}</Num>
               ) : (
@@ -538,7 +538,7 @@ export function FillupForm() {
             {/* From the engine, never from (distance ÷ litres) on the spot:
                 that ignores partials and open segments, and prints a four-digit
                 "consumption" the moment an odometer is mistyped. */}
-            <ReceiptCell label="צריכה" divided>
+            <ReceiptCell label="צריכה">
               {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? (
                 <ConsumptionValue
                   kmPerLiter={draftEvaluation.segment.kmPerLiter}
@@ -1489,7 +1489,9 @@ function ReceiptCell({
   children: React.ReactNode;
 }) {
   return (
-    <div className={divided ? "border-e border-hero-line pe-2.5 ps-2.5" : "pe-2.5"}>
+    <div
+      className={divided ? "border-e border-hero-line pe-2.5 ps-2.5" : "pe-2.5 ps-2.5"}
+    >
       <div className="text-[11px] font-semibold text-hero-muted">{label}</div>
       <div className="mt-[3px] text-[15px] font-bold">{children}</div>
     </div>
