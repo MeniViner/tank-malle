@@ -60,17 +60,38 @@ the admin scripts below, and only via `GOOGLE_APPLICATION_CREDENTIALS`.
 | `node scripts/buildVehicleCatalog.mjs` | Rebuild the make/model catalog from data.gov.il  |
 | `node scripts/buildStationCatalog.mjs` | Rebuild the fuel-station catalog with coordinates |
 | `node scripts/grantAdmin.mjs <email>`  | Grant (or `--revoke`) the admin custom claim     |
+| `node scripts/updateFuelPrices.mjs`    | Read the ministry's monthly price and write it (`--dry-run` to print) |
 | `node scripts/makeImportFixtures.mjs`  | Regenerate the synthetic import fixtures         |
 | `node scripts/migrate.mjs`             | Data migration — **dry run** unless `--apply`    |
 
 To develop against the emulator suite, set `VITE_USE_EMULATORS=1` in `.env` and
 run `npm run emulators` alongside `npm run dev`.
 
-### Seeding the fuel price
+### The fuel price
+
+The regulated 95 price updates itself, on the free tier. A daily GitHub
+Actions job (`.github/workflows/fuel-prices.yml`) runs
+`scripts/updateFuelPrices.mjs`, which reads the Ministry of Energy's monthly
+announcement — `gov.il/he/pages/fuel-<month>-<year>` — and writes the
+self-service maximum and the full-service figure into `appConfig/fuelPrices`.
+The page is Cloudflare-protected and sends no CORS headers, so a browser
+cannot do this itself; the job tries a direct read and falls back to a public
+text-extraction proxy. If both fail nothing is written and the previous value
+stands.
+
+One-time setup: create a service-account key (Firebase console → Project
+settings → Service accounts) and paste the whole JSON into the repository
+secret `FIREBASE_SERVICE_ACCOUNT`. Then run the workflow once by hand from the
+Actions tab. Admin → ניהול → נתונים shows when the job last landed.
+
+Only 95 is regulated in Israel. 98, diesel and "other" have no published
+figure, so an admin sets them by hand in the same panel, per fuel type.
 
 ```bash
+node scripts/updateFuelPrices.mjs --dry-run              # print, write nothing
+
 GOOGLE_APPLICATION_CREDENTIALS=~/Downloads/tank-malle-…json \
-  node scripts/seedFuelPrice.mjs 7.31                    # current month
+  node scripts/seedFuelPrice.mjs 7.31                    # set 95 by hand
 
 GOOGLE_APPLICATION_CREDENTIALS=… \
   node scripts/seedFuelPrice.mjs 7.12 2026-07            # backfill a past month

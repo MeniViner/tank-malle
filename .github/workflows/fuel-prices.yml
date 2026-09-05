@@ -1,0 +1,55 @@
+name: Fuel price
+
+# The regulated 95 price, refreshed daily — the free replacement for the
+# scheduled Cloud Function, which needs the Blaze plan.
+#
+# Cost: one ~40-second job a day. Public repositories get unlimited Actions
+# minutes; a private one gets 2,000 free minutes a month, of which this uses
+# about twenty. Nothing here is billed by Firebase either: the job writes one
+# document, well inside the Spark free quota.
+#
+# ONE-TIME SETUP
+#   1. Firebase console → Project settings → Service accounts → Generate new
+#      private key. A JSON file downloads.
+#   2. GitHub → repository → Settings → Secrets and variables → Actions →
+#      New repository secret, named FIREBASE_SERVICE_ACCOUNT, whose value is
+#      the whole contents of that JSON file.
+#   3. Actions → Fuel price → Run workflow, to prove it end to end.
+#
+# The key is a Firestore-writing credential: keep it in the secret only, never
+# in the repo, and rotate it in the console if it is ever exposed.
+
+on:
+  schedule:
+    # 02:15 UTC — early morning in Israel, after the ministry publishes and
+    # well before anyone fills up. GitHub runs cron on UTC and does not
+    # observe local daylight saving.
+    - cron: "15 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: fuel-price
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Read gov.il and write appConfig/fuelPrices
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Only the Admin SDK. A full `npm ci` would pull Playwright and the
+      # Firebase CLI for a script that needs neither.
+      - name: Install the Admin SDK
+        run: npm install --no-save --no-audit --no-fund firebase-admin@14
+
+      - name: Update the regulated price
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/updateFuelPrices.mjs

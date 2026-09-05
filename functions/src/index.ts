@@ -18,10 +18,18 @@ const REGION = "europe-west1";
  * the Ministry of Energy. There is no first-party JSON feed, so this tries a
  * small chain of sources and gives up quietly rather than writing garbage:
  * a stale-but-correct price beats a confidently wrong one.
+ *
+ * NOTE: this function needs Blaze and is not deployed. The job that actually
+ * runs is scripts/updateFuelPrices.mjs, on a free GitHub Actions schedule —
+ * see .github/workflows/fuel-prices.yml. It reads the monthly announcement
+ * page, which is where the figure now lives; the collection URLs below have
+ * been 404 for a while, which is part of why nothing was being written.
  */
 const PRICE_SOURCES = [
-  "https://www.gov.il/he/pages/fuelprices",
-  "https://www.gov.il/he/departments/dynamiccollectors/fuel-prices",
+  // fuel-<month>-<year>, e.g. .../fuel-september-2026
+  `https://www.gov.il/he/pages/fuel-${new Date()
+    .toLocaleString("en-US", { month: "long", timeZone: "Asia/Jerusalem" })
+    .toLowerCase()}-${new Date().getFullYear()}`,
 ];
 
 /** Israeli pump prices have lived in this band for over a decade. */
