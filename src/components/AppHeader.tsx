@@ -1,38 +1,38 @@
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
-import { vehicleLabel } from "../lib/format";
 import {
   CarIcon,
-  ChevronDown,
-  CheckIcon,
+  ChevronStart,
   CloudOffIcon,
   PlusIcon,
   WarningIcon,
 } from "./icons";
-import { Sheet } from "./Sheet";
 import { Num } from "./Num";
 import { Avatar } from "./Avatar";
 
 /**
- * App header: active-vehicle switcher on one side, profile avatar on the
- * other, plus an offline indicator that appears only when relevant.
+ * App header: the active vehicle on one side, profile avatar on the other,
+ * plus a sync indicator that appears only when relevant.
+ *
+ * The vehicle pill opens vehicle MANAGEMENT rather than a switcher sheet:
+ * tapping the car you are looking at to get a list of cars was the one thing
+ * it was never asked to do.
  */
 export function AppHeader() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeVehicle, activeVehicles, setActiveVehicle, offline, writes } = useData();
-  const [switcherOpen, setSwitcherOpen] = useState(false);
+  const { activeVehicle, offline, writes } = useData();
 
   return (
     <header className="flex flex-none items-center justify-between gap-2 px-5 pb-1 pt-3">
       {activeVehicle ? (
         <button
           type="button"
-          onClick={() => activeVehicles.length > 1 && setSwitcherOpen(true)}
+          onClick={() => navigate("/settings/vehicles")}
           className="flex min-h-[42px] items-center gap-2.5 rounded-pill border border-line bg-surface px-3.5 py-2 shadow-card transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
-          aria-label="החלפת רכב פעיל"
+          aria-label="ניהול רכבים"
         >
           <CarIcon size={18} className="text-accent" />
           <span className="max-w-[190px] truncate text-[14.5px] font-semibold text-ink">
@@ -50,7 +50,7 @@ export function AppHeader() {
               </>
             )}
           </span>
-          {activeVehicles.length > 1 ? <ChevronDown size={15} className="text-muted" /> : null}
+          <ChevronStart size={15} className="text-muted" />
         </button>
       ) : (
         <button
@@ -101,47 +101,6 @@ export function AppHeader() {
         </button>
       </div>
 
-      <Sheet
-        open={switcherOpen}
-        onClose={() => setSwitcherOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">בחירת רכב</h2>}
-      >
-        <div className="flex flex-col gap-1">
-          {activeVehicles.map((vehicle) => (
-            <button
-              key={vehicle.id}
-              type="button"
-              onClick={() => {
-                void setActiveVehicle(vehicle.id);
-                setSwitcherOpen(false);
-              }}
-              className="flex min-h-[56px] items-center gap-3 rounded-[16px] px-3 text-start transition-[background-color,scale] duration-200 active:scale-[0.98] active:bg-surface-2"
-            >
-              <span className="flex size-9 flex-none items-center justify-center rounded-tile bg-accent-soft text-accent">
-                <CarIcon size={18} />
-              </span>
-              <span className="flex-1 truncate text-[15px] font-semibold text-ink">
-                {vehicleLabel(vehicle)}
-              </span>
-              {vehicle.id === activeVehicle?.id ? (
-                <CheckIcon size={19} className="text-accent" />
-              ) : null}
-            </button>
-          ))}
-
-          <button
-            type="button"
-            onClick={() => {
-              setSwitcherOpen(false);
-              navigate("/vehicles/new");
-            }}
-            className="mt-1 flex min-h-[52px] items-center justify-center gap-2 rounded-pill bg-surface-2 text-[15px] font-bold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97]"
-          >
-            <PlusIcon size={18} />
-            הוספת רכב
-          </button>
-        </div>
-      </Sheet>
     </header>
   );
 }

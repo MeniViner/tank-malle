@@ -18,6 +18,7 @@ import {
   MoonIcon,
   PaletteIcon,
   MessageIcon,
+  PhoneIcon,
   PlusIcon,
   ShieldIcon,
   SunIcon,
@@ -25,6 +26,7 @@ import {
   UserIcon,
 } from "../components/icons";
 import { useAuth } from "../context/AuthContext";
+import { useInstallPrompt } from "../hooks/useInstallPrompt";
 import {
   FUEL_TYPE_SHORT,
   dayMonthShort,
@@ -325,6 +327,8 @@ export function Settings() {
           </section>
         ) : null}
 
+        <InstallSection />
+
         {/* Small, low-key, and right where someone lands after poking around. */}
         <section className="flex flex-col gap-2">
           <Label>עזרה ומשוב</Label>
@@ -529,5 +533,58 @@ function NumberSheet({
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * Installing the app onto the device.
+ *
+ * Three honest states: already installed (a plain confirmation, no button),
+ * a real deferred prompt (a button that opens it), or a browser with no
+ * install API — where the only useful thing is the actual gesture, so that is
+ * what it says instead of a button that would silently do nothing.
+ */
+function InstallSection() {
+  const { state, install } = useInstallPrompt();
+  const { showToast } = useToast();
+
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  return (
+    <section className="flex flex-col gap-2">
+      <Label>האפליקציה</Label>
+      <Card className="overflow-hidden">
+        <RowButton
+          icon={
+            <IconTile>
+              <PhoneIcon size={18} />
+            </IconTile>
+          }
+          title={state === "installed" ? "האפליקציה מותקנת" : "התקנת האפליקציה"}
+          subtitle={
+            state === "installed"
+              ? "פועלת מהמסך הראשי, בלי דפדפן"
+              : state === "available"
+                ? "אייקון במגירת היישומים, פתיחה במסך מלא"
+                : iOS
+                  ? "בספארי: שיתוף ← הוספה למסך הבית"
+                  : "בתפריט הדפדפן: התקנת אפליקציה"
+          }
+          disabled={state !== "available"}
+          trailing={
+            state === "installed" ? (
+              <CheckIcon size={18} className="text-accent" />
+            ) : state === "available" ? (
+              <ChevronStart size={17} className="text-muted" />
+            ) : null
+          }
+          onClick={() => {
+            void install().then((accepted) => {
+              if (accepted) showToast({ tone: "success", title: "האפליקציה הותקנה" });
+            });
+          }}
+        />
+      </Card>
+    </section>
   );
 }

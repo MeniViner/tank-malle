@@ -88,16 +88,6 @@ export async function signOut(page: Page): Promise<void> {
   });
 }
 
-/** Switch accounts through the explicit flow rather than a bare sign-out. */
-export async function switchAccount(page: Page): Promise<void> {
-  await page.goto("/settings/profile");
-  await page.getByRole("button", { name: "החלפת חשבון" }).first().click();
-  await page.getByRole("button", { name: "החלפת חשבון" }).last().click();
-  await expect(page.getByRole("button", { name: /Google/ })).toBeVisible({
-    timeout: 20_000,
-  });
-}
-
 /**
  * The id of a user's first vehicle.
  *

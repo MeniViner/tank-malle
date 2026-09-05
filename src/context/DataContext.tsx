@@ -70,7 +70,6 @@ interface DataContextValue {
   /** Drop a failure the user has acknowledged. */
   dismissWriteFailure: (id: string) => void;
   /** Sign out, discarding every trace of the current account from memory. */
-  switchAccount: () => Promise<void>;
 
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>;
   setActiveVehicle: (vehicleId: string) => Promise<void>;
@@ -306,7 +305,7 @@ function stripUndefined<T extends Record<string, unknown>>(input: T): T {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { user, signOutUser } = useAuth();
+  const { user } = useAuth();
   const { setTheme, setAccent } = useTheme();
 
   // The uid, not the User object: a token refresh produces a NEW User instance
@@ -1016,18 +1015,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * documents, and keeping persistence is what makes the app work at the pump
    * with no signal. The trade-off is recorded in docs/DATA-MIGRATION.md.
    */
-  const switchAccount = useCallback(async () => {
-    const outstanding = trackerRef.current?.unacknowledged() ?? [];
-    if (outstanding.length > 0) {
-      // Give queued writes a brief chance to land before the session ends.
-      await Promise.race([
-        Promise.allSettled(outstanding.map(() => Promise.resolve())),
-        new Promise((resolve) => setTimeout(resolve, 1_500)),
-      ]);
-    }
-    await signOutUser();
-  }, [signOutUser]);
-
   /**
    * Delete the account and everything attached to it.
    *
@@ -1113,7 +1100,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       offline,
       writes,
       dismissWriteFailure,
-      switchAccount,
       updateSettings,
       setActiveVehicle,
       addVehicle,
@@ -1145,7 +1131,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       offline,
       writes,
       dismissWriteFailure,
-      switchAccount,
       updateSettings,
       setActiveVehicle,
       addVehicle,

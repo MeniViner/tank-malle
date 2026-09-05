@@ -15,7 +15,14 @@ import {
   signOut,
   type User,
 } from "firebase/auth";
-import { doc, getDoc, runTransaction, serverTimestamp } from "firebase/firestore";
+import {
+  clearIndexedDbPersistence,
+  doc,
+  getDoc,
+  runTransaction,
+  serverTimestamp,
+  terminate,
+} from "firebase/firestore";
 import { auth, db, googleProvider } from "../lib/firebase";
 
 interface AuthContextValue {
@@ -147,8 +154,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /**
+   * Sign out and leave nothing of this session behind.
+   *
+   * Signing out of Auth alone left the previous account's Firestore cache and
+   * in-memory state in place, so signing in as somebody else rendered the
+   * outgoing account's vehicles until the listeners caught up — which is what
+   * made "switch account" look broken. Clearing the persistent cache and
+   * reloading gives the next sign-in a genuinely clean process.
+   */
   const signOutUser = useCallback(async () => {
     await signOut(auth);
+
+    try {
+      // The cache can only be cleared while no client is using it.
+      await terminate(db);
+      await clearIndexedDbPersistence(db);
+    } catch {
+      /* best effort — a second tab may still hold the lease */
+    }
+
+    window.location.replace("/");
   }, []);
 
   const value = useMemo<AuthContextValue>(

@@ -11,23 +11,21 @@ import { ConfirmDialog } from "../components/Sheet";
 import { downloadFillupsCsv } from "../lib/csv";
 import { Num } from "../components/Num";
 import { computeStats } from "../lib/stats";
-import { fullDate, loginMoment, num, shekel, timeAgo } from "../lib/format";
-import {
-  CarIcon,
-  DownloadIcon,
-  LogoutIcon,
-  UsersIcon,
-  PumpIcon,
-  ShieldIcon,
-  TrashIcon,
-} from "../components/icons";
+import { fullDate, loginMoment, num, price, shekel } from "../lib/format";
+import { DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon } from "../components/icons";
 
-/** Profile & account (design 19). */
+/**
+ * Profile & account.
+ *
+ * Identity sits on the same dark hero card the home screen uses, so the two
+ * "who/what am I looking at" surfaces read as one family, and the lifetime
+ * totals below it are the same stat-card pair. Account SETTINGS are not here —
+ * this screen states who you are and what you have logged.
+ */
 export function Profile() {
   const navigate = useNavigate();
   const { user, signOutUser, isAdmin, previousLoginAt } = useAuth();
-  const { fillups, activeVehicle, vehicles, deleteAccount, settings, writes, switchAccount } =
-    useData();
+  const { fillups, activeVehicle, vehicles, deleteAccount } = useData();
   const stats = useMemo(
     () => computeStats(fillups, activeVehicle),
     [fillups, activeVehicle],
@@ -46,8 +44,13 @@ export function Profile() {
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   // Account deletion is irreversible, so it takes two separate confirmations.
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
-  const [confirmSwitch, setConfirmSwitch] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const active = vehicles.filter((vehicle) => !vehicle.archived);
+  const avgPricePaid =
+    stats.records.totalLiters > 0
+      ? stats.records.totalCost / stats.records.totalLiters
+      : null;
 
   async function reallyDelete() {
     setDeleting(true);
@@ -92,46 +95,70 @@ export function Profile() {
       <ScreenHeader title="פרופיל" onBack={() => navigate(-1)} />
 
       <div className="flex flex-col gap-4 px-5">
-        <div className="flex flex-col items-center gap-3 py-3">
-          <Avatar name={user?.displayName} photoURL={user?.photoURL} size={84} />
-          <div className="flex flex-col items-center gap-0.5">
-            <span className="text-[19px] font-bold text-ink">
-              {user?.displayName ?? "משתמש"}
-            </span>
-            <span dir="ltr" className="text-[13.5px] text-muted">
-              {user?.email}
+        <section className="tm-rise flex flex-col gap-3.5 rounded-hero bg-hero p-[16px_18px_15px] text-hero-ink shadow-raised">
+          <div className="flex items-center gap-3.5">
+            <Avatar name={user?.displayName} photoURL={user?.photoURL} size={62} />
+            <div className="flex min-w-0 flex-col items-start gap-1">
+              <span className="truncate text-[21px] font-bold leading-tight">
+                {user?.displayName ?? "משתמש"}
+              </span>
+              <span dir="ltr" className="max-w-full truncate text-[13px] text-hero-muted">
+                {user?.email}
+              </span>
+              {isAdmin ? (
+                <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-pill bg-hero-soft px-2.5 py-1 text-[11.5px] font-bold">
+                  <ShieldIcon size={13} />
+                  מנהל מערכת
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-hero-line pt-3 text-[12px] text-hero-muted">
+            <span>חבר מאז {joinedAt ? fullDate(joinedAt) : "—"}</span>
+            <span>
+              {previousLoginAt === undefined
+                ? ""
+                : previousLoginAt === null
+                  ? "זו ההתחברות הראשונה"
+                  : `נכנס לאחרונה ${loginMoment(previousLoginAt)}`}
             </span>
           </div>
-        </div>
+        </section>
 
         {/* Lifetime totals — the reason to keep a log in the first place. */}
         <section className="flex flex-col gap-2">
           <Label>הפעילות שלי</Label>
           <div className="flex gap-3">
             <MetricCard
-              icon={<PumpIcon size={16} />}
               label="תדלוקים"
               value={num(stats.records.fillupCount, 0)}
-              meta={`${num(stats.records.totalLiters, 0)} ליטר`}
+              meta={`${num(stats.records.totalLiters, 0)} ליטר בסך הכול`}
             />
             <MetricCard
-              icon={<CarIcon size={16} />}
-              label="רכבים"
-              value={num(vehicles.length, 0)}
-              meta={vehicles.filter((v) => v.archived).length > 0
-                ? `${num(vehicles.filter((v) => v.archived).length, 0)} בארכיון`
-                : undefined}
+              label="סה״כ הוצאה"
+              value={shekel(stats.records.totalCost)}
+              meta={avgPricePaid !== null ? `ממוצע ${price(avgPricePaid)} לליטר` : undefined}
             />
           </div>
           <div className="flex gap-3">
             <MetricCard
-              label="סה״כ הוצאה"
-              value={shekel(stats.records.totalCost)}
-            />
-            <MetricCard
               label="ק״מ שתועדו"
               value={num(stats.records.totalKm, 0)}
-              meta="ק״מ"
+              unit="ק״מ"
+              meta={`על פני ${num(stats.records.fillupCount, 0)} תדלוקים`}
+            />
+            <MetricCard
+              label="רכבים"
+              value={num(active.length, 0)}
+              meta={
+                active.length === 1
+                  ? (active[0].nickname?.trim() ||
+                    `${active[0].make} ${active[0].model}`.trim())
+                  : vehicles.length > active.length
+                    ? `${num(vehicles.length - active.length, 0)} בארכיון`
+                    : undefined
+              }
             />
           </div>
         </section>
@@ -139,45 +166,10 @@ export function Profile() {
         <section className="flex flex-col gap-2">
           <Label>פרטי חשבון</Label>
           <Card className="overflow-hidden">
-            <DetailRow
-              label="הצטרפתי"
-              value={joinedAt ? fullDate(joinedAt) : "—"}
-              meta={joinedAt ? timeAgo(joinedAt) : undefined}
-            />
-            <DetailRow
-              label="התחברות קודמת"
-              value={
-                previousLoginAt === undefined
-                  ? "—"
-                  : previousLoginAt === null
-                    ? "אין עדיין התחברות קודמת"
-                    : loginMoment(previousLoginAt)
-              }
-            />
-            <DetailRow
-              label="שיטת התחברות"
-              value="חשבון Google"
-              badge="מחובר"
-            />
-            <DetailRow
-              label="השוואה אנונימית"
-              value={settings.shareBenchmarks !== false ? "משתתף" : "כבוי"}
-            />
+            <DetailRow label="שיטת התחברות" value="חשבון Google" badge="מחובר" />
             {isAdmin ? <DetailRow label="הרשאות" value="מנהל מערכת" badge="אדמין" /> : null}
           </Card>
         </section>
-
-        <Card className="flex items-center gap-3 p-4">
-          <IconTile>
-            <ShieldIcon size={18} />
-          </IconTile>
-          <span className="flex flex-1 flex-col gap-0.5">
-            <span className="text-[14.5px] font-semibold text-ink">הנתונים מוצפנים בהעברה</span>
-            <span className="text-[12.5px] leading-relaxed text-muted">
-              ההרשאות נאכפות בצד השרת — רק אתם יכולים לקרוא ולכתוב את הנתונים שלכם.
-            </span>
-          </span>
-        </Card>
 
         <section className="flex flex-col gap-2">
           <Label>הנתונים שלי</Label>
@@ -203,6 +195,8 @@ export function Profile() {
         </section>
 
         <Card className="overflow-hidden">
+          {/* Signing out clears the local session and cache, so the next
+              sign-in — with this account or another — starts clean. */}
           <RowButton
             icon={
               <IconTile tone="muted">
@@ -210,25 +204,8 @@ export function Profile() {
               </IconTile>
             }
             title="התנתקות"
+            subtitle="אפשר להתחבר אחר כך עם כל חשבון Google"
             onClick={() => setConfirmSignOut(true)}
-          />
-          {/* An explicit switch, so nobody has to reach for browser settings.
-              State from the outgoing account is discarded before the next one
-              attaches; the only thing worth pausing for is a write the server
-              has not confirmed yet. */}
-          <RowButton
-            icon={
-              <IconTile tone="muted">
-                <UsersIcon size={18} />
-              </IconTile>
-            }
-            title="החלפת חשבון"
-            subtitle={
-              writes.pending.length > 0
-                ? "יש שמירות שטרם אושרו בשרת — נמתין להן רגע"
-                : undefined
-            }
-            onClick={() => setConfirmSwitch(true)}
           />
           <RowButton
             icon={
@@ -269,23 +246,6 @@ export function Profile() {
       </p>
 
       <ConfirmDialog
-        open={confirmSwitch}
-        title="להחליף חשבון?"
-        body={
-          writes.pending.length > 0
-            ? "יש שמירות שעדיין ממתינות לאישור מהשרת. נמתין להן לרגע לפני היציאה."
-            : "נצא מהחשבון הנוכחי כדי שתוכלו להתחבר עם חשבון אחר. אין צורך למחוק נתוני דפדפן."
-        }
-        confirmLabel="החלפת חשבון"
-        tone="accent"
-        onConfirm={() => {
-          setConfirmSwitch(false);
-          void switchAccount();
-        }}
-        onCancel={() => setConfirmSwitch(false)}
-      />
-
-      <ConfirmDialog
         open={confirmSignOut}
         title="להתנתק מהחשבון?"
         body="הנתונים יישמרו בענן ויחזרו בהתחברות הבאה."
@@ -319,24 +279,25 @@ export function Profile() {
   );
 }
 
+/** Same stat card the home screen uses: label, figure, one line of context. */
 function MetricCard({
-  icon,
   label,
   value,
+  unit,
   meta,
 }: {
-  icon?: React.ReactNode;
   label: string;
   value: string;
+  unit?: string;
   meta?: string;
 }) {
   return (
     <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <span className="flex items-center gap-1.5 text-muted">
-        {icon}
-        <Label className="text-[12.5px]">{label}</Label>
+      <Label className="text-[12.5px]">{label}</Label>
+      <span className="flex items-baseline gap-1.5">
+        <Num className="text-[24px] font-bold leading-tight text-ink">{value}</Num>
+        {unit ? <span className="text-[12px] text-muted">{unit}</span> : null}
       </span>
-      <Num className="text-[21px] font-bold leading-tight text-ink">{value}</Num>
       {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
     </Card>
   );
@@ -345,19 +306,16 @@ function MetricCard({
 function DetailRow({
   label,
   value,
-  meta,
   badge,
 }: {
   label: string;
   value: string;
-  meta?: string;
   badge?: string;
 }) {
   return (
     <div className="flex min-h-[52px] items-center justify-between gap-3 border-b border-line px-4 py-2.5 last:border-b-0">
       <span className="text-[14px] text-muted">{label}</span>
       <span className="flex items-center gap-2">
-        {meta ? <span className="text-[12px] text-muted">{meta}</span> : null}
         <span className="text-[14px] font-semibold text-ink">{value}</span>
         {badge ? (
           <span className="rounded-pill bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent">

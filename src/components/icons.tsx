@@ -293,6 +293,13 @@ export const UserIcon = (props: IconProps) => (
   </Svg>
 );
 
+export const PhoneIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.6" />
+    <path d="M10.6 18.4h2.8" />
+  </Svg>
+);
+
 export const RefreshIcon = (props: IconProps) => (
   <Svg strokeWidth={1.8} {...props}>
     <path d="M19.5 10.5A8 8 0 1 0 19 15.2" />
