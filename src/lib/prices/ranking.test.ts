@@ -231,7 +231,7 @@ describe("best value", () => {
     expect(bestValueBlocker(candidates, { ...ctx, kmPerLiter: null })).toBe(
       "no-consumption",
     );
-    expect(BEST_VALUE_UNAVAILABLE["no-consumption"]).toContain("שני מילויים טנק מלא");
+    expect(BEST_VALUE_UNAVAILABLE["no-consumption"]).toContain("שני תדלוקים");
 
     // It degrades rather than inventing an order: with no consumption there is
     // no detour cost, so nothing claims to be better value than anything else.
