@@ -47,6 +47,7 @@ import { monthKey, type FuelType } from "../lib/stats";
 import {
   REGULATED_SERVICE_MODE,
   adaptLegacyConfig,
+  normalizePriceDocument,
   regulatedMaxPrice,
   type RegulatedLookup,
   type RegulatedPriceConfig,
@@ -82,6 +83,23 @@ type SortKey = "recent" | "activity" | "joined";
 const PAGE_SIZE = 25;
 
 
+/**
+ * The console is four screens, not one scroll.
+ *
+ * Everything used to be stacked on a single page — totals, every user, the
+ * feedback inbox, the price editor, the station diagnostics and the benchmark
+ * pool — so nothing could be found and each block invented its own header.
+ * They are tabs now, and every block is a Panel with the same chrome.
+ */
+type AdminTab = "overview" | "users" | "data" | "feedback";
+
+const ADMIN_TABS: { value: AdminTab; label: string }[] = [
+  { value: "overview", label: "סקירה" },
+  { value: "users", label: "משתמשים" },
+  { value: "data", label: "נתונים" },
+  { value: "feedback", label: "משוב" },
+];
+
 export function Admin() {
   const navigate = useNavigate();
   const { user, isAdmin, claimsLoaded } = useAuth();
@@ -89,6 +107,7 @@ export function Admin() {
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("recent");
+  const [tab, setTab] = useState<AdminTab>("overview");
   const [pageCursor, setPageCursor] = useState<QueryDocumentSnapshot | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -262,9 +281,35 @@ export function Admin() {
         }
       />
 
+      {/* Four sections, one at a time. */}
+      <nav aria-label="מדורי ניהול" className="grid flex-none grid-cols-4 gap-1.5 px-5 pb-3">
+        {ADMIN_TABS.map((entry) => (
+          <button
+            key={entry.value}
+            type="button"
+            aria-current={tab === entry.value ? "page" : undefined}
+            onClick={() => setTab(entry.value)}
+            className={`min-h-[34px] rounded-pill px-1 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+              tab === entry.value
+                ? "bg-accent text-accent-contrast"
+                : "bg-surface-2 text-muted"
+            }`}
+          >
+            {entry.label}
+          </button>
+        ))}
+      </nav>
+
       <div className="flex flex-col gap-4 px-5">
         {error ? (
-          <Card className="px-4 py-4 text-center text-[13.5px] text-danger-ink">{error}</Card>
+          <Card className="flex items-start gap-3 p-4">
+            <IconTile tone="danger">
+              <WarningIcon size={17} />
+            </IconTile>
+            <span className="flex-1 text-[13.5px] leading-relaxed text-danger-ink">
+              {error}
+            </span>
+          </Card>
         ) : null}
 
         {!users ? (
@@ -275,176 +320,231 @@ export function Admin() {
           </>
         ) : (
           <>
-            <section className="flex flex-col gap-2">
-              {/* Scoped honestly: this is what has been loaded, not a census. */}
-              <Label>
-                {exhausted ? "סקירה כללית" : "סקירה · המשתמשים שנטענו עד כה"}
-              </Label>
-              <div className="flex gap-3">
-                <StatTile
-                  icon={<UserIcon size={17} />}
-                  label="משתמשים"
-                  value={num(totals?.users ?? 0, 0)}
-                  meta={`${num(totals?.active ?? 0, 0)} פעילים החודש`}
-                />
-                <StatTile
-                  icon={<CarIcon size={17} />}
-                  label="רכבים"
-                  value={num(totals?.vehicles ?? 0, 0)}
-                />
-              </div>
-              <div className="flex gap-3">
-                <StatTile
-                  icon={<PumpIcon size={17} />}
-                  label="תדלוקים"
-                  value={num(totals?.fillups ?? 0, 0)}
-                  meta={`${num(totals?.liters ?? 0, 0)} ליטר`}
-                />
-                <StatTile
-                  icon={<ChartIcon size={17} />}
-                  label="צריכה ממוצעת"
-                  value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : "—"}
-                  meta={
-                    totals && totals.withoutSummary > 0
-                      ? `קמ״ל · ${totals.withoutSummary} ללא סיכום`
-                      : "קמ״ל · משוקלל לפי מרחק"
+            {tab === "overview" ? (
+              <>
+                <Panel
+                  title="סקירה"
+                  /* Scoped honestly: this is what has been loaded, not a census. */
+                  note={
+                    exhausted
+                      ? "כל המשתמשים נטענו"
+                      : "מבוסס על המשתמשים שנטענו עד כה"
                   }
-                  accent
-                />
-              </div>
-              <Card className="flex items-center justify-between px-4 py-3">
-                <span className="flex flex-col">
-                  <span className="text-[14px] font-semibold text-ink">
-                    סך ההוצאה שתועדה
-                  </span>
-                  {totals && totals.withoutSummary > 0 ? (
-                    <span className="text-[11.5px] text-muted">
-                      <Num>{totals.withoutSummary}</Num> משתמשים עדיין ללא סיכום
-                    </span>
-                  ) : null}
-                </span>
-                <Num className="text-[17px] font-bold text-ink">
-                  {shekel(totals?.cost ?? 0)}
-                </Num>
-              </Card>
-            </section>
-
-            <section className="flex flex-col gap-2">
-              <div className="flex items-center justify-between gap-2">
-                <Label>משתמשים</Label>
-                <span className="text-[12px] text-muted">
-                  <Num>{sorted.length}</Num>
-                </span>
-              </div>
-
-              <Segmented
-                size="sm"
-                value={sort}
-                onChange={setSort}
-                ariaLabel="מיון משתמשים"
-                options={[
-                  { value: "recent", label: "פעילות אחרונה" },
-                  { value: "activity", label: "הכי פעילים" },
-                  { value: "joined", label: "הצטרפות" },
-                ]}
-              />
-
-              {sorted.length === 0 ? (
-                <Card className="px-6 py-10 text-center text-[14px] text-muted">
-                  אין עדיין משתמשים
-                </Card>
-              ) : (
-                <ListCard>
-                  {sorted.map((entry) => (
-                    <div key={entry.uid} className="flex flex-col gap-2 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <Avatar
-                          name={entry.displayName}
-                          photoURL={entry.photoURL}
-                          size={38}
-                        />
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <span className="flex items-center gap-1.5">
-                            <span className="truncate text-[15px] font-semibold text-ink">
-                              {entry.displayName ?? "ללא שם"}
-                            </span>
-                            {entry.isAdmin ? (
-                              <span className="flex-none rounded-pill bg-accent-soft px-2 py-0.5 text-[10.5px] font-bold text-accent">
-                                אדמין
-                              </span>
-                            ) : null}
-                          </span>
-                          <span dir="ltr" className="truncate text-[12px] text-muted">
-                            {entry.email ?? "—"}
-                          </span>
-                        </div>
-                        <span className="flex-none text-[11.5px] text-muted">
-                          {entry.lastFillup ? timeAgo(entry.lastFillup) : "לא תדלק"}
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-1.5 ps-[50px]">
-                        <MiniStat label="רכבים" value={num(entry.vehicles, 0)} />
-                        <MiniStat label="תדלוקים" value={num(entry.fillups, 0)} />
-                        <MiniStat
-                          label="הצטרף"
-                          value={entry.createdAt ? dayMonthShort(entry.createdAt) : "—"}
-                        />
-
-                        {/* From the account's own published summary. The
-                            dashboard reads no fill-up records at all. */}
-                        {entry.summary ? (
-                          <>
-                            <MiniStat
-                              label="קמ״ל"
-                              value={consumptionOf(entry.summary)}
-                            />
-                            <MiniStat label="הוצאה" value={shekel(costOf(entry.summary))} />
-                          </>
-                        ) : (
-                          <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted">
-                            עדיין ללא סיכום
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </ListCard>
-              )}
-
-              {!exhausted ? (
-                <button
-                  type="button"
-                  disabled={loadingMore}
-                  onClick={() => void load(pageCursor)}
-                  className="min-h-[44px] rounded-[12px] bg-surface-2 text-[13.5px] font-semibold text-accent disabled:opacity-50"
+                  bare
                 >
-                  {loadingMore ? "טוען…" : `טעינת ${PAGE_SIZE} משתמשים נוספים`}
-                </button>
-              ) : null}
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-3">
+                      <StatTile
+                        icon={<UserIcon size={17} />}
+                        label="משתמשים"
+                        value={num(totals?.users ?? 0, 0)}
+                        meta={`${num(totals?.active ?? 0, 0)} פעילים החודש`}
+                      />
+                      <StatTile
+                        icon={<CarIcon size={17} />}
+                        label="רכבים"
+                        value={num(totals?.vehicles ?? 0, 0)}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <StatTile
+                        icon={<PumpIcon size={17} />}
+                        label="תדלוקים"
+                        value={num(totals?.fillups ?? 0, 0)}
+                        meta={`${num(totals?.liters ?? 0, 0)} ליטר`}
+                      />
+                      <StatTile
+                        icon={<ChartIcon size={17} />}
+                        label="צריכה ממוצעת"
+                        value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : "—"}
+                        meta={
+                          totals && totals.withoutSummary > 0
+                            ? `קמ״ל · ${totals.withoutSummary} ללא סיכום`
+                            : "קמ״ל · משוקלל לפי מרחק"
+                        }
+                        accent
+                      />
+                    </div>
+                  </div>
+                </Panel>
 
-              <p className="px-1 text-[11.5px] leading-relaxed text-muted">
-                הרשימה נטענת בעמודים, והמספרים מגיעים מסיכום שכל חשבון מפרסם בעצמו.
-                לוח הניהול אינו קורא אף רשומת תדלוק, וגם אין לו הרשאה לעשות זאת.
-              </p>
-            </section>
+                <Panel title="הוצאה מצטברת">
+                  <div className="flex items-center justify-between gap-3 p-4">
+                    <span className="flex flex-col">
+                      <span className="text-[14px] font-semibold text-ink">
+                        סך ההוצאה שתועדה
+                      </span>
+                      {totals && totals.withoutSummary > 0 ? (
+                        <span className="text-[11.5px] text-muted">
+                          <Num>{totals.withoutSummary}</Num> משתמשים עדיין ללא סיכום
+                        </span>
+                      ) : null}
+                    </span>
+                    <Num className="text-[19px] font-bold text-ink">
+                      {shekel(totals?.cost ?? 0)}
+                    </Num>
+                  </div>
+                </Panel>
 
-            <FeedbackInbox />
+                <BenchmarkPool />
 
-            <FuelPriceEditor />
+                <p className="px-1 pb-2 text-[11.5px] leading-relaxed text-muted">
+                  המספרים מגיעים מסיכום שכל חשבון מפרסם בעצמו. לוח הניהול אינו קורא
+                  אף רשומת תדלוק, וגם אין לו הרשאה לעשות זאת.
+                </p>
+              </>
+            ) : null}
 
-            <StationDataPanel />
+            {tab === "users" ? (
+              <Panel
+                title="משתמשים"
+                trailing={
+                  <span className="text-[12px] font-semibold text-muted">
+                    <Num>{sorted.length}</Num>
+                  </span>
+                }
+                bare
+              >
+                <div className="flex flex-col gap-2">
+                  <Segmented
+                    size="sm"
+                    value={sort}
+                    onChange={setSort}
+                    ariaLabel="מיון משתמשים"
+                    options={[
+                      { value: "recent", label: "פעילות אחרונה" },
+                      { value: "activity", label: "הכי פעילים" },
+                      { value: "joined", label: "הצטרפות" },
+                    ]}
+                  />
 
-            <BenchmarkPool />
+                  {sorted.length === 0 ? (
+                    <Card className="px-6 py-10 text-center text-[14px] text-muted">
+                      אין עדיין משתמשים
+                    </Card>
+                  ) : (
+                    <ListCard>
+                      {sorted.map((entry) => (
+                        <div key={entry.uid} className="flex flex-col gap-2 px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <Avatar
+                              name={entry.displayName}
+                              photoURL={entry.photoURL}
+                              size={38}
+                            />
+                            <div className="flex min-w-0 flex-1 flex-col">
+                              <span className="flex items-center gap-1.5">
+                                <span className="truncate text-[15px] font-semibold text-ink">
+                                  {entry.displayName ?? "ללא שם"}
+                                </span>
+                                {entry.isAdmin ? (
+                                  <span className="flex-none rounded-pill bg-accent-soft px-2 py-0.5 text-[10.5px] font-bold text-accent">
+                                    אדמין
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span dir="ltr" className="truncate text-[12px] text-muted">
+                                {entry.email ?? "—"}
+                              </span>
+                            </div>
+                            <span className="flex-none text-[11.5px] text-muted">
+                              {entry.lastFillup ? timeAgo(entry.lastFillup) : "לא תדלק"}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1.5 ps-[50px]">
+                            <MiniStat label="רכבים" value={num(entry.vehicles, 0)} />
+                            <MiniStat label="תדלוקים" value={num(entry.fillups, 0)} />
+                            <MiniStat
+                              label="הצטרף"
+                              value={entry.createdAt ? dayMonthShort(entry.createdAt) : "—"}
+                            />
+
+                            {/* From the account's own published summary. The
+                                dashboard reads no fill-up records at all. */}
+                            {entry.summary ? (
+                              <>
+                                <MiniStat
+                                  label="קמ״ל"
+                                  value={consumptionOf(entry.summary)}
+                                />
+                                <MiniStat
+                                  label="הוצאה"
+                                  value={shekel(costOf(entry.summary))}
+                                />
+                              </>
+                            ) : (
+                              <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted">
+                                עדיין ללא סיכום
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </ListCard>
+                  )}
+
+                  {!exhausted ? (
+                    <button
+                      type="button"
+                      disabled={loadingMore}
+                      onClick={() => void load(pageCursor)}
+                      className="min-h-[44px] rounded-[12px] bg-surface-2 text-[13.5px] font-semibold text-accent disabled:opacity-50"
+                    >
+                      {loadingMore ? "טוען…" : `טעינת ${PAGE_SIZE} משתמשים נוספים`}
+                    </button>
+                  ) : null}
+                </div>
+              </Panel>
+            ) : null}
+
+            {tab === "data" ? (
+              <>
+                <FuelPriceEditor />
+                <StationDataPanel />
+              </>
+            ) : null}
+
+            {tab === "feedback" ? <FeedbackInbox /> : null}
 
             <p className="pb-2 text-center text-[11.5px] leading-relaxed text-muted/80">
-              תצוגה לקריאה בלבד. חוקי האבטחה מעניקים לאדמין הרשאת קריאה בלבד —
+              נתוני משתמשים הם לקריאה בלבד. חוקי האבטחה מעניקים לאדמין הרשאת קריאה —
               אין אפשרות לשנות נתונים של משתמש אחר.
             </p>
           </>
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * The one section shell every panel on this screen uses: a title, an optional
+ * control opposite it, an optional note under it, and a card for the body.
+ * `bare` is for a body that is already made of cards.
+ */
+function Panel({
+  title,
+  note,
+  trailing,
+  bare = false,
+  children,
+}: {
+  title: string;
+  note?: string;
+  trailing?: React.ReactNode;
+  bare?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex min-h-[26px] items-center justify-between gap-2">
+        <Label>{title}</Label>
+        {trailing}
+      </div>
+      {note ? <p className="-mt-1 text-[11.5px] text-muted">{note}</p> : null}
+      {bare ? children : <Card className="overflow-hidden">{children}</Card>}
+    </section>
   );
 }
 
@@ -503,16 +603,17 @@ function FeedbackInbox() {
   }, []);
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label>משוב ממשתמשים</Label>
-        {entries ? (
-          <span className="text-[12px] text-muted">
+    <Panel
+      title="משוב ממשתמשים"
+      bare
+      trailing={
+        entries ? (
+          <span className="text-[12px] font-semibold text-muted">
             <Num>{entries.length}</Num>
           </span>
-        ) : null}
-      </div>
-
+        ) : null
+      }
+    >
       {!entries ? (
         <Skeleton className="h-[120px] rounded-card" />
       ) : entries.length === 0 ? (
@@ -573,7 +674,7 @@ function FeedbackInbox() {
           })}
         </ListCard>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -585,12 +686,13 @@ function FeedbackInbox() {
  * official figure at all and nothing an admin could do about it. Each fuel
  * type is now its own series, written where `regulatedMaxPrice` reads it.
  *
- * Nothing here scrapes: the ministry publishes the figure on a Cloudflare-
- * protected HTML page with no CORS headers, so a browser physically cannot
- * read it, and the scheduled function that can needs a Blaze project. The
- * refresh below therefore re-reads the stored document from the server —
- * which is exactly how an admin can tell whether an automatic update landed —
- * and says so, instead of pretending to fetch from the ministry.
+ * The 95 figure arrives on its own: a daily GitHub Actions job reads the
+ * ministry's monthly announcement and writes it here (scripts/updateFuelPrices
+ * .mjs). A browser cannot do that itself — the page is Cloudflare-protected
+ * and sends no CORS headers — so the refresh below re-reads the stored
+ * document from the SERVER, which is how an admin sees whether the job landed.
+ * 98 and diesel are not regulated in Israel at all; there is no published
+ * figure to fetch, so they stay manual and say so.
  */
 const EDITABLE_FUELS: { fuelType: FuelType; label: string }[] = [
   { fuelType: "95", label: "בנזין 95" },
@@ -613,7 +715,13 @@ function FuelPriceEditor() {
       const snapshot = fromServer
         ? await getDocFromServer(ref).catch(() => getDoc(ref))
         : await getDoc(ref);
-      setConfig(snapshot.exists() ? adaptLegacyConfig(snapshot.data()) : { byFuelType: {} });
+      // Normalised first: the raw document carries Firestore Timestamps, and
+      // the freshness line does date arithmetic on them.
+      setConfig(
+        snapshot.exists()
+          ? adaptLegacyConfig(normalizePriceDocument(snapshot.data()))
+          : { byFuelType: {} },
+      );
     } finally {
       setLoading(false);
     }
@@ -674,26 +782,56 @@ function FuelPriceEditor() {
     showToast({ tone: "success", title: "המחיר עודכן לכל המשתמשים" });
   }
 
+  /**
+   * The freshness of the automatic path, from the stored figure itself: a
+   * series written by the job carries source "scheduled". Anything else means
+   * the last value on record was typed in by hand.
+   */
+  const regulated = regulatedMaxPrice(config, "95", Date.now());
+  const ranRecently =
+    regulated.source === "scheduled" &&
+    regulated.updatedAt !== null &&
+    Date.now() - regulated.updatedAt < 3 * 86_400_000;
+
+  const automatic = {
+    ok: ranRecently,
+    value: regulated.source === "scheduled" ? "פעיל" : "לא רץ",
+    detail:
+      regulated.source === "scheduled"
+        ? regulated.updatedAt
+          ? `הריצה האחרונה: ${dayMonthShort(regulated.updatedAt)}${
+              ranRecently ? "" : " — לא רץ מאז, בדקו את הלוג ב־GitHub Actions"
+            }`
+          : "רץ, אך ללא חותמת זמן"
+        : "המשימה היומית טרם כתבה ערך. הפעילו אותה ב־GitHub → Actions → Fuel price, ומלאו את הסוד FIREBASE_SERVICE_ACCOUNT.",
+  };
+
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label>מחירי דלק רשמיים</Label>
-        <button
-          type="button"
-          disabled={loading}
+    <Panel
+      title="מחירי דלק רשמיים"
+      trailing={
+        <RefreshButton
+          busy={loading}
+          label="בדיקת עדכון"
           onClick={() =>
             void load(true)
               .then(() => showToast({ tone: "success", title: "הנתונים נקראו מהשרת" }))
               .catch(() => showToast({ tone: "error", title: "הקריאה מהשרת נכשלה" }))
           }
-          className="flex min-h-[32px] items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent disabled:opacity-50"
-        >
-          <RefreshIcon size={14} />
-          {loading ? "בודק…" : "בדיקת עדכון"}
-        </button>
-      </div>
-
+        />
+      }
+      bare
+    >
       <Card className="flex flex-col gap-3 p-4">
+        {/* Whether the nightly job is alive, stated before the numbers it
+            writes — the question an admin opens this panel to answer. */}
+        <DiagnosticRow
+          title="עדכון אוטומטי (95)"
+          ok={automatic.ok}
+          value={automatic.value}
+          detail={automatic.detail}
+        />
+
         {EDITABLE_FUELS.map(({ fuelType, label }) => (
           <FuelPriceRow
             key={fuelType}
@@ -704,13 +842,36 @@ function FuelPriceEditor() {
         ))}
 
         <p className="text-[11.5px] leading-relaxed text-muted">
-          כל משתמש מקבל את המחיר לסוג הדלק של הרכב שלו מיד עם הכניסה לאפליקציה —
-          המסמך הזה נקרא בזמן אמת, בלי צורך בפעולה נוספת. אין כרגע משיכה אוטומטית:
-          העמוד של משרד האנרגיה חסום לקריאה מדפדפן, והמשימה המתוזמנת דורשת תוכנית
-          Blaze. „בדיקת עדכון” קוראת מחדש מהשרת, כך שאפשר לראות אם עדכון אוטומטי נחת.
+          בנזין 95 מתעדכן אוטומטית: משימה יומית ב־GitHub Actions קוראת את הודעת
+          משרד האנרגיה לאותו חודש וכותבת אותה לכאן, בחינם. 98 וסולר אינם בפיקוח
+          ואין להם מחיר מפורסם — הם נשארים ידניים. כל משתמש מקבל את המחיר לסוג
+          הדלק של הרכב שלו מיד עם הכניסה, כי המסמך נקרא בזמן אמת.
         </p>
       </Card>
-    </section>
+    </Panel>
+  );
+}
+
+/** The one refresh control the console uses. */
+function RefreshButton({
+  busy,
+  label,
+  onClick,
+}: {
+  busy: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onClick}
+      className="flex min-h-[32px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97] disabled:opacity-50"
+    >
+      <RefreshIcon size={14} />
+      {busy ? "בודק…" : label}
+    </button>
   );
 }
 
@@ -903,22 +1064,19 @@ function StationDataPanel() {
     data.catalog.registryCount !== data.register.total;
 
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <Label>נתוני תחנות</Label>
-        <button
-          type="button"
-          disabled={checking}
+    <Panel
+      title="נתוני תחנות"
+      trailing={
+        <RefreshButton
+          busy={checking}
+          label="בדיקה עכשיו"
           onClick={() =>
             void check().then(() => showToast({ tone: "success", title: "הבדיקה הושלמה" }))
           }
-          className="flex min-h-[32px] items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent disabled:opacity-50"
-        >
-          <RefreshIcon size={14} />
-          {checking ? "בודק…" : "בדיקה עכשיו"}
-        </button>
-      </div>
-
+        />
+      }
+      bare
+    >
       <Card className="flex flex-col gap-3 p-4">
         {!data ? (
           <Skeleton className="h-[120px] rounded-[12px]" />
@@ -994,7 +1152,7 @@ function StationDataPanel() {
           </>
         )}
       </Card>
-    </section>
+    </Panel>
   );
 }
 
@@ -1042,18 +1200,17 @@ function BenchmarkPool() {
   }, []);
 
   return (
-    <section className="flex flex-col gap-2">
-      <Label>מאגר ההשוואה האנונימי</Label>
-      <Card className="flex items-center justify-between px-4 py-3.5">
+    <Panel title="מאגר ההשוואה האנונימי">
+      <div className="flex items-center justify-between gap-3 p-4">
         <span className="flex flex-col">
           <span className="text-[14px] font-semibold text-ink">רשומות משתתפות</span>
           <span className="text-[12px] text-muted">
             סיכום צריכה אנונימי — ללא שם, מייל, מיקום או קילומטראז׳
           </span>
         </span>
-        <Num className="text-[17px] font-bold text-ink">{count ?? "—"}</Num>
-      </Card>
-    </section>
+        <Num className="text-[19px] font-bold text-ink">{count ?? "—"}</Num>
+      </div>
+    </Panel>
   );
 }
 
