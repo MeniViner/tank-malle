@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -40,7 +40,13 @@ import { Card, Label, Skeleton } from "../components/Card";
 import { Segmented } from "../components/Segmented";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
-import { CheckIcon, ChartIcon, ChevronDown, UserIcon } from "../components/icons";
+import {
+  CalendarIcon,
+  CheckIcon,
+  ChartIcon,
+  ChevronDown,
+  UserIcon,
+} from "../components/icons";
 import { InfoTip } from "../components/InfoTip";
 import {
   FUEL_TYPE_SHORT,
@@ -63,10 +69,9 @@ import {
  * states the range it is showing.
  * ------------------------------------------------------------------ */
 
-type Section = "overview" | "costs" | "consumption" | "prices" | "community";
+type Section = "costs" | "consumption" | "prices" | "community";
 
 const SECTIONS: { value: Section; label: string }[] = [
-  { value: "overview", label: "סקירה" },
   { value: "costs", label: "הוצאות" },
   { value: "consumption", label: "צריכה" },
   { value: "prices", label: "מחירים" },
@@ -84,7 +89,6 @@ const RANGE_OPTIONS: Exclude<RangeKey, "custom">[] = [
 ];
 
 const GROUPINGS: { value: Grouping; label: string }[] = [
-  { value: "auto", label: GROUPING_LABELS.auto },
   { value: "week", label: GROUPING_LABELS.week },
   { value: "month", label: GROUPING_LABELS.month },
   { value: "year", label: GROUPING_LABELS.year },
@@ -109,9 +113,9 @@ export function Statistics() {
     settings,
     loadingFillups,
   } = useData();
-  const [section, setSection] = useState<Section>("overview");
+  const [section, setSection] = useState<Section>("costs");
   const [rangeKey, setRangeKey] = useState<RangeKey>("6m");
-  const [grouping, setGrouping] = useState<Grouping>("auto");
+  const [grouping, setGrouping] = useState<Grouping>("month");
   const [vehicleSheetOpen, setVehicleSheetOpen] = useState(false);
 
   const now = Date.now();
@@ -229,7 +233,7 @@ export function Statistics() {
           scrolling — the old rail clipped its last tab off the edge. */}
       <nav
         aria-label="מדורי סטטיסטיקה"
-        className="grid flex-none grid-cols-5 gap-1 px-5 pb-3"
+        className="grid flex-none grid-cols-4 gap-1.5 px-5 pb-3"
       >
         {SECTIONS.map((entry) => (
           <button
@@ -252,7 +256,16 @@ export function Statistics() {
         {/* One range control, not six pills on two lines. Grouping stays with
             the charts that actually bucket. */}
         {section !== "community" ? (
-          <RangePicker value={rangeKey} onChange={setRangeKey} />
+          <RangePicker
+            value={rangeKey}
+            onChange={setRangeKey}
+            summary={
+              <>
+                <Num>{spend.fillups}</Num> תדלוקים · <Num>{segments.length}</Num>{" "}
+                {segments.length === 1 ? "מקטע" : "מקטעים"}
+              </>
+            }
+          />
         ) : null}
 
         {loadingFillups ? (
@@ -267,65 +280,11 @@ export function Statistics() {
             </span>
             <span className="text-[17px] font-bold text-ink">אין עדיין מספיק נתונים</span>
             <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
-              אחרי שני תדלוקים שבסיומם המיכל היה מלא נתחיל להציג מגמות, עלויות והשוואות.
+              אחרי שני תדלוקים נתחיל להציג מגמות, עלויות והשוואות.
             </span>
           </Card>
         ) : (
           <>
-            {section === "overview" ? (
-              <>
-                <div className="tm-rise flex gap-3">
-                  <SummaryCard
-                    label="צריכה אחרונה"
-                    value={
-                      segments.length > 0
-                        ? String(toUnit(segments[segments.length - 1].kmPerLiter))
-                        : "—"
-                    }
-                    unit={unitLabel}
-                    accent
-                  />
-                  <SummaryCard
-                    label="ממוצע צריכה"
-                    value={averageLine !== null ? String(averageLine) : "—"}
-                    unit={unitLabel}
-                  />
-                </div>
-
-                <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
-                  <SummaryCard
-                    label="מרחק במעקב"
-                    value={num(rangeKm, 0)}
-                    unit="ק״מ"
-                  />
-                  <SummaryCard
-                    label="עלות לק״מ"
-                    value={rangeCostPerKm !== null ? shekel(rangeCostPerKm, 2) : "—"}
-                  />
-                </div>
-
-                <div className="tm-rise flex gap-3" style={{ animationDelay: "140ms" }}>
-                  {/* The label names the period; the ₪ sign already says it is
-                      money spent. "הוצאה · 6 החודשים האחרונים" wrapped to three
-                      lines and read like a broken sentence. */}
-                  <SummaryCard label={range.compactLabel} value={shekel(spend.total)} />
-                  <SummaryCard
-                    label="ממוצע חודשי"
-                    value={spend.perMonth !== null ? shekel(spend.perMonth) : "—"}
-                  />
-                </div>
-
-                <BasisNote
-                  segments={segments.length}
-                  fillups={spend.fillups}
-                  range={range}
-                  breaks={stats.breakCount}
-                />
-
-                <OpenSegmentCard stats={stats} />
-              </>
-            ) : null}
-
             {section === "costs" ? (
               <>
                 <div className="flex gap-3">
@@ -375,6 +334,13 @@ export function Statistics() {
                     />
                   </BarChart>
                 </ChartCard>
+
+                <BasisNote
+                  segments={segments.length}
+                  fillups={spend.fillups}
+                  range={range}
+                  breaks={stats.breakCount}
+                />
 
                 <p className="px-1 text-[12px] leading-relaxed text-muted">
                   ההוצאה כוללת את כל התדלוקים בטווח — גם חלקיים וגם כאלה שאחרי התחלת
@@ -677,24 +643,31 @@ export function Statistics() {
 function RangePicker({
   value,
   onChange,
+  summary,
 }: {
   value: RangeKey;
   onChange: (value: RangeKey) => void;
+  /** What the chosen range currently holds — shown opposite the control. */
+  summary?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(true)}
-        className="flex min-h-[38px] w-fit items-center gap-1.5 rounded-pill bg-surface-2 px-3.5 text-[13.5px] font-semibold text-ink"
-      >
-        {RANGE_COMPACT[value === "custom" ? "all" : value]}
-        <ChevronDown size={15} className="text-muted" />
-      </button>
+      <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-2 ps-3.5 shadow-card">
+        <span className="truncate text-[12.5px] text-muted">{summary}</span>
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+          className="flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[13px] font-bold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
+        >
+          <CalendarIcon size={15} className="text-muted" />
+          {RANGE_COMPACT[value === "custom" ? "all" : value]}
+          <ChevronDown size={14} className="text-muted" />
+        </button>
+      </div>
 
       <Sheet
         open={open}
@@ -793,7 +766,7 @@ function OpenSegmentCard({ stats }: { stats: ReturnType<typeof computeStats> }) 
       <span className="text-[13.5px] leading-relaxed text-ink">
         <Quantity value={open.liters} digits={1} /> מ־<Num>{open.pendingFillups}</Num>{" "}
         {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} ·{" "}
-        <Distance value={open.km} /> מאז המילוי האחרון טנק מלא
+        <Distance value={open.km} /> מאז התדלוק האחרון
       </span>
       <span className="text-[12px] leading-relaxed text-muted">
         הליטרים נשמרים וייכללו בחישוב בתדלוק הבא.

@@ -43,11 +43,11 @@ async function selectRange(page: import("@playwright/test").Page, label: string)
   await page.getByRole("button", { name: label, exact: true }).click();
 }
 
-test("the five sections are navigable", async ({ page }) => {
+test("the four sections are navigable", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
 
-  for (const section of ["סקירה", "הוצאות", "צריכה", "מחירים", "קהילה"]) {
+  for (const section of ["הוצאות", "צריכה", "מחירים", "קהילה"]) {
     await expect(page.getByRole("button", { name: section, exact: true })).toBeVisible({
       timeout: 25_000,
     });

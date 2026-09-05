@@ -15,6 +15,7 @@ import {
   PumpIcon,
   SearchIcon,
   TrashIcon,
+  WarningIcon,
 } from "../components/icons";
 import {
   heMonthShort,
@@ -24,14 +25,32 @@ import {
 } from "../lib/format";
 import { monthKey, type Fillup } from "../lib/stats";
 
-type Filter = "all" | "full" | "partial" | "anomaly";
+/**
+ * Scope, not classification.
+ *
+ * The old control filtered by "full tank" vs "partial" — an internal detail of
+ * the consumption engine that nobody browsing their own history is looking
+ * for. What people actually reach for is a period, so that is the control;
+ * "needs a look" (records the engine flagged) is a separate toggle beside the
+ * search, and it only exists when there is something to flag.
+ */
+type Period = "all" | "month" | "3m" | "year";
 
-const FILTERS: { value: Filter; label: string }[] = [
+const PERIODS: { value: Period; label: string }[] = [
   { value: "all", label: "הכול" },
-  { value: "full", label: "טנק מלא" },
-  { value: "partial", label: "חלקי" },
-  { value: "anomaly", label: "חריגים" },
+  { value: "month", label: "החודש" },
+  { value: "3m", label: "3 חודשים" },
+  { value: "year", label: "השנה" },
 ];
+
+/** Inclusive lower bound of a period, or null for "everything". */
+function periodStart(period: Period, now: number): number | null {
+  const date = new Date(now);
+  if (period === "month") return new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+  if (period === "3m") return new Date(date.getFullYear(), date.getMonth() - 2, 1).getTime();
+  if (period === "year") return new Date(date.getFullYear(), 0, 1).getTime();
+  return null;
+}
 
 /** History grouped by month (designs 14–16). */
 export function History() {
@@ -41,7 +60,8 @@ export function History() {
   const stats = useStats();
 
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [period, setPeriod] = useState<Period>("all");
+  const [onlyFlagged, setOnlyFlagged] = useState(false);
   const [selected, setSelected] = useState<Fillup | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Fillup | null>(null);
 
@@ -56,19 +76,19 @@ export function History() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
+    const from = periodStart(period, Date.now());
     return [...stats.fillups]
       .sort((a, b) => b.date - a.date)
       .filter((fillup) => {
-        if (filter === "full" && !fillup.isFullTank) return false;
-        if (filter === "partial" && fillup.isFullTank) return false;
-        if (filter === "anomaly" && !anomalyIds.has(fillup.id)) return false;
+        if (from !== null && fillup.date < from) return false;
+        if (onlyFlagged && !anomalyIds.has(fillup.id)) return false;
         if (!term) return true;
         return (
           (fillup.station?.name ?? "").toLowerCase().includes(term) ||
           (fillup.notes ?? "").toLowerCase().includes(term)
         );
       });
-  }, [stats.fillups, query, filter, anomalyIds]);
+  }, [stats.fillups, query, period, onlyFlagged, anomalyIds]);
 
   // Group into months, preserving the newest-first order.
   const groups = useMemo(() => {
@@ -117,13 +137,33 @@ export function History() {
               className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
             />
           </div>
-          <Segmented
-            size="sm"
-            value={filter}
-            options={FILTERS}
-            onChange={setFilter}
-            ariaLabel="סינון תדלוקים"
-          />
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <Segmented
+                size="sm"
+                value={period}
+                options={PERIODS}
+                onChange={setPeriod}
+                ariaLabel="טווח זמן"
+              />
+            </div>
+            {stats.anomalies.length > 0 ? (
+              <button
+                type="button"
+                aria-pressed={onlyFlagged}
+                onClick={() => setOnlyFlagged((value) => !value)}
+                className={`flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill px-3 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+                  onlyFlagged
+                    ? "bg-warning-soft text-warning-ink"
+                    : "border border-line bg-surface text-muted"
+                }`}
+              >
+                <WarningIcon size={14} />
+                לבדיקה
+                <Num>{stats.anomalies.length}</Num>
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -206,8 +246,7 @@ export function History() {
                           </span>
                           <span className="truncate text-[12.5px] text-muted">
                             <Num>{num(fillup.liters, 1)}</Num> ל׳ ·{" "}
-                            <Num>{shekel(fillup.totalCost)}</Num> ·{" "}
-                            {fillup.isFullTank ? "טנק מלא" : "תדלוק חלקי"}
+                            <Num>{shekel(fillup.totalCost)}</Num>
                           </span>
                         </span>
 
