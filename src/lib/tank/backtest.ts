@@ -135,7 +135,7 @@ export function backtest(input: BacktestInput): BacktestReport {
   const sorted = sortFillups([...input.fillups]);
   const targets = scoringEvents(sorted, capacity);
   if (targets.length < 2) {
-    notes.push("אין מספיק תדלוקים מאושרים עד מלא כדי להעריך את המודל");
+    notes.push("אין מספיק תדלוקים מאושרים מיכל מלא כדי להעריך את המודל");
     return empty;
   }
 

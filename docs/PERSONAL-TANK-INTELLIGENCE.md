@@ -146,8 +146,20 @@ Per event:
 | `overCapacity` | implied level > capacity + tolerance |
 | `negative` | implied litres < 0 − tolerance |
 | `conflict` | a trusted observation disagrees with the model beyond tolerance |
+
 | `noAnchor` | no absolute anchor since the last break |
 | `noCapacity` | no trusted capacity, so litres are unavailable |
+
+A disagreement has to clear **both** a floor (`RECONCILE_TOLERANCE_FRACTION` of
+the tank) **and** two standard deviations of the combined measurement error
+before it is called a conflict. A gauge read to ±5% and a consumption rate
+carried over 400 km can differ by three litres without either being wrong, and
+flagging that trains people to ignore the warning.
+
+Notes are also scoped when displayed: a disagreement from four tanks ago was
+resolved the moment a confirmed full re-anchored the balance, so only notes at
+or after the current anchor (`activeNotes`) reach the card. The full list stays
+in the details sheet.
 
 Bars render clamped to 0–100%, but the raw residual is retained in the result
 and surfaced. Clamping is never used to hide a bad input. A predicted negative
@@ -157,6 +169,33 @@ Gauge readings are approximate: `level × capacity` carries
 `GAUGE_SD_BY_SOURCE` (config), never `±0`. "Near-empty" is not zero litres.
 
 ---
+
+### Capacity, and why it was always missing (`tank/capacity.ts`)
+
+No Israeli open dataset publishes tank capacity. The ministry's registers carry
+make, model, year, engine size and the certified CO₂ figure — and nothing about
+the tank. So `vehicleSpecs` can only offer a body-type approximation, and that
+approximation was a **placeholder** in the vehicle form. A placeholder is not a
+value: anyone who did not go and find their owner's manual ended up with no
+capacity, which meant no litres, no range and no tank tracking at all.
+
+`resolveCapacity` replaces the single trusted slot with a ladder:
+
+| Rung | Source | Trusted |
+| --- | --- | --- |
+| user / trusted | the user stated it | ✅ exact |
+| estimate | our body-type approximation, now **stored** rather than shown and discarded | ❌ labelled |
+| observed | largest fill on record + 6% headroom — a hard lower bound, since you cannot put 45 L into a 40 L tank | ❌ labelled |
+| none | say so | — |
+
+`trusted` still means what it always meant, so `isTankCapacityTrusted` and
+everything gated on it are unchanged. What is new is that the lower rungs drive
+an approximate reading that says it is approximate, widen every interval derived
+from them (`UNTRUSTED_CAPACITY_SD_FACTOR`), and put the number in front of the
+user to confirm in one tap instead of leaving a blank field in a settings screen.
+
+Implausible values are refused at every rung (20–120 L), so a jerrycan top-up
+history cannot become somebody's tank.
 
 ## 5. Consumption (`tank/consumption.ts`)
 

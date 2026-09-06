@@ -17,6 +17,7 @@ import {
 } from "./mobility";
 import { buildEventStream, closesInterval, toObservationEvent } from "./observations";
 import { estimateTank } from "./index";
+import { observedCapacity, resolveCapacity } from "./capacity";
 import { DEFAULT_TANK_PREFERENCES, type TankObservation, type TankPreferences } from "./types";
 import {
   levelFromKey,
@@ -826,7 +827,27 @@ describe("tank estimate", () => {
     expect(late.habit.canClaim).toBe(true);
   });
 
-  it("§15.12: a missing capacity gives honest gaps and asks for the capacity", () => {
+  it("§15.12: no capacity and no history gives honest gaps, not a default", () => {
+    const now = T0 + 10 * DAY;
+    const estimate = estimateTank({
+      // Two records: too few for the fill-up history to imply a tank size.
+      fillups: routineHistory(0.25, 2),
+      observations: [],
+      vehicle: NO_CAPACITY,
+      preferences: DEFAULT_TANK_PREFERENCES,
+      now,
+    });
+
+    expect(estimate.capacityTrusted).toBe(false);
+    expect(estimate.capacityLiters).toBeNull();
+    expect(estimate.current.liters).toBeNull();
+    expect(estimate.current.level).toBeNull();
+    expect(estimate.recommendedRefuel.status).toBe("unknown");
+    expect(estimate.nextUpdate.kind).toBe("confirmCapacity");
+    expect(estimate.reasons).toContain("untrustedCapacity");
+  });
+
+  it("§15.12: an inferred capacity is used, and still asks to be confirmed", () => {
     const now = T0 + 72 * DAY;
     const estimate = estimateTank({
       fillups: routineHistory(0.25, 8),
@@ -836,12 +857,17 @@ describe("tank estimate", () => {
       now,
     });
 
+    // Enough fill-ups for the history itself to imply a tank size.
+    expect(estimate.capacity.source).toBe("observed");
+    expect(estimate.current.level).not.toBeNull();
+    // Never presented as settled: still untrusted, and still carrying the
+    // number to confirm.
     expect(estimate.capacityTrusted).toBe(false);
-    expect(estimate.current.liters).toBeNull();
-    expect(estimate.current.level).toBeNull();
-    expect(estimate.recommendedRefuel.status).toBe("unknown");
-    expect(estimate.nextUpdate.kind).toBe("confirmCapacity");
+    expect(estimate.capacity.suggestion).toBe(estimate.capacityLiters);
     expect(estimate.reasons).toContain("untrustedCapacity");
+    // The generic prompt stands down, because the confirmation is offered
+    // inline beside the figure itself rather than asked twice on one screen.
+    expect(estimate.nextUpdate.kind).not.toBe("confirmCapacity");
   });
 
   it("gates an unsupported fuel type instead of treating it as a petrol tank", () => {
@@ -1070,5 +1096,89 @@ describe("backtest", () => {
         recency.meanAbsoluteTimingDays,
       );
     }
+  });
+});
+
+/* ------------------------------------------------------------------ *
+ * Capacity
+ * ------------------------------------------------------------------ */
+
+describe("capacity", () => {
+  it("trusts a value the user stated", () => {
+    const resolved = resolveCapacity(TANK_40, []);
+    expect(resolved).toEqual({
+      liters: 40,
+      source: "user",
+      trusted: true,
+      suggestion: null,
+    });
+  });
+
+  it("uses our own approximation rather than discarding it", () => {
+    // The body-type suggestion used to be a placeholder in a form. A
+    // placeholder is not a value, which is how most vehicles ended up with no
+    // capacity at all.
+    const resolved = resolveCapacity(
+      { ...TANK_40, tankLiters: 45, tankLitersSource: "estimate" },
+      [],
+    );
+    expect(resolved.liters).toBe(45);
+    expect(resolved.trusted).toBe(false);
+    expect(resolved.source).toBe("estimate");
+    expect(resolved.suggestion).toBe(45);
+  });
+
+  it("falls back to what the fill-up history implies", () => {
+    const history = routineHistory(0.25, 5); // 30 L each into a 40 L tank
+    const resolved = resolveCapacity(NO_CAPACITY, history);
+
+    expect(resolved.source).toBe("observed");
+    expect(resolved.trusted).toBe(false);
+    // A hard lower bound plus headroom — never asserted as the exact capacity.
+    expect(resolved.liters!).toBeGreaterThanOrEqual(30);
+    expect(resolved.liters!).toBeLessThan(40);
+    expect(resolved.suggestion).toBe(resolved.liters);
+  });
+
+  it("stays silent rather than inventing a default", () => {
+    expect(resolveCapacity(NO_CAPACITY, []).liters).toBeNull();
+    expect(resolveCapacity(null, []).source).toBe("none");
+    // One or two records say nothing about how big the tank is.
+    expect(observedCapacity(routineHistory(0.25, 2))).toBeNull();
+  });
+
+  it("refuses an implausible capacity from any source", () => {
+    expect(resolveCapacity({ ...TANK_40, tankLiters: 4 }, []).liters).toBeNull();
+    expect(resolveCapacity({ ...TANK_40, tankLiters: 900 }, []).liters).toBeNull();
+    // A jerrycan top-up history cannot become somebody's tank.
+    expect(
+      observedCapacity(
+        [1, 2, 3, 4].map((i) =>
+          fill({ id: `j${i}`, date: T0 + i * DAY, odometer: 1000 + i * 50, liters: 5 }),
+        ),
+      ),
+    ).toBeNull();
+  });
+
+  it("lets an untrusted capacity drive the estimate, with wider uncertainty", () => {
+    const now = T0 + 72 * DAY;
+    const history = routineHistory(0.25, 8);
+    const options = { observations: [], preferences: DEFAULT_TANK_PREFERENCES, now };
+
+    const trusted = estimateTank({ ...options, fillups: history, vehicle: TANK_40 });
+    const approximate = estimateTank({
+      ...options,
+      fillups: history,
+      vehicle: { ...TANK_40, tankLitersSource: "estimate" },
+    });
+
+    // The feature works either way — that is the whole point of the fallback.
+    expect(approximate.current.level).not.toBeNull();
+    expect(approximate.current.liters).not.toBeNull();
+    // But it is honest about which one it is.
+    expect(approximate.capacityTrusted).toBe(false);
+    expect(approximate.reasons).toContain("untrustedCapacity");
+    expect(approximate.capacity.suggestion).toBe(40);
+    expect(approximate.current.sd!).toBeGreaterThan(trusted.current.sd!);
   });
 });

@@ -31,13 +31,16 @@ export function TankStateSection({
   onChange,
   litersAdded,
   capacityLiters,
+  capacityNote,
   onReviewCapacity,
 }: {
   draft: TankStateDraft;
   onChange: (next: TankStateDraft) => void;
   litersAdded: number;
-  /** Trusted capacity, or null. A guess never reaches this component. */
+  /** Resolved capacity, or null when nothing supports one. */
   capacityLiters: number | null;
+  /** Set when that capacity is an approximation, so the UI can say so. */
+  capacityNote?: string | null;
   onReviewCapacity?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -166,7 +169,7 @@ export function TankStateSection({
                 }`}
               >
                 {draft.confirmedFull ? <CheckIcon size={15} /> : null}
-                מילאתי עד מלא
+                מילאתי מיכל מלא
               </button>
 
               {!draft.confirmedFull && afterLevel !== null ? (
@@ -202,9 +205,17 @@ export function TankStateSection({
 
             {capacityLiters === null ? (
               <p className="text-[12.5px] leading-relaxed text-muted">
-                בלי נפח מיכל מאושר אפשר לשמור את המצב באחוזים, אבל לא להציג ליטרים או טווח.
+                בלי נפח מיכל אפשר לשמור את המצב באחוזים, אבל לא להציג ליטרים או טווח.
                 אפשר להוסיף את הנפח בהגדרות הרכב מתי שנוח.
               </p>
+            ) : capacityNote ? (
+              <button
+                type="button"
+                onClick={onReviewCapacity}
+                className="text-start text-[12px] leading-relaxed text-muted"
+              >
+                {capacityNote} · <span className="font-semibold text-accent">לאישור או תיקון</span>
+              </button>
             ) : null}
 
             <details className="group">
@@ -318,7 +329,7 @@ function Reconciliation({
       ) : null}
       <div className="flex flex-wrap gap-2 pt-0.5">
         <ReconcileAction label="התאמת המצב לפני" onClick={onAdjustBefore} />
-        <ReconcileAction label="מילאתי עד מלא" onClick={onMarkFull} />
+        <ReconcileAction label="מילאתי מיכל מלא" onClick={onMarkFull} />
         {onReviewCapacity ? (
           <ReconcileAction label="בדיקת נפח המיכל" onClick={onReviewCapacity} />
         ) : null}

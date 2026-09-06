@@ -3,13 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { useTankEstimate } from "../hooks/useTankEstimate";
-import { useReducedMotion } from "../hooks/useReducedMotion";
 import { Card, Label, Skeleton } from "./Card";
 import { Sheet } from "./Sheet";
 import { Num } from "./Num";
 import { Field } from "./Field";
 import { Button } from "./Button";
 import { TankGauge } from "./TankGauge";
+import { TankDial } from "./TankDial";
 import { CalendarIcon, GaugeIcon, InfoIcon, PumpIcon, WarningIcon } from "./icons";
 import { dayMonthShort, num, parseDecimal, timeAgo } from "../lib/format";
 import { primaryNote } from "../lib/tank/balance";
@@ -21,6 +21,7 @@ import {
   passageText,
 } from "../lib/tank/copy";
 import { levelLabel } from "../lib/tank/gaugeInteraction";
+import { capacityNote } from "../lib/tank/capacity";
 import { GAUGE_SD_BY_SOURCE } from "../lib/tank/config";
 import type { TankEstimate } from "../lib/tank";
 
@@ -46,7 +47,7 @@ export function MyTankCard() {
   if (!activeVehicle || !estimate.available) return null;
 
   const { current, habit } = estimate;
-  const note = primaryNote(estimate.notes);
+  const note = primaryNote(estimate.activeNotes);
   const conflict =
     note?.state === "conflict" ||
     note?.state === "overCapacity" ||
@@ -88,50 +89,86 @@ export function MyTankCard() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-4">
-          <LevelBar level={current.level} tone={conflict ? "warning" : "accent"} />
+        <div className="flex items-center gap-3">
+          <TankDial
+            level={current.level ?? reportedLevel?.level ?? null}
+            reserveLevel={estimate.reserveLevel}
+            habitLevel={habit.canClaim || habit.overridden ? habit.typicalLevel : null}
+            tone={conflict ? "warning" : "accent"}
+            caption={
+              current.liters !== null
+                ? `כ־${num(current.liters, 0)} ליטר`
+                : current.level === null && reportedLevel
+                  ? "לפי העדכון האחרון"
+                  : null
+            }
+          />
 
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            {current.level !== null ? (
+          {/* The legend is what turns two coloured ticks into the feature: the
+              level you should act at, and the level you actually act at. */}
+          <div className="flex min-w-0 flex-1 flex-col gap-2">
+            {current.level !== null || reportedLevel ? (
               <>
-                <span className="text-[38px] font-bold leading-none tracking-[-0.01em] text-ink">
-                  {levelLabel(current.level)}
-                </span>
-                <span className="text-[12.5px] text-muted">
-                  {current.liters !== null ? (
-                    <>
-                      כ־<Num>{num(current.liters, 0)}</Num> ליטר
-                      {estimate.rangeToReserveKm !== null && estimate.rangeToReserveKm > 0 ? (
-                        <>
-                          {" · עוד כ־"}
-                          <Num>{num(estimate.rangeToReserveKm, 0)}</Num> ק״מ עד הרזרבה
-                        </>
-                      ) : null}
-                    </>
-                  ) : (
-                    "משוער עכשיו"
-                  )}
-                </span>
-              </>
-            ) : reportedLevel ? (
-              <>
-                <span className="text-[30px] font-bold leading-none text-ink">
-                  {levelLabel(reportedLevel.level)}
-                </span>
-                <span className="text-[12.5px] text-muted">
-                  לפי העדכון האחרון · {timeAgo(reportedLevel.at)}
-                </span>
+                <LegendRow
+                  color="var(--warning)"
+                  label="כדאי לתדלק"
+                  value={levelLabel(estimate.reserveLevel)}
+                />
+                {habit.canClaim || habit.overridden ? (
+                  <LegendRow
+                    color="var(--accent)"
+                    dashed
+                    label={habit.overridden ? "ההעדפה שלך" : "ההרגל שלך"}
+                    value={levelLabel(habit.typicalLevel)}
+                  />
+                ) : (
+                  <LegendRow
+                    color="var(--line)"
+                    dashed
+                    label="ההרגל שלך"
+                    value="עוד נלמד"
+                  />
+                )}
+                {estimate.rangeToReserveKm !== null && estimate.rangeToReserveKm > 0 ? (
+                  <span className="text-[12.5px] text-muted">
+                    נותרו כ־<Num>{num(estimate.rangeToReserveKm, 0)}</Num> ק״מ עד שם
+                  </span>
+                ) : reportedLevel ? (
+                  <span className="text-[12.5px] text-muted">
+                    עודכן {timeAgo(reportedLevel.at)}
+                  </span>
+                ) : null}
               </>
             ) : (
+              /* Unknown has to LOOK unknown. An empty dial with a real
+                 invitation, not a zero reading dressed up as a measurement. */
               <>
-                <span className="text-[22px] font-bold leading-tight text-ink">עדיין לא ידוע</span>
+                <span className="text-[15px] font-bold text-ink">נתחיל למדוד</span>
                 <span className="text-[12.5px] leading-relaxed text-muted">
-                  עדכון קצר של מד הדלק יתחיל את המעקב.
+                  עדכון קצר של מד הדלק, ומכאן טנק מלא ילמד מתי בדרך כלל מתדלקים.
                 </span>
+                <button
+                  type="button"
+                  onClick={() => setGaugeOpen(true)}
+                  className="mt-0.5 inline-flex min-h-[40px] w-fit items-center gap-1.5 rounded-pill bg-accent px-4 text-[13px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97]"
+                >
+                  <PumpIcon size={15} />
+                  עדכון מד הדלק
+                </button>
               </>
             )}
           </div>
         </div>
+
+        {/* An approximate capacity is usable and says so, with the number to
+            confirm right there — a blank field in a settings screen is how it
+            stayed unknown for everybody in the first place. */}
+        {!estimate.capacityTrusted && estimate.capacity.suggestion !== null ? (
+          <CapacityConfirm
+            liters={estimate.capacity.suggestion}
+            note={capacityNote(estimate.capacity) ?? ""}
+          />
+        ) : null}
 
         {/* Exactly one personalised sentence. Everything else is in the sheet. */}
         <p className="text-[13px] leading-relaxed text-ink/85">{habitCopy.text}</p>
@@ -142,14 +179,19 @@ export function MyTankCard() {
           </p>
         ) : null}
 
-        <div className="flex gap-2">
-          <CardAction icon={<GaugeIcon size={16} />} onClick={() => setOdometerOpen(true)}>
-            עדכון קילומטראז׳
-          </CardAction>
-          <CardAction icon={<PumpIcon size={16} />} onClick={() => setGaugeOpen(true)}>
-            עדכון מד הדלק
-          </CardAction>
-        </div>
+        {/* With nothing measured yet the column above already carries a single
+            primary invitation; repeating it here as one of two equal-weight
+            buttons only makes the first tap harder to find. */}
+        {current.level !== null || reportedLevel ? (
+          <div className="flex gap-2">
+            <CardAction icon={<GaugeIcon size={16} />} onClick={() => setOdometerOpen(true)}>
+              עדכון קילומטראז׳
+            </CardAction>
+            <CardAction icon={<PumpIcon size={16} />} onClick={() => setGaugeOpen(true)}>
+              עדכון מד הדלק
+            </CardAction>
+          </div>
+        ) : null}
 
         {/* At most one request, and only after its cooldown has expired. */}
         {estimate.nextUpdate.kind !== "none" ? (
@@ -187,39 +229,76 @@ export function MyTankCard() {
   );
 }
 
+/** One tick from the dial, named. */
+function LegendRow({
+  color,
+  label,
+  value,
+  dashed = false,
+}: {
+  color: string;
+  label: string;
+  value: string;
+  dashed?: boolean;
+}) {
+  return (
+    <span className="flex items-center gap-2 text-[12.5px]">
+      <span
+        aria-hidden="true"
+        className="h-[3px] w-3.5 flex-none rounded-pill"
+        style={
+          dashed
+            ? { backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 3px, transparent 3px 5px)` }
+            : { backgroundColor: color }
+        }
+      />
+      <span className="min-w-0 flex-1 truncate text-muted">{label}</span>
+      <span className="flex-none font-semibold text-ink">{value}</span>
+    </span>
+  );
+}
+
 /**
- * The bar.
+ * Confirming an approximate capacity, in one tap.
  *
- * Bounded to 0–100% for drawing while the raw residual stays in the result, so
- * a broken input is visible in the reason list rather than hidden by the clamp.
- * A null level draws an explicitly empty outline, not a zero reading.
+ * No Israeli dataset publishes tank capacity, so the best the app can do on its
+ * own is a body-type approximation or the largest fill on record. Both are
+ * genuinely useful and neither is a measurement — so they are shown, labelled,
+ * and one tap away from becoming the user's own number.
  */
-function LevelBar({ level, tone }: { level: number | null; tone: "accent" | "warning" }) {
-  const reducedMotion = useReducedMotion();
-  const percent = level === null ? 0 : Math.round(Math.min(1, Math.max(0, level)) * 100);
+function CapacityConfirm({ liters, note }: { liters: number; note: string }) {
+  const { activeVehicle, updateVehicle } = useData();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  if (!activeVehicle) return null;
 
   return (
-    <span
-      aria-hidden="true"
-      className="relative h-[92px] w-[46px] flex-none overflow-hidden rounded-[14px] border-2 border-line bg-surface-2"
-    >
-      {level === null ? (
-        <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-muted">
-          ?
-        </span>
-      ) : (
-        <span
-          className={`absolute inset-x-0 bottom-0 ${
-            tone === "warning" ? "bg-warning/70" : "bg-accent"
-          } ${
-            reducedMotion
-              ? ""
-              : "transition-[height] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]"
-          }`}
-          style={{ height: `${percent}%` }}
-        />
-      )}
-    </span>
+    <div className="flex items-center gap-2 rounded-[12px] bg-surface-2 p-2.5">
+      <span className="min-w-0 flex-1 text-[12px] leading-relaxed text-muted">
+        {note} — <Num>{num(liters, 0)}</Num> ליטר
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          void updateVehicle(activeVehicle.id, {
+            tankLiters: liters,
+            tankLitersSource: "user",
+          });
+          showToast({ tone: "success", title: "נפח המיכל אושר" });
+        }}
+        className="min-h-[36px] flex-none rounded-pill px-2.5 text-[12.5px] font-bold text-accent"
+      >
+        מאשר
+      </button>
+      <button
+        type="button"
+        onClick={() => navigate("/settings/vehicles")}
+        className="min-h-[36px] flex-none rounded-pill px-2 text-[12.5px] font-semibold text-muted"
+      >
+        תיקון
+      </button>
+    </div>
   );
 }
 

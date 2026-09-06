@@ -16,7 +16,7 @@ import { levelLabel } from "./gaugeInteraction";
 import type { NextUpdateKind, PassageResult, ReasonCode } from "./types";
 
 export const REASON_TEXT: Record<ReasonCode, string> = {
-  recentConfirmedFullAnchor: "מבוסס על תדלוק אחרון עד מלא",
+  recentConfirmedFullAnchor: "מבוסס על תדלוק אחרון מיכל מלא",
   recentGaugeObservation: "מבוסס על עדכון מד הדלק האחרון",
   recentOdometer: "הקילומטראז׳ עדכני",
   travelForecastFromHistory: "קצב הנסיעה נלמד מההיסטוריה שלך",
@@ -55,7 +55,7 @@ export const NEXT_UPDATE_TEXT: Record<
     action: "עדכון קילומטראז׳",
   },
   confirmFullEndpoints: {
-    title: "סימון תדלוק עד מלא משפר את חישוב הצריכה",
+    title: "סימון תדלוק מיכל מלא משפר את חישוב הצריכה",
     action: "הבנתי",
   },
   recordPreFillLevel: {
@@ -125,7 +125,7 @@ export function habitSentence(
 
 /** How much is normally added, when there is enough evidence to say. */
 export function fillStyleSentence(habit: HabitProfile): string | null {
-  if (claimsFillsToFull(habit)) return "ברוב התדלוקים אתה ממלא עד מלא.";
+  if (claimsFillsToFull(habit)) return "ברוב התדלוקים אתה ממלא מיכל מלא.";
   if (claimsPartialTopUps(habit) && habit.typicalPurchaseFraction !== null) {
     return `בדרך כלל אתה מוסיף בערך ${levelLabel(habit.typicalPurchaseFraction)} מיכל ולא ממלא עד הסוף.`;
   }

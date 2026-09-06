@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
@@ -11,12 +11,16 @@ import { Num } from "../components/Num";
 import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
+import { adaptLegacyConfig, regulatedMaxPrice } from "../lib/prices/regulated";
 import type { Segment } from "../lib/stats";
+import { normalise, smoothPath } from "../lib/curve";
 import {
+  FUEL_TYPE_SHORT,
   consumption,
   dayMonthShort,
   heMonthName,
   num,
+  price,
   shekel,
 } from "../lib/format";
 
@@ -139,20 +143,17 @@ export function Home() {
               <OpenSegmentNote stats={stats} />
             </section>
 
-            {/* The tank replaces the fuel-price card. The regulated price is
-                still one tap away in the refuelling and station flows, where it
-                is actually being acted on; here it was decoration.
+            <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
+              <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
+              <FuelPriceCard />
+            </div>
 
-                Full width because the estimate, the personalised sentence and
-                two actions do not fit comfortably in half. The old full-tank
-                range strip is gone with it — this card carries the range that
+            {/* Full width: the estimate, both thresholds, the personalised
+                sentence and two actions do not fit in half a row. The old
+                full-tank range strip is gone — this card carries the range that
                 matters, which is the one to the refuelling threshold rather
                 than to an empty tank. */}
             <MyTankCard />
-
-            <div className="tm-rise flex gap-3" style={{ animationDelay: "110ms" }}>
-              <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
-            </div>
 
             <SectionTitle
               action={
@@ -264,36 +265,97 @@ export function Home() {
 }
 
 /**
- * The last few closed segments as bars, newest at the reading start of the
- * row (the left end, in RTL). Decoration for the number above it — every
- * figure it encodes is already written out in text, so it is hidden from
- * assistive tech rather than given labels nobody asked for.
+ * The last few closed segments: bars, with the trend drawn over them.
+ *
+ * The bars are the individual results and the curve is the shape they make —
+ * a run of six numbers is a lot easier to read as a direction than as six
+ * heights. Newest sits at the reading start of the row, which in RTL is the
+ * left end, so the eye lands on the most recent result first.
+ *
+ * Decoration for the number above it: every figure it encodes is already
+ * written out in text, so it is hidden from assistive tech rather than given
+ * labels nobody asked for.
  */
 function HeroSpark({ segments }: { segments: Segment[] }) {
   const recent = segments.slice(-SPARK_SEGMENTS);
   if (recent.length < 2) return null;
 
-  const values = recent.map((segment) => segment.kmPerLiter);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const span = max - min;
+  // SVG x always runs left to right, so the series is reversed to put the
+  // newest result on the left the way the rest of the row reads.
+  const series = [...recent].reverse();
+  const heights = normalise(series.map((segment) => segment.kmPerLiter));
+
+  const width = 100;
+  const height = 40;
+  const gap = 1.6;
+  const barWidth = (width - gap * (series.length - 1)) / series.length;
+  // A flat run would otherwise collapse to a row of slivers, so the scale
+  // starts a third of the way up rather than at zero.
+  const topFor = (value: number) => height - (34 + 62 * value) * (height / 100);
+
+  const points = series.map((_, index) => ({
+    x: index * (barWidth + gap) + barWidth / 2,
+    y: topFor(heights[index]),
+  }));
+
+  // Run the curve out to both edges so it reads as a continuing trend rather
+  // than a line that starts and stops inside the card.
+  const curve = smoothPath([
+    { x: 0, y: points[0].y },
+    ...points,
+    { x: width, y: points[points.length - 1].y },
+  ]);
+
+  const newestEdge = barWidth + gap / 2;
 
   return (
-    <div className="flex h-[42px] items-end gap-1.5" aria-hidden="true">
-      {recent.map((segment, index) => (
-        <span
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="none"
+      className="h-[46px] w-full overflow-visible"
+      aria-hidden="true"
+    >
+      <defs>
+        {/* The newest result is highlighted by clipping a second copy of the
+            same geometry, so the bar and the curve above it can never disagree
+            about where "newest" ends. */}
+        <clipPath id="spark-newest" clipPathUnits="userSpaceOnUse">
+          <rect x={0} y={-8} width={newestEdge} height={height + 16} />
+        </clipPath>
+      </defs>
+
+      {series.map((segment, index) => (
+        <rect
           key={segment.endId}
-          className={`flex-1 rounded-[5px] ${
-            index === recent.length - 1 ? "bg-hero-accent" : "bg-hero-soft"
-          }`}
-          /* A flat run of near-identical results would otherwise collapse to
-             a row of slivers, so the scale starts at a third of the height. */
-          style={{
-            height: span > 0 ? `${34 + (66 * (segment.kmPerLiter - min)) / span}%` : "70%",
-          }}
+          x={index * (barWidth + gap)}
+          y={points[index].y}
+          width={barWidth}
+          height={height - points[index].y}
+          rx={1.6}
+          className={index === 0 ? "fill-hero-accent" : "fill-hero-soft"}
+          opacity={index === 0 ? 0.85 : 1}
         />
       ))}
-    </div>
+
+      <path
+        d={curve}
+        fill="none"
+        stroke="var(--hero-ink)"
+        strokeOpacity={0.7}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+      <path
+        d={curve}
+        fill="none"
+        stroke="var(--hero-accent)"
+        strokeWidth={2.2}
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+        clipPath="url(#spark-newest)"
+      />
+    </svg>
   );
 }
 
@@ -341,6 +403,44 @@ function MonthSpendCard({
 }
 
 /**
+ * The current fuel price, for THIS vehicle's fuel type.
+ *
+ * The regulated maximum in Israel covers 95-octane self-service and nothing
+ * else. A diesel or 98 vehicle therefore gets "אין מחיר עדכני" rather than the
+ * 95 figure wearing its label.
+ */
+function FuelPriceCard() {
+  const { prices, activeVehicle } = useData();
+  const fuelType = activeVehicle?.fuelType ?? "95";
+
+  const lookup = useMemo(
+    () => regulatedMaxPrice(adaptLegacyConfig(prices), fuelType, Date.now()),
+    [prices, fuelType],
+  );
+
+  return (
+    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+      <Label className="text-[12.5px]">מחיר דלק נוכחי</Label>
+      <span className="flex items-baseline gap-1.5">
+        <Num className="text-[24px] font-bold leading-tight text-ink">
+          {lookup.price !== null ? price(lookup.price) : "—"}
+        </Num>
+        {lookup.price !== null ? (
+          <span className="text-[12px] text-muted">לליטר</span>
+        ) : null}
+      </span>
+      <span className="truncate text-[12.5px] text-muted">
+        {lookup.price === null
+          ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
+          : `${FUEL_TYPE_SHORT[fuelType]}${
+              lookup.updatedAt ? ` · עודכן ${dayMonthShort(lookup.updatedAt)}` : ""
+            }`}
+      </span>
+    </Card>
+  );
+}
+
+/**
  * Open-segment status.
  *
  * Partial fill-ups are retained, not ignored — but nothing in the UI said so,
@@ -375,8 +475,11 @@ function HomeSkeleton() {
   return (
     <div className="flex flex-col gap-3">
       <Skeleton className="h-[208px] rounded-hero" />
-      <Skeleton className="h-[188px] rounded-card" />
-      <Skeleton className="h-[92px] rounded-card" />
+      <div className="flex gap-3">
+        <Skeleton className="h-[92px] flex-1 rounded-card" />
+        <Skeleton className="h-[92px] flex-1 rounded-card" />
+      </div>
+      <Skeleton className="h-[210px] rounded-card" />
       <Skeleton className="h-[176px] rounded-card" />
     </div>
   );

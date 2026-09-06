@@ -1011,7 +1011,7 @@ export type DraftOutcome =
    * The end state was never stated, so the record cannot close an interval.
    * Distinct from "partialRetained": the user did not declare a partial fill,
    * they simply did not say — and the difference is worth surfacing, because
-   * one tap on "מילאתי עד מלא" turns it into a measurement.
+   * one tap on "מילאתי מיכל מלא" turns it into a measurement.
    */
   | "unknownRetained";
 

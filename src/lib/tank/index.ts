@@ -12,14 +12,15 @@
  * `now` and the timezone are always arguments. Nothing here reads the clock.
  */
 
-import {
-  isTankCapacityTrusted,
-  sortFillups,
-  type Fillup,
-  type Vehicle,
-} from "../stats";
+import { sortFillups, type Fillup, type Vehicle } from "../stats";
+import { resolveCapacity, type ResolvedCapacity } from "./capacity";
 import { replayBalance, type BalanceResult } from "./balance";
-import { DEFAULT_TIME_ZONE, TANK_MODEL_VERSION } from "./config";
+import {
+  CAPACITY_RELATIVE_SD,
+  DEFAULT_TIME_ZONE,
+  TANK_MODEL_VERSION,
+  UNTRUSTED_CAPACITY_SD_FACTOR,
+} from "./config";
 import { estimateConsumption, type ConsumptionEstimate } from "./consumption";
 import { forecast, type CurrentEstimate, type ForecastResult } from "./forecast";
 import { buildBehaviorSamples, learnHabitProfile, type BehaviorSample, type HabitProfile } from "./habits";
@@ -53,6 +54,8 @@ export interface TankModelFit {
   events: TankEvent[];
   capacityLiters: number | null;
   capacityTrusted: boolean;
+  /** Where the capacity came from, so the UI can label an approximation. */
+  capacity: ResolvedCapacity;
   consumption: ConsumptionEstimate;
   mobility: MobilityEstimate;
   balance: BalanceResult;
@@ -65,10 +68,16 @@ export interface TankModelFit {
 export function fitTankModel(input: TankModelInput): TankModelFit {
   const timeZone = input.timeZone ?? DEFAULT_TIME_ZONE;
   const vehicle = input.vehicle ?? null;
-  const capacityTrusted = isTankCapacityTrusted(vehicle);
-  const capacityLiters = capacityTrusted ? (vehicle?.tankLiters ?? null) : null;
-
   const fillups = sortFillups([...input.fillups]);
+
+  // A capacity we are less sure of still beats no capacity: a percentage with
+  // no litres beside it is most of the feature missing. The uncertainty is
+  // carried rather than hidden — an untrusted figure widens every interval
+  // derived from it, and `capacityTrusted` still gates the places that must
+  // only ever see a number the user stood behind.
+  const capacity = resolveCapacity(vehicle, fillups);
+  const capacityLiters = capacity.liters;
+  const capacityTrusted = capacity.trusted;
   const consumption = estimateConsumption(fillups, vehicle, input.now);
   const mobility = estimateMobility(fillups, input.observations, input.now, timeZone);
   const events = buildEventStream(fillups, input.observations, capacityLiters);
@@ -78,6 +87,9 @@ export function fitTankModel(input: TankModelInput): TankModelFit {
     capacityLiters,
     consumptionLitersPerKm: consumption.litersPerKm,
     consumptionSd: consumption.sd,
+    capacityRelativeSd: capacityTrusted
+      ? CAPACITY_RELATIVE_SD
+      : CAPACITY_RELATIVE_SD * UNTRUSTED_CAPACITY_SD_FACTOR,
   });
 
   const allSamples = buildBehaviorSamples({
@@ -107,6 +119,7 @@ export function fitTankModel(input: TankModelInput): TankModelFit {
     events,
     capacityLiters,
     capacityTrusted,
+    capacity,
     consumption,
     mobility,
     balance,
@@ -135,6 +148,8 @@ export interface TankEstimate {
 
   capacityLiters: number | null;
   capacityTrusted: boolean;
+  /** Provenance of the capacity, so an approximation can say that it is one. */
+  capacity: ResolvedCapacity;
 
   current: CurrentEstimate;
   lastRefuel: LastRefuelState | null;
@@ -159,7 +174,17 @@ export interface TankEstimate {
   reasons: ReasonCode[];
   primaryReason: ReasonCode | null;
   nextUpdate: NextUpdate;
+  /** Every reconciliation note from the replay, oldest first. */
   notes: ReconciliationNote[];
+  /**
+   * Notes that still describe the CURRENT state.
+   *
+   * A disagreement from four tanks ago was resolved the moment a confirmed
+   * full re-anchored the balance; keeping it on screen would leave a permanent
+   * warning nobody can clear, which is how a warning stops being read. The
+   * full list stays available for the details sheet.
+   */
+  activeNotes: ReconciliationNote[];
 }
 
 export interface ProjectionInput {
@@ -215,6 +240,7 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     habit: fit.habit,
     forecast: result,
     capacityTrusted: fit.capacityTrusted,
+    capacityKnown: fit.capacityLiters !== null,
     fuelType,
     now,
   };
@@ -230,6 +256,7 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     available: fuelType !== "other",
     capacityLiters: fit.capacityLiters,
     capacityTrusted: fit.capacityTrusted,
+    capacity: fit.capacity,
     current: result.current,
     lastRefuel: lastRefuelOf(fit),
     lastLevelReport: fit.balance.lastLevelReport,
@@ -247,6 +274,9 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     primaryReason: primaryReason(reasons),
     nextUpdate: chooseNextUpdate(qualityInput, input.dismissedPrompts),
     notes: fit.balance.notes,
+    activeNotes: fit.balance.anchor
+      ? fit.balance.notes.filter((note) => note.at >= fit.balance.anchor!.at)
+      : fit.balance.notes,
   };
 }
 

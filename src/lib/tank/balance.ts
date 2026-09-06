@@ -74,6 +74,11 @@ export interface BalanceInput {
   consumptionLitersPerKm: number | null;
   /** Standard deviation of the consumption figure, same units. */
   consumptionSd: number | null;
+  /**
+   * Relative uncertainty of the capacity. Defaults to the trusted figure;
+   * callers pass a wider one when the capacity is an approximation.
+   */
+  capacityRelativeSd?: number;
 }
 
 const EMPTY: BalanceResult = {
@@ -142,10 +147,22 @@ export function replayBalance(input: BalanceInput): BalanceResult {
 
   const hasCapacity = typeof capacityLiters === "number" && capacityLiters > 0;
   const capacity = hasCapacity ? capacityLiters : 0;
-  const capacitySd = capacity * CAPACITY_RELATIVE_SD;
+  const capacitySd = capacity * (input.capacityRelativeSd ?? CAPACITY_RELATIVE_SD);
   const consumption = consumptionLitersPerKm;
   const consumptionSd = input.consumptionSd ?? 0;
   const tolerance = capacity * RECONCILE_TOLERANCE_FRACTION;
+
+  /**
+   * Whether two figures disagree by more than their own uncertainty explains.
+   *
+   * A flat fraction of the tank is not enough on its own: a gauge read to ±5%
+   * and a consumption rate carried over 400 km can differ by three litres
+   * without either being wrong, and flagging that as a conflict trains people
+   * to ignore the warning. A disagreement has to clear BOTH a floor and two
+   * standard deviations of the combined measurement error before it is one.
+   */
+  const disagrees = (difference: number, sdA: number, sdB: number): boolean =>
+    Math.abs(difference) > Math.max(tolerance, 2 * Math.sqrt(sdA * sdA + sdB * sdB));
 
   const notes: ReconciliationNote[] = [];
   let anchor: Anchor | null = null;
@@ -199,7 +216,10 @@ export function replayBalance(input: BalanceInput): BalanceResult {
             // re-anchor and say so, not to average the disagreement away.
             if (previous && consumption !== null) {
               const predicted = advance(previous, odometer, consumption, consumptionSd);
-              if (predicted && Math.abs(predicted.liters - implied.liters) > tolerance) {
+              if (
+                predicted &&
+                disagrees(implied.liters - predicted.liters, implied.sd, predicted.sd)
+              ) {
                 notes.push(
                   note(
                     "conflict",
@@ -268,7 +288,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
       const direct = event.preFill.confirmed;
 
       if (direct) {
-        if (preLiters !== null && Math.abs(observed.liters - preLiters) > tolerance) {
+        if (preLiters !== null && disagrees(observed.liters - preLiters, observed.sd, preSd)) {
           notes.push(
             note(
               "conflict",
@@ -336,7 +356,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
       // 5. An after-fill reading describes the state AFTER the litres went in.
       //    They are not added again.
       const observed = litersFor(event.postFill);
-      if (postLiters !== null && Math.abs(observed.liters - postLiters) > tolerance) {
+      if (postLiters !== null && disagrees(observed.liters - postLiters, observed.sd, postSd)) {
         notes.push(
           note(
             "conflict",
@@ -434,7 +454,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
         null,
         events[events.length - 1].at,
         null,
-        "אין נקודת עיגון — עדכנו את מד הדלק או אשרו תדלוק עד מלא",
+        "אין נקודת עיגון — עדכנו את מד הדלק או אשרו תדלוק מיכל מלא",
       ),
     );
   }

@@ -446,10 +446,12 @@ function EditVehicleSheet({
               plateNumber: plate.replace(/\D/g, "") || null,
               fuelType,
               nickname: nickname.trim() || null,
-              tankLiters: tankLiters ? parseDecimal(tankLiters) : null,
               // Saving this form IS the confirmation, which is what turns an
               // unknown-provenance value into one the range figure may use.
-              tankLitersSource: tankLiters ? "user" : null,
+              // A blank field with a suggestion available keeps the suggestion
+              // as an ESTIMATE — usable, labelled, and there to be confirmed.
+              tankLiters: tankLiters ? parseDecimal(tankLiters) : (tankHint ?? null),
+              tankLitersSource: tankLiters ? "user" : tankHint ? "estimate" : null,
               declaredKmPerLiter: declared ? parseDecimal(declared) : null,
             })
           }

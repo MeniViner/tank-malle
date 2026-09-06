@@ -186,9 +186,20 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         year: draft.year ? Number.parseInt(draft.year, 10) : null,
         plateNumber: draft.plateNumber || null,
         fuelType: draft.fuelType,
-        tankLiters: tankLiters ? parseDecimal(tankLiters) : null,
-        // Typed or confirmed in this form, so it is the user's own number.
-        tankLitersSource: tankLiters ? ("user" as const) : null,
+        // Typed here, it is the user's own number and is trusted. Left blank,
+        // our body-type approximation is stored as an ESTIMATE rather than
+        // thrown away: as a placeholder it helped nobody who did not go and
+        // find their owner's manual, and an approximation that says it is one
+        // beats no capacity at all. `tankLitersSource` keeps them apart, so
+        // nothing gated on a trusted capacity changes.
+        tankLiters: tankLiters
+          ? parseDecimal(tankLiters)
+          : (specs?.suggestedTankLiters ?? null),
+        tankLitersSource: tankLiters
+          ? ("user" as const)
+          : specs?.suggestedTankLiters
+            ? ("estimate" as const)
+            : null,
         declaredKmPerLiter: declaredKmPerLiter ? parseDecimal(declaredKmPerLiter) : null,
         declaredSource: declaredKmPerLiter
           ? specs?.consumptionIsOfficial &&

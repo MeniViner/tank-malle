@@ -194,6 +194,13 @@ export const GAUGE_SD_BY_SOURCE = {
 /** Relative sd of a trusted capacity figure — usable volume is not exact. */
 export const CAPACITY_RELATIVE_SD = 0.04;
 
+/**
+ * How much wider the uncertainty gets when the capacity is an approximation
+ * rather than a figure the user stated. A body-type guess or a largest-fill
+ * inference is usable, and it must not be presented as if it were measured.
+ */
+export const UNTRUSTED_CAPACITY_SD_FACTOR = 3;
+
 /** Relative sd of a pump litre reading. */
 export const PUMP_LITERS_RELATIVE_SD = 0.01;
 

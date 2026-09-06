@@ -6,12 +6,12 @@ import { useStats } from "../hooks/useStats";
 import {
   evaluateDraft,
   hardBlock,
-  isTankCapacityTrusted,
   odometerBounds,
   resolvePricePerLiter,
   softWarnings,
   type Fillup,
 } from "../lib/stats";
+import { capacityNote, resolveCapacity } from "../lib/tank/capacity";
 import {
   FUEL_TYPE_SHORT,
   heMonthName,
@@ -123,7 +123,7 @@ export function FillupForm() {
    *
    * An existing record is loaded back only when it was written by THIS UI —
    * a legacy document's `isFullTank` is an assumption nobody made, and
-   * pre-selecting "מילאתי עד מלא" from it would turn that assumption into a
+   * pre-selecting "מילאתי מיכל מלא" from it would turn that assumption into a
    * confirmation the moment the record was opened.
    */
   const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
@@ -402,14 +402,19 @@ export function FillupForm() {
   ]);
 
   /**
-   * Capacity, but only when it is one the user confirmed.
+   * Capacity, from the same ladder the rest of the app uses.
    *
-   * A class-based guess must never reach the gauge: it would turn "about a
-   * quarter" into a confident litre figure derived from a number nobody checked.
+   * An approximation is allowed through — a gauge with no litres beside it is
+   * most of the interaction missing — but it travels with its provenance, and
+   * `capacityLitersAtEntry` records which revision every derivation on this
+   * record was made against, so a later correction cannot silently rewrite
+   * what was measured today.
    */
-  const trustedCapacity = isTankCapacityTrusted(activeVehicle)
-    ? (activeVehicle?.tankLiters ?? null)
-    : null;
+  const capacity = useMemo(
+    () => resolveCapacity(activeVehicle, fillups),
+    [activeVehicle, fillups],
+  );
+  const trustedCapacity = capacity.liters;
 
   const isBackdated = date < Date.now() - 12 * 3600_000;
 
@@ -800,6 +805,7 @@ export function FillupForm() {
           onChange={setTankDraft}
           litersAdded={Number.isFinite(litersValue) ? litersValue : 0}
           capacityLiters={trustedCapacity}
+          capacityNote={capacityNote(capacity)}
           onReviewCapacity={() => navigate("/settings/vehicles")}
         />
 
@@ -1466,7 +1472,7 @@ function DraftExplanation({
     return (
       <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
         הצריכה לא תחושב מהתדלוק הזה — לא צוין אם המיכל התמלא. סימון{" "}
-        <b className="text-ink">מילאתי עד מלא</b> במצב המיכל מספיק כדי לחשב אותה.
+        <b className="text-ink">מילאתי מיכל מלא</b> במצב המיכל מספיק כדי לחשב אותה.
       </span>
     );
   }
@@ -1513,7 +1519,7 @@ function savedMessage(
 
   if (evaluation.outcome === "unknownRetained") {
     return {
-      title: "התדלוק נשמר. הצריכה תחושב כשיסומן תדלוק עד מלא.",
+      title: "התדלוק נשמר. הצריכה תחושב כשיסומן תדלוק מיכל מלא.",
       detail: undo,
     };
   }

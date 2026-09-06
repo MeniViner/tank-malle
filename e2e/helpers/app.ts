@@ -168,7 +168,7 @@ export interface FillupInput {
   /** "HH:MM", typed into the time field. */
   time?: string;
   /**
-   * Whether to confirm "מילאתי עד מלא".
+   * Whether to confirm "מילאתי מיכל מלא".
    *
    * Defaults to true because most of the suite is about the consumption
    * engine, which needs a confirmed full endpoint. The default is deliberately
@@ -211,7 +211,7 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
   // tank-state section. Nothing infers it, so the helper has to say it.
   if ((input.fillEndState ?? "full") === "full") {
     await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-    await page.getByRole("button", { name: "מילאתי עד מלא" }).click();
+    await page.getByRole("button", { name: "מילאתי מיכל מלא" }).click();
   }
 
   if (input.continuityBreak) {

@@ -29,6 +29,12 @@ export interface QualityInput {
   habit: HabitProfile;
   forecast: ForecastResult;
   capacityTrusted: boolean;
+  /**
+   * True when a capacity figure exists at all, trusted or not. An approximation
+   * is offered for confirmation inline, beside the number itself, so the
+   * generic prompt would be the same request asked twice on one screen.
+   */
+  capacityKnown: boolean;
   fuelType: FuelType;
   now: number;
 }
@@ -152,7 +158,7 @@ export function chooseNextUpdate(
 
   if (input.fuelType === "other") return { kind: "none", reason: "unsupportedFuelType" };
 
-  if (!capacityTrusted) {
+  if (!capacityTrusted && !input.capacityKnown) {
     candidates.push({ kind: "confirmCapacity", reason: "untrustedCapacity" });
   }
   if (!balance.anchor) {

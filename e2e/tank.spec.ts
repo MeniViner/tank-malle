@@ -229,7 +229,7 @@ test("§16.15.3 confirming a full tank derives the pre-fill level from the litre
   await page.getByLabel("ליטרים", { exact: true }).fill("30");
   await page.getByLabel("מחיר לליטר").fill("7");
   await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-  await page.getByRole("button", { name: "מילאתי עד מלא" }).click();
+  await page.getByRole("button", { name: "מילאתי מיכל מלא" }).click();
 
   // 40 L − 30 L ⇒ about a quarter was left, shown as an estimate.
   await expect(page.getByText("משוער לפי הכמות")).toBeVisible();
@@ -251,16 +251,21 @@ test("§16.15.3 confirming a full tank derives the pre-fill level from the litre
  * Home
  * ------------------------------------------------------------------ */
 
-test("Home shows the tank card in place of the fuel price", async ({ page }) => {
+test("Home carries the tank card alongside the two summary tiles", async ({ page }) => {
   await freshVehicle(page);
   await page.goto("/");
 
   await expect(page.getByText("המיכל שלי")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("מחיר דלק נוכחי")).toHaveCount(0);
-  // The full-tank range strip is gone with it.
+  // The month-spend and fuel-price tiles keep their place above it.
+  await expect(page.getByText("הוצאה החודש")).toBeVisible();
+  await expect(page.getByText("מחיר דלק נוכחי")).toBeVisible();
+  // The full-tank range strip is gone: the tank card carries the range that
+  // matters, which is the one to the refuelling threshold.
   await expect(page.getByText("טווח נסיעה משוער במיכל מלא")).toHaveCount(0);
 
-  await expect(page.getByRole("button", { name: "עדכון קילומטראז׳" })).toBeVisible();
+  // Nothing measured yet, so the card leads with a single invitation rather
+  // than two equal-weight actions.
+  await expect(page.getByText("נתחיל למדוד")).toBeVisible();
   await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeVisible();
 });
 
@@ -268,6 +273,19 @@ test("an odometer update is a reading, not a fill-up", async ({ page }) => {
   const { uid, vehicleId } = await freshVehicle(page);
 
   await page.goto("/");
+  // A gauge reading first, so the card has something to show and offers the
+  // odometer action; the point of the test is that the odometer update is a
+  // reading and not a fill-up.
+  await page.getByRole("button", { name: "עדכון מד הדלק" }).click();
+  const gauge = page.getByRole("slider", { name: "כמה דלק יש עכשיו במיכל" });
+  await gauge.focus();
+  await gauge.press("Home");
+  await gauge.press("PageUp");
+  await page.getByRole("button", { name: "שמירה" }).click();
+  await expect(page.getByText("מצב המיכל נשמר — התחזית תשתפר")).toBeVisible({
+    timeout: 20_000,
+  });
+
   await page.getByRole("button", { name: "עדכון קילומטראז׳" }).click();
   await page.getByLabel("קילומטראז׳ נוכחי").fill("123456");
   await page.getByRole("button", { name: "שמירה" }).click();
@@ -276,11 +294,13 @@ test("an odometer update is a reading, not a fill-up", async ({ page }) => {
 
   const observations = await waitForDocuments(
     `users/${uid}/vehicles/${vehicleId}/observations`,
-    1,
+    2,
   );
-  expect(observations).toHaveLength(1);
-  expect((observations[0].data as Record<string, unknown>).kind).toBe("odometer");
-  expect((observations[0].data as Record<string, unknown>).confirmed).toBe(true);
+  const odometerReading = observations
+    .map((entry) => entry.data as Record<string, unknown>)
+    .find((data) => data.kind === "odometer");
+  expect(odometerReading).toBeDefined();
+  expect(odometerReading!.confirmed).toBe(true);
 
   // No spending and no litres were invented.
   const fillups = await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`);
