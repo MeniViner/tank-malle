@@ -77,7 +77,14 @@ service cloud.firestore {
              'isFullTank', 'station', 'notes', 'createdAt',
              'continuityBreakBefore', 'fullTankSource', 'postedPricePerLiter',
              'fuelType', 'importSource', 'importBatchId', 'importRowHash',
-             'schemaVersion'
+             'schemaVersion',
+             // Optional tank-state measurements. Added to the existing
+             // whitelist rather than relaxing it: an unrecognised key is still
+             // rejected outright.
+             'fillEndState', 'fillEndStateSource',
+             'preFillLevel', 'preFillLevelSource', 'preFillLevelUncertainty',
+             'postFillLevel', 'postFillLevelSource', 'postFillLevelUncertainty',
+             'refuelReason', 'capacityLitersAtEntry', 'tankSchemaVersion'
            ])
         && isNumber(data.odometer) && data.odometer > 0 && data.odometer < 3000000
         && isNumber(data.liters) && data.liters > 0 && data.liters <= 500
@@ -109,7 +116,92 @@ service cloud.firestore {
         && optionalString(data, 'importRowHash', 64)
         && optionalNumber(data, 'schemaVersion')
         && optionalString(data, 'notes', 500)
-        && (!('station' in data) || data.station == null || validStation(data.station));
+        && (!('station' in data) || data.station == null || validStation(data.station))
+        && validTankFields(data);
+    }
+
+    // A level is a FRACTION of the tank, 0-1. Enforced here so a client cannot
+    // store a percentage, a litre count or a negative reading in a field the
+    // engine will read back as a fraction.
+    function optionalLevel(data, field) {
+      return !(field in data) || data[field] == null
+        || (isNumber(data[field]) && data[field] >= 0 && data[field] <= 1);
+    }
+
+    function optionalLevelSource(data, field) {
+      return !(field in data) || data[field] == null
+        || data[field] in ['direct-gauge', 'user-correction',
+                           'derived-from-full-and-liters', 'derived-after-partial',
+                           'imported-legacy', 'unknown'];
+    }
+
+    // The optional tank-state block. Every field may be absent — absence is a
+    // missing observation, which is a valid and common state.
+    function validTankFields(data) {
+      return (!('fillEndState' in data) || data.fillEndState == null
+              || data.fillEndState in ['full', 'partial', 'unknown'])
+        && (!('fillEndStateSource' in data) || data.fillEndStateSource == null
+            || data.fillEndStateSource in ['user-confirmed', 'gauge-estimate',
+                                           'inferred', 'legacy-assumption', 'unknown'])
+        && optionalLevel(data, 'preFillLevel')
+        && optionalLevel(data, 'postFillLevel')
+        && optionalLevelSource(data, 'preFillLevelSource')
+        && optionalLevelSource(data, 'postFillLevelSource')
+        && optionalLevel(data, 'preFillLevelUncertainty')
+        && optionalLevel(data, 'postFillLevelUncertainty')
+        && (!('refuelReason' in data) || data.refuelReason == null
+            || data.refuelReason in ['routine', 'low-fuel', 'before-trip',
+                                     'good-price', 'unsure'])
+        && (!('capacityLitersAtEntry' in data) || data.capacityLitersAtEntry == null
+            || (isNumber(data.capacityLitersAtEntry)
+                && data.capacityLitersAtEntry > 0
+                && data.capacityLitersAtEntry <= 500))
+        && (!('tankSchemaVersion' in data) || data.tankSchemaVersion == null
+            || (isNumber(data.tankSchemaVersion) && data.tankSchemaVersion >= 1));
+    }
+
+    /**
+     * A standalone gauge / odometer reading. Owner-only in both directions.
+     *
+     * `confirmed` distinguishes something the user actually stated from a
+     * suggestion they merely accepted, and the model refuses to learn from the
+     * latter — so it is a bool the rules insist on rather than an optional hint.
+     */
+    function validObservation(data) {
+      return data.keys().hasOnly([
+             'observedAt', 'recordedAt', 'kind', 'odometer', 'level',
+             'levelUncertainty', 'levelSource', 'confirmed', 'fillupId',
+             'phase', 'schemaVersion'
+           ])
+        && data.observedAt is timestamp
+        && data.kind in ['odometer', 'level', 'both']
+        && data.confirmed is bool
+        && (!('odometer' in data) || data.odometer == null
+            || (isNumber(data.odometer) && data.odometer > 0 && data.odometer < 3000000))
+        && optionalLevel(data, 'level')
+        && optionalLevel(data, 'levelUncertainty')
+        && optionalLevelSource(data, 'levelSource')
+        && optionalString(data, 'fillupId', 64)
+        && (!('phase' in data) || data.phase == null
+            || data.phase in ['before_refuel', 'after_refuel', 'standalone'])
+        && optionalNumber(data, 'schemaVersion');
+    }
+
+    /**
+     * A planned journey. It only ever moves a local forecast, so it is bounded
+     * for sanity rather than for correctness — nothing here is authoritative
+     * about anything.
+     */
+    function validTankPlan(data) {
+      return data.keys().hasOnly([
+             'date', 'distanceKm', 'mode', 'bufferKm', 'note', 'createdAt'
+           ])
+        && data.date is timestamp
+        && isNumber(data.distanceKm) && data.distanceKm > 0 && data.distanceKm <= 20000
+        && data.mode in ['additional', 'replaces']
+        && (!('bufferKm' in data) || data.bufferKm == null
+            || (isNumber(data.bufferKm) && data.bufferKm >= 0 && data.bufferKm <= 20000))
+        && optionalString(data, 'note', 200);
     }
 
     function validVehicle(data) {
@@ -135,7 +227,35 @@ service cloud.firestore {
         && (!('plateNumber' in data) || data.plateNumber == null
             || (data.plateNumber is string && data.plateNumber.size() <= 12))
         && (!('nickname' in data) || data.nickname == null
-            || (data.nickname is string && data.nickname.size() <= 60));
+            || (data.nickname is string && data.nickname.size() <= 60))
+        && (!('tankPrefs' in data) || data.tankPrefs == null
+            || validTankPrefs(data.tankPrefs));
+    }
+
+    /**
+     * Tank preferences.
+     *
+     * The reserve is a comfort buffer the user chose, not a manufacturer
+     * figure, and it is bounded away from both zero and a full tank so a
+     * malformed value cannot make the app recommend refuelling at empty or
+     * permanently.
+     */
+    function validTankPrefs(prefs) {
+      return prefs.keys().hasOnly([
+             'reserveFraction', 'refuelLevelOverride', 'usualFillStyle',
+             'usualRefuelLevel', 'habitResetAt'
+           ])
+        && isNumber(prefs.reserveFraction)
+        && prefs.reserveFraction >= 0.05 && prefs.reserveFraction <= 0.9
+        && (!('refuelLevelOverride' in prefs) || prefs.refuelLevelOverride == null
+            || (isNumber(prefs.refuelLevelOverride)
+                && prefs.refuelLevelOverride >= 0 && prefs.refuelLevelOverride <= 1))
+        && (!('usualFillStyle' in prefs) || prefs.usualFillStyle == null
+            || prefs.usualFillStyle in ['full', 'partial', 'unknown'])
+        && (!('usualRefuelLevel' in prefs) || prefs.usualRefuelLevel == null
+            || (isNumber(prefs.usualRefuelLevel)
+                && prefs.usualRefuelLevel >= 0 && prefs.usualRefuelLevel <= 1))
+        && optionalEpochMillis(prefs, 'habitResetAt');
     }
 
     // An anonymous economy summary. Deliberately narrow: anything that could
@@ -262,6 +382,24 @@ service cloud.firestore {
           allow read: if isOwner(uid);
           allow delete: if isOwner(uid);
           allow create, update: if isOwner(uid) && validFillup(request.resource.data);
+        }
+
+        /**
+         * Tank observations and planned trips.
+         *
+         * Owner-only, exactly like fill-ups. A tank state, a refuelling habit
+         * and a future journey are among the most revealing things the app
+         * holds — where somebody will be and when — so none of it is readable
+         * by other users, by the community aggregates or by an admin.
+         */
+        match /observations/{observationId} {
+          allow read, delete: if isOwner(uid);
+          allow create, update: if isOwner(uid) && validObservation(request.resource.data);
+        }
+
+        match /tankPlans/{planId} {
+          allow read, delete: if isOwner(uid);
+          allow create, update: if isOwner(uid) && validTankPlan(request.resource.data);
         }
       }
     }

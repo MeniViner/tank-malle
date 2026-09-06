@@ -10,9 +10,19 @@
  * tested in isolation and reused anywhere (including Cloud Functions).
  */
 
+import { TANK_SCHEMA_VERSION } from "./tank/config";
+import { closesInterval } from "./tank/observations";
+import type { FillEndState, FillupTankFields, TankPreferences } from "./tank/types";
+
 export type FuelType = "95" | "98" | "diesel" | "other";
 
-export interface Fillup {
+/**
+ * `FillupTankFields` carries the optional tank-state measurements. They are
+ * stored ON the fill-up because a measurement taken at a fill-up belongs to it:
+ * one document, one write, and no way to end up with an orphaned observation
+ * pointing at a record that failed to save.
+ */
+export interface Fillup extends FillupTankFields {
   id: string;
   /** Epoch milliseconds. May be any past date. */
   date: number;
@@ -25,6 +35,11 @@ export interface Fillup {
    * True when the tank was FULL at the END of this fill-up — regardless of how
    * much was in it on arrival. A partial fill-up does not close a consumption
    * segment; its liters roll into the open one.
+   *
+   * Retained for compatibility and written as `fillEndState === "full"`. It is
+   * a PROJECTION: on a new record it cannot distinguish a declared partial from
+   * an unknown end state, so read it alongside `fillEndState` — `closesInterval`
+   * is the function that does.
    */
   isFullTank: boolean;
   station?: StationRef | null;
@@ -89,6 +104,12 @@ export interface Vehicle {
   /** Registry codes, kept so the WLTP spec register can be re-queried. */
   tozeretCd?: number | null;
   degemCd?: number | null;
+  /**
+   * Tank-tracker preferences. Self-reported answers are PRIORS — a stated
+   * habit is not a measured one — and the reserve is a comfort buffer the user
+   * chose, not a manufacturer figure.
+   */
+  tankPrefs?: TankPreferences | null;
 }
 
 /**
@@ -316,7 +337,7 @@ function segmentsForIsland(island: Fillup[]): Segment[] {
   for (const fill of island) {
     if (start === null) {
       // A segment can only start from a known-full tank.
-      if (fill.isFullTank) start = fill;
+      if (closesInterval(fill)) start = fill;
       continue;
     }
 
@@ -324,7 +345,10 @@ function segmentsForIsland(island: Fillup[]): Segment[] {
     cost += fill.totalCost;
     count += 1;
 
-    if (!fill.isFullTank) continue;
+    // An unknown or partial endpoint cannot close an accurate interval: the
+    // litres bought say nothing about what was already in the tank. They stay
+    // in the open segment and are counted by the next confirmed full tank.
+    if (!closesInterval(fill)) continue;
 
     const km = fill.odometer - start.odometer;
     if (km > 0 && liters > 0) {
@@ -390,7 +414,7 @@ export function buildOpenSegment(sorted: Fillup[]): OpenSegment {
   // Walk back to the last full tank; everything after it is the open segment.
   let baselineIndex = -1;
   for (let i = island.length - 1; i >= 0; i -= 1) {
-    if (island[i].isFullTank) {
+    if (closesInterval(island[i])) {
       baselineIndex = i;
       break;
     }
@@ -963,6 +987,11 @@ export interface DraftFillup {
   totalCost?: number;
   isFullTank?: boolean;
   continuityBreakBefore?: boolean;
+  /**
+   * End state of the tank. When present it decides everything; `isFullTank` is
+   * then only the compatibility projection of it.
+   */
+  fillEndState?: FillEndState;
 }
 
 /** Sentinel id for the draft while it sits in the temporary canonical list. */
@@ -977,7 +1006,14 @@ export type DraftOutcome =
   | "partialRetained"
   /** The draft is partial and no baseline exists yet, so nothing accumulates
    *  toward a result until a full tank is recorded. */
-  | "partialNoBaseline";
+  | "partialNoBaseline"
+  /**
+   * The end state was never stated, so the record cannot close an interval.
+   * Distinct from "partialRetained": the user did not declare a partial fill,
+   * they simply did not say — and the difference is worth surfacing, because
+   * one tap on "מילאתי עד מלא" turns it into a measurement.
+   */
+  | "unknownRetained";
 
 export interface DraftEvaluation {
   outcome: DraftOutcome;
@@ -1004,7 +1040,9 @@ export function evaluateDraft(
   fillups: Fillup[],
   excludeId?: string,
 ): DraftEvaluation {
-  const isFull = draft.isFullTank !== false;
+  const endState: FillEndState =
+    draft.fillEndState ?? (draft.isFullTank === false ? "partial" : "full");
+  const isFull = endState === "full";
 
   const candidate: Fillup = {
     id: DRAFT_ID,
@@ -1015,6 +1053,8 @@ export function evaluateDraft(
     totalCost: draft.totalCost ?? draft.liters * draft.pricePerLiter,
     isFullTank: isFull,
     continuityBreakBefore: draft.continuityBreakBefore === true,
+    fillEndState: endState,
+    tankSchemaVersion: TANK_SCHEMA_VERSION,
   };
 
   const merged = sortFillups([
@@ -1035,12 +1075,14 @@ export function evaluateDraft(
     outcome = "closedSegment";
   } else if (isFull) {
     outcome = "baseline";
+  } else if (endState === "unknown") {
+    outcome = "unknownRetained";
   } else {
     // Does a baseline exist before the draft inside its own island?
     const island =
       buildIslands(merged).find((group) => group.some((f) => f.id === DRAFT_ID)) ?? [];
     const index = island.findIndex((f) => f.id === DRAFT_ID);
-    const hasBaseline = island.slice(0, index).some((f) => f.isFullTank);
+    const hasBaseline = island.slice(0, index).some((f) => closesInterval(f));
     outcome = hasBaseline ? "partialRetained" : "partialNoBaseline";
   }
 

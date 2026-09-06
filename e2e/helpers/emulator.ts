@@ -195,6 +195,12 @@ export interface SeedVehicle {
   fuelType?: "95" | "98" | "diesel" | "other";
   year?: number;
   tankLiters?: number;
+  /**
+   * Provenance of `tankLiters`. Without it the capacity is NOT trusted, so
+   * litres and range stay suppressed — which is the app's real behaviour and
+   * therefore the right default here too.
+   */
+  tankLitersSource?: "user" | "trusted" | "estimate" | "legacy";
   declaredKmPerLiter?: number;
   priceAdjustment?: number;
   manualPricePerLiter?: number;
@@ -214,6 +220,7 @@ export async function seedVehicle(
     priceAdjustment: vehicle.priceAdjustment ?? 0,
     manualPricePerLiter: vehicle.manualPricePerLiter ?? null,
     tankLiters: vehicle.tankLiters ?? null,
+    tankLitersSource: vehicle.tankLitersSource ?? null,
     declaredKmPerLiter: vehicle.declaredKmPerLiter ?? null,
     createdAt: new Date(),
   });

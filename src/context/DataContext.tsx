@@ -49,6 +49,12 @@ import {
   normalizePriceDocument,
   type RegulatedPriceConfig,
 } from "../lib/prices/regulated";
+import {
+  DEFAULT_TANK_PREFERENCES,
+  type TankObservation,
+  type TankPlan,
+  type TankPreferences,
+} from "../lib/tank/types";
 
 interface DataContextValue {
   ready: boolean;
@@ -105,8 +111,51 @@ interface DataContextValue {
    */
   deleteImportBatch: (batch: ImportBatch) => Promise<ImportRollbackResult>;
 
+  /**
+   * Standalone gauge / odometer updates for the active vehicle.
+   *
+   * These are readings, not transactions: nothing here creates spending or
+   * purchased litres, and none of it ever leaves the owner's own subtree.
+   */
+  observations: TankObservation[];
+  addObservation: (
+    observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">,
+  ) => Promise<string>;
+  deleteObservation: (observationId: string) => Promise<void>;
+
+  /** Upcoming journeys. They move the forecast and never become real travel. */
+  plans: TankPlan[];
+  addPlan: (plan: Omit<TankPlan, "id" | "vehicleId" | "createdAt">) => Promise<string>;
+  deletePlan: (planId: string) => Promise<void>;
+
+  /** Per-vehicle tank preferences, with the product defaults filled in. */
+  tankPreferences: TankPreferences;
+  updateTankPreferences: (patch: Partial<TankPreferences>) => Promise<void>;
+
   /** Reports exactly what was and was not deleted. Never claims a clean sweep. */
   deleteAccount: () => Promise<DeletionResult>;
+}
+
+/** Read a stored preferences map defensively; any gap falls back to a default. */
+function readTankPreferences(raw: unknown): TankPreferences {
+  const data = (raw ?? {}) as Record<string, unknown>;
+  const number = (value: unknown, fallback: number | null): number | null =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+
+  return {
+    reserveFraction:
+      number(data.reserveFraction, DEFAULT_TANK_PREFERENCES.reserveFraction) ??
+      DEFAULT_TANK_PREFERENCES.reserveFraction,
+    refuelLevelOverride: number(data.refuelLevelOverride, null),
+    usualFillStyle:
+      data.usualFillStyle === "full" ||
+      data.usualFillStyle === "partial" ||
+      data.usualFillStyle === "unknown"
+        ? data.usualFillStyle
+        : null,
+    usualRefuelLevel: number(data.usualRefuelLevel, null),
+    habitResetAt: number(data.habitResetAt, null),
+  };
 }
 
 /**
@@ -326,6 +375,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
   const [priceRules, setPriceRules] = useState<StoredPriceRule[]>([]);
+  const [observations, setObservations] = useState<TankObservation[]>([]);
+  const [plans, setPlans] = useState<TankPlan[]>([]);
 
   /**
    * User generation.
@@ -511,6 +562,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             createdAt: toMillis(data.createdAt),
             tozeretCd: toNumberOrNull(data.tozeretCd),
             degemCd: toNumberOrNull(data.degemCd),
+            tankPrefs: readTankPreferences(data.tankPrefs),
           } satisfies Vehicle;
         });
         list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
@@ -581,6 +633,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
               importRowHash: data.importRowHash ?? null,
               schemaVersion:
                 typeof data.schemaVersion === "number" ? data.schemaVersion : 1,
+
+              // Optional tank-state measurements. Absent on every record the
+              // new form did not write, and absence must stay absent — a
+              // missing level is a missing observation, not a zero.
+              fillEndState: (data.fillEndState ?? null) as Fillup["fillEndState"],
+              fillEndStateSource: (data.fillEndStateSource ??
+                null) as Fillup["fillEndStateSource"],
+              preFillLevel: toNumberOrNull(data.preFillLevel),
+              preFillLevelSource: (data.preFillLevelSource ??
+                null) as Fillup["preFillLevelSource"],
+              preFillLevelUncertainty: toNumberOrNull(data.preFillLevelUncertainty),
+              postFillLevel: toNumberOrNull(data.postFillLevel),
+              postFillLevelSource: (data.postFillLevelSource ??
+                null) as Fillup["postFillLevelSource"],
+              postFillLevelUncertainty: toNumberOrNull(data.postFillLevelUncertainty),
+              refuelReason: (data.refuelReason ?? null) as Fillup["refuelReason"],
+              capacityLitersAtEntry: toNumberOrNull(data.capacityLitersAtEntry),
+              tankSchemaVersion: toNumberOrNull(data.tankSchemaVersion),
             } satisfies Fillup;
           });
 
@@ -593,6 +663,95 @@ export function DataProvider({ children }: { children: ReactNode }) {
         label: "fill-ups",
         onError: () => setLoadingFillups(false),
       },
+    );
+  }, [uid, activeVehicle, isCurrent]);
+
+  /* ---------- tank observations and plans ---------- */
+
+  /**
+   * Standalone readings for the active vehicle.
+   *
+   * Kept in their own subcollection because they are not transactions: an
+   * odometer or gauge update has no cost, no litres and no station, and folding
+   * it into `fillups` would make it one.
+   */
+  useEffect(() => {
+    if (!uid || !activeVehicle) {
+      setObservations([]);
+      return;
+    }
+    const generation = generationRef.current;
+    const cached = readCache<TankObservation[]>(uid, `observations.${activeVehicle.id}`);
+    if (cached) setObservations(cached);
+
+    return subscribeResilient<QuerySnapshot<DocumentData>>(
+      (onNext, onError) =>
+        onSnapshot(
+          collection(db, "users", uid, "vehicles", activeVehicle.id, "observations"),
+          onNext,
+          onError,
+        ),
+      (snapshot) => {
+        const list = snapshot.docs.map((entry) => {
+          const data = entry.data();
+          return {
+            id: entry.id,
+            vehicleId: activeVehicle.id,
+            observedAt: toMillis(data.observedAt),
+            recordedAt: toMillis(data.recordedAt),
+            kind: (data.kind ?? "both") as TankObservation["kind"],
+            odometer: toNumberOrNull(data.odometer),
+            level: toNumberOrNull(data.level),
+            levelUncertainty: toNumberOrNull(data.levelUncertainty),
+            levelSource: (data.levelSource ?? null) as TankObservation["levelSource"],
+            // Absence is NOT confirmation. A reading only counts as evidence
+            // when the user actually stated it.
+            confirmed: data.confirmed === true,
+            fillupId: data.fillupId ?? null,
+            phase: (data.phase ?? "standalone") as TankObservation["phase"],
+            schemaVersion: toNumberOrNull(data.schemaVersion) ?? 1,
+          } satisfies TankObservation;
+        });
+        list.sort((a, b) => a.observedAt - b.observedAt);
+        setObservations(list);
+        writeCache(uid, `observations.${activeVehicle.id}`, list);
+      },
+      { isCurrent: isCurrent(generation), label: "tank observations" },
+    );
+  }, [uid, activeVehicle, isCurrent]);
+
+  useEffect(() => {
+    if (!uid || !activeVehicle) {
+      setPlans([]);
+      return;
+    }
+    const generation = generationRef.current;
+
+    return subscribeResilient<QuerySnapshot<DocumentData>>(
+      (onNext, onError) =>
+        onSnapshot(
+          collection(db, "users", uid, "vehicles", activeVehicle.id, "tankPlans"),
+          onNext,
+          onError,
+        ),
+      (snapshot) => {
+        const list = snapshot.docs.map((entry) => {
+          const data = entry.data();
+          return {
+            id: entry.id,
+            vehicleId: activeVehicle.id,
+            date: toMillis(data.date),
+            distanceKm: Number(data.distanceKm ?? 0),
+            mode: data.mode === "replaces" ? "replaces" : "additional",
+            bufferKm: toNumberOrNull(data.bufferKm),
+            note: data.note ?? null,
+            createdAt: toMillis(data.createdAt),
+          } satisfies TankPlan;
+        });
+        list.sort((a, b) => a.date - b.date);
+        setPlans(list);
+      },
+      { isCurrent: isCurrent(generation), label: "tank plans" },
     );
   }, [uid, activeVehicle, isCurrent]);
 
@@ -748,14 +907,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!uid) return;
       // Subcollections are not removed with their parent, so clear fill-ups
       // in batches first.
-      const fillupsRef = collection(db, "users", uid, "vehicles", vehicleId, "fillups");
-      const snapshot = await getDocs(fillupsRef);
-      for (let i = 0; i < snapshot.docs.length; i += 400) {
-        const batch = writeBatch(db);
-        snapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
-        await batch.commit();
+      const vehicleRef = doc(db, "users", uid, "vehicles", vehicleId);
+      // Every subcollection, not just fill-ups: leaving observations or plans
+      // behind would keep a deleted vehicle's private tank history alive.
+      for (const name of ["fillups", "observations", "tankPlans"]) {
+        const snapshot = await getDocs(collection(vehicleRef, name));
+        for (let i = 0; i < snapshot.docs.length; i += 400) {
+          const batch = writeBatch(db);
+          snapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
+          await batch.commit();
+        }
       }
-      await deleteDoc(doc(db, "users", uid, "vehicles", vehicleId));
+      await deleteDoc(vehicleRef);
 
       if (settings.activeVehicleId === vehicleId) {
         const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
@@ -888,6 +1051,108 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return { written: list.length, receipt };
     },
     [uid, track],
+  );
+
+  /**
+   * Record a gauge and/or odometer reading.
+   *
+   * `confirmed` comes from the caller and is only ever true when the user
+   * actually set the value. A pre-filled suggestion nobody touched must reach
+   * this function as `false`, or it becomes a training label for a measurement
+   * that never happened.
+   */
+  const addObservation = useCallback(
+    async (observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">) => {
+      if (!uid || !activeVehicle) throw new Error("no active vehicle");
+      const ref = doc(
+        collection(db, "users", uid, "vehicles", activeVehicle.id, "observations"),
+      );
+      track(
+        "tank.observation",
+        setDoc(
+          ref,
+          stripUndefined({
+            ...observation,
+            observedAt: Timestamp.fromMillis(observation.observedAt),
+            recordedAt: serverTimestamp(),
+            schemaVersion: 1,
+          }),
+        ),
+      );
+      return ref.id;
+    },
+    [uid, activeVehicle, track],
+  );
+
+  const deleteObservation = useCallback(
+    async (observationId: string) => {
+      if (!uid || !activeVehicle) return;
+      track(
+        "tank.observation.delete",
+        deleteDoc(
+          doc(
+            db,
+            "users",
+            uid,
+            "vehicles",
+            activeVehicle.id,
+            "observations",
+            observationId,
+          ),
+        ),
+      );
+    },
+    [uid, activeVehicle, track],
+  );
+
+  const addPlan = useCallback(
+    async (plan: Omit<TankPlan, "id" | "vehicleId" | "createdAt">) => {
+      if (!uid || !activeVehicle) throw new Error("no active vehicle");
+      const ref = doc(collection(db, "users", uid, "vehicles", activeVehicle.id, "tankPlans"));
+      track(
+        "tank.plan",
+        setDoc(
+          ref,
+          stripUndefined({
+            ...plan,
+            date: Timestamp.fromMillis(plan.date),
+            createdAt: serverTimestamp(),
+          }),
+        ),
+      );
+      return ref.id;
+    },
+    [uid, activeVehicle, track],
+  );
+
+  const deletePlan = useCallback(
+    async (planId: string) => {
+      if (!uid || !activeVehicle) return;
+      track(
+        "tank.plan.delete",
+        deleteDoc(doc(db, "users", uid, "vehicles", activeVehicle.id, "tankPlans", planId)),
+      );
+    },
+    [uid, activeVehicle, track],
+  );
+
+  const tankPreferences = useMemo(
+    () => activeVehicle?.tankPrefs ?? DEFAULT_TANK_PREFERENCES,
+    [activeVehicle],
+  );
+
+  const updateTankPreferences = useCallback(
+    async (patch: Partial<TankPreferences>) => {
+      if (!uid || !activeVehicle) return;
+      const next: TankPreferences = { ...tankPreferences, ...patch };
+      track(
+        "vehicle.update",
+        updateDoc(doc(db, "users", uid, "vehicles", activeVehicle.id), {
+          tankPrefs: stripUndefined(next as unknown as Record<string, unknown>),
+        }),
+      );
+    },
+    [uid, activeVehicle, tankPreferences, track],
   );
 
   const savePriceRule = useCallback(
@@ -1045,11 +1310,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     await attempt("vehicles", async () => {
       const vehiclesSnapshot = await getDocs(collection(db, "users", uid, "vehicles"));
       for (const vehicleDoc of vehiclesSnapshot.docs) {
-        const fillupsSnapshot = await getDocs(collection(vehicleDoc.ref, "fillups"));
-        for (let i = 0; i < fillupsSnapshot.docs.length; i += 400) {
-          const batch = writeBatch(db);
-          fillupsSnapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
-          await batch.commit();
+        for (const name of ["fillups", "observations", "tankPlans"]) {
+          const subSnapshot = await getDocs(collection(vehicleDoc.ref, name));
+          for (let i = 0; i < subSnapshot.docs.length; i += 400) {
+            const batch = writeBatch(db);
+            subSnapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
+            await batch.commit();
+          }
         }
         await deleteDoc(vehicleDoc.ref);
       }
@@ -1110,6 +1377,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       priceRules,
       savePriceRule,
       deletePriceRule,
+      observations,
+      addObservation,
+      deleteObservation,
+      plans,
+      addPlan,
+      deletePlan,
+      tankPreferences,
+      updateTankPreferences,
       deleteAccount,
     }),
     [
@@ -1141,6 +1416,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       priceRules,
       savePriceRule,
       deletePriceRule,
+      observations,
+      addObservation,
+      deleteObservation,
+      plans,
+      addPlan,
+      deletePlan,
+      tankPreferences,
+      updateTankPreferences,
       deleteAccount,
     ],
   );

@@ -1,25 +1,22 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
 import { usePublishSummary } from "../hooks/usePublishSummary";
 import { AppHeader } from "../components/AppHeader";
 import { Card, Label, SectionTitle, Skeleton } from "../components/Card";
-import { InfoStrip } from "../components/Field";
+import { MyTankCard } from "../components/MyTankCard";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
 import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
-import { adaptLegacyConfig, regulatedMaxPrice } from "../lib/prices/regulated";
 import type { Segment } from "../lib/stats";
 import {
-  FUEL_TYPE_SHORT,
   consumption,
   dayMonthShort,
   heMonthName,
   num,
-  price,
   shekel,
 } from "../lib/format";
 
@@ -142,19 +139,20 @@ export function Home() {
               <OpenSegmentNote stats={stats} />
             </section>
 
-            <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
-              <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
-              <FuelPriceCard />
-            </div>
+            {/* The tank replaces the fuel-price card. The regulated price is
+                still one tap away in the refuelling and station flows, where it
+                is actually being acted on; here it was decoration.
 
-            {/* Range needs a tank capacity the user actually confirmed. When
-                there is none the strip is simply absent — nothing takes its
-                place, least of all a regulated-price notice. */}
-            {stats.estimatedRangeKm ? (
-              <InfoStrip icon={<PumpIcon size={17} />}>
-                טווח נסיעה משוער במיכל מלא: <Num>{num(stats.estimatedRangeKm, 0)}</Num> ק״מ
-              </InfoStrip>
-            ) : null}
+                Full width because the estimate, the personalised sentence and
+                two actions do not fit comfortably in half. The old full-tank
+                range strip is gone with it — this card carries the range that
+                matters, which is the one to the refuelling threshold rather
+                than to an empty tank. */}
+            <MyTankCard />
+
+            <div className="tm-rise flex gap-3" style={{ animationDelay: "110ms" }}>
+              <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
+            </div>
 
             <SectionTitle
               action={
@@ -343,44 +341,6 @@ function MonthSpendCard({
 }
 
 /**
- * The current fuel price, for THIS vehicle's fuel type.
- *
- * The regulated maximum in Israel covers 95-octane self-service and nothing
- * else. A diesel or 98 vehicle therefore gets "אין מחיר עדכני" rather than the
- * 95 figure wearing its label.
- */
-function FuelPriceCard() {
-  const { prices, activeVehicle } = useData();
-  const fuelType = activeVehicle?.fuelType ?? "95";
-
-  const lookup = useMemo(
-    () => regulatedMaxPrice(adaptLegacyConfig(prices), fuelType, Date.now()),
-    [prices, fuelType],
-  );
-
-  return (
-    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <Label className="text-[12.5px]">מחיר דלק נוכחי</Label>
-      <span className="flex items-baseline gap-1.5">
-        <Num className="text-[24px] font-bold leading-tight text-ink">
-          {lookup.price !== null ? price(lookup.price) : "—"}
-        </Num>
-        {lookup.price !== null ? (
-          <span className="text-[12px] text-muted">לליטר</span>
-        ) : null}
-      </span>
-      <span className="truncate text-[12.5px] text-muted">
-        {lookup.price === null
-          ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
-          : `${FUEL_TYPE_SHORT[fuelType]}${
-              lookup.updatedAt ? ` · עודכן ${dayMonthShort(lookup.updatedAt)}` : ""
-            }`}
-      </span>
-    </Card>
-  );
-}
-
-/**
  * Open-segment status.
  *
  * Partial fill-ups are retained, not ignored — but nothing in the UI said so,
@@ -415,11 +375,8 @@ function HomeSkeleton() {
   return (
     <div className="flex flex-col gap-3">
       <Skeleton className="h-[208px] rounded-hero" />
-      <div className="flex gap-3">
-        <Skeleton className="h-[92px] flex-1 rounded-card" />
-        <Skeleton className="h-[92px] flex-1 rounded-card" />
-      </div>
-      <Skeleton className="h-[44px] rounded-[14px]" />
+      <Skeleton className="h-[188px] rounded-card" />
+      <Skeleton className="h-[92px] rounded-card" />
       <Skeleton className="h-[176px] rounded-card" />
     </div>
   );

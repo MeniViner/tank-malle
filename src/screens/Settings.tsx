@@ -17,9 +17,11 @@ import {
   DownloadIcon,
   MoonIcon,
   PaletteIcon,
+  CopyIcon,
   MessageIcon,
   PhoneIcon,
   PlusIcon,
+  ShareIcon,
   ShieldIcon,
   SunIcon,
   UploadIcon,
@@ -35,7 +37,14 @@ import {
   shekelSigned,
   vehicleLabel,
 } from "../lib/format";
-import { downloadFillupsCsv } from "../lib/csv";
+import { TankPreferencesSection } from "../components/TankPreferencesSection";
+import { downloadFillupsCsv, downloadTankUpdatesCsv } from "../lib/csv";
+import {
+  APP_SHARE_URL,
+  browserShareDeps,
+  buildSharePayload,
+  shareApp,
+} from "../lib/share";
 import { APP_VERSION } from "../lib/version";
 import type { ThemeSetting, Units } from "../lib/types";
 
@@ -66,6 +75,8 @@ export function Settings() {
     updateVehicle,
     prices,
     fillups,
+    observations,
+    plans,
     ready,
   } = useData();
 
@@ -237,6 +248,8 @@ export function Settings() {
           </Card>
         </section>
 
+        <TankPreferencesSection />
+
         {/* Data & account */}
         <section className="flex flex-col gap-2">
           <Label>נתונים וחשבון</Label>
@@ -250,12 +263,22 @@ export function Settings() {
               title="ייצוא הנתונים שלי"
               subtitle="קובץ CSV שאפשר גם לייבא בחזרה"
               onClick={() => {
-                if (fillups.length === 0) {
+                if (fillups.length === 0 && observations.length === 0) {
                   showToast({ tone: "info", title: "אין עדיין תדלוקים לייצוא" });
                   return;
                 }
-                downloadFillupsCsv(fillups, activeVehicle);
-                showToast({ tone: "success", title: "הקובץ הורד" });
+                if (fillups.length > 0) downloadFillupsCsv(fillups, activeVehicle);
+                // Gauge and odometer updates have no cost, no litres and no
+                // station, so they get their own versioned file rather than
+                // being squeezed into the fill-up columns — but an export
+                // described as complete cannot silently omit them.
+                const extra = observations.length > 0 || plans.length > 0;
+                if (extra) downloadTankUpdatesCsv(observations, plans);
+                showToast({
+                  tone: "success",
+                  title: extra && fillups.length > 0 ? "שני קבצים הורדו" : "הקובץ הורד",
+                  detail: extra ? "תדלוקים ועדכוני מיכל" : undefined,
+                });
               }}
             />
             <RowButton
@@ -328,6 +351,8 @@ export function Settings() {
         ) : null}
 
         <InstallSection />
+
+        <ShareSection />
 
         {/* Small, low-key, and right where someone lands after poking around. */}
         <section className="flex flex-col gap-2">
@@ -533,6 +558,79 @@ function NumberSheet({
         </div>
       </div>
     </Sheet>
+  );
+}
+
+/**
+ * Sharing the app.
+ *
+ * What leaves the device is the product name, a one-line description and the
+ * canonical root URL — never the current route, which is usually a fill-up id,
+ * and never the vehicle, the statistics or the account. A dismissed share sheet
+ * is somebody changing their mind, so it says nothing at all.
+ */
+function ShareSection() {
+  const { showToast } = useToast();
+  const [manualOpen, setManualOpen] = useState(false);
+
+  async function share() {
+    const outcome = await shareApp(browserShareDeps());
+    if (outcome === "copied") showToast({ tone: "success", title: "הקישור הועתק" });
+    else if (outcome === "manual") setManualOpen(true);
+    // "shared" needs no toast — the platform already showed one — and
+    // "cancelled" is not a failure.
+  }
+
+  return (
+    <section className="flex flex-col gap-2">
+      <Label>שיתוף</Label>
+      <Card className="overflow-hidden">
+        <RowButton
+          icon={
+            <IconTile>
+              <ShareIcon size={18} />
+            </IconTile>
+          }
+          title="שיתוף האפליקציה"
+          subtitle="שלחו לחברים קישור לטנק מלא"
+          trailing={<ChevronStart size={17} className="text-muted" />}
+          onClick={() => void share()}
+        />
+      </Card>
+
+      <Sheet
+        open={manualOpen}
+        onClose={() => setManualOpen(false)}
+        title={<h2 className="text-[17px] font-bold text-ink">שיתוף האפליקציה</h2>}
+      >
+        <div className="flex flex-col gap-3 px-1">
+          <p className="text-[13.5px] leading-relaxed text-ink/85">
+            {buildSharePayload().text}
+          </p>
+          <div className="flex items-center gap-2 rounded-[14px] border border-line bg-bg px-3.5 py-3">
+            <span dir="ltr" className="num min-w-0 flex-1 truncate text-[14px] text-ink">
+              {APP_SHARE_URL}
+            </span>
+            <button
+              type="button"
+              aria-label="העתקת הקישור"
+              onClick={() => {
+                void navigator.clipboard
+                  ?.writeText(APP_SHARE_URL)
+                  .then(() => showToast({ tone: "success", title: "הקישור הועתק" }))
+                  .catch(() => undefined);
+              }}
+              className="flex size-10 flex-none items-center justify-center rounded-full text-accent"
+            >
+              <CopyIcon size={18} />
+            </button>
+          </div>
+          <p className="text-[12px] text-muted">
+            הקישור הוא לעמוד הראשי בלבד — הוא לא כולל את הנתונים או הרכב שלך.
+          </p>
+        </div>
+      </Sheet>
+    </section>
   );
 }
 

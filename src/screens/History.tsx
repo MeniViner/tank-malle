@@ -2,21 +2,11 @@ import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
-import { useToast } from "../context/ToastContext";
 import { Segmented } from "../components/Segmented";
-import { Sheet, ConfirmDialog } from "../components/Sheet";
 import { Card, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
 import { ConsumptionValue } from "../components/Fmt";
-import {
-  ChevronStart,
-  PencilIcon,
-  PinIcon,
-  PumpIcon,
-  SearchIcon,
-  TrashIcon,
-  WarningIcon,
-} from "../components/icons";
+import { PumpIcon, SearchIcon, WarningIcon } from "../components/icons";
 import {
   heMonthShort,
   monthYear,
@@ -24,6 +14,7 @@ import {
   shekel,
 } from "../lib/format";
 import { monthKey, type Fillup } from "../lib/stats";
+import { resolveEndState } from "../lib/tank/observations";
 
 /**
  * Scope, not classification.
@@ -55,15 +46,12 @@ function periodStart(period: Period, now: number): number | null {
 /** History grouped by month (designs 14–16). */
 export function History() {
   const navigate = useNavigate();
-  const { settings, loadingFillups, deleteFillup, restoreFillup } = useData();
-  const { showToast } = useToast();
+  const { settings, loadingFillups } = useData();
   const stats = useStats();
 
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("all");
   const [onlyFlagged, setOnlyFlagged] = useState(false);
-  const [selected, setSelected] = useState<Fillup | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<Fillup | null>(null);
 
   const anomalyIds = useMemo(
     () => new Set(stats.anomalies.map((anomaly) => anomaly.fillupId)),
@@ -101,21 +89,6 @@ export function History() {
     }
     return [...map.entries()];
   }, [filtered]);
-
-  async function remove(fillup: Fillup) {
-    const snapshot: Fillup = { ...fillup };
-    setConfirmDelete(null);
-    setSelected(null);
-    await deleteFillup(fillup.id);
-    showToast({
-      tone: "success",
-      title: "התדלוק נמחק",
-      detail: "הצריכה חושבה מחדש",
-      undoLabel: "שחזור",
-      duration: 5000,
-      onUndo: () => restoreFillup(snapshot),
-    });
-  }
 
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
@@ -199,6 +172,10 @@ export function History() {
                   {list.map((fillup, index) => {
                     const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
                     const date = new Date(fillup.date);
+                    // "חלקי" and "לא ידוע" are different claims: one says the
+                    // tank was not filled, the other says nobody stated either
+                    // way. The boolean projection cannot tell them apart.
+                    const endLabel = endStateLabel(fillup);
 
                     return (
                       <Fragment key={fillup.id}>
@@ -215,9 +192,13 @@ export function History() {
                             <span className="h-px flex-1 bg-line" />
                           </div>
                         ) : null}
+                      {/* The whole row navigates straight to the record's own
+                          editor. The intermediate sheet only ever offered
+                          "edit", "change station" — which was the same screen —
+                          and "delete", which lives there too. */}
                       <button
                         type="button"
-                        onClick={() => setSelected(fillup)}
+                        onClick={() => navigate(`/fillup/${fillup.id}`)}
                         className={`flex min-h-[66px] w-full items-center gap-3 px-3.5 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 ${
                           index > 0 && !fillup.continuityBreakBefore
                             ? "border-t border-line"
@@ -248,11 +229,17 @@ export function History() {
                             <Num>{num(fillup.liters, 1)}</Num> ל׳ ·{" "}
                             <Num>{shekel(fillup.totalCost)}</Num>
                           </span>
+                          {/* Mileage as its own small metric, distinct from
+                              fuel economy — they are different numbers and
+                              used to share a line. */}
+                          <span className="truncate text-[11.5px] text-muted/80">
+                            <Num>{num(fillup.odometer, 0)}</Num> ק״מ
+                          </span>
                         </span>
 
-                        {!fillup.isFullTank ? (
+                        {endLabel !== null ? (
                           <span className="flex-none rounded-pill border border-line px-[11px] py-1 text-[12px] font-semibold text-muted">
-                            חלקי
+                            {endLabel}
                           </span>
                         ) : kmPerLiter !== null ? (
                           <ConsumptionValue
@@ -272,100 +259,22 @@ export function History() {
         )}
       </div>
 
-      {/* Row action sheet (design 15). */}
-      <Sheet
-        open={selected !== null}
-        onClose={() => setSelected(null)}
-        title={
-          selected ? (
-            <div className="flex flex-col gap-1 pb-1">
-              <span className="text-[16px] font-bold text-ink">
-                {selected.station?.name || "ללא מיקום"}
-              </span>
-              <span className="text-[13px] text-muted">
-                <Num>{new Date(selected.date).getDate()}</Num>{" "}
-                {heMonthShort(new Date(selected.date).getMonth() + 1)} ·{" "}
-                <Num>{num(selected.liters, 1)}</Num> ל׳ ·{" "}
-                <Num>{shekel(selected.totalCost)}</Num>
-              </span>
-            </div>
-          ) : null
-        }
-      >
-        <div className="flex flex-col">
-          <SheetAction
-            icon={<PencilIcon size={19} />}
-            label="עריכת פרטי התדלוק"
-            onClick={() => {
-              if (selected) navigate(`/fillup/${selected.id}`);
-              setSelected(null);
-            }}
-          />
-          <SheetAction
-            icon={<PinIcon size={19} />}
-            label="שינוי תחנה"
-            onClick={() => {
-              if (selected) navigate(`/fillup/${selected.id}`);
-              setSelected(null);
-            }}
-          />
-          <SheetAction
-            icon={<TrashIcon size={19} />}
-            label="מחיקת רשומה"
-            tone="danger"
-            onClick={() => setConfirmDelete(selected)}
-          />
-
-          <button
-            type="button"
-            onClick={() => setSelected(null)}
-            className="mt-2 min-h-[52px] rounded-pill bg-surface-2 text-[15px] font-bold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
-          >
-            סגירה
-          </button>
-        </div>
-      </Sheet>
-
-      <ConfirmDialog
-        open={confirmDelete !== null}
-        title="למחוק את התדלוק?"
-        body="הרשומה תוסר והצריכה של הקטע תחושב מחדש אוטומטית."
-        confirmLabel="מחיקה"
-        onConfirm={() => confirmDelete && void remove(confirmDelete)}
-        onCancel={() => setConfirmDelete(null)}
-      />
     </main>
   );
 }
 
-function SheetAction({
-  icon,
-  label,
-  onClick,
-  tone = "default",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  tone?: "default" | "danger";
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-[56px] items-center gap-3 rounded-[12px] border-b border-line px-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
-    >
-      <span className={tone === "danger" ? "text-danger" : "text-muted"}>{icon}</span>
-      <span
-        className={`flex-1 text-[15px] font-semibold ${
-          tone === "danger" ? "text-danger" : "text-ink"
-        }`}
-      >
-        {label}
-      </span>
-      <ChevronStart size={17} className="text-muted" />
-    </button>
-  );
+/**
+ * The chip a row shows instead of a consumption figure.
+ *
+ * Null means "show the consumption figure". A legacy record answers from its
+ * boolean exactly as before; a new record can also say that nobody stated the
+ * end state, which is not the same as declaring a partial fill.
+ */
+function endStateLabel(fillup: Fillup): string | null {
+  const { state, source } = resolveEndState(fillup);
+  if (state === "full") return null;
+  if (state === "unknown" && source !== "legacy-assumption") return "לא צוין";
+  return "חלקי";
 }
 
 function EmptyState() {

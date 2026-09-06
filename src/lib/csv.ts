@@ -1,6 +1,7 @@
 import type { Fillup, Vehicle } from "./types";
 import { EXPORT_SCHEMA_VERSION } from "./import/schema";
 import { vehicleLabel } from "./format";
+import type { TankObservation, TankPlan } from "./tank/types";
 
 /**
  * Versioned raw-data export.
@@ -15,6 +16,11 @@ import { vehicleLabel } from "./format";
  * and import provenance. The v1 column names it kept (date, time, odometer_km,
  * liters, total_cost, latitude, longitude, notes) are unchanged, and the
  * importer accepts both, so a file exported before this upgrade still imports.
+ *
+ * The tank-state columns are appended after those. The importer resolves
+ * headers by name and ignores the ones it does not know, so an older build
+ * still reads a newer file — and an export that dropped them would quietly
+ * lose the measurements the tank tracker is built on.
  */
 
 const HEADERS = [
@@ -41,6 +47,15 @@ const HEADERS = [
   "import_source",
   "import_batch_id",
   "import_row_hash",
+  "fill_end_state",
+  "fill_end_state_source",
+  "pre_fill_level",
+  "pre_fill_level_source",
+  "post_fill_level",
+  "post_fill_level_source",
+  "refuel_reason",
+  "capacity_liters_at_entry",
+  "tank_schema_version",
 ] as const;
 
 /**
@@ -105,6 +120,15 @@ export function rowsToCsv(rows: ExportRow[]): string {
         fillup.importSource ?? "",
         fillup.importBatchId ?? "",
         fillup.importRowHash ?? "",
+        fillup.fillEndState ?? "",
+        fillup.fillEndStateSource ?? "",
+        fillup.preFillLevel ?? "",
+        fillup.preFillLevelSource ?? "",
+        fillup.postFillLevel ?? "",
+        fillup.postFillLevelSource ?? "",
+        fillup.refuelReason ?? "",
+        fillup.capacityLitersAtEntry ?? "",
+        fillup.tankSchemaVersion ?? "",
       ]
         .map(escapeCell)
         .join(",");
@@ -149,4 +173,88 @@ export function downloadFillupsCsv(fillups: Fillup[], vehicle: Vehicle | null): 
 /** Export every vehicle's records in one file, with the vehicle on each row. */
 export function downloadAllVehiclesCsv(rows: ExportRow[]): void {
   download(rowsToCsv(rows), `tank-maleh-all-vehicles-${stamp()}.csv`);
+}
+
+/* ------------------------------------------------------------------ *
+ * Standalone tank updates
+ * ------------------------------------------------------------------ */
+
+const TANK_HEADERS = [
+  "schema_version",
+  "record_type",
+  "record_id",
+  "vehicle_id",
+  "observed_at",
+  "kind",
+  "odometer_km",
+  "level_fraction",
+  "level_uncertainty",
+  "level_source",
+  "confirmed",
+  "planned_distance_km",
+  "planned_mode",
+  "planned_buffer_km",
+] as const;
+
+const TANK_EXPORT_VERSION = 1;
+
+/**
+ * Gauge and odometer updates, and planned trips, in their own versioned file.
+ *
+ * They do not belong in the fill-up CSV: they have no cost, no litres and no
+ * station, and forcing them into those columns would make them look like
+ * transactions. But leaving them out of an export described as complete would
+ * silently drop the tracker's own history, so they get a file of their own.
+ */
+export function tankUpdatesToCsv(
+  observations: readonly TankObservation[],
+  plans: readonly TankPlan[],
+): string {
+  const rows = [
+    ...[...observations]
+      .sort((a, b) => a.observedAt - b.observedAt)
+      .map((observation) => [
+        TANK_EXPORT_VERSION,
+        "observation",
+        observation.id,
+        observation.vehicleId,
+        new Date(observation.observedAt).toISOString(),
+        observation.kind,
+        observation.odometer ?? "",
+        observation.level ?? "",
+        observation.levelUncertainty ?? "",
+        observation.levelSource ?? "",
+        observation.confirmed ? "1" : "0",
+        "",
+        "",
+        "",
+      ]),
+    ...[...plans]
+      .sort((a, b) => a.date - b.date)
+      .map((plan) => [
+        TANK_EXPORT_VERSION,
+        "plan",
+        plan.id,
+        plan.vehicleId,
+        new Date(plan.date).toISOString(),
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        plan.distanceKm,
+        plan.mode,
+        plan.bufferKm ?? "",
+      ]),
+  ].map((row) => row.map(escapeCell).join(","));
+
+  return `\ufeff${[TANK_HEADERS.join(","), ...rows].join("\r\n")}\r\n`;
+}
+
+export function downloadTankUpdatesCsv(
+  observations: readonly TankObservation[],
+  plans: readonly TankPlan[],
+): void {
+  download(tankUpdatesToCsv(observations, plans), `tank-maleh-tank-updates-${stamp()}.csv`);
 }

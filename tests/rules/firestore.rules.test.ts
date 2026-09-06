@@ -88,6 +88,37 @@ function vehicle(over: Record<string, unknown> = {}) {
 const fillupRef = (db: ReturnType<typeof alice>, uid = ALICE, id = "f1") =>
   doc(db, "users", uid, "vehicles", "v1", "fillups", id);
 
+const observationRef = (db: ReturnType<typeof alice>, uid = ALICE, id = "o1") =>
+  doc(db, "users", uid, "vehicles", "v1", "observations", id);
+
+const planRef = (db: ReturnType<typeof alice>, uid = ALICE, id = "p1") =>
+  doc(db, "users", uid, "vehicles", "v1", "tankPlans", id);
+
+/** A standalone gauge + odometer reading. */
+function observation(over: Record<string, unknown> = {}) {
+  return {
+    observedAt: Timestamp.fromMillis(Date.UTC(2026, 0, 5, 8, 0)),
+    kind: "both",
+    odometer: 100_500,
+    level: 0.25,
+    levelUncertainty: 0.05,
+    levelSource: "direct-gauge",
+    confirmed: true,
+    phase: "standalone",
+    schemaVersion: 1,
+    ...over,
+  };
+}
+
+function tankPlan(over: Record<string, unknown> = {}) {
+  return {
+    date: Timestamp.fromMillis(Date.UTC(2026, 0, 9, 8, 0)),
+    distanceKm: 320,
+    mode: "additional",
+    ...over,
+  };
+}
+
 /* ------------------------------------------------------------------ *
  * Ownership
  * ------------------------------------------------------------------ */
@@ -165,6 +196,90 @@ describe("user documents", () => {
 });
 
 /* ------------------------------------------------------------------ *
+ * Tank observations and plans
+ * ------------------------------------------------------------------ */
+
+describe("tank observations", () => {
+  it("accepts a well-formed reading from its owner", async () => {
+    await assertSucceeds(setDoc(observationRef(alice()), observation()));
+    await assertSucceeds(getDoc(observationRef(alice())));
+  });
+
+  it("accepts an odometer-only reading with no level at all", async () => {
+    await assertSucceeds(
+      setDoc(
+        observationRef(alice()),
+        observation({
+          kind: "odometer",
+          level: null,
+          levelUncertainty: null,
+          levelSource: null,
+        }),
+      ),
+    );
+  });
+
+  it("refuses another user in both directions", async () => {
+    await assertFails(setDoc(observationRef(bob(), ALICE), observation()));
+    await assertFails(getDoc(observationRef(bob(), ALICE)));
+  });
+
+  it("refuses an unauthenticated client", async () => {
+    await assertFails(setDoc(observationRef(anon(), ALICE), observation()));
+    await assertFails(getDoc(observationRef(anon(), ALICE)));
+  });
+
+  it("is not readable by an admin", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(observationRef(context.firestore() as never), observation());
+    });
+    // A tank state and a refuelling habit say where somebody is and when.
+    await assertFails(getDoc(observationRef(admin())));
+  });
+
+  it("rejects a level that is not a fraction of the tank", async () => {
+    await assertFails(setDoc(observationRef(alice()), observation({ level: 25 })));
+    await assertFails(setDoc(observationRef(alice()), observation({ level: -0.1 })));
+  });
+
+  it("rejects an invalid source, kind or unknown field", async () => {
+    await assertFails(setDoc(observationRef(alice()), observation({ levelSource: "psychic" })));
+    await assertFails(setDoc(observationRef(alice()), observation({ kind: "vibes" })));
+    await assertFails(setDoc(observationRef(alice()), observation({ smuggled: "x" })));
+  });
+
+  it("insists that `confirmed` is stated as a boolean", async () => {
+    await assertFails(setDoc(observationRef(alice()), observation({ confirmed: "yes" })));
+    const { confirmed: _dropped, ...withoutFlag } = observation();
+    await assertFails(setDoc(observationRef(alice()), withoutFlag));
+  });
+
+  it("lets the owner delete their own reading", async () => {
+    await setDoc(observationRef(alice()), observation());
+    await assertSucceeds(deleteDoc(observationRef(alice())));
+  });
+});
+
+describe("tank plans", () => {
+  it("accepts a well-formed plan from its owner", async () => {
+    await assertSucceeds(setDoc(planRef(alice()), tankPlan()));
+    await assertSucceeds(setDoc(planRef(alice()), tankPlan({ mode: "replaces", bufferKm: 40 })));
+  });
+
+  it("refuses another user and an anonymous client", async () => {
+    await assertFails(setDoc(planRef(bob(), ALICE), tankPlan()));
+    await assertFails(getDoc(planRef(bob(), ALICE)));
+    await assertFails(getDoc(planRef(anon(), ALICE)));
+  });
+
+  it("rejects an implausible or malformed plan", async () => {
+    await assertFails(setDoc(planRef(alice()), tankPlan({ distanceKm: 0 })));
+    await assertFails(setDoc(planRef(alice()), tankPlan({ distanceKm: 99_999 })));
+    await assertFails(setDoc(planRef(alice()), tankPlan({ mode: "maybe" })));
+  });
+});
+
+/* ------------------------------------------------------------------ *
  * Fill-ups
  * ------------------------------------------------------------------ */
 
@@ -195,6 +310,36 @@ describe("fill-ups", () => {
         }),
       ),
     );
+  });
+
+  it("accepts the optional tank-state fields", async () => {
+    await assertSucceeds(
+      setDoc(
+        fillupRef(alice()),
+        fillup({
+          fillEndState: "partial",
+          fillEndStateSource: "gauge-estimate",
+          preFillLevel: 0.25,
+          preFillLevelSource: "direct-gauge",
+          preFillLevelUncertainty: 0.05,
+          postFillLevel: 0.75,
+          postFillLevelSource: "derived-after-partial",
+          postFillLevelUncertainty: 0.08,
+          refuelReason: "routine",
+          capacityLitersAtEntry: 40,
+          tankSchemaVersion: 2,
+        }),
+      ),
+    );
+  });
+
+  it("rejects malformed tank-state values", async () => {
+    await assertFails(setDoc(fillupRef(alice()), fillup({ fillEndState: "brimmed" })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ preFillLevel: 25 })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ postFillLevel: -0.5 })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ refuelReason: "boredom" })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ preFillLevelSource: "guess" })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ capacityLitersAtEntry: 0 })));
   });
 
   it("accepts a record with no optional fields at all — pre-upgrade shape", async () => {
@@ -307,6 +452,43 @@ describe("vehicles", () => {
 
   it("rejects a nonsensical tank size", async () => {
     await assertFails(setDoc(ref(alice()), vehicle({ tankLiters: -1 })));
+  });
+
+  it("accepts well-formed tank preferences", async () => {
+    await assertSucceeds(
+      setDoc(
+        ref(alice()),
+        vehicle({
+          tankPrefs: {
+            reserveFraction: 0.25,
+            refuelLevelOverride: null,
+            usualFillStyle: "full",
+            usualRefuelLevel: 0.3,
+          },
+        }),
+      ),
+    );
+  });
+
+  it("rejects a reserve that would recommend refuelling at empty or never", async () => {
+    await assertFails(
+      setDoc(ref(alice()), vehicle({ tankPrefs: { reserveFraction: 0 } })),
+    );
+    await assertFails(
+      setDoc(ref(alice()), vehicle({ tankPrefs: { reserveFraction: 1 } })),
+    );
+    await assertFails(
+      setDoc(
+        ref(alice()),
+        vehicle({ tankPrefs: { reserveFraction: 0.25, refuelLevelOverride: 4 } }),
+      ),
+    );
+    await assertFails(
+      setDoc(
+        ref(alice()),
+        vehicle({ tankPrefs: { reserveFraction: 0.25, smuggled: "x" } }),
+      ),
+    );
   });
 
   it("refuses another user entirely", async () => {

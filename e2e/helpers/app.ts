@@ -167,6 +167,15 @@ export interface FillupInput {
   date?: string;
   /** "HH:MM", typed into the time field. */
   time?: string;
+  /**
+   * Whether to confirm "מילאתי עד מלא".
+   *
+   * Defaults to true because most of the suite is about the consumption
+   * engine, which needs a confirmed full endpoint. The default is deliberately
+   * NOT the app's: a record nobody says anything about is `unknown`, and that
+   * is exactly what `"unknown"` here exercises.
+   */
+  fillEndState?: "full" | "unknown";
 }
 
 /** Add a fill-up through the real form. Returns the toast title it produced. */
@@ -198,8 +207,12 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
     await page.getByLabel("מחיר לליטר").fill(String(input.pricePerLiter));
   }
 
-  // No full-tank toggle any more: a manual entry IS a full tank. A partial
-  // record can only arrive by import, so tests that need one seed it.
+  // A full tank is now an explicit statement, made inside the optional
+  // tank-state section. Nothing infers it, so the helper has to say it.
+  if ((input.fillEndState ?? "full") === "full") {
+    await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+    await page.getByRole("button", { name: "מילאתי עד מלא" }).click();
+  }
 
   if (input.continuityBreak) {
     await page

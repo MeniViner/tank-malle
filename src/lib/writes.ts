@@ -31,6 +31,10 @@ export type MutationKind =
   | "priceReport.add"
   | "priceRule.save"
   | "priceRule.delete"
+  | "tank.observation"
+  | "tank.observation.delete"
+  | "tank.plan"
+  | "tank.plan.delete"
   | "account.delete";
 
 export type MutationState = "pending" | "synced" | "failed";
@@ -82,6 +86,10 @@ const LABELS: Record<MutationKind, string> = {
   "priceReport.add": "דיווח מחיר",
   "priceRule.save": "שמירת כלל תמחור",
   "priceRule.delete": "מחיקת כלל תמחור",
+  "tank.observation": "עדכון מצב המיכל",
+  "tank.observation.delete": "מחיקת עדכון מיכל",
+  "tank.plan": "שמירת נסיעה מתוכננת",
+  "tank.plan.delete": "מחיקת נסיעה מתוכננת",
   "account.delete": "מחיקת חשבון",
 };
 

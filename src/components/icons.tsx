@@ -342,6 +342,23 @@ export const SparkleIcon = (props: IconProps) => (
   </Svg>
 );
 
+export const ShareIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <circle cx="18" cy="5.8" r="2.6" />
+    <circle cx="6" cy="12" r="2.6" />
+    <circle cx="18" cy="18.2" r="2.6" />
+    <path d="M8.3 10.8 15.7 7.1" />
+    <path d="m8.3 13.2 7.4 3.7" />
+  </Svg>
+);
+
+export const CopyIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="9" y="9" width="11" height="11" rx="2.4" />
+    <path d="M15 6.2V5.4A1.4 1.4 0 0 0 13.6 4H5.4A1.4 1.4 0 0 0 4 5.4v8.2A1.4 1.4 0 0 0 5.4 15h.8" />
+  </Svg>
+);
+
 export const GoogleMark = ({ size = 20 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
     <path

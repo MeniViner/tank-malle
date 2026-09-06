@@ -6,6 +6,7 @@ import { useStats } from "../hooks/useStats";
 import {
   evaluateDraft,
   hardBlock,
+  isTankCapacityTrusted,
   odometerBounds,
   resolvePricePerLiter,
   softWarnings,
@@ -47,6 +48,15 @@ import {
   type StationCandidate,
   type StationSort,
 } from "../lib/prices/ranking";
+import { TANK_SCHEMA_VERSION } from "../lib/tank/config";
+import type { FillEndState, FillEndStateSource, LevelSource } from "../lib/tank/types";
+import { GAUGE_SD_BY_SOURCE } from "../lib/tank/config";
+import { TankStateSection } from "../components/TankStateSection";
+import {
+  EMPTY_TANK_DRAFT,
+  hasTankAnswer,
+  type TankStateDraft,
+} from "../lib/tank/draft";
 import { Button } from "../components/Button";
 import { Field, InfoStrip, SoftWarningBanner } from "../components/Field";
 import { Card, Label, IconTile } from "../components/Card";
@@ -109,15 +119,56 @@ export function FillupForm() {
   const [pricePerLiter, setPricePerLiter] = useState("");
   const [priceTouched, setPriceTouched] = useState(false);
   /**
-   * Full tank at the END of this fill-up.
+   * Optional tank state.
    *
-   * Not a question any more. Practically every manual entry is a full fill-up,
-   * and the toggle plus its paragraph cost more attention than the rare
-   * partial saved. New records are full; an EXISTING record keeps exactly what
-   * it was stored with — an imported partial must not be silently promoted to
-   * a full tank just because the screen no longer shows the switch.
+   * An existing record is loaded back only when it was written by THIS UI —
+   * a legacy document's `isFullTank` is an assumption nobody made, and
+   * pre-selecting "מילאתי עד מלא" from it would turn that assumption into a
+   * confirmation the moment the record was opened.
    */
-  const isFullTank = editing ? editing.isFullTank : true;
+  const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
+    editing?.tankSchemaVersion === TANK_SCHEMA_VERSION
+      ? {
+          beforeLevel: editing.preFillLevel ?? null,
+          afterLevelOverride:
+            editing.postFillLevelSource === "user-correction"
+              ? (editing.postFillLevel ?? null)
+              : null,
+          confirmedFull:
+            editing.fillEndState === "full" &&
+            editing.fillEndStateSource === "user-confirmed",
+          reason: editing.refuelReason ?? null,
+        }
+      : EMPTY_TANK_DRAFT,
+  );
+
+  /**
+   * True when this record's tank state is something the user actually stated.
+   *
+   * A legacy record that is merely opened and re-saved keeps its old fields
+   * untouched; only an actual interaction moves it onto the new schema.
+   */
+  const tankTouched =
+    !isEdit ||
+    editing?.tankSchemaVersion === TANK_SCHEMA_VERSION ||
+    hasTankAnswer(tankDraft);
+
+  /**
+   * End state of the tank, and what backs the claim.
+   *
+   * Only the explicit chip produces `full`. Everything else is `partial` when
+   * the level is derivable and `unknown` when nobody said — which is a real
+   * answer, and the one the old form could not express.
+   */
+  const tankState = resolveTankState(tankDraft);
+
+  /**
+   * `isFullTank`, the compatibility projection.
+   *
+   * An untouched legacy record keeps exactly what it was stored with, so an
+   * imported partial is never promoted and an old full is never demoted.
+   */
+  const isFullTank = tankTouched ? tankState.endState === "full" : (editing?.isFullTank ?? false);
   const [continuityBreak, setContinuityBreak] = useState(
     editing?.continuityBreakBefore === true,
   );
@@ -294,6 +345,7 @@ export function FillupForm() {
         liters: litersValue,
         pricePerLiter: priceValue,
         isFullTank,
+        fillEndState: tankTouched ? tankState.endState : undefined,
         continuityBreakBefore: continuityBreak,
       },
       others,
@@ -307,6 +359,8 @@ export function FillupForm() {
     litersValue,
     priceValue,
     isFullTank,
+    tankTouched,
+    tankState.endState,
     continuityBreak,
     others,
     activeVehicle,
@@ -327,6 +381,7 @@ export function FillupForm() {
         pricePerLiter: priceValue,
         totalCost: Number.isFinite(totalValue) ? totalValue : undefined,
         isFullTank,
+        fillEndState: tankTouched ? tankState.endState : undefined,
         continuityBreakBefore: continuityBreak,
       },
       others,
@@ -339,10 +394,22 @@ export function FillupForm() {
     priceValue,
     totalValue,
     isFullTank,
+    tankTouched,
+    tankState.endState,
     continuityBreak,
     others,
     editing,
   ]);
+
+  /**
+   * Capacity, but only when it is one the user confirmed.
+   *
+   * A class-based guess must never reach the gauge: it would turn "about a
+   * quarter" into a confident litre figure derived from a number nobody checked.
+   */
+  const trustedCapacity = isTankCapacityTrusted(activeVehicle)
+    ? (activeVehicle?.tankLiters ?? null)
+    : null;
 
   const isBackdated = date < Date.now() - 12 * 3600_000;
 
@@ -389,6 +456,12 @@ export function FillupForm() {
     if (!canSave || !activeVehicle) return;
     setSaving(true);
 
+    // Written only when the user actually interacted. An untouched legacy
+    // record keeps its original fields and stays off the new schema.
+    const tankFields = tankTouched
+      ? buildTankFields(tankDraft, tankState, litersValue, trustedCapacity)
+      : {};
+
     const payload = {
       date,
       odometer: odometerValue,
@@ -400,8 +473,12 @@ export function FillupForm() {
       isFullTank,
       // Provenance is preserved on an edit: a record imported under the legacy
       // full-tank assumption does not become a user statement by being opened.
-      fullTankSource: editing?.fullTankSource ?? ("user" as const),
+      // On a NEW record "user" now requires an actual confirmation — the old
+      // form stamped it on every save, which is what made the flag useless.
+      fullTankSource: editing?.fullTankSource ??
+        (tankDraft.confirmedFull ? ("user" as const) : ("legacy-assumption" as const)),
       continuityBreakBefore: continuityBreak,
+      ...tankFields,
       // Only ever set from an explicit answer. "לא יודע" and no answer both
       // leave it null, so nothing unverified can reach a public aggregate.
       postedPricePerLiter: resolvePostedPrice(pumpAnswer, priceValue, pumpPrice),
@@ -433,10 +510,15 @@ export function FillupForm() {
           settings.units,
         );
 
+        // One short, plain line — no coefficients, no confidence scores and no
+        // claim that anything "learned" this from you.
+        const tankSaved =
+          tankTouched && (tankDraft.confirmedFull || tankDraft.beforeLevel !== null);
+
         showToast({
           tone: "success",
           title,
-          detail,
+          detail: tankSaved ? `מצב המיכל נשמר — התחזית תשתפר · ${detail}` : detail,
           undoLabel: "ביטול",
           duration: 5000,
           onUndo: () => deleteFillup(newId),
@@ -706,6 +788,20 @@ export function FillupForm() {
               />
             ))}
         </Card>
+
+        {/* Optional, collapsed, and skippable. The financial record saves
+            whether or not anybody opens it.
+
+            No eyebrow above it: the row already says "מצב המיכל", and a
+            heading repeating the control underneath it says the same thing
+            twice. */}
+        <TankStateSection
+          draft={tankDraft}
+          onChange={setTankDraft}
+          litersAdded={Number.isFinite(litersValue) ? litersValue : 0}
+          capacityLiters={trustedCapacity}
+          onReviewCapacity={() => navigate("/settings/vehicles")}
+        />
 
         {/* What this entry will do to the calculation. One line, from the
             engine itself — not a description of a control that no longer
@@ -1248,6 +1344,86 @@ function DateSheet({
  * segment engine. No consumption figure is ever shown for a draft that does
  * not close a segment.
  */
+/**
+ * What the tank draft actually claims.
+ *
+ * `full` requires the explicit chip and nothing else — a suggestion nobody
+ * touched, or an after-level that happens to land on 100%, is not a
+ * confirmation. `unknown` is a real answer and the one the previous form had
+ * no way to express, so it stopped being able to tell "I filled up" from
+ * "I did not say".
+ */
+function resolveTankState(draft: TankStateDraft): {
+  endState: FillEndState;
+  endStateSource: FillEndStateSource;
+} {
+  if (draft.confirmedFull) {
+    return { endState: "full", endStateSource: "user-confirmed" };
+  }
+  if (draft.afterLevelOverride !== null) {
+    return { endState: "partial", endStateSource: "user-confirmed" };
+  }
+  if (draft.beforeLevel !== null) {
+    // The end state follows from a stated before-level plus the pump reading.
+    return { endState: "partial", endStateSource: "gauge-estimate" };
+  }
+  return { endState: "unknown", endStateSource: "unknown" };
+}
+
+/**
+ * The optional tank fields to store, with the uncertainty each source earns.
+ *
+ * A derived value is stored as derived. A direct reading keeps the resolution
+ * of the control that produced it, which is coarse — someone dragging to "about
+ * a quarter" has not measured 0.250000 of anything.
+ */
+function buildTankFields(
+  draft: TankStateDraft,
+  state: ReturnType<typeof resolveTankState>,
+  litersAdded: number,
+  capacityLiters: number | null,
+): Record<string, unknown> {
+  const fields: Record<string, unknown> = {
+    fillEndState: state.endState,
+    fillEndStateSource: state.endStateSource,
+    refuelReason: draft.reason,
+    // The revision every derivation on this record was made against, so a
+    // later capacity change cannot retroactively rewrite what was measured.
+    capacityLitersAtEntry: capacityLiters,
+    tankSchemaVersion: TANK_SCHEMA_VERSION,
+    preFillLevel: null,
+    preFillLevelSource: null,
+    preFillLevelUncertainty: null,
+    postFillLevel: null,
+    postFillLevelSource: null,
+    postFillLevelUncertainty: null,
+  };
+
+  if (draft.beforeLevel !== null) {
+    fields.preFillLevel = draft.beforeLevel;
+    fields.preFillLevelSource = "direct-gauge" satisfies LevelSource;
+    fields.preFillLevelUncertainty = GAUGE_SD_BY_SOURCE["direct-gauge"];
+  }
+
+  if (draft.afterLevelOverride !== null) {
+    // A correction the user made outranks the calculated value, and replaces
+    // it — the calculated number is reproducible from the inputs, so keeping
+    // a second copy of it would only be a way to disagree with itself later.
+    fields.postFillLevel = draft.afterLevelOverride;
+    fields.postFillLevelSource = "user-correction" satisfies LevelSource;
+    fields.postFillLevelUncertainty = GAUGE_SD_BY_SOURCE["user-correction"];
+  } else if (draft.beforeLevel !== null && capacityLiters && capacityLiters > 0) {
+    fields.postFillLevel = Math.min(
+      1,
+      draft.beforeLevel + (Number.isFinite(litersAdded) ? litersAdded : 0) / capacityLiters,
+    );
+    fields.postFillLevelSource = "derived-after-partial" satisfies LevelSource;
+    fields.postFillLevelUncertainty = GAUGE_SD_BY_SOURCE["derived-after-partial"];
+  }
+
+  return fields;
+}
+
 function DraftExplanation({
   evaluation,
 }: {
@@ -1282,6 +1458,15 @@ function DraftExplanation({
     return (
       <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
         עדיין אין נקודת התחלה, אז התדלוק הזה לא ייכנס לחישוב.
+      </span>
+    );
+  }
+
+  if (evaluation.outcome === "unknownRetained") {
+    return (
+      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+        הצריכה לא תחושב מהתדלוק הזה — לא צוין אם המיכל התמלא. סימון{" "}
+        <b className="text-ink">מילאתי עד מלא</b> במצב המיכל מספיק כדי לחשב אותה.
       </span>
     );
   }
@@ -1322,6 +1507,13 @@ function savedMessage(
   if (evaluation.outcome === "partialNoBaseline") {
     return {
       title: "התדלוק נשמר. עדיין אין נקודת התחלה לחישוב.",
+      detail: undo,
+    };
+  }
+
+  if (evaluation.outcome === "unknownRetained") {
+    return {
+      title: "התדלוק נשמר. הצריכה תחושב כשיסומן תדלוק עד מלא.",
       detail: undo,
     };
   }
