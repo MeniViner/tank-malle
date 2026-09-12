@@ -42,7 +42,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       # Only the Admin SDK. A full `npm ci` would pull Playwright and the
       # Firebase CLI for a script that needs neither.
