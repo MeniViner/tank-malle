@@ -13,6 +13,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocFromServer,
   getDocs,
   limit,
   onSnapshot,
@@ -32,10 +33,30 @@ import { clearCache, pruneOldCaches, readCache, writeCache } from "../lib/cache"
 import {
   EMPTY_WRITE_STATUS,
   WriteTracker,
+  describeError,
   type MutationKind,
   type MutationReceipt,
   type WriteStatus,
 } from "../lib/writes";
+import {
+  Outbox,
+  OutboxStorageError,
+  outboxKey,
+  reconcileWithServer,
+  type OutboxKind,
+  type OutboxOperation,
+  type OutboxPayload,
+} from "../lib/outbox";
+import {
+  SERVER_TIMESTAMP,
+  fillupPayloadMatches,
+  parseFillupDocument,
+  serializeFillup,
+  serializeFillupPatch,
+  toEpochMillis,
+  type FillupWrite,
+} from "../lib/fillupSerializer";
+import { APP_VERSION } from "../lib/version";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 import {
@@ -78,7 +99,23 @@ interface DataContextValue {
   writes: WriteStatus;
   /** Drop a failure the user has acknowledged. */
   dismissWriteFailure: (id: string) => void;
-  /** Sign out, discarding every trace of the current account from memory. */
+  /**
+   * The durable outbox: every unacknowledged or rejected write for this
+   * account, with its complete payload. Survives reloads and sign-outs.
+   */
+  outbox: OutboxOperation[];
+  /** Fill-up ids the local SDK has written but the server has not acknowledged. */
+  pendingFillupIds: ReadonlySet<string>;
+  /** Set when the fill-up listener failed; distinct from an empty history. */
+  fillupsError: string | null;
+  /** Stored records this client could not read (e.g. an unreadable date). */
+  malformedFillups: { id: string; reason: string; raw: Record<string, unknown> }[];
+  /** Re-submit a failed or conflicted operation. Idempotent by document id. */
+  retryOperation: (opId: string) => Promise<void>;
+  /** Resolve a conflict explicitly: keep the server's version or overwrite it. */
+  resolveConflict: (opId: string, choice: "keep-server" | "overwrite") => Promise<void>;
+  /** Drop an operation the user explicitly gave up on. */
+  discardOperation: (opId: string) => void;
 
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>;
   setActiveVehicle: (vehicleId: string) => Promise<void>;
@@ -88,10 +125,22 @@ interface DataContextValue {
   setVehicleArchived: (vehicleId: string, archived: boolean) => Promise<void>;
   deleteVehicle: (vehicleId: string) => Promise<void>;
 
-  addFillup: (fillup: Omit<Fillup, "id" | "createdAt">) => Promise<string>;
-  updateFillup: (fillupId: string, patch: Partial<Omit<Fillup, "id">>) => Promise<void>;
-  deleteFillup: (fillupId: string) => Promise<void>;
-  /** Re-create a deleted record with its original id, for Undo. */
+  /**
+   * Create a fill-up. The payload is written to the outbox BEFORE Firestore
+   * sees it; a storage failure throws and nothing is submitted. `replaceOpId`
+   * re-submits an edited copy of a failed operation under the same op id.
+   */
+  addFillup: (
+    fillup: FillupWrite,
+    options?: { replaceOpId?: string | null; vehicleId?: string },
+  ) => Promise<string>;
+  /**
+   * Replace a record's fields. `previous` is the before-image: kept in the
+   * outbox so a retry can detect that the server moved on in the meantime.
+   */
+  updateFillup: (fillupId: string, next: FillupWrite, previous?: Fillup | null) => Promise<void>;
+  deleteFillup: (fillup: Fillup) => Promise<void>;
+  /** Re-create a deleted record with its original id and creation metadata, for Undo. */
   restoreFillup: (fillup: Fillup) => Promise<void>;
   /** Write many fill-ups at once, for an import batch. */
   addFillupBatch: (
@@ -334,13 +383,37 @@ async function ensureRecentLogin(user: User): Promise<{ ok: boolean }> {
 
 const DataContext = createContext<DataContextValue | null>(null);
 
+/**
+ * A date that cannot be read is reported, not replaced with "now". For the
+ * documents where a missing timestamp is merely cosmetic (a vehicle's
+ * createdAt) callers fall back to 0 explicitly.
+ */
 function toMillis(value: unknown): number {
-  if (value instanceof Timestamp) return value.toMillis();
-  if (typeof value === "number") return value;
-  if (value && typeof value === "object" && "seconds" in value) {
-    return (value as { seconds: number }).seconds * 1000;
+  return toEpochMillis(value) ?? 0;
+}
+
+/** Outbox payload → Firestore document: dates and the server-stamp sentinel. */
+function toFirestoreData(payload: OutboxPayload): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === undefined) continue;
+    if (key === "date" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
+    else if (key === "observedAt" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
+    else if (value === SERVER_TIMESTAMP) out[key] = serverTimestamp();
+    else if (key === "createdAt" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
+    else if (key === "recordedAt" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
+    else out[key] = value;
   }
-  return Date.now();
+  return out;
+}
+
+function errorCode(error: unknown): string {
+  return (error as { code?: string })?.code ?? "unknown";
+}
+
+function errorMessage(error: unknown): string {
+  const message = (error as { message?: string })?.message;
+  return typeof message === "string" ? message.slice(0, 500) : String(error).slice(0, 500);
 }
 
 function toNumberOrNull(value: unknown): number | null {
@@ -377,6 +450,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [priceRules, setPriceRules] = useState<StoredPriceRule[]>([]);
   const [observations, setObservations] = useState<TankObservation[]>([]);
   const [plans, setPlans] = useState<TankPlan[]>([]);
+  const [outboxOps, setOutboxOps] = useState<OutboxOperation[]>([]);
+  const [pendingFillupIds, setPendingFillupIds] = useState<ReadonlySet<string>>(new Set());
+  const [fillupsError, setFillupsError] = useState<string | null>(null);
+  const [malformedFillups, setMalformedFillups] = useState<
+    { id: string; reason: string; raw: Record<string, unknown> }[]
+  >([]);
 
   /**
    * User generation.
@@ -391,6 +470,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
    */
   const generationRef = useRef(0);
   const trackerRef = useRef<WriteTracker | null>(null);
+  const outboxRef = useRef<Outbox | null>(null);
+  // The vehicle whose fill-ups the CURRENT listener serves. A snapshot that
+  // arrives for another vehicle is dropped; state is never mixed.
+  const fillupVehicleRef = useRef<string | null>(null);
 
   /** Is this still the account the app is showing? */
   const isCurrent = useCallback(
@@ -421,6 +504,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const tracker = new WriteTracker();
     trackerRef.current = tracker;
 
+    // The durable outbox is per account and lives in storage, so it is never
+    // cleared here: the next sign-in of the SAME account picks up exactly the
+    // entries it left, and another account cannot read them.
+    outboxRef.current = uid ? new Outbox(uid, localStorage, APP_VERSION) : null;
+
     // Reset everything user-scoped, synchronously.
     setSettings(DEFAULT_SETTINGS);
     setVehicles([]);
@@ -431,11 +519,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setFromCache(false);
     setWrites(EMPTY_WRITE_STATUS);
     setPriceRules([]);
+    setOutboxOps([]);
+    setPendingFillupIds(new Set());
+    setFillupsError(null);
+    setMalformedFillups([]);
 
     const unsubscribe = tracker.subscribe(setWrites);
+    const outbox = outboxRef.current;
+    const unsubscribeOutbox = outbox?.subscribe((snapshot) => setOutboxOps(snapshot.operations));
+
+    // Another tab of the same account changed the outbox: re-read it.
+    const onStorage = (event: StorageEvent) => {
+      if (uid && event.key === outboxKey(uid)) outbox?.notify();
+    };
+    window.addEventListener("storage", onStorage);
 
     return () => {
       unsubscribe();
+      unsubscribeOutbox?.();
+      window.removeEventListener("storage", onStorage);
       tracker.dispose();
     };
   }, [uid]);
@@ -585,86 +687,103 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   /* ---------- fill-ups for the active vehicle ---------- */
 
+  const activeVehicleId = activeVehicle?.id ?? null;
+
   useEffect(() => {
-    if (!uid || !activeVehicle) {
+    // Keyed on the vehicle ID, not the vehicle object: a vehicle edit (a
+    // nickname, a capacity) used to tear the listener down and rebuild it.
+    fillupVehicleRef.current = activeVehicleId;
+    if (!uid || !activeVehicleId) {
       setFillups([]);
+      setPendingFillupIds(new Set());
+      setMalformedFillups([]);
+      setFillupsError(null);
       setLoadingFillups(false);
       return;
     }
     const generation = generationRef.current;
+    const vehicleId = activeVehicleId;
 
-    // Hydrate from cache first so the dashboard has numbers on it instantly.
-    const cached = readCache<Fillup[]>(uid, `fillups.${activeVehicle.id}`);
-    if (cached) {
-      setFillups(cached);
-      setLoadingFillups(false);
-    } else {
-      setLoadingFillups(true);
-    }
+    // The previous vehicle's list must not show under the new vehicle's name
+    // while its own snapshot is on the way. Hydrate from THIS vehicle's cache
+    // or show the loading state — never the old list.
+    const cached = readCache<Fillup[]>(uid, `fillups.${vehicleId}`);
+    setFillups(cached ?? []);
+    setPendingFillupIds(new Set());
+    setMalformedFillups([]);
+    setFillupsError(null);
+    setLoadingFillups(!cached);
 
-    const path = collection(db, "users", uid, "vehicles", activeVehicle.id, "fillups");
+    const path = collection(db, "users", uid, "vehicles", vehicleId, "fillups");
 
     return subscribeResilient<QuerySnapshot<DocumentData>>(
-      (onNext, onError) => onSnapshot(path, onNext, onError),
+      (onNext, onError) =>
+        onSnapshot(path, { includeMetadataChanges: true }, onNext, onError),
       (snapshot) => {
-        const list =
-          snapshot.docs.map((entry) => {
-            const data = entry.data();
-            return {
-              id: entry.id,
-              date: toMillis(data.date),
-              odometer: Number(data.odometer ?? 0),
-              liters: Number(data.liters ?? 0),
-              pricePerLiter: Number(data.pricePerLiter ?? 0),
-              totalCost: Number(data.totalCost ?? 0),
-              isFullTank: data.isFullTank !== false,
-              station: data.station ?? null,
-              notes: data.notes ?? null,
-              createdAt: toMillis(data.createdAt),
-              // Added by the upgrade. Absent on every pre-existing document,
-              // and absence must read as "no break", so the default is false.
-              continuityBreakBefore: data.continuityBreakBefore === true,
-              fullTankSource:
-                data.fullTankSource === "legacy-assumption" ? "legacy-assumption" : "user",
-              postedPricePerLiter: toNumberOrNull(data.postedPricePerLiter),
-              fuelType: (data.fuelType ?? null) as Fillup["fuelType"],
-              importSource: data.importSource ?? null,
-              importBatchId: data.importBatchId ?? null,
-              importRowHash: data.importRowHash ?? null,
-              schemaVersion:
-                typeof data.schemaVersion === "number" ? data.schemaVersion : 1,
+        // A late snapshot for a vehicle the user already left.
+        if (fillupVehicleRef.current !== vehicleId) return;
 
-              // Optional tank-state measurements. Absent on every record the
-              // new form did not write, and absence must stay absent — a
-              // missing level is a missing observation, not a zero.
-              fillEndState: (data.fillEndState ?? null) as Fillup["fillEndState"],
-              fillEndStateSource: (data.fillEndStateSource ??
-                null) as Fillup["fillEndStateSource"],
-              preFillLevel: toNumberOrNull(data.preFillLevel),
-              preFillLevelSource: (data.preFillLevelSource ??
-                null) as Fillup["preFillLevelSource"],
-              preFillLevelUncertainty: toNumberOrNull(data.preFillLevelUncertainty),
-              postFillLevel: toNumberOrNull(data.postFillLevel),
-              postFillLevelSource: (data.postFillLevelSource ??
-                null) as Fillup["postFillLevelSource"],
-              postFillLevelUncertainty: toNumberOrNull(data.postFillLevelUncertainty),
-              refuelReason: (data.refuelReason ?? null) as Fillup["refuelReason"],
-              capacityLitersAtEntry: toNumberOrNull(data.capacityLitersAtEntry),
-              tankSchemaVersion: toNumberOrNull(data.tankSchemaVersion),
-            } satisfies Fillup;
-          });
+        const list: Fillup[] = [];
+        const malformed: { id: string; reason: string; raw: Record<string, unknown> }[] = [];
+        const pending = new Set<string>();
+        for (const entry of snapshot.docs) {
+          const parsed = parseFillupDocument(entry.id, entry.data());
+          if (parsed.ok) list.push(parsed.fillup);
+          else malformed.push({ id: parsed.id, reason: parsed.reason, raw: parsed.raw });
+          if (entry.metadata.hasPendingWrites) pending.add(entry.id);
+        }
 
         setFillups(list);
-        writeCache(uid, `fillups.${activeVehicle.id}`, list);
+        setMalformedFillups(malformed);
+        setPendingFillupIds(pending);
+        setFillupsError(null);
+        writeCache(uid, `fillups.${vehicleId}`, list);
         setLoadingFillups(false);
+
+        // Only a SERVER-sourced snapshot can settle the fate of an operation
+        // whose promise was lost to a reload or a crash. The SDK replays its
+        // own queue, so a pending op is either still queued (its document has
+        // pending writes), acknowledged (the content is on the server), or
+        // gone — rejected, which a plain listener reads as "deleted".
+        const outbox = outboxRef.current;
+        if (outbox && !snapshot.metadata.fromCache) {
+          const verdicts = reconcileWithServer(
+            outbox.operations(),
+            vehicleId,
+            snapshot.docs.map((entry) => ({
+              id: entry.id,
+              data: entry.data() as OutboxPayload,
+              hasPendingWrites: entry.metadata.hasPendingWrites,
+            })),
+            fillupPayloadMatches,
+          );
+          for (const verdict of verdicts) {
+            if (verdict.verdict === "synced") outbox.acknowledge(verdict.opId);
+            else if (verdict.verdict === "unconfirmed") {
+              outbox.fail(verdict.opId, {
+                code: "unconfirmed",
+                message: verdict.reason,
+                at: Date.now(),
+              });
+            } else if (verdict.verdict === "conflict") {
+              outbox.markConflict(verdict.opId, verdict.serverImage);
+            }
+          }
+        }
       },
       {
         isCurrent: isCurrent(generation),
         label: "fill-ups",
-        onError: () => setLoadingFillups(false),
+        onError: (error) => {
+          if (fillupVehicleRef.current !== vehicleId) return;
+          setLoadingFillups(false);
+          // A read failure is not an empty history. The last cached list, if
+          // any, stays on screen and the error is stated beside it.
+          setFillupsError(describeError(error));
+        },
       },
     );
-  }, [uid, activeVehicle, isCurrent]);
+  }, [uid, activeVehicleId, isCurrent]);
 
   /* ---------- tank observations and plans ---------- */
 
@@ -839,6 +958,62 @@ export function DataProvider({ children }: { children: ReactNode }) {
     trackerRef.current?.dismiss(id);
   }, []);
 
+  /**
+   * The one path a user-data write takes.
+   *
+   * 1. The complete payload is written to the durable outbox. If storage
+   *    refuses, this THROWS before Firestore is touched — the caller keeps
+   *    the form open and must not claim success.
+   * 2. The write is handed to Firestore and tracked. On acknowledgement the
+   *    outbox entry is removed; on rejection it is marked failed with the
+   *    real error, payload intact.
+   *
+   * Firestore's own queue still delivers a pending write across reloads; the
+   * outbox never re-sends on its own (no competing dispatchers).
+   */
+  const submit = useCallback(
+    (
+      input: {
+        kind: OutboxKind;
+        docId: string;
+        vehicleId: string | null;
+        payload: OutboxPayload | null;
+        beforeImage?: OutboxPayload | null;
+        replaceOpId?: string | null;
+      },
+      write: () => Promise<unknown>,
+    ): MutationReceipt => {
+      const outbox = outboxRef.current;
+      if (!outbox) throw new OutboxStorageError("אין חשבון מחובר");
+      const operation = outbox.enqueue(input);
+
+      let promise: Promise<unknown>;
+      try {
+        promise = write();
+      } catch (error) {
+        outbox.fail(operation.opId, {
+          code: errorCode(error),
+          message: errorMessage(error),
+          at: Date.now(),
+        });
+        throw error;
+      }
+
+      const receipt = track(input.kind, promise);
+      void promise.then(
+        () => outbox.acknowledge(operation.opId),
+        (error: unknown) =>
+          outbox.fail(operation.opId, {
+            code: errorCode(error),
+            message: errorMessage(error),
+            at: Date.now(),
+          }),
+      );
+      return receipt;
+    },
+    [track],
+  );
+
   const updateSettings = useCallback(
     async (patch: Partial<UserSettings>) => {
       if (!uid) return;
@@ -902,11 +1077,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [updateVehicle, settings.activeVehicleId, vehicles, updateSettings],
   );
 
-  const deleteVehicle = useCallback(
+  /** Remove a vehicle and every subcollection under it. */
+  const deleteVehicleTree = useCallback(
     async (vehicleId: string) => {
       if (!uid) return;
-      // Subcollections are not removed with their parent, so clear fill-ups
-      // in batches first.
       const vehicleRef = doc(db, "users", uid, "vehicles", vehicleId);
       // Every subcollection, not just fill-ups: leaving observations or plans
       // behind would keep a deleted vehicle's private tank history alive.
@@ -919,84 +1093,230 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
       await deleteDoc(vehicleRef);
+    },
+    [uid],
+  );
+
+  const deleteVehicle = useCallback(
+    async (vehicleId: string) => {
+      if (!uid) return;
+      const previous = vehicles.find((v) => v.id === vehicleId) ?? null;
+      // Tracked and recorded like every other write: a deletion the server
+      // refuses used to be swallowed, leaving the vehicle visibly "deleted"
+      // on this device and alive on every other.
+      const receipt = submit(
+        {
+          kind: "vehicle.delete",
+          docId: vehicleId,
+          vehicleId,
+          payload: null,
+          beforeImage: previous ? (JSON.parse(JSON.stringify(previous)) as OutboxPayload) : null,
+        },
+        () => deleteVehicleTree(vehicleId),
+      );
 
       if (settings.activeVehicleId === vehicleId) {
         const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
         await updateSettings({ activeVehicleId: fallback?.id ?? null });
       }
+      await receipt.settled;
     },
-    [uid, settings.activeVehicleId, vehicles, updateSettings],
+    [uid, settings.activeVehicleId, vehicles, updateSettings, submit, deleteVehicleTree],
+  );
+
+  const fillupRef = useCallback(
+    (vehicleId: string, fillupId: string) =>
+      doc(db, "users", uid ?? "-", "vehicles", vehicleId, "fillups", fillupId),
+    [uid],
   );
 
   const addFillup = useCallback(
-    async (fillup: Omit<Fillup, "id" | "createdAt">) => {
-      if (!uid || !activeVehicle) throw new Error("no active vehicle");
-      const ref = doc(
-        collection(db, "users", uid, "vehicles", activeVehicle.id, "fillups"),
-      );
-      track(
-        "fillup.add",
-        setDoc(
-          ref,
-          stripUndefined({
-            ...fillup,
-            date: Timestamp.fromMillis(fillup.date),
-            createdAt: serverTimestamp(),
-          }),
-        ),
+    async (
+      fillup: FillupWrite,
+      options: { replaceOpId?: string | null; vehicleId?: string } = {},
+    ) => {
+      const vehicleId = options.vehicleId ?? activeVehicle?.id;
+      if (!uid || !vehicleId) throw new Error("no active vehicle");
+      // An edited copy of a failed operation keeps its op id AND its document
+      // id, so a retry that happens to succeed twice cannot create two records.
+      const replaced = options.replaceOpId ? outboxRef.current?.get(options.replaceOpId) : null;
+      const ref = replaced
+        ? fillupRef(vehicleId, replaced.docId)
+        : doc(collection(db, "users", uid, "vehicles", vehicleId, "fillups"));
+      const payload = serializeFillup(fillup);
+      submit(
+        {
+          kind: "fillup.add",
+          docId: ref.id,
+          vehicleId,
+          payload,
+          replaceOpId: options.replaceOpId ?? null,
+        },
+        () => setDoc(ref, toFirestoreData(payload)),
       );
       return ref.id;
     },
-    [uid, activeVehicle, track],
+    [uid, activeVehicle, submit, fillupRef],
   );
 
   const updateFillup = useCallback(
-    async (fillupId: string, patch: Partial<Omit<Fillup, "id">>) => {
+    async (fillupId: string, next: FillupWrite, previous?: Fillup | null) => {
       if (!uid || !activeVehicle) return;
-      const payload: Record<string, unknown> = { ...patch };
-      if (typeof patch.date === "number") payload.date = Timestamp.fromMillis(patch.date);
-      track(
-        "fillup.update",
-        updateDoc(
-          doc(db, "users", uid, "vehicles", activeVehicle.id, "fillups", fillupId),
-          stripUndefined(payload),
-        ),
+      const patch = serializeFillupPatch(next);
+      submit(
+        {
+          kind: "fillup.update",
+          docId: fillupId,
+          vehicleId: activeVehicle.id,
+          payload: patch,
+          beforeImage: previous ? serializeFillupPatch(previous) : null,
+        },
+        () => updateDoc(fillupRef(activeVehicle.id, fillupId), toFirestoreData(patch)),
       );
     },
-    [uid, activeVehicle, track],
+    [uid, activeVehicle, submit, fillupRef],
   );
 
   const deleteFillup = useCallback(
-    async (fillupId: string) => {
+    async (fillup: Fillup) => {
       if (!uid || !activeVehicle) return;
-      track(
-        "fillup.delete",
-        deleteDoc(
-          doc(db, "users", uid, "vehicles", activeVehicle.id, "fillups", fillupId),
-        ),
+      submit(
+        {
+          kind: "fillup.delete",
+          docId: fillup.id,
+          vehicleId: activeVehicle.id,
+          payload: null,
+          beforeImage: serializeFillup(fillup),
+        },
+        () => deleteDoc(fillupRef(activeVehicle.id, fillup.id)),
       );
     },
-    [uid, activeVehicle, track],
+    [uid, activeVehicle, submit, fillupRef],
   );
 
   const restoreFillup = useCallback(
     async (fillup: Fillup) => {
       if (!uid || !activeVehicle) return;
-      const { id, createdAt, ...rest } = fillup;
-      track(
-        "fillup.restore",
-        setDoc(
-          doc(db, "users", uid, "vehicles", activeVehicle.id, "fillups", id),
-          stripUndefined({
-            ...rest,
-            date: Timestamp.fromMillis(fillup.date),
-            createdAt: createdAt ? Timestamp.fromMillis(createdAt) : serverTimestamp(),
-          }),
-        ),
+      // Creation metadata travels with the record: a restore is not a new
+      // record and must not look like one.
+      const payload = serializeFillup(fillup);
+      submit(
+        { kind: "fillup.restore", docId: fillup.id, vehicleId: activeVehicle.id, payload },
+        () => setDoc(fillupRef(activeVehicle.id, fillup.id), toFirestoreData(payload)),
       );
     },
-    [uid, activeVehicle, track],
+    [uid, activeVehicle, submit, fillupRef],
   );
+
+  /**
+   * Re-submit a failed or conflicted operation, on the user's explicit request.
+   *
+   * Idempotent: the document id is the original one, so a create that was in
+   * fact acknowledged simply overwrites itself with identical content. An
+   * UPDATE first re-reads the server: if the document no longer matches the
+   * before-image the operation was made against, that is a conflict for the
+   * user to resolve, not a race for the retry to win.
+   */
+  const retryOperation = useCallback(
+    async (opId: string) => {
+      const outbox = outboxRef.current;
+      if (!uid || !outbox) return;
+      const op = outbox.get(opId);
+      if (!op || !op.vehicleId) return;
+
+      if (op.kind === "fillup.update" && op.beforeImage) {
+        const current = await getDocFromServer(fillupRef(op.vehicleId, op.docId)).catch(
+          () => null,
+        );
+        if (current && current.exists()) {
+          const server = current.data() as OutboxPayload;
+          if (
+            !fillupPayloadMatches(op.beforeImage, server) &&
+            !(op.payload && fillupPayloadMatches(op.payload, server))
+          ) {
+            outbox.markConflict(opId, server);
+            return;
+          }
+        } else if (current && !current.exists()) {
+          outbox.fail(opId, {
+            code: "not-found",
+            message: "הרשומה כבר לא קיימת בשרת — אפשר לשמור אותה מחדש כרשומה חדשה",
+            at: Date.now(),
+          });
+          return;
+        }
+      }
+
+      const retried = outbox.retrying(opId);
+      if (!retried) return;
+      const ref = fillupRef(retried.vehicleId ?? "-", retried.docId);
+      const run = (): Promise<unknown> => {
+        switch (retried.kind) {
+          case "fillup.add":
+          case "fillup.restore":
+            return setDoc(ref, toFirestoreData(retried.payload ?? {}));
+          case "fillup.update":
+            return updateDoc(ref, toFirestoreData(retried.payload ?? {}));
+          case "fillup.delete":
+            return deleteDoc(ref);
+          case "tank.observation":
+            return setDoc(
+              doc(db, "users", uid, "vehicles", retried.vehicleId ?? "-", "observations", retried.docId),
+              toFirestoreData(retried.payload ?? {}),
+            );
+          case "tank.observation.delete":
+            return deleteDoc(
+              doc(db, "users", uid, "vehicles", retried.vehicleId ?? "-", "observations", retried.docId),
+            );
+          case "vehicle.delete":
+            return deleteVehicleTree(retried.docId);
+        }
+      };
+      const promise = run();
+      track(retried.kind, promise);
+      await promise.then(
+        () => outbox.acknowledge(opId),
+        (error: unknown) =>
+          outbox.fail(opId, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
+      );
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deleteVehicleTree is declared below and stable
+    [uid, track, fillupRef],
+  );
+
+  const resolveConflict = useCallback(
+    async (opId: string, choice: "keep-server" | "overwrite") => {
+      const outbox = outboxRef.current;
+      if (!outbox) return;
+      if (choice === "keep-server") {
+        outbox.discard(opId);
+        return;
+      }
+      const op = outbox.get(opId);
+      if (!op) return;
+      // Overwrite deliberately: the before-image is replaced by what the
+      // server holds now, so the next retry compares against the right base.
+      outbox.fail(opId, { code: "retry", message: "", at: Date.now() });
+      const patched = outbox.get(opId);
+      if (patched) {
+        // Re-enqueue under the same op id with the server image as the base.
+        outbox.enqueue({
+          kind: patched.kind,
+          docId: patched.docId,
+          vehicleId: patched.vehicleId,
+          payload: patched.payload,
+          beforeImage: patched.serverImage ?? null,
+          replaceOpId: opId,
+        });
+      }
+      await retryOperation(opId);
+    },
+    [retryOperation],
+  );
+
+  const discardOperation = useCallback((opId: string) => {
+    outboxRef.current?.discard(opId);
+  }, []);
 
   /**
    * Write an import batch.
@@ -1067,42 +1387,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const ref = doc(
         collection(db, "users", uid, "vehicles", activeVehicle.id, "observations"),
       );
-      track(
-        "tank.observation",
-        setDoc(
-          ref,
-          stripUndefined({
-            ...observation,
-            observedAt: Timestamp.fromMillis(observation.observedAt),
-            recordedAt: serverTimestamp(),
-            schemaVersion: 1,
-          }),
-        ),
+      const payload = stripUndefined({
+        ...(observation as unknown as Record<string, unknown>),
+        recordedAt: SERVER_TIMESTAMP,
+        schemaVersion: 1,
+      }) as OutboxPayload;
+      submit(
+        { kind: "tank.observation", docId: ref.id, vehicleId: activeVehicle.id, payload },
+        () => setDoc(ref, toFirestoreData(payload)),
       );
       return ref.id;
     },
-    [uid, activeVehicle, track],
+    [uid, activeVehicle, submit],
   );
 
   const deleteObservation = useCallback(
     async (observationId: string) => {
       if (!uid || !activeVehicle) return;
-      track(
-        "tank.observation.delete",
-        deleteDoc(
-          doc(
-            db,
-            "users",
-            uid,
-            "vehicles",
-            activeVehicle.id,
-            "observations",
-            observationId,
+      submit(
+        {
+          kind: "tank.observation.delete",
+          docId: observationId,
+          vehicleId: activeVehicle.id,
+          payload: null,
+        },
+        () =>
+          deleteDoc(
+            doc(db, "users", uid, "vehicles", activeVehicle.id, "observations", observationId),
           ),
-        ),
       );
     },
-    [uid, activeVehicle, track],
+    [uid, activeVehicle, submit],
   );
 
   const addPlan = useCallback(
@@ -1361,6 +1676,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       offline,
       writes,
       dismissWriteFailure,
+      outbox: outboxOps,
+      pendingFillupIds,
+      fillupsError,
+      malformedFillups,
+      retryOperation,
+      resolveConflict,
+      discardOperation,
       updateSettings,
       setActiveVehicle,
       addVehicle,
@@ -1400,6 +1722,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       offline,
       writes,
       dismissWriteFailure,
+      outboxOps,
+      pendingFillupIds,
+      fillupsError,
+      malformedFillups,
+      retryOperation,
+      resolveConflict,
+      discardOperation,
       updateSettings,
       setActiveVehicle,
       addVehicle,

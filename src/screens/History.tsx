@@ -6,7 +6,7 @@ import { Segmented } from "../components/Segmented";
 import { Card, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
 import { ConsumptionValue } from "../components/Fmt";
-import { PumpIcon, SearchIcon, WarningIcon } from "../components/icons";
+import { CloudOffIcon, PumpIcon, SearchIcon, WarningIcon } from "../components/icons";
 import {
   heMonthShort,
   monthYear,
@@ -14,6 +14,8 @@ import {
   shekel,
 } from "../lib/format";
 import { monthKey, type Fillup } from "../lib/stats";
+import { fillupFromPayload } from "../lib/fillupSerializer";
+import { outboxStatusText } from "../lib/outbox";
 import { resolveEndState } from "../lib/tank/observations";
 
 /**
@@ -46,12 +48,28 @@ function periodStart(period: Period, now: number): number | null {
 /** History grouped by month (designs 14–16). */
 export function History() {
   const navigate = useNavigate();
-  const { settings, loadingFillups } = useData();
+  const { settings, loadingFillups, fillupsError, malformedFillups, outbox, pendingFillupIds } =
+    useData();
   const stats = useStats();
+
+  // Rejected creates: not in the history the server holds, but the user's
+  // input exists and is one tap from being corrected.
+  const unsynced = useMemo(
+    () =>
+      outbox
+        .filter((op) => op.status !== "pending" && op.kind === "fillup.add" && op.payload)
+        .map((op) => ({ op, record: fillupFromPayload(op.docId, op.payload!) }))
+        .filter((entry) => entry.record !== null),
+    [outbox],
+  );
 
   const [query, setQuery] = useState("");
   const [period, setPeriod] = useState<Period>("all");
   const [onlyFlagged, setOnlyFlagged] = useState(false);
+  // A filter whose subject vanished (the flagged records were fixed while
+  // this screen stayed mounted) would empty the list with no control left to
+  // clear it. It is reset the moment it stops meaning anything.
+  const flaggedActive = onlyFlagged && stats.anomalies.length > 0;
 
   const anomalyIds = useMemo(
     () => new Set(stats.anomalies.map((anomaly) => anomaly.fillupId)),
@@ -69,14 +87,14 @@ export function History() {
       .sort((a, b) => b.date - a.date)
       .filter((fillup) => {
         if (from !== null && fillup.date < from) return false;
-        if (onlyFlagged && !anomalyIds.has(fillup.id)) return false;
+        if (flaggedActive && !anomalyIds.has(fillup.id)) return false;
         if (!term) return true;
         return (
           (fillup.station?.name ?? "").toLowerCase().includes(term) ||
           (fillup.notes ?? "").toLowerCase().includes(term)
         );
       });
-  }, [stats.fillups, query, period, onlyFlagged, anomalyIds]);
+  }, [stats.fillups, query, period, flaggedActive, anomalyIds]);
 
   // Group into months, preserving the newest-first order.
   const groups = useMemo(() => {
@@ -123,10 +141,10 @@ export function History() {
             {stats.anomalies.length > 0 ? (
               <button
                 type="button"
-                aria-pressed={onlyFlagged}
+                aria-pressed={flaggedActive}
                 onClick={() => setOnlyFlagged((value) => !value)}
                 className={`flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill px-3 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
-                  onlyFlagged
+                  flaggedActive
                     ? "bg-warning-soft text-warning-ink"
                     : "border border-line bg-surface text-muted"
                 }`}
@@ -141,6 +159,77 @@ export function History() {
       ) : null}
 
       <div className="flex flex-col gap-4 px-5">
+        {fillupsError ? (
+          <Card className="flex items-start gap-2.5 p-4 text-[13.5px] text-danger-ink">
+            <WarningIcon size={17} className="mt-px flex-none" />
+            <span className="flex flex-col gap-0.5">
+              <span className="font-bold">ההיסטוריה לא נטענה מהשרת</span>
+              <span className="text-[12.5px] text-muted">
+                {fillupsError}. מוצג העותק האחרון שנשמר במכשיר, אם יש כזה.
+              </span>
+            </span>
+          </Card>
+        ) : null}
+
+        {unsynced.length > 0 ? (
+          <section className="flex flex-col gap-2" data-history-unsynced>
+            <div className="flex items-baseline justify-between px-1">
+              <h2 className="text-[15px] font-bold text-danger-ink">לא סונכרן</h2>
+              <button
+                type="button"
+                onClick={() => navigate("/settings/unsynced")}
+                className="text-[12.5px] font-semibold text-accent"
+              >
+                לכל הפעולות
+              </button>
+            </div>
+            <Card className="overflow-hidden">
+              {unsynced.map(({ op, record }, index) => (
+                <button
+                  key={op.opId}
+                  type="button"
+                  onClick={() => navigate(`/fillup/new?op=${encodeURIComponent(op.opId)}`)}
+                  className={`flex min-h-[66px] w-full items-center gap-3 px-3.5 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 ${
+                    index > 0 ? "border-t border-line" : ""
+                  }`}
+                >
+                  <span className="flex size-[38px] flex-none items-center justify-center rounded-tile bg-danger-soft text-danger-ink">
+                    <CloudOffIcon size={18} />
+                  </span>
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-[15px] font-semibold text-ink">
+                      {record!.station?.name || "ללא מיקום"}
+                    </span>
+                    <span className="truncate text-[12.5px] text-muted">
+                      <Num>{num(record!.liters, 1)}</Num> ל׳ · <Num>{shekel(record!.totalCost)}</Num> ·{" "}
+                      <Num>{num(record!.odometer, 0)}</Num> ק״מ
+                    </span>
+                    <span className="truncate text-[11.5px] text-danger-ink">
+                      {outboxStatusText(op.status)}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </Card>
+          </section>
+        ) : null}
+
+        {malformedFillups.length > 0 ? (
+          <Card className="flex flex-col gap-2 p-4">
+            <span className="text-[14px] font-bold text-ink">רשומות שלא ניתן לקרוא</span>
+            {malformedFillups.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => navigate(`/fillup/${entry.id}`)}
+                className="text-start text-[13px] text-accent"
+              >
+                {entry.reason} · לתיקון
+              </button>
+            ))}
+          </Card>
+        ) : null}
+
         {loadingFillups ? (
           <div className="flex flex-col gap-3">
             <Skeleton className="h-5 w-40" />
@@ -149,10 +238,23 @@ export function History() {
             <Skeleton className="h-[132px] rounded-card" />
           </div>
         ) : stats.fillups.length === 0 ? (
-          <EmptyState />
+          unsynced.length === 0 ? <EmptyState /> : null
         ) : filtered.length === 0 ? (
-          <Card className="px-6 py-10 text-center text-[14px] text-muted">
-            לא נמצאו תדלוקים תואמים
+          <Card className="flex flex-col items-center gap-2 px-6 py-10 text-center text-[14px] text-muted">
+            <span>לא נמצאו תדלוקים תואמים</span>
+            {flaggedActive || period !== "all" || query.trim() ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setOnlyFlagged(false);
+                  setPeriod("all");
+                  setQuery("");
+                }}
+                className="text-[13px] font-semibold text-accent"
+              >
+                ניקוי המסננים
+              </button>
+            ) : null}
           </Card>
         ) : (
           groups.map(([key, list]) => {
@@ -222,6 +324,14 @@ export function History() {
                             {anomalyIds.has(fillup.id) ? (
                               <span className="flex-none rounded-pill bg-warning-soft px-2 py-0.5 text-[11px] font-semibold text-warning-ink">
                                 חריג
+                              </span>
+                            ) : null}
+                            {pendingFillupIds.has(fillup.id) ? (
+                              <span
+                                className="flex-none rounded-pill bg-surface-2 px-2 py-0.5 text-[11px] font-semibold text-muted"
+                                title="נשמר במכשיר, ממתין לאישור השרת"
+                              >
+                                ממתין
                               </span>
                             ) : null}
                           </span>

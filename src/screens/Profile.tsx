@@ -25,6 +25,8 @@ import { DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon } from "../components/i
 export function Profile() {
   const navigate = useNavigate();
   const { user, signOutUser, isAdmin, previousLoginAt } = useAuth();
+  const { outbox, writes } = useData();
+  const unsynced = outbox.length + writes.pending.length;
   const { fillups, activeVehicle, vehicles, deleteAccount } = useData();
   const stats = useMemo(
     () => computeStats(fillups, activeVehicle),
@@ -247,13 +249,23 @@ export function Profile() {
 
       <ConfirmDialog
         open={confirmSignOut}
-        title="להתנתק מהחשבון?"
-        body="הנתונים יישמרו בענן ויחזרו בהתחברות הבאה."
-        confirmLabel="התנתקות"
-        tone="accent"
+        title={unsynced > 0 ? "יש פעולות שעדיין לא סונכרנו" : "להתנתק מהחשבון?"}
+        body={
+          unsynced > 0 ? (
+            <>
+              <Num>{unsynced}</Num> פעולות עוד לא אושרו על ידי השרת. הן יישארו שמורות במכשיר
+              הזה לחשבון הזה ויישלחו בהתחברות הבאה — אבל לא ייראו בחשבון אחר או במכשיר
+              אחר. אפשר לבדוק אותן במסך „לא סונכרן״ לפני ההתנתקות.
+            </>
+          ) : (
+            "הנתונים יישמרו בענן ויחזרו בהתחברות הבאה."
+          )
+        }
+        confirmLabel={unsynced > 0 ? "התנתקות בכל זאת" : "התנתקות"}
+        tone={unsynced > 0 ? "danger" : "accent"}
         onConfirm={() => {
           setConfirmSignOut(false);
-          void signOutUser();
+          void signOutUser({ keepLocalQueue: unsynced > 0 });
         }}
         onCancel={() => setConfirmSignOut(false)}
       />

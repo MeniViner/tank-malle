@@ -79,6 +79,7 @@ export function Settings() {
     observations,
     plans,
     ready,
+    outbox,
   } = useData();
 
   // The official figure for THIS vehicle's fuel type, today — the same
@@ -154,6 +155,20 @@ export function Settings() {
               }
               title="ניהול רכבים וארכיון"
               onClick={() => navigate("/settings/vehicles")}
+            />
+            <RowButton
+              icon={
+                <IconTile tone={outbox.length > 0 ? "danger" : "muted"}>
+                  <ChevronStart size={18} />
+                </IconTile>
+              }
+              title="פעולות שלא סונכרנו"
+              subtitle={
+                outbox.length > 0
+                  ? `${outbox.length} פעולות ממתינות או שנדחו`
+                  : "הכול מסונכרן"
+              }
+              onClick={() => navigate("/settings/unsynced")}
             />
           </Card>
         </section>

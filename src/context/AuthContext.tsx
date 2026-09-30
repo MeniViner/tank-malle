@@ -48,7 +48,12 @@ interface AuthContextValue {
   /** False until the token claims have been read at least once. */
   claimsLoaded: boolean;
   signIn: () => Promise<void>;
-  signOutUser: () => Promise<void>;
+  /**
+   * Sign out. `keepLocalQueue` skips clearing Firestore's persistent cache,
+   * so writes the server has not acknowledged stay queued for the next
+   * sign-in of the same account instead of being wiped with the session.
+   */
+  signOutUser: (options?: { keepLocalQueue?: boolean }) => Promise<void>;
   refreshClaims: () => Promise<void>;
 }
 
@@ -163,15 +168,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * made "switch account" look broken. Clearing the persistent cache and
    * reloading gives the next sign-in a genuinely clean process.
    */
-  const signOutUser = useCallback(async () => {
+  const signOutUser = useCallback(async (options: { keepLocalQueue?: boolean } = {}) => {
     await signOut(auth);
 
-    try {
-      // The cache can only be cleared while no client is using it.
-      await terminate(db);
-      await clearIndexedDbPersistence(db);
-    } catch {
-      /* best effort — a second tab may still hold the lease */
+    // Every query is scoped to users/{uid}/…, so keeping the persistent cache
+    // exposes nothing to the next account. Clearing it is only a cleanliness
+    // measure — and one that used to wipe a queued, unacknowledged write
+    // together with the session. When anything is still unacknowledged the
+    // queue is kept; the durable outbox keeps its own copy either way.
+    if (!options.keepLocalQueue) {
+      try {
+        // The cache can only be cleared while no client is using it.
+        await terminate(db);
+        await clearIndexedDbPersistence(db);
+      } catch {
+        /* best effort — a second tab may still hold the lease */
+      }
     }
 
     window.location.replace("/");
