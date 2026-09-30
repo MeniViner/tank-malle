@@ -34,6 +34,7 @@ export const REASON_TEXT: Record<ReasonCode, string> = {
   staleAnchor: "העדכון האחרון ישן — כדאי לרענן",
   conflictingObservations: "יש דיווחים שלא מסתדרים זה עם זה",
   overCapacityResidual: "החישוב יוצא גדול מנפח המיכל",
+  capacitySuspect: "לפי התדלוקים, נפח המיכל כנראה גדול מההערכה — כדאי לאשר אותו",
   negativeResidual: "החישוב יורד מתחת לאפס — כנראה חסר תדלוק",
   unsupportedFuelType: "מעקב מיכל לא נתמך לסוג הדלק הזה",
 };

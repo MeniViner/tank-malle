@@ -47,11 +47,18 @@ export function MyTankCard() {
   if (!activeVehicle || !estimate.available) return null;
 
   const { current, habit } = estimate;
+  // "צריך בדיקה" is about the CURRENT state only. A capacity finding lives in
+  // `capacityNotes` and is routed to the capacity affordance below instead:
+  // a tank that held more than its estimated size is a bigger tank, not a
+  // broken reading.
   const note = primaryNote(estimate.activeNotes);
   const conflict =
     note?.state === "conflict" ||
     note?.state === "overCapacity" ||
     note?.state === "negative";
+  const capacitySuspect = estimate.capacityNotes.find(
+    (entry) => entry.state === "capacitySuspect",
+  );
 
   const habitCopy = habitSentence(habit, estimate.expectedRefuel);
   const recommended = passageText(estimate.recommendedRefuel);
@@ -166,7 +173,7 @@ export function MyTankCard() {
         {!estimate.capacityTrusted && estimate.capacity.suggestion !== null ? (
           <CapacityConfirm
             liters={estimate.capacity.suggestion}
-            note={capacityNote(estimate.capacity) ?? ""}
+            note={capacitySuspect?.message ?? capacityNote(estimate.capacity) ?? ""}
           />
         ) : null}
 

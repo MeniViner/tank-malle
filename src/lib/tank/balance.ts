@@ -12,11 +12,13 @@
  * Pure. No React, no Firebase, no clock.
  */
 
+import type { ResolvedCapacity } from "./capacity";
 import {
   CAPACITY_RELATIVE_SD,
-  FULL_TANK_TOLERANCE_FRACTION,
+  PUMP_LITERS_RELATIVE_SD,
   RECONCILE_TOLERANCE_FRACTION,
 } from "./config";
+import { resolveTankOutcome, type TankOutcomeState } from "./draft";
 import type { FillEvent, LevelReading, TankEvent } from "./observations";
 import { clamp } from "./numeric";
 import type { LevelSource, ReconciliationNote, ReconciliationState } from "./types";
@@ -79,6 +81,13 @@ export interface BalanceInput {
    * callers pass a wider one when the capacity is an approximation.
    */
   capacityRelativeSd?: number;
+  /**
+   * Whether the capacity is a figure the user stood behind. Defaults to true.
+   * An over-capacity result against an UNTRUSTED capacity is evidence about
+   * the capacity, and is reported as `capacitySuspect` rather than as a
+   * problem with the tank state.
+   */
+  capacityTrusted?: boolean;
 }
 
 const EMPTY: BalanceResult = {
@@ -148,6 +157,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
   const hasCapacity = typeof capacityLiters === "number" && capacityLiters > 0;
   const capacity = hasCapacity ? capacityLiters : 0;
   const capacitySd = capacity * (input.capacityRelativeSd ?? CAPACITY_RELATIVE_SD);
+  const capacityTrusted = input.capacityTrusted ?? true;
   const consumption = consumptionLitersPerKm;
   const consumptionSd = input.consumptionSd ?? 0;
   const tolerance = capacity * RECONCILE_TOLERANCE_FRACTION;
@@ -166,6 +176,24 @@ export function replayBalance(input: BalanceInput): BalanceResult {
 
   const notes: ReconciliationNote[] = [];
   let anchor: Anchor | null = null;
+
+  /**
+   * Fuel that does not fit the tank, attributed to the right suspect.
+   *
+   * With a trusted capacity a measurement is wrong. With an estimate the
+   * estimate is what the evidence contradicts — the most likely explanation
+   * for forty-nine litres in a "forty-five litre" tank is a bigger tank.
+   */
+  const overCapacityNote = (sourceId: string, at: number, postLiters: number) =>
+    note(
+      capacityTrusted ? "overCapacity" : "capacitySuspect",
+      sourceId,
+      at,
+      postLiters - capacity,
+      capacityTrusted
+        ? "הנתונים לא לגמרי מסתדרים עם נפח המיכל"
+        : "לפי התדלוק, נפח המיכל כנראה גדול מההערכה — כדאי לאשר אותו",
+    );
   let lastOdometer: BalanceResult["lastOdometer"] = null;
   let lastLevelReport: BalanceResult["lastLevelReport"] = null;
   let breaksCrossed = 0;
@@ -325,7 +353,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
     const postLiters = preLiters !== null ? preLiters + event.liters : null;
     const postSd =
       preLiters !== null
-        ? Math.sqrt(preSd * preSd + (event.liters * 0.01) ** 2)
+        ? Math.sqrt(preSd * preSd + (event.liters * PUMP_LITERS_RELATIVE_SD) ** 2)
         : 0;
 
     // 4. End state decides the new anchor.
@@ -333,16 +361,15 @@ export function replayBalance(input: BalanceInput): BalanceResult {
       event.endState === "full" && event.endStateSource === "user-confirmed";
 
     if (confirmedFull && hasCapacity) {
-      if (postLiters !== null && postLiters > capacity * (1 + FULL_TANK_TOLERANCE_FRACTION)) {
-        notes.push(
-          note(
-            "overCapacity",
-            event.id,
-            event.at,
-            postLiters - capacity,
-            "הנתונים לא לגמרי מסתדרים עם נפח המיכל",
-          ),
-        );
+      // The same uncertainty test as every other disagreement: the before
+      // level was read off a gauge and the capacity has its own band, so a
+      // flat fraction of the tank would flag honest noise.
+      if (
+        postLiters !== null &&
+        postLiters > capacity &&
+        disagrees(postLiters - capacity, postSd, capacitySd)
+      ) {
+        notes.push(overCapacityNote(event.id, event.at, postLiters));
       }
       anchor = {
         liters: capacity,
@@ -377,16 +404,8 @@ export function replayBalance(input: BalanceInput): BalanceResult {
       };
     } else if (postLiters !== null && hasCapacity) {
       // A partial fill adds its litres. It does not reset the tank to full.
-      if (postLiters > capacity * (1 + RECONCILE_TOLERANCE_FRACTION)) {
-        notes.push(
-          note(
-            "overCapacity",
-            event.id,
-            event.at,
-            postLiters - capacity,
-            "הנתונים לא לגמרי מסתדרים עם נפח המיכל",
-          ),
-        );
+      if (postLiters > capacity && disagrees(postLiters - capacity, postSd, capacitySd)) {
+        notes.push(overCapacityNote(event.id, event.at, postLiters));
       }
       anchor = {
         liters: postLiters,
@@ -474,7 +493,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
  * The projection the fill-up form draws
  * ------------------------------------------------------------------ */
 
-export type AfterFillState = "ok" | "overCapacity" | "noCapacity" | "unknownBefore";
+export type AfterFillState = TankOutcomeState;
 
 export interface AfterFillProjection {
   /** Fraction of capacity after the fill, or null when unsupported. */
@@ -484,67 +503,66 @@ export interface AfterFillProjection {
   impliedLevel: number | null;
   source: LevelSource;
   state: AfterFillState;
+  /** The explanation `resolveTankOutcome` gives for a state other than ok. */
+  message: string | null;
 }
 
 /**
  * What the tank will hold after this fill-up.
  *
- * The interactive gauge calls this rather than doing the arithmetic itself:
- * a second copy of `before × capacity + litres` living inside a React component
- * is exactly how two parts of an app start disagreeing about the same tank.
+ * A thin adapter over `resolveTankOutcome`, kept for the interactive gauge:
+ * there is exactly one computation of `before × capacity + litres`, and this
+ * is a view of it, not a second copy. Over-capacity is REPORTED, not clamped
+ * away — `level` is clamped for drawing; `impliedLevel` keeps the truth.
  *
- * Over-capacity is REPORTED, not clamped away. `level` is clamped for drawing;
- * `impliedLevel` keeps the truth.
+ * `litersAdded: null` means the litres are not typed yet, and the after
+ * level is then null rather than equal to the before level. Pass the
+ * `ResolvedCapacity` when it is at hand: without it the capacity is taken as
+ * trusted, which is the stricter reading.
  */
 export function projectAfterFill(input: {
   beforeLevel: number | null;
-  litersAdded: number;
+  litersAdded: number | null;
   capacityLiters: number | null;
   confirmedFull: boolean;
+  capacity?: ResolvedCapacity;
+  afterLevelOverride?: number | null;
 }): AfterFillProjection {
-  const { beforeLevel, litersAdded, capacityLiters, confirmedFull } = input;
+  const capacity: ResolvedCapacity = input.capacity ?? {
+    liters: input.capacityLiters,
+    source: input.capacityLiters !== null && input.capacityLiters > 0 ? "user" : "none",
+    trusted: input.capacityLiters !== null && input.capacityLiters > 0,
+    suggestion: null,
+  };
+  const outcome = resolveTankOutcome({
+    draft: {
+      beforeLevel: input.beforeLevel,
+      afterLevelOverride: input.afterLevelOverride ?? null,
+      confirmedFull: input.confirmedFull,
+      endChoice: input.confirmedFull ? "full" : null,
+      reason: null,
+    },
+    litersAdded: input.litersAdded,
+    capacity,
+  });
 
-  if (confirmedFull) {
-    return {
-      level: 1,
-      liters: capacityLiters && capacityLiters > 0 ? capacityLiters : null,
-      impliedLevel: 1,
-      source: "user-correction",
-      state: "ok",
-    };
-  }
-
-  if (!(typeof capacityLiters === "number" && capacityLiters > 0)) {
-    return {
-      level: null,
-      liters: null,
-      impliedLevel: null,
-      source: "unknown",
-      state: "noCapacity",
-    };
-  }
-
-  if (beforeLevel === null || !Number.isFinite(beforeLevel)) {
-    return {
-      level: null,
-      liters: null,
-      impliedLevel: null,
-      source: "unknown",
-      state: "unknownBefore",
-    };
-  }
-
-  const added = Number.isFinite(litersAdded) && litersAdded > 0 ? litersAdded : 0;
-  const liters = beforeLevel * capacityLiters + added;
-  const impliedLevel = liters / capacityLiters;
+  const capacityLiters = capacity.liters !== null && capacity.liters > 0 ? capacity.liters : null;
+  const level = outcome.displayAfterLevel;
+  const source: LevelSource =
+    outcome.fields.postFillLevelSource ??
+    (outcome.endState === "full"
+      ? "user-correction"
+      : outcome.impliedAfterLevel !== null
+        ? "derived-after-partial"
+        : "unknown");
 
   return {
-    level: clamp(impliedLevel, 0, 1),
-    liters: Math.min(liters, capacityLiters),
-    impliedLevel,
-    source: "derived-after-partial",
-    state:
-      impliedLevel > 1 + FULL_TANK_TOLERANCE_FRACTION ? "overCapacity" : "ok",
+    level,
+    liters: level !== null && capacityLiters !== null ? level * capacityLiters : null,
+    impliedLevel: outcome.endState === "full" ? 1 : outcome.impliedAfterLevel,
+    source,
+    state: outcome.state,
+    message: outcome.message,
   };
 }
 
@@ -569,6 +587,7 @@ export function primaryNote(notes: readonly ReconciliationNote[]): Reconciliatio
     "conflict",
     "overCapacity",
     "negative",
+    "capacitySuspect",
     "noCapacity",
     "noAnchor",
     "ok",
@@ -582,6 +601,9 @@ export function primaryNote(notes: readonly ReconciliationNote[]): Reconciliatio
 
 /** Fold a fill-up event's own evidence into a display fraction, 0–1. */
 export function levelAfter(event: FillEvent, capacityLiters: number | null): number | null {
+  // A confirmed full is full. A stored after-level beside it — an older
+  // record wrote one — is the arithmetic, not a second measurement.
+  if (event.endState === "full" && event.endStateSource === "user-confirmed") return 1;
   if (event.postFill) return event.postFill.level;
   if (event.endState === "full") return 1;
   if (event.preFill && capacityLiters && capacityLiters > 0) {

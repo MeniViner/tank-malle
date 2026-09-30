@@ -86,6 +86,9 @@ export function buildReasonCodes(input: QualityInput): ReasonCode[] {
   if (balance.notes.some((note) => note.state === "overCapacity")) {
     codes.push("overCapacityResidual");
   }
+  if (balance.notes.some((note) => note.state === "capacitySuspect")) {
+    codes.push("capacitySuspect");
+  }
   if (balance.notes.some((note) => note.state === "negative")) {
     codes.push("negativeResidual");
   }
@@ -101,6 +104,9 @@ export function buildReasonCodes(input: QualityInput): ReasonCode[] {
  */
 const PRIMARY_ORDER: ReasonCode[] = [
   "unsupportedFuelType",
+  // A specific finding about the capacity outranks the generic "not confirmed":
+  // the data itself says the estimate is probably too small.
+  "capacitySuspect",
   "untrustedCapacity",
   "conflictingObservations",
   "overCapacityResidual",
