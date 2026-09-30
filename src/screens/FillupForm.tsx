@@ -339,25 +339,29 @@ function FillupEditor({
   /**
    * The receipt: litres, price, total, and WHO set each.
    *
-   * On an existing record all three are the record's own figures and count as
-   * authored; nothing is re-derived until the user types. On a new record the
-   * price arrives as a suggestion and only ever fills the one field nobody
-   * has typed.
+   * On an existing record the litres and the price are the measured facts and
+   * count as authored. The total counts as authored only when it DISAGREES
+   * with litres × price — a receipt with a discount on it — so editing the
+   * litres of an ordinary record recomputes its total instead of turning the
+   * stored total into a conflict. On a new record the price arrives as a
+   * suggestion and only ever fills the one field nobody has typed.
    */
-  const [receipt, setReceipt] = useState<ReceiptState>(() =>
-    initial
-      ? {
-          liters: initial.liters > 0 ? String(initial.liters) : "",
-          pricePerLiter: initial.pricePerLiter > 0 ? String(initial.pricePerLiter) : "",
-          totalCost: initial.totalCost > 0 ? String(Math.round(initial.totalCost * 100) / 100) : "",
-          authored: [
-            ...(initial.liters > 0 ? (["liters"] as const) : []),
-            ...(initial.pricePerLiter > 0 ? (["pricePerLiter"] as const) : []),
-            ...(initial.totalCost > 0 ? (["totalCost"] as const) : []),
-          ],
-        }
-      : { liters: "", pricePerLiter: "", totalCost: "", authored: [] },
-  );
+  const [receipt, setReceipt] = useState<ReceiptState>(() => {
+    if (!initial) return { liters: "", pricePerLiter: "", totalCost: "", authored: [] };
+    const expected = initial.liters * initial.pricePerLiter;
+    const totalIsOwn =
+      initial.totalCost > 0 && Math.abs(initial.totalCost - expected) > Math.max(1, expected * 0.01);
+    return {
+      liters: initial.liters > 0 ? String(initial.liters) : "",
+      pricePerLiter: initial.pricePerLiter > 0 ? String(initial.pricePerLiter) : "",
+      totalCost: initial.totalCost > 0 ? String(Math.round(initial.totalCost * 100) / 100) : "",
+      authored: [
+        ...(initial.liters > 0 ? (["liters"] as const) : []),
+        ...(initial.pricePerLiter > 0 ? (["pricePerLiter"] as const) : []),
+        ...(totalIsOwn ? (["totalCost"] as const) : []),
+      ],
+    };
+  });
 
   /**
    * Optional tank state. Loaded back only from a record written by THIS UI —

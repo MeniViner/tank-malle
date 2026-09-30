@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import {
   DENY_ALL_RULES,
   installRules,
@@ -65,6 +65,19 @@ async function fillForm(
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
 }
 
+/**
+ * "Offline" for these tests means the FIRESTORE server is unreachable, which
+ * is the condition under test. Playwright's `setOffline` would also cut the
+ * Vite dev server, and a reload could then not load the app at all — a
+ * limitation of the test rig, not of the app (a real install has a service
+ * worker). Blocking only the emulator port keeps the app loadable while every
+ * Firestore request fails, exactly like a phone with no signal at the pump.
+ */
+const FIRESTORE_ROUTE = /127\.0\.0\.1:8080\//;
+const serverUnreachable = (context: BrowserContext) =>
+  context.route(FIRESTORE_ROUTE, (route) => route.abort("connectionfailed"));
+const serverReachable = (context: BrowserContext) => context.unroute(FIRESTORE_ROUTE);
+
 const outboxCount = (page: Page) =>
   page.evaluate(() => {
     let total = 0;
@@ -101,7 +114,13 @@ test("a fill-up with station, before-level, reason, note and pump price is ackno
   // A station, typed by name — the same five-key map geolocation would add.
   await page.getByRole("button", { name: /תחנה/ }).first().click();
   await page.getByPlaceholder("חיפוש תחנה…").fill("פז חגור");
-  await page.getByRole("button", { name: /שמירה בשם/ }).click();
+  // The catalog loads asynchronously: until it does, the sheet offers to save
+  // the typed name; once it has, a matching register entry replaces that
+  // offer. Either is a five-key station map, which is what this test needs.
+  const candidate = page.getByRole("button", { name: /פז חגור/ }).first();
+  await expect(candidate).toBeVisible();
+  await page.waitForTimeout(1200);
+  await page.getByRole("button", { name: /פז חגור/ }).first().click();
 
   // The pump-price question appears once a station is named.
   await page.getByRole("button", { name: "כן", exact: true }).click();
@@ -126,7 +145,7 @@ test("a fill-up with station, before-level, reason, note and pump price is ackno
   const records = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
   expect(records).toHaveLength(1);
   const data = records[0].data;
-  expect((data.station as { name: string }).name).toBe("פז חגור");
+  expect((data.station as { name: string }).name).toContain("פז");
   expect(data.postedPricePerLiter).toBe(7.19);
   expect(data.refuelReason).toBe("low-fuel");
   expect(data.notes).toBe("הערה ארוכה למדי על התדלוק הזה");
@@ -148,7 +167,7 @@ test("three fill-ups saved offline survive a reload and reach the server exactly
 }) => {
   const { uid, vehicleId } = await signedInWithData(page, {});
 
-  await context.setOffline(true);
+  await serverUnreachable(context);
   await fillForm(page, { odometer: 100_000, liters: 30, price: 7 });
   await fillForm(page, { odometer: 100_400, liters: 32, price: 7 });
   await fillForm(page, { odometer: 100_800, liters: 31, price: 7 });
@@ -156,13 +175,14 @@ test("three fill-ups saved offline survive a reload and reach the server exactly
   // Locally saved, honestly labelled, and durably recorded.
   await expect(page.getByRole("button", { name: /נשמר במכשיר|ממתין לסנכרון/ })).toBeVisible();
   expect(await outboxCount(page)).toBe(3);
+  expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
   await page.reload();
   await page.goto("/settings/unsynced");
-  await expect(page.locator("[data-outbox-op]")).toHaveCount(3);
+  await expect(page.locator("[data-outbox-op]")).toHaveCount(3, { timeout: 20_000 });
   await expect(page.locator('[data-outbox-status="pending"]')).toHaveCount(3);
 
-  await context.setOffline(false);
+  await serverReachable(context);
   const records = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 3, 30_000);
   expect(records).toHaveLength(3);
   expect(new Set(records.map((r) => r.data.odometer)).size).toBe(3);
@@ -288,7 +308,7 @@ test("a pending record survives sign-out A → B → A and never shows up for B"
   const aliceUid = await uidOf(ALICE);
   const aliceVehicle = await firstVehicleId(aliceUid);
 
-  await context.setOffline(true);
+  await serverUnreachable(context);
   await fillForm(page, { odometer: 100_000, liters: 30, price: 7, note: "של אליס" });
   expect(await outboxCount(page)).toBe(1);
 
@@ -297,8 +317,10 @@ test("a pending record survives sign-out A → B → A and never shows up for B"
   await page.getByRole("button", { name: "התנתקות" }).first().click();
   await expect(page.getByText("יש פעולות שעדיין לא סונכרנו")).toBeVisible();
   await page.getByRole("button", { name: "התנתקות בכל זאת" }).click();
-  await context.setOffline(false);
   await expect(page.getByRole("button", { name: /Google/ })).toBeVisible({ timeout: 20_000 });
+  // The write never reached the server while Alice was signed in.
+  expect(await listDocuments(`users/${aliceUid}/vehicles/${aliceVehicle}/fillups`)).toHaveLength(0);
+  await serverReachable(context);
 
   // Bob sees nothing of Alice's.
   await signIn(page, BOB);

@@ -195,7 +195,8 @@ function OperationCard({
         : "bg-danger-soft text-danger-ink";
 
   return (
-    <Card className="flex flex-col gap-3 p-4" data-outbox-op={op.opId} data-outbox-status={op.status}>
+    <div data-outbox-op={op.opId} data-outbox-status={op.status}>
+    <Card className="flex flex-col gap-3 p-4">
       <div className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[15px] font-bold text-ink">{KIND_LABEL[op.kind]}</span>
@@ -283,5 +284,6 @@ function OperationCard({
         </button>
       </div>
     </Card>
+    </div>
   );
 }

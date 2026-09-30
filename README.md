@@ -133,6 +133,10 @@ src/
     prices/           fuel-type-aware price model + the one station resolver
     import/           CSV + XLSX readers, legacy adapter, dedupe, plan
     writes.ts         mutation tracking — pending / synced / failed
+    outbox.ts         durable per-account outbox: the user's input survives a server rejection
+    fillupSerializer.ts  the one fill-up ↔ document mapping, plus rule-mirroring validation
+    receipt.ts        litres / price / total ownership — a suggestion never moves a typed figure
+    numeric.ts        field-aware number parsing that consumes the whole input
     capabilities.ts   flags gating Blaze-only features (all default off)
     plateLookup.ts    tier-1 vehicle lookup, with a real tri-state outcome
     accents.ts        accent palette + AA-contrast dark-variant derivation
@@ -368,12 +372,26 @@ The XLSX reader is ~350 lines built on the platform's `DecompressionStream`, so
 there is no new dependency, and the whole pipeline is dynamically imported —
 about 9 kB, loaded only when the import screen is opened.
 
-### Write states
+### Write states and the outbox
 
 An offline write feels instant and its promise only settles on **server**
-acknowledgement. Those are different things, so four states are kept distinct
+acknowledgement. Those are different things, so the states are kept distinct
 and shown in the header: `נשמר במכשיר`, `ממתין לסנכרון`, `סונכרן`,
-`הסנכרון נכשל`. A permanent rejection surfaces instead of being swallowed.
+`נדחה`, `התנגשות`.
+
+Before any user-data write reaches Firestore, its complete serialised payload
+is recorded in a per-account **outbox** in `localStorage`. Acknowledgement
+removes the entry; a rejection keeps it with the real error. Firestore's own
+queue still delivers pending writes across reloads — the outbox never re-sends
+on its own — and a server-sourced snapshot settles the fate of an entry whose
+promise was lost to a reload or a crash. Settings → `פעולות שלא סונכרנו` lists
+every entry with its original input, retry, edit, export, conflict resolution
+and an explicitly confirmed discard. Signing out with unacknowledged writes
+warns and keeps them for the same account; another account never sees them.
+
+What this does **not** protect against: clearing site data, private windows,
+browser storage eviction, or a lost device. The export on that screen is the
+backup for those. See `docs/RELIABILITY-RECOVERY-2026-09-30.md`.
 
 ### Account switching
 
@@ -416,11 +434,17 @@ any host that is not `127.0.0.1` or `localhost`.
 | `format.test.ts` | 12 | leading signs, currency placement, true minus, previous-login wording |
 | `DateTimePicker.test.ts` | 9 | one-minute typed times, day-first dates, impossible dates |
 | `writes.test.ts` | 8 | pending → synced → failed, disposal after an account switch |
+| `outbox.test.ts` | 16 | payload survives reload and rejection, quota refusal, account scoping, two-tab revisions, server reconciliation verdicts |
+| `fillupSerializer.test.ts` | 14 | no `id` in a patch, immutable creation metadata, station sanitising, malformed dates, every rule bound with its field |
+| `receipt.test.ts` | 11 | every typing order, suggested price never moves a typed figure, three-way conflicts reported not moved |
+| `numeric.test.ts` | 7 | grouped odometers, decimal commas, mixed separators, ambiguity flag, whole-input rejection |
+| `tank/outcome.test.ts` | 31 | draft → payload → replay round trips, provenance-aware tolerance, signature mutation sweep |
+| `prices/suggestion.test.ts` | — | one resolver for form, settings, home and statistics; manual vs regulated labelling; month-scoped overrides |
 | `csv.test.ts` | 6 | export round trip, formula-injection neutralisation, v1 compatibility |
 | `xlsx.test.ts` | 20 | Excel vs Google Sheets structure, shared and inline strings, styled date serials, empty cells, multiple sheets, formulas |
 | `ranking.test.ts` | 16 | nearest / cheapest / freshest / best value, no cross-fuel comparison, unknown prices last |
-| `tests/rules/` | 61 | owner / other user / admin / unauthenticated, on every collection |
-| `e2e/` | 60 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL |
+| `tests/rules/` | 147 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape |
+| `e2e/` | 68 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL, and the data-preservation contract (offline ×3 + reload, server rejection kept and retried once, Undo read back, sign-out A → B → A) |
 
 ### The legacy workbook
 
