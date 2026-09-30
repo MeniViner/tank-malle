@@ -301,9 +301,28 @@ export async function seedBenchmark(
  * labelled as such by the resolver, so a test about the regulated figure has
  * to seed the regulated shape.
  */
+/**
+ * The month key as the APP computes it — in the browser's timezone. The
+ * Playwright project runs the browser in Asia/Jerusalem while the test
+ * process runs on the machine's clock (UTC on CI): for two to three hours at
+ * every month boundary the two disagree, and a key computed here from the
+ * runner's clock seeded last month while the app looked up this one.
+ */
+export const BROWSER_TIME_ZONE = "Asia/Jerusalem";
+
+export function monthKeyInBrowserTimeZone(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BROWSER_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  return `${year}-${month}`;
+}
+
 export async function seedRegulatedPrice(pricePerLiter: number): Promise<void> {
-  const month = new Date();
-  const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
+  const key = monthKeyInBrowserTimeZone();
   const now = new Date();
   await setDocument("appConfig/fuelPrices", {
     byFuelType: {

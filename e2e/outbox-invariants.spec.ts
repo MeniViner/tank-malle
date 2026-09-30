@@ -255,7 +255,7 @@ test("a stale edit is refused by the server, kept as a conflict, and never overw
   await expect(page.locator("[data-outbox-op]")).toHaveCount(0, { timeout: 20_000 });
 });
 
-test("a retry that cannot verify against the server writes nothing", async ({ page, context }) => {
+test("a retry that cannot verify against the server writes nothing", async ({ page }) => {
   const { uid, vehicleId } = await signedInWithData(page, {});
   await installRules(DENY_ALL_RULES);
   await page.goto("/fillup/new");
@@ -269,20 +269,23 @@ test("a retry that cannot verify against the server writes nothing", async ({ pa
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1, { timeout: 20_000 });
 
-  // Rules are fine again, but the server is unreachable: no verification, no write.
-  await restoreRules();
-  await context.route(/127\.0\.0\.1:8080\//, (route) => route.abort("connectionfailed"));
+  // Writes are allowed again but the verification READ is refused: an
+  // unauthorised (or unreachable) verification is not permission to write.
+  // The write rule is deliberately open here, so a retry that skipped the
+  // check would land on the server and be caught.
+  await installRules(`rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read: if false; allow write: if request.auth != null; }
+  }
+}`);
   await page.getByRole("button", { name: "ניסיון חוזר" }).click();
   await expect(page.getByText(/לא ניתן היה לאמת/)).toBeVisible({ timeout: 20_000 });
-  await context.unroute(/127\.0\.0\.1:8080\//);
+  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
-  // Reachable again. A reload resets the SDK's reconnect backoff (the journal
-  // is on disk, so nothing is lost); the same retry then verifies (absent)
-  // and writes once.
-  await page.reload();
-  await page.goto("/settings/unsynced");
-  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1, { timeout: 20_000 });
+  // Verification possible again: the same retry verifies (absent) and writes once.
+  await restoreRules();
   await page.getByRole("button", { name: "ניסיון חוזר" }).click();
   await expect
     .poll(async () => (await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).length, { timeout: 30_000 })
@@ -290,23 +293,40 @@ test("a retry that cannot verify against the server writes nothing", async ({ pa
   await expect(page.locator("[data-outbox-op]")).toHaveCount(0, { timeout: 20_000 });
 });
 
-test("an import whose rows are rejected keeps every row, and retrying re-sends them under the same ids without duplicates", async ({
+test("an import interrupted by a reload settles every journal entry — rows and batch record — and retries without duplicates", async ({
   page,
+  context,
 }) => {
   const { uid, vehicleId } = await signedInWithData(page);
   const { fileURLToPath } = await import("node:url");
   const fixture = fileURLToPath(new URL("../src/lib/import/__fixtures__/legacy-fuel-tracker.csv", import.meta.url));
+  const FIRESTORE = /127\.0\.0\.1:8080\//;
 
-  await installRules(DENY_ALL_RULES);
+  // The server is unreachable while the import runs, so all eight writes
+  // (seven rows and the batch record) are journaled and queued, none
+  // answered. Then the page reloads: every write promise dies with it, and
+  // the entries are orphans the new page must settle on its own.
+  await context.route(FIRESTORE, (route) => route.abort("connectionfailed"));
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
   await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
+  await expect.poll(() => outboxCount(page, uid), { timeout: 15_000 }).toBe(8);
 
-  // Seven rows plus the batch record, all journaled with their final ids.
   await page.goto("/settings/unsynced");
-  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(8, { timeout: 25_000 });
+  await expect(page.locator('[data-outbox-status="pending"]')).toHaveCount(8, { timeout: 25_000 });
+
+  // The server comes back refusing everything: the SDK re-sends the queued
+  // writes, they are rejected, and — with no promise left to report it —
+  // only the per-document reconciliation can turn "pending" into "failed".
+  // The batch record lives in a collection with no query listener at all.
+  await installRules(DENY_ALL_RULES);
+  await context.unroute(FIRESTORE);
+  await page.reload();
+  await page.goto("/settings/unsynced");
+  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(8, { timeout: 40_000 });
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
+  expect(await listDocuments(`users/${uid}/importBatches`)).toHaveLength(0);
   const journaled = await page.locator("[data-outbox-op]").evaluateAll((nodes) =>
     nodes.map((node) => node.getAttribute("data-outbox-op")),
   );
@@ -328,4 +348,33 @@ test("an import whose rows are rejected keeps every row, and retrying re-sends t
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await expect(page.getByText("כבר קיימות", { exact: true }).locator("..")).toContainText("7", { timeout: 25_000 });
+});
+
+test("an import rejected by the server keeps every row with its error, and retries under the same ids", async ({
+  page,
+}) => {
+  const { uid, vehicleId } = await signedInWithData(page);
+  const { fileURLToPath } = await import("node:url");
+  const fixture = fileURLToPath(new URL("../src/lib/import/__fixtures__/legacy-fuel-tracker.csv", import.meta.url));
+
+  await installRules(DENY_ALL_RULES);
+  await page.goto("/settings/import");
+  await page.locator('input[type="file"]').setInputFiles(fixture);
+  await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
+  // "Done" is shown only once every commit — the batch record's included —
+  // has been answered.
+  await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
+
+  await page.goto("/settings/unsynced");
+  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(8, { timeout: 25_000 });
+  await expect(page.getByText("permission-denied").first()).toBeVisible();
+  expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
+
+  await restoreRules();
+  for (let i = 0; i < 8; i += 1) {
+    await page.getByRole("button", { name: "ניסיון חוזר" }).first().click();
+    await expect(page.locator("[data-outbox-op]")).toHaveCount(7 - i, { timeout: 20_000 });
+  }
+  expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(7);
+  expect(await listDocuments(`users/${uid}/importBatches`)).toHaveLength(1);
 });

@@ -41,6 +41,8 @@ import {
 import {
   Outbox,
   OutboxStorageError,
+  collectionOf,
+  orphanGroups,
   reconcileWithServer,
   unacknowledgedState,
   type EnqueueInput,
@@ -428,6 +430,13 @@ function toFirestoreData(payload: OutboxPayload): Record<string, unknown> {
   return out;
 }
 
+/** Every commit settled; rejects with the first rejection once all are in. */
+async function allCommits(commits: Promise<unknown>[]): Promise<void> {
+  const results = await Promise.allSettled(commits);
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed && failed.status === "rejected") throw failed.reason;
+}
+
 function errorCode(error: unknown): string {
   return (error as { code?: string })?.code ?? "unknown";
 }
@@ -507,6 +516,95 @@ async function submitMany(
   );
   const receipt = track(inputs[0].kind, promise);
   return operations.map(() => receipt);
+}
+
+/**
+ * Settle journal entries that were already pending when this page opened.
+ *
+ * Their write promises died with the previous page. Firestore's own queue
+ * still delivers them, but only a collection with a live query listener
+ * (fill-ups and observations of the active vehicle, the vehicle list) ever
+ * reports their fate — an import's batch record, a price rule, a plan, a
+ * settings write or another vehicle's fill-up could stay "pending" forever.
+ * So every orphan gets its own document listener until the server answers:
+ * present with the entry's content → acknowledged; absent with nothing
+ * pending → rejected (or lost) and retryable; a newer document → conflict.
+ * Only the newest revision per document is judged; the revisions it
+ * superseded are settled with it.
+ */
+function settleOrphans(outbox: Outbox, stillCurrent: () => boolean): () => void {
+  const unsubscribers: (() => void)[] = [];
+  let stopped = false;
+
+  void outbox.list().then((operations) => {
+    if (stopped || !stillCurrent()) return;
+    for (const group of orphanGroups(operations)) {
+      const { newest, superseded } = group;
+      const collectionPath = collectionOf(newest.path);
+      const isFillup = newest.kind.startsWith("fillup.") || newest.kind === "import.batch";
+      const matches = isFillup ? fillupPayloadMatches : genericPayloadMatches;
+      let done = false;
+      const unsubscribe = onSnapshot(
+        doc(db, newest.path),
+        { includeMetadataChanges: true },
+        (snapshot) => {
+          if (done || stopped || !stillCurrent() || snapshot.metadata.fromCache) return;
+          const documents = snapshot.exists()
+            ? [
+                {
+                  id: snapshot.id,
+                  data: snapshot.data() as OutboxPayload,
+                  hasPendingWrites: snapshot.metadata.hasPendingWrites,
+                },
+              ]
+            : [];
+          void outbox.get(newest.opId).then((current) => {
+            // Settled meanwhile (another tab, or a listener reconcile).
+            if (!current || current.version !== newest.version) {
+              done = true;
+              unsubscribe();
+              return;
+            }
+            const verdicts = reconcileWithServer(
+              [current],
+              collectionPath,
+              documents,
+              matches,
+              snapshot.metadata.hasPendingWrites,
+            );
+            const verdict = verdicts[0];
+            if (!verdict || verdict.verdict === "still-pending") return;
+            done = true;
+            unsubscribe();
+            applyVerdicts(outbox, verdicts);
+            // The inputs this one replaced are settled with it.
+            for (const older of superseded) {
+              if (verdict.verdict === "synced") void outbox.acknowledge(older.opId, older.version);
+              else {
+                void outbox.fail(older.opId, older.version, {
+                  code: "superseded",
+                  message: "הוחלף בעריכה מאוחרת יותר של אותה רשומה",
+                  at: Date.now(),
+                });
+              }
+            }
+          });
+        },
+        () => {
+          // A listener error (e.g. permission-denied on a path the user no
+          // longer owns) settles nothing: the entry stays pending and
+          // retryable rather than being guessed at.
+          unsubscribe();
+        },
+      );
+      unsubscribers.push(unsubscribe);
+    }
+  });
+
+  return () => {
+    stopped = true;
+    for (const unsubscribe of unsubscribers) unsubscribe();
+  };
 }
 
 /** Apply reconciliation verdicts to the outbox, version-bound. */
@@ -665,6 +763,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     outboxRef.current?.close();
     outboxRef.current = null;
     let unsubscribeOutbox: (() => void) | null = null;
+    let stopOrphans: (() => void) | null = null;
     const generation = generationRef.current;
     outboxPromiseRef.current = uid
       ? Outbox.open(uid, APP_VERSION)
@@ -677,6 +776,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setOutboxHealth(outbox.health());
             setOutboxReady(true);
             unsubscribeOutbox = outbox.subscribe((snapshot) => setOutboxOps(snapshot.operations));
+            stopOrphans = settleOrphans(outbox, () => generation === generationRef.current);
             return outbox;
           })
           .catch((error: unknown) => {
@@ -696,6 +796,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => {
       unsubscribe();
       unsubscribeOutbox?.();
+      stopOrphans?.();
       outboxRef.current?.close();
       outboxRef.current = null;
       tracker.dispose();
@@ -1593,7 +1694,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           outbox.fail(batchOp.opId, batchOp.version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
       );
 
-      const receipt = track("import.batch", Promise.all(commits));
+      // The receipt settles once EVERY commit has answered — including the
+      // batch record's — so "done" on the import screen never precedes a
+      // write that is still in flight. It rejects if any of them did.
+      const receipt = track("import.batch", allCommits(commits));
       return { written: list.length, receipt };
     },
     [uid, requireOutbox, fillupPath, userPath, refFor, track],
@@ -1785,7 +1889,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             outbox.fail(batchOp.opId, batchOp.version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
         );
 
-        const receipt = track("import.rollback", Promise.all(commits));
+        const receipt = track("import.rollback", allCommits(commits));
 
         // The local cache has already applied the deletions; whether the
         // SERVER has is a separate question, and the caller is told which.

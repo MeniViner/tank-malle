@@ -996,6 +996,37 @@ function sameBase(
   return matches(before, server);
 }
 
+/**
+ * Pending entries that belong to NO in-flight promise on this page — every
+ * entry that was pending when the outbox opened — grouped so that only the
+ * newest revision per document is verified against the server. Older
+ * revisions of the same document were superseded by that newest input; they
+ * are settled with it rather than judged on their own (an older settings
+ * toggle "differs" from a server that already holds the newer one, and that
+ * is not a conflict).
+ */
+export interface OrphanGroup {
+  newest: OutboxOperation;
+  superseded: OutboxOperation[];
+}
+
+export function orphanGroups(operations: readonly OutboxOperation[]): OrphanGroup[] {
+  const byDoc = new Map<string, OutboxOperation[]>();
+  for (const op of operations) {
+    if (op.status !== "pending") continue;
+    const list = byDoc.get(op.docKey) ?? [];
+    list.push(op);
+    byDoc.set(op.docKey, list);
+  }
+  const groups: OrphanGroup[] = [];
+  for (const list of byDoc.values()) {
+    list.sort((a, b) => a.revision - b.revision);
+    const newest = list[list.length - 1];
+    groups.push({ newest, superseded: list.slice(0, -1) });
+  }
+  return groups;
+}
+
 /** Hebrew label for an outbox status, kept distinct from the sync labels. */
 export function outboxStatusText(status: OutboxStatus): string {
   switch (status) {

@@ -5,6 +5,7 @@ import {
   Outbox,
   OutboxStorageError,
   QUARANTINE_PREFIX,
+  orphanGroups,
   outboxKey,
   reconcileWithServer,
   unacknowledgedState,
@@ -563,5 +564,61 @@ describe("reconciling pending operations with a server snapshot", () => {
       reconcileWithServer([del], COLLECTION, [{ id: "f1", data: payload(), hasPendingWrites: false }], fillupPayloadMatches, false)[0]
         .verdict,
     ).toBe("unconfirmed");
+  });
+});
+
+describe("orphaned pending entries after a reload", () => {
+  const op = (over: Partial<OutboxOperation>): OutboxOperation => ({
+    opId: "op",
+    uid: "alice",
+    vehicleId: null,
+    kind: "settings.update",
+    opType: "update",
+    path: "users/alice",
+    docKey: "alice|users/alice",
+    docId: "alice",
+    payload: { settings: { units: "kmPerLiter" } },
+    beforeImage: null,
+    revision: 1,
+    version: 1,
+    status: "pending",
+    error: null,
+    attempts: 1,
+    createdAt: 0,
+    updatedAt: 0,
+    clientVersion: "1.1.0",
+    ...over,
+  });
+
+  it("judges only the newest revision per document and settles the ones it superseded with it", () => {
+    const groups = orphanGroups([
+      op({ opId: "s1", revision: 1, payload: { settings: { units: "kmPerLiter" } } }),
+      op({ opId: "s2", revision: 2, payload: { settings: { units: "litersPer100" } } }),
+      op({ opId: "b", revision: 1, path: "users/alice/importBatches/x", docKey: "alice|users/alice/importBatches/x", docId: "x", kind: "import.batch", opType: "set" }),
+      op({ opId: "done", revision: 3, status: "failed" }),
+    ]);
+    const settings = groups.find((group) => group.newest.docKey === "alice|users/alice")!;
+    expect(settings.newest.opId).toBe("s2");
+    expect(settings.superseded.map((entry) => entry.opId)).toEqual(["s1"]);
+    const batch = groups.find((group) => group.newest.docKey.endsWith("importBatches/x"))!;
+    expect(batch.superseded).toEqual([]);
+    expect(groups).toHaveLength(2);
+  });
+
+  it("an orphaned create that the server does not hold, with nothing pending, is a rejection to retry", () => {
+    const orphan = op({
+      kind: "import.batch",
+      opType: "set",
+      path: "users/alice/importBatches/x",
+      docKey: "alice|users/alice/importBatches/x",
+      docId: "x",
+      payload: { vehicleId: "v1", format: "csv" },
+    });
+    expect(reconcileWithServer([orphan], "users/alice/importBatches", [], () => false, false)[0].verdict).toBe(
+      "unconfirmed",
+    );
+    expect(reconcileWithServer([orphan], "users/alice/importBatches", [], () => false, true)[0].verdict).toBe(
+      "unconfirmed",
+    );
   });
 });
