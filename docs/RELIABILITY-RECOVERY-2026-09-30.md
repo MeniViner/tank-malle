@@ -101,18 +101,20 @@ Status: **implemented+tested** unless stated. Nothing is released.
 
 ---
 
-## 4. Test commands and results (fresh, this branch)
+## 4. Test commands and results (fresh, on the final candidate `2512615`)
 
 | Gate | Command | Result |
 | --- | --- | --- |
 | Typecheck | `npx tsc -b --noEmit` | clean |
-| Unit | `npx vitest run` | see final report in the PR description |
-| Rules (emulator) | `PATH="/opt/homebrew/opt/openjdk/bin:$PATH" npm run test:rules` | 147/147 |
-| E2E | `PATH="/opt/homebrew/opt/openjdk/bin:$PATH" npm run test:e2e` | see final report |
-| Lint | `npx oxlint --format json` warnings count | see final report (budget 20) |
-| Build | `npm run build` | see final report |
+| Unit | `npx vitest run` | 25 files, 499 passed, 7 skipped (the seven that need the real attached workbook, as before) |
+| Rules (emulator) | `PATH="/opt/homebrew/opt/openjdk/bin:$PATH" npm run test:rules` | 2 files, 147 passed |
+| E2E (Chromium, emulators) | `PATH="/opt/homebrew/opt/openjdk/bin:$PATH" npm run test:e2e` | 77 passed, 2 skipped, 0 failed (11.3 min); includes the 8 reliability scenarios and the two tests that were red on `main` |
+| Lint | `npx oxlint --format json` → warnings | 10 (budget 20; was 33, and the CI counter previously reported 0) |
+| Production build | `npm run build` | ok (PWA precache 26 entries) |
+| Functions build | `npm run build --prefix functions` | ok |
+| Fixture generators | `node scripts/makeImportFixtures.mjs && node scripts/makeXlsxFixtures.mjs` then the import suites | CSV fixture matches its generator; 74 passed, 7 skipped |
 
----
+Artifacts: Playwright traces for any failure land in `test-results/` (none on the final run); the emulator log in `firestore-debug.log`.
 
 ## 5. Browser-storage limits (honest statement)
 
