@@ -18,6 +18,20 @@ import { defineConfig, devices } from "@playwright/test";
 const PORT = 5273;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
+/**
+ * The production-like rig.
+ *
+ * The dev server has no service worker, so the `chromium` project can only
+ * fake "offline" by blocking the Firestore port: a real reload with no network
+ * cannot load the app there. The `pwa` project builds the app in `e2e` mode
+ * and serves the built `dist/` — with its generated `sw.js` — through
+ * `vite preview`, which is what a phone with the app installed actually runs.
+ * Only the spec that needs a full offline restart runs against it.
+ */
+const PWA_PORT = 5274;
+const PWA_BASE_URL = `http://127.0.0.1:${PWA_PORT}`;
+const PWA_SPEC = "**/pwa-offline.spec.ts";
+
 export default defineConfig({
   testDir: "./e2e",
   // The emulator hub answers before Auth and Firestore are listening, so the
@@ -46,6 +60,18 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"], viewport: { width: 430, height: 900 } },
+      // The offline-restart spec needs a service worker, which the dev server
+      // does not have; it belongs to the `pwa` project below.
+      testIgnore: PWA_SPEC,
+    },
+    {
+      name: "pwa",
+      testMatch: PWA_SPEC,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 430, height: 900 },
+        baseURL: PWA_BASE_URL,
+      },
     },
   ],
 
@@ -76,6 +102,19 @@ export default defineConfig({
       url: BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
+      stdout: "pipe",
+      stderr: "pipe",
+    },
+    {
+      // The production build, served as built. `--mode e2e` on BOTH steps: the
+      // build bakes `.env.e2e` (the emulator config) into the bundle, and
+      // `vite preview` serves `dist/` as a static host with the SPA fallback,
+      // including the generated `sw.js`. The build runs here rather than as a
+      // separate step so `npm run test:e2e` is self-contained on any machine.
+      command: `vite build --mode e2e && vite preview --mode e2e --host 127.0.0.1 --port ${PWA_PORT} --strictPort`,
+      url: PWA_BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 180_000,
       stdout: "pipe",
       stderr: "pipe",
     },
