@@ -331,3 +331,35 @@ export async function waitForDocument(
     `no document in ${collectionPath} matched within ${timeoutMs}ms (saw ${last.length})`,
   );
 }
+
+/* ------------------------------------------------------------------ *
+ * Rules control
+ *
+ * The emulator lets a test replace the loaded rules. That is how a server
+ * REJECTION is produced on demand: install deny-all rules, write, watch the
+ * client cope, restore the real rules, retry.
+ * ------------------------------------------------------------------ */
+
+const RULES_URL = `${FIRESTORE_HOST}/emulator/v1/projects/${PROJECT_ID}:securityRules`;
+
+export async function installRules(content: string): Promise<void> {
+  await call(RULES_URL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rules: { files: [{ name: "firestore.rules", content }] } }),
+  });
+}
+
+/** The repository's real rules, exactly as deployed. */
+export async function restoreRules(): Promise<void> {
+  const { readFileSync } = await import("node:fs");
+  const content = readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8");
+  await installRules(content);
+}
+
+export const DENY_ALL_RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read: if request.auth != null; allow write: if false; }
+  }
+}`;

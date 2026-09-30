@@ -51,12 +51,18 @@ jobs:
       - name: Lint warning budget
         # The baseline on main is 20. A branch that adds warnings should say so
         # deliberately rather than letting them accumulate unnoticed.
+        #
+        # Counted from oxlint's JSON output, not from grepping the human
+        # report: on the CI runner oxlint prints GitHub-annotation lines
+        # ("##[warning]src/...") and the old grep for "^src/" counted zero
+        # every time, so the budget was never enforced.
         run: |
-          count=$(npm run lint 2>&1 | grep -cE '^(src|tests|e2e)/' || true)
+          count=$(npx oxlint --format json 2>/dev/null \
+            | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);console.log(j.diagnostics.filter(d=>d.severity==="warning").length)})')
           echo "lint warnings: $count (budget 20)"
           if [ "$count" -gt 20 ]; then
             echo "::error::lint warnings regressed: $count > 20"
-            npm run lint 2>&1 | grep -E '^(src|tests|e2e)/' || true
+            npm run lint 2>&1 || true
             exit 1
           fi
 

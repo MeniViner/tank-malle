@@ -228,8 +228,8 @@ test("§16.15.3 confirming a full tank derives the pre-fill level from the litre
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("30");
   await page.getByLabel("מחיר לליטר").fill("7");
+  await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
   await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-  await page.getByRole("button", { name: "מילאתי מיכל מלא" }).click();
 
   // 40 L − 30 L ⇒ about a quarter was left, shown as an estimate.
   await expect(page.getByText("משוער לפי הכמות")).toBeVisible();
