@@ -116,7 +116,8 @@ test("re-importing the same file adds nothing", async ({ page }) => {
 
   // The very same file again.
   await chooseFile(page, LEGACY_CSV);
-  await expect(page.getByText("כבר קיימות — יידלגו").locator("..")).toContainText("7", {
+  // The preview's own wording: "כבר קיימות" with the count beside it.
+  await expect(page.getByText("כבר קיימות", { exact: true }).locator("..")).toContainText("7", {
     timeout: 25_000,
   });
   // There is nothing left to import, and the button says so.

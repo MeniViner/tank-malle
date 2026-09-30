@@ -406,6 +406,9 @@ function FillupEditor({
 
   const [stationSheetOpen, setStationSheetOpen] = useState(false);
   const [dateSheetOpen, setDateSheetOpen] = useState(false);
+  // The latest allowed date, sampled when the sheet is opened (an event), so
+  // the render itself never reads the clock.
+  const [dateSheetNow, setDateSheetNow] = useState(() => Date.now());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -937,7 +940,10 @@ function FillupEditor({
         <Card className="overflow-hidden">
           <button
             type="button"
-            onClick={() => setDateSheetOpen(true)}
+            onClick={() => {
+              setDateSheetNow(Date.now());
+              setDateSheetOpen(true);
+            }}
             className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
           >
             <IconTile>
@@ -1275,6 +1281,7 @@ function FillupEditor({
         open={dateSheetOpen}
         onClose={() => setDateSheetOpen(false)}
         value={date}
+        maxDate={dateSheetNow}
         bounds={bounds}
         onChange={(next) => {
           // A date change re-resolves the SUGGESTED price only; a price the
@@ -1393,12 +1400,20 @@ function StationSheet({
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
 
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
+    if (!open) return;
     void loadStationCatalog().then(setCatalog);
   }, [open]);
+
+  // The query is cleared by the events that close the sheet, not by an
+  // effect watching `open`.
+  const close = () => {
+    setQuery("");
+    onClose();
+  };
+  const pick = (next: Station | null) => {
+    setQuery("");
+    onPick(next);
+  };
 
   const matches = useMemo(
     () => searchStations(catalog, query),
@@ -1410,7 +1425,7 @@ function StationSheet({
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={<h2 className="text-[17px] font-bold text-ink">תחנת דלק</h2>}
     >
       <div className="flex max-h-[64vh] flex-col gap-3">
@@ -1435,7 +1450,7 @@ function StationSheet({
                   brand={entry.c}
                   view={viewFor(entry.i ?? null, entry.n)}
                   selected={current?.name === entry.n}
-                  onClick={() => onPick(toStation(entry))}
+                  onClick={() => pick(toStation(entry))}
                 />
               ))
             ) : (
@@ -1445,7 +1460,7 @@ function StationSheet({
                 </p>
                 <button
                   type="button"
-                  onClick={() => onPick({ name: trimmed })}
+                  onClick={() => pick({ name: trimmed })}
                   className="min-h-[46px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent"
                 >
                   שמירה בשם „{trimmed}״
@@ -1506,7 +1521,7 @@ function StationSheet({
                       brand={entry.station.c}
                       view={viewFor(entry.station.i ?? null, entry.station.n)}
                       selected={current?.name === entry.station.n}
-                      onClick={() => onPick(toStation(entry.station))}
+                      onClick={() => pick(toStation(entry.station))}
                     />
                   ))}
                 </>
@@ -1522,7 +1537,7 @@ function StationSheet({
                       brand={entry.brand}
                       view={viewFor(entry.stationId ?? null, entry.name)}
                       selected={current?.name === entry.name}
-                      onClick={() => onPick(entry)}
+                      onClick={() => pick(entry)}
                     />
                   ))}
                 </>
@@ -1533,7 +1548,7 @@ function StationSheet({
 
         <button
           type="button"
-          onClick={() => onPick(null)}
+          onClick={() => pick(null)}
           className="min-h-[48px] flex-none rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.97]"
         >
           ללא מיקום
@@ -1675,12 +1690,14 @@ function DateSheet({
   open,
   onClose,
   value,
+  maxDate,
   bounds,
   onChange,
 }: {
   open: boolean;
   onClose: () => void;
   value: number;
+  maxDate: number;
   bounds: ReturnType<typeof odometerBounds>;
   onChange: (value: number) => void;
 }) {
@@ -1691,7 +1708,7 @@ function DateSheet({
       title={<h2 className="text-[17px] font-bold text-ink">תאריך ושעה</h2>}
     >
       <div className="flex flex-col gap-3">
-        <DateTimePicker value={value} onChange={onChange} maxDate={Date.now()} />
+        <DateTimePicker value={value} onChange={onChange} maxDate={maxDate} />
 
         {bounds.min !== null || bounds.max !== null ? (
           <InfoStrip>

@@ -24,12 +24,21 @@ import {
   terminate,
 } from "firebase/firestore";
 import { auth, db, googleProvider } from "../lib/firebase";
+import { hasAnyUnacknowledged } from "../lib/outbox";
 
 interface AuthContextValue {
   user: User | null;
   /** True until the first auth state resolution completes. */
   loading: boolean;
   signingIn: boolean;
+  /**
+   * True from the moment sign-out starts until the page reloads. The shell
+   * shows the splash for that window: rendering the sign-in screen while the
+   * cache is still being cleared invited a second navigation to race the
+   * pending `location.replace`, which is how the account-switch flow got
+   * "navigation aborted" errors.
+   */
+  signingOut: boolean;
   error: string | null;
   /** Mirrors the signed `admin` custom claim on the ID token. */
   isAdmin: boolean;
@@ -72,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [claimsLoaded, setClaimsLoaded] = useState(false);
@@ -169,14 +179,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * reloading gives the next sign-in a genuinely clean process.
    */
   const signOutUser = useCallback(async (options: { keepLocalQueue?: boolean } = {}) => {
+    setSigningOut(true);
     await signOut(auth);
 
     // Every query is scoped to users/{uid}/…, so keeping the persistent cache
     // exposes nothing to the next account. Clearing it is only a cleanliness
     // measure — and one that used to wipe a queued, unacknowledged write
-    // together with the session. When anything is still unacknowledged the
-    // queue is kept; the durable outbox keeps its own copy either way.
-    if (!options.keepLocalQueue) {
+    // together with the session. The cache is shared by every account that
+    // has signed in on this device, so it is kept whenever ANY of them still
+    // has an unacknowledged write, not only the one signing out.
+    const keepQueue = options.keepLocalQueue || hasAnyUnacknowledged(localStorage);
+    if (!keepQueue) {
       try {
         // The cache can only be cleared while no client is using it.
         await terminate(db);
@@ -194,6 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       signingIn,
+      signingOut,
       error,
       isAdmin,
       previousLoginAt,
@@ -206,6 +220,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       signingIn,
+      signingOut,
       error,
       isAdmin,
       previousLoginAt,

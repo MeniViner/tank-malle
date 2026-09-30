@@ -900,7 +900,7 @@ function FuelPriceEditor() {
    * inferred from a series' `source`, which flips to "manual" on every admin
    * save while the job keeps running.
    */
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const automation = config?.automation ?? null;
   const lastAttempt = automation?.lastAttemptAt ?? null;
   const lastSuccess = automation?.lastSuccessAt ?? null;
@@ -1058,7 +1058,7 @@ function FuelPriceRow({
   const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
   const changed = valid && parsed !== lookup.price;
 
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
   const thisMonth = monthKey(now);
   const currentMonth = lookup.effectiveMonth === thisMonth;
   const monthText = priceMonthLabel(lookup.effectiveMonth, now);

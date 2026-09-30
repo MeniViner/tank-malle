@@ -414,7 +414,10 @@ function FuelPriceCard() {
   const { prices, activeVehicle } = useData();
   const fuelType = activeVehicle?.fuelType ?? "95";
 
-  const lookup = useMemo(() => officialPriceFor(prices, fuelType, Date.now()), [prices, fuelType]);
+  // Sampled once per mount: the card is about today's figure, and a render is
+  // not an event.
+  const [today] = useState(() => Date.now());
+  const lookup = useMemo(() => officialPriceFor(prices, fuelType, today), [prices, fuelType, today]);
 
   return (
     <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">

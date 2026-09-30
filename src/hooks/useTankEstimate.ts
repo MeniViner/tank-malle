@@ -57,10 +57,15 @@ export function useTankEstimate(): TankEstimateHandle {
   const uid = user?.uid ?? null;
 
   const [now, setNow] = useState(() => Date.now());
-  const [dismissals, setDismissals] = useState<Partial<Record<NextUpdateKind, number>>>({});
+  // Dismissals live in storage; `dismissalsVersion` only forces a re-read.
+  const [dismissalsVersion, setDismissalsVersion] = useState(0);
 
   const storageKey = dismissKey(uid, activeVehicle?.id ?? null);
-  useEffect(() => setDismissals(readDismissals(storageKey)), [storageKey]);
+  const dismissals = useMemo(
+    () => readDismissals(storageKey),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the version is the invalidation key
+    [storageKey, dismissalsVersion],
+  );
 
   /**
    * A tick that only runs while the screen is actually being looked at, plus an
@@ -135,6 +140,7 @@ export function useTankEstimate(): TankEstimateHandle {
     // every field the model reads, so an edit, a delete, an import rollback, a
     // capacity change or an account switch all invalidate the fit, while a
     // fresh array with identical contents does not.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate: the signature IS the dependency
     [signature, fitNow],
   );
 
@@ -149,18 +155,19 @@ export function useTankEstimate(): TankEstimateHandle {
         dismissedPrompts: dismissals,
         inputSignature: signature,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the signature is part of the result
     [fit, activeVehicle, tankPreferences, plans, now, dismissals, signature],
   );
 
   const dismissPrompt = useCallback(
     (kind: NextUpdateKind) => {
       const next = { ...readDismissals(storageKey), [kind]: Date.now() };
-      setDismissals(next);
       try {
         localStorage.setItem(storageKey, JSON.stringify(next));
       } catch {
         // Dismissal is a convenience; failing to persist it is not worth an error.
       }
+      setDismissalsVersion((version) => version + 1);
     },
     [storageKey],
   );

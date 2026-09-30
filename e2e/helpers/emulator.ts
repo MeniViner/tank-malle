@@ -294,13 +294,32 @@ export async function seedBenchmark(
   });
 }
 
-/** The regulated maximum, as the admin editor would have written it. */
+/**
+ * The regulated maximum, as the scheduled job writes it: the fuel-type series
+ * marked `scheduled` plus the legacy top-level fields tagged `gov.il`. A
+ * legacy-only document with no source tag is honestly a MANUAL entry and is
+ * labelled as such by the resolver, so a test about the regulated figure has
+ * to seed the regulated shape.
+ */
 export async function seedRegulatedPrice(pricePerLiter: number): Promise<void> {
   const month = new Date();
   const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
+  const now = new Date();
   await setDocument("appConfig/fuelPrices", {
-    current: { pricePerLiter, updatedAt: new Date() },
+    byFuelType: {
+      "95": {
+        self: {
+          current: { pricePerLiter, updatedAt: now },
+          history: { [key]: pricePerLiter },
+          scheduledHistory: { [key]: pricePerLiter },
+          source: "scheduled",
+          retrievedAt: now,
+        },
+      },
+    },
+    current: { pricePerLiter, updatedAt: now },
     history: { [key]: pricePerLiter },
+    source: "gov.il",
   });
 }
 

@@ -64,7 +64,13 @@ export function History() {
   );
 
   const [query, setQuery] = useState("");
-  const [period, setPeriod] = useState<Period>("all");
+  const [period, setPeriodState] = useState<Period>("all");
+  // "Now" is sampled when the period is chosen, not on every render.
+  const [periodNow, setPeriodNow] = useState(() => Date.now());
+  const setPeriod = (next: Period) => {
+    setPeriodNow(Date.now());
+    setPeriodState(next);
+  };
   const [onlyFlagged, setOnlyFlagged] = useState(false);
   // A filter whose subject vanished (the flagged records were fixed while
   // this screen stayed mounted) would empty the list with no control left to
@@ -82,7 +88,7 @@ export function History() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const from = periodStart(period, Date.now());
+    const from = periodStart(period, periodNow);
     return [...stats.fillups]
       .sort((a, b) => b.date - a.date)
       .filter((fillup) => {
@@ -94,7 +100,7 @@ export function History() {
           (fillup.notes ?? "").toLowerCase().includes(term)
         );
       });
-  }, [stats.fillups, query, period, flaggedActive, anomalyIds]);
+  }, [stats.fillups, query, period, periodNow, flaggedActive, anomalyIds]);
 
   // Group into months, preserving the newest-first order.
   const groups = useMemo(() => {

@@ -48,9 +48,6 @@ const BRANDS: Brand[] = [
   { slug: "yaad", match: /^יעד/, short: "יעד", background: "#8A6A2F", color: "#FFFFFF" },
 ];
 
-/** Where to get each logo, for whoever fills `public/brands/` in. */
-export const BRAND_SOURCES = BRANDS.map((brand) => brand.slug);
-
 /** The brand for a station, from its company field or its name. */
 function brandFor(brand?: string | null, name?: string | null): Brand | null {
   const candidates = [brand?.trim(), name?.trim()].filter(Boolean) as string[];

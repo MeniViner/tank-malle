@@ -84,9 +84,10 @@ export function Settings() {
 
   // The official figure for THIS vehicle's fuel type, today — the same
   // resolver the fill-up form and the home card use.
+  const [today] = useState(() => Date.now());
   const officialToday = useMemo(
-    () => officialPriceFor(prices, activeVehicle?.fuelType ?? "95", Date.now()),
-    [prices, activeVehicle?.fuelType],
+    () => officialPriceFor(prices, activeVehicle?.fuelType ?? "95", today),
+    [prices, activeVehicle?.fuelType, today],
   );
 
   const [accentSheetOpen, setAccentSheetOpen] = useState(false);

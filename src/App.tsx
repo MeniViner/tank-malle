@@ -46,7 +46,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading } = useAuth();
+  const { user, loading, signingOut } = useAuth();
   const { ready, activeVehicles, vehicles } = useData();
   const location = useLocation();
 
@@ -66,7 +66,7 @@ function Shell() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading || !splashDone) return <Splash />;
+  if (loading || !splashDone || signingOut) return <Splash />;
 
   // The legal pages must be reachable before signing in — that is exactly
   // when someone wants to read them.

@@ -388,6 +388,28 @@ export function reconcileWithServer(
   return verdicts;
 }
 
+/**
+ * True when ANY account on this device has an operation the server has not
+ * acknowledged. Firestore's persistent cache is shared by every account that
+ * signed in on the device, so clearing it on one account's sign-out would
+ * also drop another account's queued writes.
+ */
+export function hasAnyUnacknowledged(storage: KeyValueStorage & { length: number; key(i: number): string | null }): boolean {
+  try {
+    for (let i = 0; i < storage.length; i += 1) {
+      const name = storage.key(i);
+      if (!name?.startsWith(`${PREFIX}.`)) continue;
+      const raw = storage.getItem(name);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as Partial<OutboxSnapshot>;
+      if (Array.isArray(parsed.operations) && parsed.operations.length > 0) return true;
+    }
+  } catch {
+    // Unreadable storage: assume nothing is pending rather than block sign-out.
+  }
+  return false;
+}
+
 /** Hebrew label for an outbox status, kept distinct from the sync labels. */
 export function outboxStatusText(status: OutboxStatus): string {
   switch (status) {
