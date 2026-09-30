@@ -79,6 +79,8 @@ export interface Fillup extends FillupTankFields {
    * stored version plus one.
    */
   version?: number;
+  /** Per-write marker of the last version-aware write; read back for completeness only. */
+  writeId?: string | null;
 }
 
 /** A station reference. `stationId` is the identity; the rest are snapshots. */

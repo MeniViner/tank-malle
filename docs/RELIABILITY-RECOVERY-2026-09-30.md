@@ -147,24 +147,28 @@ quarantine key byte-for-byte and the account's state is reported as unknown.
 | CI run 36785656730: import test expected 8 failed entries, saw 7 | Artifact snapshot: 7 rows `failed` (permission-denied), the batch record `pending`. The import receipt settled on the first rejection, the test reloaded while the batch record's write was in flight, and after the reload nothing reconciled `importBatches` (no query listener) — a real gap: an orphaned pending entry in an unlistened collection never settled | Every entry pending at outbox open gets a per-document metadata listener until the server answers (newest revision per document; superseded revisions settle with it); import/rollback receipts settle only after every commit answered | unit: `orphanGroups`; browser: "an import interrupted by a reload settles every journal entry — rows and batch record" (server unreachable → 8 pending → reload → rejected on reconnect → 8 failed → 8 retries → 7 rows + 1 batch record, no duplicates) plus the direct-rejection variant | this branch |
 | CI run 36785656730: pricing label absent (value 7.31 present) | Snapshot shows "לפי המחיר המרבי המפוקח האחרון הידוע · ספטמבר": the seed computed the month key on the runner's UTC clock (still 30 Sep) while the browser runs in Asia/Jerusalem (already 1 Oct); reproduced locally with `TZ=UTC` against the committed seed | Seed computes the key in the browser's timezone | pricing spec, all 7 tests, under `TZ=UTC` | this branch |
 | "A retry that cannot verify" depended on the SDK's reconnect backoff after a cut connection | Timing-dependent locally | The test denies the verification READ by rules (writes allowed), which is the unauthorised-verification case itself and catches a retry that skipped the check | invariants spec | this branch |
+| Release blocker (§6 row 3): a strict `version == stored + 1` rule would silently drop a not-yet-updated device's `updateDoc` on a record the new client had already versioned — the incident's failure mode, reintroduced by the fix | rules: `fillup-writeid.test.ts` "a pre-version client's patch on a versioned document is accepted" (fails on the strict rule: `updateDoc` merges the stored version back in and `3 == 3 + 1` is false) | Every fill-up write of the new client carries a fresh `writeId` (`<opId>.<entry version>`); the rules apply the strict check only to a write that CHANGES `writeId`, and let an unchanged-writeId write through as long as it does not move `version` (a patch keeps it; a full `setDoc` drops it) | rules: `fillup-writeid.test.ts` (11) + `fillup-version.test.ts` (27) + `fillup-budget.test.ts` maximal document with both fields | this branch |
 
 Not covered in the browser: storage-quota exhaustion (unit only, by refusing readwrite transactions), and deterministic interleaving inside a single IndexedDB transaction (the browser serialises them; the unit tests force both issue orders).
 
 ## 6. Rollout: client versions against rule versions
 
-Three rulesets and two clients are in play. R0 is what `main` holds today
-(and, unverified, what production runs); R1 is PR #3; R2 is PR #4's rules
-(R1 plus the fill-up `version` contract). C0 is the live client (7 Sep
-build); C1 is PR #4's client, which stamps `version` on every fill-up it
-writes.
+Three rulesets and two clients are in play. R0 is what production ran until
+1 October 2026 00:25 UTC; R1 is PR #3, merged as `9236377` and deployed at
+that time (ruleset `61be07c2-5b6c-4f77-b067-f022aa5a297f`, read back through
+the Rules API and byte-identical to `main`); R2 is PR #4's rules (R1 plus the
+fill-up `version` contract, gated by the `writeId` marker below). C0 is the
+live client (7 Sep build); C1 is PR #4's client, which stamps `version` and a
+fresh `writeId` on every fill-up it writes.
 
 | | R0 (today) | R1 (PR #3, containment) | R2 (PR #4) |
 | --- | --- | --- | --- |
 | **C0 create** | rejected when station + before-level (the incident) | accepted | accepted (`version` absent is allowed on create) |
 | **C0 update of an unversioned document** | as create | accepted | accepted (`'version' in data` is false) |
-| **C0 update of a document C1 already versioned** | as create | accepted | **rejected**: `updateDoc` merges the stored `version` back in, so `version == stored + 1` is false; C0 has no journal, so that edit is lost the incident way |
-| **C0 `setDoc` restore over a versioned document** | as create | accepted | accepted (full overwrite carries no `version`; the document becomes unversioned; C1's next edit is refused once, verified, and re-based) |
-| **C1 create / update / restore** | **rejected**: `version` is not in R0's whitelist | **rejected**: same, R1 does not whitelist `version` | accepted; stale edits refused and handled as conflicts |
+| **C0 update of a document C1 already versioned** | as create | accepted | accepted, last write wins as today: the patch leaves `writeId` unchanged, so it takes the legacy branch (a strict rule would have rejected it — that was the release blocker, now closed) |
+| **C0 `setDoc` restore over a versioned document** | as create | accepted | accepted (full overwrite carries no `version` or `writeId`; the document becomes unversioned; C1's next edit is refused once, verified, and re-based) |
+| **C1 create / update / restore** | **rejected**: `version` is not in R0's whitelist | **rejected**: same, R1 does not whitelist `version`/`writeId` | accepted; a write that changes `writeId` must carry stored + 1, so stale edits (including one step stale) are refused and handled as conflicts |
+| **A C0-shaped patch that tries to move `version` without a fresh `writeId`** | n/a | n/a | rejected (`version` may only change together with `writeId`) |
 | **C0 writes queued offline, replayed after the device upgrades to C1** | n/a | accepted | accepted unless they update a document another device already versioned; such a rejection is not journaled by C1 (the SDK queue predates it) |
 | **Already-versioned documents read by C0** | n/a | fine (unknown fields are ignored) | fine |
 
@@ -180,38 +184,43 @@ Two hard constraints follow:
    devices on different builds editing the same record; its consequence is
    the pre-existing C0 failure mode.
 
-**Smallest missing compatibility change** (not implemented; the owner's
-call): make R2 apply the strict check only to writes that identify themselves
-as C1 writes, and let a legacy patch through when it leaves `version`
-untouched. C1 would stamp a fresh `writeId` (string, ≤ 64) on every fill-up
-write; the update line becomes
+**Compatibility change adopted (PR #4, this branch):** the strict check
+applies only to writes that identify themselves as C1 writes. C1 stamps a
+fresh `writeId` (string, ≤ 64, `<opId>.<entry version>`) on every fill-up
+write; the update line is
 
 ```
 allow update: if isOwner(uid) && validFillup(request.resource.data)
-  && (request.resource.data.diff(resource.data).affectedKeys().hasAny(['writeId'])
+  && ((('writeId' in request.resource.data)
+       && request.resource.data.diff(resource.data).affectedKeys().hasAny(['writeId']))
         ? request.resource.data.version == resource.data.get('version', 0) + 1
-        : !('version' in request.resource.data)
-          || request.resource.data.version == resource.data.get('version', 0));
+        : (!('version' in request.resource.data)
+           || (request.resource.data.version == resource.data.get('version', 0)
+               && request.resource.data.version >= 1)));
 ```
 
 A C0 `updateDoc` never touches `writeId`, so it takes the legacy branch and
 is accepted as last-write-wins (today's behaviour, no loss); a C1 write always
 changes `writeId`, so it stays strict — including the one-step-stale case,
-which a simpler "version unchanged" relaxation would wrongly accept. Cost:
-one whitelist entry plus the `diff` call, inside the measured ≈20-term
-headroom, to be re-measured with `tests/rules/fillup-budget.test.ts` before
-adopting.
+which a simpler "version unchanged" relaxation would wrongly accept. A patch
+that moves `version` without a fresh `writeId` is refused. Budget: the
+maximal document with both fields present is accepted on create and update
+(`fillup-writeid.test.ts`, `fillup-budget.test.ts`). With this, row 3 of the
+matrix is closed and the only remaining ordering constraint is constraint 1
+(rules before hosting).
 
-### Proposed release sequence
+### Release sequence
 
-1. **PR #3 → deploy R1** (`firebase deploy --only firestore:rules --project tank-malle`). Safe for C0 in every direction; stops the incident for every current device. Verify with the Rules API read-back and one station + before-level fill-up from a live C0 device.
-2. **PR #4 → deploy R2, then hosting** in that order, ideally within the same maintenance window: `firebase deploy --only firestore:rules` followed by `npm run build && firebase deploy --only hosting`. Never hosting first (constraint 1).
-3. **After hosting**: the PWA prompts for the update on next load; until a device accepts it, it is a C0 device under R2 (row 3 risk only). If two-device households are known, adopt the `writeId` refinement before step 2.
+1. **PR #3 → deploy R1** — **done 1 October 2026 00:25 UTC**: merge `9236377`; `firebase deploy --only firestore:rules --project tank-malle` reported "released rules firestore.rules to cloud.firestore"; Rules API read-back: ruleset `projects/tank-malle/rulesets/61be07c2-5b6c-4f77-b067-f022aa5a297f`, create time 2026-09-30T23:25:29Z, release `cloud.firestore` updated 23:25:31Z, content sha256 prefix `e9181dd92a0f2d68` = `firestore.rules` on `main`. Safe for C0 in every direction; stops the incident for every current device.
+2. **PR #4 → deploy R2, then hosting** in that order, in the same window: `firebase deploy --only firestore:rules` followed by `npm run build && firebase deploy --only hosting`. Never hosting first (constraint 1). Read the ruleset back and diff it against the merge commit before building hosting.
+3. **After hosting**: the PWA prompts for the update on next load; until a device accepts it, it is a C0 device under R2, which is fully compatible (row 3 closed by the `writeId` marker).
 4. **Smoke** (server-confirmed): from a C1 device, one create with station + before-level, one edit, one delete + Undo, one import of a small file; read each back (`scripts/dev/inspectUserFillups.mjs` or the console) and confirm `version` values 1, 2, and the restore's `version` 3.
 5. **Rollback**: hosting has one-click release history; rules can be rolled back to R1 (which C1 cannot run against — so rolling back rules means rolling back hosting too). R0 is never a rollback target: it rejects valid documents.
 
-## 7. Release plan status (nothing released by this work)
+## 7. Release plan status
 
-Nothing is merged or deployed. The deployed ruleset, the affected user's server
-records and the original device's local evidence remain unverified for lack of
-credentials and device access (see §1).
+PR #3 (containment rules, R1) is merged and deployed; the deployed ruleset is
+now verified against `main` (§6 step 1). PR #4 carries the client and R2; its
+release receipts are recorded in the PR's final comment. The affected user's
+server records and the original device's local evidence remain a separate
+recovery task (see §1); they are not a deployment blocker.

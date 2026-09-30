@@ -54,6 +54,10 @@ export const FILLUP_KEYS = [
   // stored one plus one, so a stale edit is rejected by the SERVER rather
   // than silently winning a check-then-write race.
   "version",
+  // Per-write marker. Stamped fresh on every write this client makes; the
+  // rules apply the version check only to writes that CHANGE it, which is
+  // what keeps a pre-version client's patches acceptable during the rollout.
+  "writeId",
 ] as const;
 
 const STATION_KEYS = ["name", "lat", "lng", "stationId", "brand"] as const;
@@ -263,6 +267,7 @@ export function parseFillupDocument(id: string, data: Record<string, unknown>): 
     // Absent on every pre-upgrade document: read as 0, so the first
     // versioned update writes 1 — which is what the rules expect.
     version: numberOrNull(data.version) ?? 0,
+    writeId: typeof data.writeId === "string" ? data.writeId : null,
   };
 
   return { ok: true, fillup };
@@ -421,6 +426,10 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
   if (version != null && !(typeof version === "number" && Number.isInteger(version) && version >= 1)) {
     errors.push({ field: "tank", message: "גרסת הרשומה אינה תקינה" });
   }
+  const writeId = payload.writeId;
+  if (writeId != null && !(typeof writeId === "string" && writeId.length > 0 && writeId.length <= 64)) {
+    errors.push({ field: "tank", message: "מזהה הכתיבה אינו תקין" });
+  }
 
   for (const key of Object.keys(payload)) {
     if (!(FILLUP_KEYS as readonly string[]).includes(key)) {
@@ -440,7 +449,9 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
  * concurrency version (two writes with identical content are the same
  * content whichever version number carried them).
  */
-const COMPARED_KEYS = FILLUP_KEYS.filter((key) => key !== "createdAt" && key !== "version");
+const COMPARED_KEYS = FILLUP_KEYS.filter(
+  (key) => key !== "createdAt" && key !== "version" && key !== "writeId",
+);
 
 function sameValue(a: unknown, b: unknown): boolean {
   if (a == null && b == null) return true;

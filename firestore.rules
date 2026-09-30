@@ -124,7 +124,11 @@ service cloud.firestore {
              // Optimistic-concurrency stamp. Its VALUE is checked on the
              // fill-up allow lines (versionOk on create, stored + 1 on
              // update), not here, to keep the shared path cheap.
-             'version'
+             'version',
+             // Per-write marker stamped by clients that also stamp `version`.
+             // Its CHANGE is what tells a version-aware write from a legacy
+             // patch on the update line below.
+             'writeId'
            ])
         // Each bound here is tighter than isNumber's ±1e10, so the cheaper
         // NaN-only predicate gives the same accepted set (Infinity fails the
@@ -153,6 +157,7 @@ service cloud.firestore {
         && optionalString(data, 'importRowHash', 64)
         && optionalNumber(data, 'schemaVersion')
         && optionalString(data, 'notes', 500)
+        && optionalString(data, 'writeId', 64)
         && (data.get('station', null) == null || validStation(data.station))
         && validTankFields(data);
     }
@@ -477,9 +482,23 @@ service cloud.firestore {
           // request.resource.data, so on a versioned document that patch
           // DOES carry the stored version, and stored == stored + 1 fails.
           // Kept off the create line: `resource` is null there.
+          // Mixed client versions during the rollout:
+          //  - a version-aware client stamps a fresh `writeId` on every write,
+          //    so its write CHANGES that field; it must then carry exactly
+          //    stored + 1 (a one-step-stale edit sends a value equal to the
+          //    stored one and is refused, which a bare "unchanged version"
+          //    relaxation would wrongly accept);
+          //  - a pre-version client never touches `writeId`. Its updateDoc
+          //    merges the stored `version` back in unchanged, and its setDoc
+          //    carries neither field: both are let through as they were
+          //    before versions existed (last write wins, nothing lost).
           allow update: if isOwner(uid) && validFillup(request.resource.data)
-            && (!('version' in request.resource.data)
-                || request.resource.data.version == resource.data.get('version', 0) + 1);
+            && ((('writeId' in request.resource.data)
+                 && request.resource.data.diff(resource.data).affectedKeys().hasAny(['writeId']))
+                  ? request.resource.data.version == resource.data.get('version', 0) + 1
+                  : (!('version' in request.resource.data)
+                     || (request.resource.data.version == resource.data.get('version', 0)
+                         && request.resource.data.version >= 1)));
         }
 
         /**

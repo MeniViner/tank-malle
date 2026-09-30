@@ -391,10 +391,13 @@ delivers pending writes across reloads — the outbox never re-sends on its own
 lost to a reload or a crash (a pending delete is only confirmed from a
 snapshot with no pending writes at all).
 
-Fill-up documents carry a concurrency `version`; the rules refuse an update
-whose version is not exactly the stored one plus one, so a stale edit — online
-or queued offline — is refused by the **server** rather than winning a
-check-then-write race. A retry first re-reads the server: an unreachable or
+Fill-up documents carry a concurrency `version` and a per-attempt `writeId`;
+for a write that changes the `writeId` (every write of this client) the rules
+refuse an update whose version is not exactly the stored one plus one, so a
+stale edit — online or queued offline — is refused by the **server** rather
+than winning a check-then-write race. A write that leaves the `writeId` alone
+(a device still on the previous build) is let through as before, so a mixed
+rollout cannot lose an edit. A retry first re-reads the server: an unreachable or
 unauthorised read leaves the entry failed with "could not verify" and writes
 nothing; already-applied content is acknowledged; a newer document becomes a
 conflict the user resolves explicitly. A pending entry cannot be retried (the
@@ -464,7 +467,7 @@ any host that is not `127.0.0.1` or `localhost`.
 | `csv.test.ts` | 6 | export round trip, formula-injection neutralisation, v1 compatibility |
 | `xlsx.test.ts` | 20 | Excel vs Google Sheets structure, shared and inline strings, styled date serials, empty cells, multiple sheets, formulas |
 | `ranking.test.ts` | 16 | nearest / cheapest / freshest / best value, no cross-fuel comparison, unknown prices last |
-| `tests/rules/` | 174 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape; the fill-up `version` contract (create, stored + 1 on update, legacy documents) |
+| `tests/rules/` | 185 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape; the fill-up `version` contract (create, stored + 1 on a write that changes `writeId`, legacy documents and pre-version clients let through) |
 | `e2e/` | 68 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL, and the data-preservation contract (offline ×3 + reload, server rejection kept and retried once, Undo read back, sign-out A → B → A) |
 
 ### The legacy workbook

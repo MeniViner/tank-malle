@@ -13,24 +13,31 @@ import { deleteDoc, doc, setDoc, updateDoc, Timestamp } from "firebase/firestore
 /**
  * The optimistic-concurrency contract on fill-ups.
  *
- * Every fill-up a current client writes carries a `version` number. The
- * rules enforce, server-side:
+ * Every fill-up a current client writes carries a `version` number and a
+ * fresh `writeId` (one per attempt). The rules enforce, server-side:
  *
  *   create : `version` absent (a pre-version client), or a number >= 1.
- *   update : if the incoming document carries `version`, it must be exactly
- *            the stored version + 1 (a legacy document with no stamp counts
- *            as 0). An update that does not carry it at all is let through.
+ *   update : a write that CHANGES `writeId` comes from a version-aware
+ *            client and must carry exactly the stored version + 1 (a legacy
+ *            document with no stamp counts as 0). A write that leaves
+ *            `writeId` alone comes from a pre-version client: it may not
+ *            move `version` (a patch keeps the stored value; a full setDoc
+ *            drops it) and is otherwise let through, last write wins, as it
+ *            always was.
  *   delete : no version check.
  *
- * So two devices editing the same record from the same snapshot cannot both
- * win: the second write arrives with a stamp equal to what is now stored and
- * is refused, instead of silently overwriting the first.
+ * So two current devices editing the same record from the same snapshot
+ * cannot both win: the second write arrives with a stamp equal to what is
+ * now stored and is refused, instead of silently overwriting the first. And
+ * a device that has not updated yet keeps working against records the new
+ * client already versioned — the rollout cannot make it lose an edit.
  *
- * One consequence worth spelling out: `updateDoc` merges the stored fields
- * into `request.resource.data`, so a partial patch that never mentions
- * `version` still carries the STORED version on a versioned document, and
- * `stored == stored + 1` fails. "Absent" therefore only happens when the
- * stored document has no version yet. Both behaviours are pinned below.
+ * `updateDoc` merges the stored fields into `request.resource.data`, so a
+ * patch that never mentions `version` or `writeId` still carries the STORED
+ * values on a versioned document; the rules read the unchanged writeId as
+ * "pre-version client" and let the patch through. The writeId-changing
+ * paths are pinned in fillup-writeid.test.ts; both behaviours are pinned
+ * below.
  *
  * Run with:  npm run test:rules   (needs Java and the Firebase CLI)
  */
@@ -131,34 +138,34 @@ describe("fill-up create — the version stamp", () => {
 
 describe("fill-up update over a stored version of 3", () => {
   beforeEach(async () => {
-    await seed(fillup({ version: 3 }));
+    await seed(fillup({ version: 3, writeId: "w-1" }));
   });
 
   it("accepts version 4 (stored + 1)", async () => {
-    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 4 })));
+    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 4, writeId: "w-2" })));
   });
 
   it("rejects version 3 — the stale, same-as-stored stamp", async () => {
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 3 })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 3, writeId: "w-3" })));
   });
 
   it("rejects version 5 — skipping ahead", async () => {
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 5 })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 5, writeId: "w-4" })));
   });
 
   it("rejects version 2 — going backwards", async () => {
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 2 })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ notes: "עודכן", version: 2, writeId: "w-5" })));
   });
 
   it("rejects a version that is not a number, even on update", async () => {
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: "4" })));
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: NaN })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: "4", writeId: "w-6" })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: NaN, writeId: "w-7" })));
   });
 
   it("accepts consecutive updates that keep counting", async () => {
-    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ version: 4 })));
-    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ version: 5 })));
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: 5 })));
+    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ version: 4, writeId: "w-8" })));
+    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ version: 5, writeId: "w-9" })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: 5, writeId: "w-10" })));
   });
 });
 
@@ -172,15 +179,15 @@ describe("fill-up update over a legacy document (no stored version)", () => {
   });
 
   it("accepts version 1 — a missing stamp counts as 0", async () => {
-    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ version: 1 })));
+    await assertSucceeds(updateDoc(fillupRef(alice()), fillup({ version: 1, writeId: "w-11" })));
   });
 
   it("rejects version 2", async () => {
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: 2 })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: 2, writeId: "w-12" })));
   });
 
   it("rejects version 0", async () => {
-    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: 0 })));
+    await assertFails(updateDoc(fillupRef(alice()), fillup({ version: 0, writeId: "w-13" })));
   });
 });
 
@@ -190,18 +197,18 @@ describe("fill-up update over a legacy document (no stored version)", () => {
 
 describe("fill-up setDoc over an existing versioned document", () => {
   beforeEach(async () => {
-    await seed(fillup({ version: 3 }));
+    await seed(fillup({ version: 3, writeId: "w-14" }));
   });
 
   it("accepts a full overwrite stamped stored + 1", async () => {
-    await assertSucceeds(setDoc(fillupRef(alice()), fillup({ liters: 41, totalCost: 299.7, version: 4 })));
+    await assertSucceeds(setDoc(fillupRef(alice()), fillup({ liters: 41, totalCost: 299.7, version: 4, writeId: "w-15" })));
   });
 
   it("rejects a retried create (version 1) over a newer document", async () => {
     // The client created this record, lost the acknowledgement, and retries
     // the create with its original stamp — meanwhile another device already
     // moved the record on. The retry must not roll it back.
-    await assertFails(setDoc(fillupRef(alice()), fillup({ version: 1 })));
+    await assertFails(setDoc(fillupRef(alice()), fillup({ version: 1, writeId: "w-16" })));
   });
 
   it("accepts a version-less full overwrite — setDoc merges nothing back in", async () => {
@@ -219,12 +226,16 @@ describe("fill-up setDoc over an existing versioned document", () => {
  * ------------------------------------------------------------------ */
 
 describe("an updateDoc patch that does not mention version", () => {
-  it("is REJECTED on a versioned document — the stored version is merged in and equals itself", async () => {
-    await seed(fillup({ version: 3 }));
+  it("is accepted on a versioned document — a pre-version client's patch leaves the version untouched", async () => {
+    await seed(fillup({ version: 3, writeId: "w-3" }));
     // request.resource.data is the merge of the stored document and the
-    // patch, so it carries version 3, and 3 == 3 + 1 is false. A client
-    // that edits a versioned record must stamp it.
-    await assertFails(updateDoc(fillupRef(alice()), { notes: "רק הערה" }));
+    // patch: the stored version (3) and writeId ("w-3") come through
+    // UNCHANGED. The rules read an unchanged writeId as a pre-version client
+    // and let the patch through as it always was (last write wins), so a
+    // phone that has not updated yet cannot lose an edit to a record the
+    // laptop already versioned. A version-aware client always changes the
+    // writeId and is held to stored + 1 (see fillup-writeid.test.ts).
+    await assertSucceeds(updateDoc(fillupRef(alice()), { notes: "רק הערה" }));
   });
 
   it("is accepted on a legacy document — nothing to merge, nothing to check", async () => {
@@ -239,7 +250,7 @@ describe("an updateDoc patch that does not mention version", () => {
 
 describe("fill-up delete", () => {
   it("is allowed on a versioned document", async () => {
-    await seed(fillup({ version: 12 }));
+    await seed(fillup({ version: 12, writeId: "w-18" }));
     await assertSucceeds(deleteDoc(fillupRef(alice())));
   });
 
@@ -302,12 +313,12 @@ const maximal = () => ({
 
 describe("the maximal fill-up plus a version stamp (expression budget)", () => {
   it("is accepted on create (version 1) and on update (version 2)", async () => {
-    await assertSucceeds(setDoc(fillupRef(alice()), { ...maximal(), version: 1 }));
-    await assertSucceeds(updateDoc(fillupRef(alice()), { ...maximal(), version: 2 }));
+    await assertSucceeds(setDoc(fillupRef(alice()), { ...maximal(), version: 1, writeId: "w-19" }));
+    await assertSucceeds(updateDoc(fillupRef(alice()), { ...maximal(), version: 2, writeId: "w-20" }));
   });
 
   it("still refuses a stale stamp on the maximal record", async () => {
-    await assertSucceeds(setDoc(fillupRef(alice()), { ...maximal(), version: 1 }));
-    await assertFails(updateDoc(fillupRef(alice()), { ...maximal(), version: 1 }));
+    await assertSucceeds(setDoc(fillupRef(alice()), { ...maximal(), version: 1, writeId: "w-21" }));
+    await assertFails(updateDoc(fillupRef(alice()), { ...maximal(), version: 1, writeId: "w-22" }));
   });
 });

@@ -430,6 +430,15 @@ function toFirestoreData(payload: OutboxPayload): Record<string, unknown> {
   return out;
 }
 
+/**
+ * The per-write marker for a fill-up write: unique for every journal version,
+ * so a retry (new version) changes it too. The rules apply the version check
+ * only to writes that change this field; a pre-version client never sets it.
+ */
+function stamped(payload: OutboxPayload, op: { opId: string; version: number }): OutboxPayload {
+  return { ...payload, writeId: `${op.opId}.${op.version}` };
+}
+
 /** Every commit settled; rejects with the first rejection once all are in. */
 async function allCommits(commits: Promise<unknown>[]): Promise<void> {
   const results = await Promise.allSettled(commits);
@@ -490,13 +499,13 @@ function genericPayloadMatches(mine: OutboxPayload, theirs: OutboxPayload): bool
 async function submitMany(
   outbox: Outbox,
   inputs: EnqueueInput[],
-  write: () => Promise<unknown>,
+  write: (operations: OutboxOperation[]) => Promise<unknown>,
   track: (kind: MutationKind, promise: Promise<unknown>) => MutationReceipt,
 ): Promise<MutationReceipt[]> {
   const operations = await outbox.enqueueMany(inputs);
   let promise: Promise<unknown>;
   try {
-    promise = write();
+    promise = write(operations);
   } catch (error) {
     await Promise.all(
       operations.map((op) =>
@@ -1239,9 +1248,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * the outbox never re-sends on its own (no competing dispatchers).
    */
   const submit = useCallback(
-    async (input: EnqueueInput, write: () => Promise<unknown>): Promise<MutationReceipt> => {
+    async (
+      input: EnqueueInput,
+      write: (operation: OutboxOperation) => Promise<unknown>,
+    ): Promise<MutationReceipt> => {
       const outbox = await requireOutbox();
-      const [operation] = await submitMany(outbox, [input], write, track);
+      const [operation] = await submitMany(outbox, [input], (ops) => write(ops[0]), track);
       return operation;
     },
     [requireOutbox, track],
@@ -1385,7 +1397,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const payload = serializeFillup({ ...fillup, version: fillup.version ?? 1 });
       await submit(
         { kind: "fillup.add", path, vehicleId, payload, replaceOpId: options.replaceOpId ?? null },
-        () => setDoc(refFor(path), toFirestoreData(payload)),
+        (op) => setDoc(refFor(path), toFirestoreData(stamped(payload, op))),
       );
       return docId;
     },
@@ -1418,7 +1430,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           beforeImage: previous ? serializeFillupPatch(previous) : null,
           replaceOpId: options.replaceOpId ?? null,
         },
-        () => updateDoc(refFor(path), toFirestoreData(patch)),
+        (op) => updateDoc(refFor(path), toFirestoreData(stamped(patch, op))),
       );
     },
     [uid, activeVehicle, submit, fillupPath, refFor],
@@ -1452,7 +1464,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const path = fillupPath(activeVehicle.id, fillup.id);
       await submit(
         { kind: "fillup.restore", path, vehicleId: activeVehicle.id, payload },
-        () => setDoc(refFor(path), toFirestoreData(payload)),
+        (op) => setDoc(refFor(path), toFirestoreData(stamped(payload, op))),
       );
     },
     [uid, activeVehicle, submit, fillupPath, refFor],
@@ -1516,6 +1528,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const isFillup = claimed.kind.startsWith("fillup.") || claimed.kind === "import.batch";
       const same = (a: OutboxPayload, b: OutboxPayload) =>
         isFillup ? fillupPayloadMatches(a, b) : genericPayloadMatches(a, b);
+      // Only fill-up DOCUMENTS carry the concurrency stamp. An import's batch
+      // record shares the "import.batch" kind but lives in importBatches,
+      // whose whitelist has no writeId — stamping it makes its retry fail.
+      const stampable = collectionOf(claimed.path).endsWith("/fillups");
+      const outgoing = (body: OutboxPayload) => toFirestoreData(stampable ? stamped(body, claimed) : body);
 
       if (claimed.opType === "delete") {
         if (!server) {
@@ -1552,7 +1569,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await outbox.markConflict(opId, version, server);
           return;
         }
-        await settle(updateDoc(refFor(claimed.path), toFirestoreData(payload)));
+        await settle(updateDoc(refFor(claimed.path), outgoing(payload)));
         return;
       }
 
@@ -1562,7 +1579,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         await outbox.markConflict(opId, version, server);
         return;
       }
-      await settle(setDoc(refFor(claimed.path), toFirestoreData(payload)));
+      await settle(setDoc(refFor(claimed.path), outgoing(payload)));
     },
     [uid, requireOutbox, track, refFor, deleteVehicleTree],
   );
@@ -1673,7 +1690,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       for (let i = 0; i < rows.length; i += 400) {
         const batch = writeBatch(db);
         const chunkOps = rowOps.slice(i, i + 400);
-        rows.slice(i, i + 400).forEach((row) => batch.set(refFor(row.path), toFirestoreData(row.payload)));
+        rows.slice(i, i + 400).forEach((row, index) =>
+          batch.set(refFor(row.path), toFirestoreData(stamped(row.payload, chunkOps[index]))),
+        );
         const commit = batch.commit();
         commits.push(commit);
         void commit.then(
