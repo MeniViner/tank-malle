@@ -25,8 +25,13 @@ import { DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon } from "../components/i
 export function Profile() {
   const navigate = useNavigate();
   const { user, signOutUser, isAdmin, previousLoginAt } = useAuth();
-  const { outbox, writes } = useData();
+  const { outbox, writes, outboxHealth, checkUnacknowledged } = useData();
   const unsynced = outbox.length + writes.pending.length;
+  const healthUnknown = outboxHealth.state !== "ok";
+  // Device-wide state, read when the dialog opens: other accounts' queued
+  // writes count too, because the Firestore cache is shared.
+  const [deviceState, setDeviceState] = useState<"none" | "some" | "unknown" | null>(null);
+  const [clearLocal, setClearLocal] = useState(false);
   const { fillups, activeVehicle, vehicles, deleteAccount } = useData();
   const stats = useMemo(
     () => computeStats(fillups, activeVehicle),
@@ -207,7 +212,12 @@ export function Profile() {
             }
             title="התנתקות"
             subtitle="אפשר להתחבר אחר כך עם כל חשבון Google"
-            onClick={() => setConfirmSignOut(true)}
+            onClick={() => {
+              setDeviceState(null);
+              setClearLocal(false);
+              void checkUnacknowledged().then(setDeviceState);
+              setConfirmSignOut(true);
+            }}
           />
           <RowButton
             icon={
@@ -249,23 +259,50 @@ export function Profile() {
 
       <ConfirmDialog
         open={confirmSignOut}
-        title={unsynced > 0 ? "יש פעולות שעדיין לא סונכרנו" : "להתנתק מהחשבון?"}
-        body={
-          unsynced > 0 ? (
-            <>
-              <Num>{unsynced}</Num> פעולות עוד לא אושרו על ידי השרת. הן יישארו שמורות במכשיר
-              הזה לחשבון הזה ויישלחו בהתחברות הבאה — אבל לא ייראו בחשבון אחר או במכשיר
-              אחר. אפשר לבדוק אותן במסך „לא סונכרן״ לפני ההתנתקות.
-            </>
-          ) : (
-            "הנתונים יישמרו בענן ויחזרו בהתחברות הבאה."
-          )
+        title={
+          unsynced > 0 || healthUnknown || deviceState === "some" || deviceState === "unknown"
+            ? "יש פעולות שעדיין לא סונכרנו"
+            : "להתנתק מהחשבון?"
         }
-        confirmLabel={unsynced > 0 ? "התנתקות בכל זאת" : "התנתקות"}
-        tone={unsynced > 0 ? "danger" : "accent"}
+        body={
+          <span className="flex flex-col gap-2">
+            {unsynced > 0 ? (
+              <span>
+                <Num>{unsynced}</Num> פעולות של החשבון הזה עוד לא אושרו על ידי השרת. הן יישארו
+                שמורות במכשיר הזה ויישלחו בהתחברות הבאה — אבל לא ייראו בחשבון אחר או במכשיר אחר.
+                אפשר לבדוק אותן במסך „לא סונכרן״ לפני ההתנתקות.
+              </span>
+            ) : healthUnknown ? (
+              <span>
+                לא ניתן לוודא שאין פעולות שלא סונכרנו ({outboxHealth.message ?? "אחסון לא קריא"}).
+                שום דבר מקומי לא יימחק.
+              </span>
+            ) : deviceState === "some" ? (
+              <span>חשבון אחר במכשיר הזה עדיין מחזיק פעולות שלא אושרו. הן לא יימחקו.</span>
+            ) : deviceState === "unknown" ? (
+              <span>לא ניתן לוודא את מצב הפעולות המקומיות. שום דבר מקומי לא יימחק.</span>
+            ) : (
+              <span>הנתונים יישמרו בענן ויחזרו בהתחברות הבאה. שום דבר מקומי לא נמחק בהתנתקות.</span>
+            )}
+            {deviceState === "none" && !healthUnknown && unsynced === 0 ? (
+              <label className="flex items-center gap-2 text-[13px] text-ink">
+                <input
+                  type="checkbox"
+                  checked={clearLocal}
+                  onChange={(event) => setClearLocal(event.target.checked)}
+                />
+                למחוק גם את הנתונים המקומיים במכשיר הזה (מחשב משותף)
+              </label>
+            ) : null}
+          </span>
+        }
+        confirmLabel={unsynced > 0 || healthUnknown ? "התנתקות בכל זאת" : "התנתקות"}
+        tone={unsynced > 0 || healthUnknown ? "danger" : "accent"}
         onConfirm={() => {
           setConfirmSignOut(false);
-          void signOutUser({ keepLocalQueue: unsynced > 0 });
+          void signOutUser({ clearLocalData: clearLocal }).then((result) => {
+            if (result.refused) showToast({ tone: "info", title: result.refused });
+          });
         }}
         onCancel={() => setConfirmSignOut(false)}
       />

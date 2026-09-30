@@ -140,6 +140,40 @@ export function FillupForm() {
     );
   }
 
+  // A failed UPDATE being corrected: the editor opens the REJECTED input,
+  // not whatever the server holds under that id, and re-sends under the
+  // same operation. The base version is the one the rejected edit was made
+  // against, so the server's version check still applies to the re-send.
+  const failedUpdate = opId
+    ? outbox.find((entry) => entry.opId === opId && entry.docId === fillupId && entry.kind === "fillup.update") ?? null
+    : null;
+  if (opId && failedUpdate?.payload) {
+    const base = failedUpdate.beforeImage ? fillupFromPayload(fillupId, failedUpdate.beforeImage) : null;
+    const rejected = fillupFromPayload(fillupId, { ...(failedUpdate.beforeImage ?? {}), ...failedUpdate.payload });
+    return (
+      <FillupEditor
+        key={`${fillupId}:${opId}`}
+        mode="edit"
+        initial={rejected ?? base}
+        baseRecord={base}
+        operation={failedUpdate}
+      />
+    );
+  }
+  if (opId && !failedUpdate) {
+    const anyOp = outbox.find((entry) => entry.opId === opId) ?? null;
+    if (!anyOp) {
+      return (
+        <EditState
+          kind="not-found"
+          title="הפעולה כבר לא קיימת"
+          body="ייתכן שהיא סונכרנה או נמחקה במכשיר אחר."
+          onBack={() => navigate("/settings/unsynced", { replace: true })}
+        />
+      );
+    }
+  }
+
   const editing = fillups.find((entry) => entry.id === fillupId) ?? null;
   if (editing) {
     return (
@@ -206,11 +240,13 @@ function EditState({
   title,
   body,
   onBack,
+  action,
 }: {
   kind: "loading" | "not-found" | "failed";
   title?: string;
   body?: string;
   onBack?: () => void;
+  action?: { label: string; onClick: () => void };
 }) {
   return (
     <main className="flex min-h-dvh flex-1 flex-col gap-3 bg-bg px-5 pt-safe" data-edit-state={kind}>
@@ -237,6 +273,9 @@ function EditState({
         <Card className="flex flex-col gap-2 p-5">
           <span className="text-[16px] font-bold text-ink">{title}</span>
           <span className="text-[13.5px] leading-relaxed text-muted">{body}</span>
+          {action ? (
+            <Button onClick={action.onClick}>{action.label}</Button>
+          ) : null}
         </Card>
       )}
     </main>
@@ -292,6 +331,7 @@ const END_CHOICES: { value: TankEndChoice; label: string; hint: string }[] = [
 function FillupEditor({
   mode,
   initial,
+  baseRecord = null,
   operation = null,
   malformedReason = null,
   onReload,
@@ -299,6 +339,12 @@ function FillupEditor({
   mode: "new" | "edit";
   /** The resolved record for an edit, or a prefilled draft for a new one. */
   initial: Fillup | null;
+  /**
+   * For a failed update being corrected: the record as it was when the
+   * rejected edit was made (the version base). Otherwise the edit's own
+   * `initial` is the base.
+   */
+  baseRecord?: Fillup | null;
   /** The unsynced operation this editor corrects, when it does. */
   operation?: OutboxOperation | null;
   malformedReason?: string | null;
@@ -316,14 +362,36 @@ function FillupEditor({
     deleteFillup,
     restoreFillup,
     discardOperation,
+    setActiveVehicle,
+    vehicles,
   } = useData();
+
+  // An operation belongs to the vehicle it was journaled for. Editing it
+  // under another active vehicle would write to the wrong subtree.
+  const wrongVehicle =
+    operation !== null && operation.vehicleId !== null && activeVehicle?.id !== operation.vehicleId
+      ? operation.vehicleId
+      : null;
 
   // Whole-history statistics for this vehicle, used only for the best-value
   // station ranking — which needs a real measured consumption or nothing.
   const vehicleStats = useStats();
 
   const isEdit = mode === "edit";
-  const editing = isEdit ? initial : null;
+  /**
+   * The record as it was when this editor OPENED, captured once.
+   *
+   * `initial` is a prop that follows the live listener: if another device
+   * writes while the form is open, the prop moves to the newer version. The
+   * edit must stay based on what the user actually saw — otherwise its
+   * version base would silently follow the other write and the server would
+   * accept an overwrite nobody reviewed. The live record is compared against
+   * this snapshot only to WARN (see `changedElsewhere`).
+   */
+  const [openedRecord] = useState(initial);
+  const editing = isEdit ? openedRecord : null;
+  /** The record an edit is based on: the opened snapshot, or the rejected edit's base. */
+  const editBase = baseRecord ?? editing;
   const dateWasInvalid = editing !== null && !Number.isFinite(editing.date);
 
   const [date, setDate] = useState<number>(() =>
@@ -739,17 +807,23 @@ function FillupEditor({
     setSaving(true);
 
     try {
-      if (editing && !operation) {
-        const previous: Fillup = { ...editing };
-        await updateFillup(editing.id, nextRecord, previous);
+      if (editing && (!operation || operation.kind === "fillup.update")) {
+        const previous: Fillup = { ...(editBase ?? editing) };
+        await updateFillup(editing.id, nextRecord, previous, {
+          replaceOpId: operation?.opId ?? null,
+          vehicleId: operation?.vehicleId ?? undefined,
+        });
+        // What the server will hold once this edit lands: the base plus one.
+        const written: Fillup = { ...(nextRecord as Fillup), id: editing.id, version: (previous.version ?? 0) + 1 };
         showToast({
           tone: "success",
-          title: "התדלוק עודכן",
+          title: operation ? "התדלוק נשלח מחדש" : "התדלוק עודכן",
           detail: "נשמר במכשיר · יאושר מול השרת ברקע",
-          undoLabel: "ביטול",
+          undoLabel: operation ? undefined : "ביטול",
           // The Undo sends the previous record through the same serializer —
-          // never the UI object with its `id`.
-          onUndo: () => updateFillup(previous.id, previous, nextRecord as Fillup),
+          // never the UI object with its `id` — based on the version this
+          // edit produced, so the server accepts exactly one of the two.
+          onUndo: operation ? undefined : () => updateFillup(previous.id, previous, written),
         });
       } else {
         const newId = await addFillup(nextRecord, {
@@ -825,6 +899,27 @@ function FillupEditor({
 
   const lastFillup = bounds.prev;
   const showErrors = submitAttempted;
+
+  if (wrongVehicle) {
+    const owner = vehicles.find((entry) => entry.id === wrongVehicle);
+    return (
+      <EditState
+        kind="not-found"
+        title="הפעולה שייכת לרכב אחר"
+        body={
+          owner
+            ? `הרשומה נרשמה עבור ${owner.make} ${owner.model}. יש לעבור לרכב הזה כדי לתקן אותה.`
+            : "הרכב שהרשומה שייכת לו כבר לא קיים במכשיר הזה."
+        }
+        onBack={() => navigate("/settings/unsynced", { replace: true })}
+        action={
+          owner
+            ? { label: `מעבר ל${owner.make} ${owner.model}`, onClick: () => void setActiveVehicle(owner.id) }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <main className="flex min-h-dvh flex-1 flex-col bg-bg pt-safe">
@@ -1233,7 +1328,7 @@ function FillupEditor({
           <button
             type="button"
             onClick={() => {
-              discardOperation(operation.opId);
+              void discardOperation(operation.opId);
               navigate("/settings/unsynced", { replace: true });
             }}
             className="min-h-[44px] text-[13px] font-semibold text-danger"

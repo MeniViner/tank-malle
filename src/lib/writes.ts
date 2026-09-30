@@ -72,7 +72,7 @@ export interface MutationReceipt {
   settled: Promise<boolean>;
 }
 
-const LABELS: Record<MutationKind, string> = {
+export const MUTATION_LABELS: Record<MutationKind, string> = {
   "fillup.add": "הוספת תדלוק",
   "fillup.update": "עדכון תדלוק",
   "fillup.delete": "מחיקת תדלוק",
@@ -139,7 +139,7 @@ export class WriteTracker {
       kind,
       state: "pending",
       startedAt: Date.now(),
-      label: LABELS[kind],
+      label: MUTATION_LABELS[kind],
     };
     this.mutations.set(id, mutation);
     this.emit();

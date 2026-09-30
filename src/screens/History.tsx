@@ -57,7 +57,13 @@ export function History() {
   const unsynced = useMemo(
     () =>
       outbox
-        .filter((op) => op.status !== "pending" && op.kind === "fillup.add" && op.payload)
+        .filter(
+          (op) =>
+            op.status !== "pending" &&
+            (op.kind === "fillup.add" || op.kind === "import.batch") &&
+            op.payload &&
+            op.path.includes("/fillups/"),
+        )
         .map((op) => ({ op, record: fillupFromPayload(op.docId, op.payload!) }))
         .filter((entry) => entry.record !== null),
     [outbox],

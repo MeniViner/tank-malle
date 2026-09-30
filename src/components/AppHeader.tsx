@@ -23,8 +23,10 @@ import { Avatar } from "./Avatar";
 export function AppHeader() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeVehicle, offline, writes, outbox } = useData();
-  const failed = outbox.filter((op) => op.status !== "pending").length;
+  const { activeVehicle, offline, writes, outbox, outboxHealth, outboxReady } = useData();
+  const failed =
+    outbox.filter((op) => op.status !== "pending").length +
+    (outboxReady && outboxHealth.state !== "ok" ? 1 : 0);
   const pending = outbox.filter((op) => op.status === "pending").length;
 
   return (

@@ -12,7 +12,7 @@ import { CloudOffIcon, WarningIcon } from "../components/icons";
 import { fullDate, num, shekel, time } from "../lib/format";
 import { fillupFromPayload } from "../lib/fillupSerializer";
 import { exportOperations, outboxStatusText, type OutboxOperation } from "../lib/outbox";
-import { describeError } from "../lib/writes";
+import { MUTATION_LABELS, describeError } from "../lib/writes";
 
 /**
  * "לא סונכרן" — every write the server has not acknowledged, with the user's
@@ -25,8 +25,17 @@ import { describeError } from "../lib/writes";
 export function Unsynced() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { outbox, vehicles, retryOperation, resolveConflict, discardOperation, offline } =
-    useData();
+  const {
+    outbox,
+    vehicles,
+    retryOperation,
+    resolveConflict,
+    discardOperation,
+    offline,
+    outboxHealth,
+    outboxReady,
+  } = useData();
+  const healthOk = outboxReady && outboxHealth.state === "ok";
 
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState<OutboxOperation | null>(null);
@@ -94,9 +103,30 @@ export function Unsynced() {
             : "רשומה נשארת כאן עד שהשרת מאשר אותה. דחייה לא מוחקת כלום — הנתונים שהקלדתם שמורים במכשיר הזה."}
         </InfoStrip>
 
-        {ordered.length === 0 ? (
+        {outboxReady && outboxHealth.state !== "ok" ? (
+          <Card className="flex items-start gap-2.5 p-4 text-[13.5px] text-danger-ink" data-outbox-health={outboxHealth.state}>
+            <WarningIcon size={17} className="mt-px flex-none" />
+            <span className="flex flex-col gap-0.5">
+              <span className="font-bold">
+                {outboxHealth.state === "unavailable"
+                  ? "אחסון הפעולות המקומי אינו זמין"
+                  : "חלק מהרשומות המקומיות לא ניתנות לקריאה"}
+              </span>
+              <span className="text-[12.5px] text-muted">
+                {outboxHealth.message ?? ""} הרשימה למטה עשויה להיות חלקית; אין לראות בה אישור
+                שהכול סונכרן.
+              </span>
+            </span>
+          </Card>
+        ) : null}
+
+        {!outboxReady ? (
+          <Card className="px-6 py-10 text-center text-[14px] text-muted">טוען…</Card>
+        ) : ordered.length === 0 ? (
           <Card className="px-6 py-10 text-center text-[14px] text-muted">
-            הכול מסונכרן. אין פעולות ממתינות או שנדחו.
+            {healthOk
+              ? "הכול מסונכרן. אין פעולות ממתינות או שנדחו."
+              : "לא נמצאו פעולות ברשימה — אבל מצב האחסון לא מאפשר לומר שהכול סונכרן."}
           </Card>
         ) : (
           ordered.map((op) => (
@@ -107,11 +137,17 @@ export function Unsynced() {
               busy={busy === op.opId}
               onRetry={() => void retry(op)}
               onEdit={
-                op.kind === "fillup.add" || op.kind === "fillup.restore" || op.kind === "fillup.update"
+                op.kind === "fillup.add" ||
+                op.kind === "fillup.restore" ||
+                op.kind === "fillup.update" ||
+                op.kind === "import.batch"
                   ? () =>
+                      // Bound to the OPERATION, not to whatever the server
+                      // holds under that id: the editor opens the rejected
+                      // input and re-sends under the same op.
                       navigate(
                         op.kind === "fillup.update"
-                          ? `/fillup/${op.docId}`
+                          ? `/fillup/${op.docId}?op=${encodeURIComponent(op.opId)}`
                           : `/fillup/new?op=${encodeURIComponent(op.opId)}`,
                       )
                   : undefined
@@ -135,11 +171,19 @@ export function Unsynced() {
 
       <ConfirmDialog
         open={confirmDiscard !== null}
-        title="למחוק את הרשומה שלא סונכרנה?"
-        body="זהו העותק היחיד של מה שהקלדתם. אם תרצו לשמור אותו — ייצאו קודם."
-        confirmLabel="מחיקה לצמיתות"
+        title={
+          confirmDiscard?.status === "pending"
+            ? "להסיר את הרשומה מהמעקב?"
+            : "למחוק את הרשומה שלא סונכרנה?"
+        }
+        body={
+          confirmDiscard?.status === "pending"
+            ? "הפעולה עדיין ממתינה בתור השליחה של המכשיר. הסרה מהרשימה לא מבטלת אותה — הכתיבה עצמה עדיין עשויה להגיע לשרת. יוסר רק העותק שנשמר לתיקון."
+            : "זהו העותק היחיד של מה שהקלדתם. אם תרצו לשמור אותו — ייצאו קודם."
+        }
+        confirmLabel={confirmDiscard?.status === "pending" ? "הסרה מהמעקב" : "מחיקה לצמיתות"}
         onConfirm={() => {
-          if (confirmDiscard) discardOperation(confirmDiscard.opId);
+          if (confirmDiscard) void discardOperation(confirmDiscard.opId);
           setConfirmDiscard(null);
         }}
         onCancel={() => setConfirmDiscard(null)}
@@ -148,15 +192,7 @@ export function Unsynced() {
   );
 }
 
-const KIND_LABEL: Record<OutboxOperation["kind"], string> = {
-  "fillup.add": "תדלוק חדש",
-  "fillup.update": "עריכת תדלוק",
-  "fillup.delete": "מחיקת תדלוק",
-  "fillup.restore": "שחזור תדלוק",
-  "vehicle.delete": "מחיקת רכב",
-  "tank.observation": "עדכון מצב המיכל",
-  "tank.observation.delete": "מחיקת עדכון מיכל",
-};
+const KIND_LABEL: Record<OutboxOperation["kind"], string> = MUTATION_LABELS;
 
 function OperationCard({
   op,
@@ -232,13 +268,16 @@ function OperationCard({
           <WarningIcon size={15} className="mt-px flex-none" />
           <span className="flex min-w-0 flex-col">
             <span className="font-semibold">
-              {op.error.code === "unconfirmed" || op.error.code === "conflict"
+              {op.error.code === "unconfirmed" || op.error.code === "conflict" || op.error.code === "unverified"
                 ? op.error.message
                 : describeError({ code: op.error.code })}
             </span>
             <span className="break-words text-muted" dir="ltr">
               {op.error.code}
-              {op.error.message && op.error.code !== "unconfirmed" && op.error.code !== "conflict"
+              {op.error.message &&
+              op.error.code !== "unconfirmed" &&
+              op.error.code !== "conflict" &&
+              op.error.code !== "unverified"
                 ? ` · ${op.error.message}`
                 : ""}
             </span>
@@ -261,9 +300,16 @@ function OperationCard({
               לדרוס עם הגרסה שלי
             </Button>
           </>
+        ) : op.status === "pending" ? (
+          // The SDK owns this write; a second competing send is exactly what
+          // the outbox exists to avoid. Its fate is settled from the next
+          // server-sourced snapshot.
+          <span className="self-center text-[12.5px] text-muted">
+            ממתין — יישלח אוטומטית כשהשרת זמין
+          </span>
         ) : (
           <Button onClick={onRetry} disabled={busy} loading={busy}>
-            {op.status === "pending" ? "שליחה מחדש" : "ניסיון חוזר"}
+            ניסיון חוזר
           </Button>
         )}
         {onEdit ? (
@@ -280,7 +326,7 @@ function OperationCard({
           onClick={onDiscard}
           className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-danger"
         >
-          מחיקה
+          {op.status === "pending" ? "הסרה מהמעקב" : "מחיקה"}
         </button>
       </div>
     </Card>
