@@ -214,6 +214,9 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   // that was never deleted.
   await expect(page.getByText("למחוק את התדלוק?")).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: "מחיקה", exact: true }).click();
+  // The deletion is journaled before Firestore is told; the toast means both
+  // have happened. Reloading before it would abandon the click mid-flight.
+  await expect(page.getByText("התדלוק נמחק")).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/");
   await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });

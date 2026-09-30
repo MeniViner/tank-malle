@@ -133,6 +133,10 @@ src/
     prices/           fuel-type-aware price model + the one station resolver
     import/           CSV + XLSX readers, legacy adapter, dedupe, plan
     writes.ts         mutation tracking — pending / synced / failed
+    outbox.ts         durable per-account outbox: the user's input survives a server rejection
+    fillupSerializer.ts  the one fill-up ↔ document mapping, plus rule-mirroring validation
+    receipt.ts        litres / price / total ownership — a suggestion never moves a typed figure
+    numeric.ts        field-aware number parsing that consumes the whole input
     capabilities.ts   flags gating Blaze-only features (all default off)
     plateLookup.ts    tier-1 vehicle lookup, with a real tri-state outcome
     accents.ts        accent palette + AA-contrast dark-variant derivation
@@ -368,12 +372,50 @@ The XLSX reader is ~350 lines built on the platform's `DecompressionStream`, so
 there is no new dependency, and the whole pipeline is dynamically imported —
 about 9 kB, loaded only when the import screen is opened.
 
-### Write states
+### Write states and the outbox
 
 An offline write feels instant and its promise only settles on **server**
-acknowledgement. Those are different things, so four states are kept distinct
+acknowledgement. Those are different things, so the states are kept distinct
 and shown in the header: `נשמר במכשיר`, `ממתין לסנכרון`, `סונכרן`,
-`הסנכרון נכשל`. A permanent rejection surfaces instead of being swallowed.
+`נדחה`, `התנגשות`.
+
+Before any user-data write reaches Firestore — fill-ups, imports and their
+rollbacks, vehicles, settings, observations, plans, price rules — its complete
+serialised payload is journaled in a per-account **outbox** in IndexedDB, in
+one transaction. Every entry carries an immutable *version* that changes on
+every edit-and-resend and every claimed retry; an acknowledgement or rejection
+is bound to the version it was issued for, so a late answer to a previous
+input can never remove or mark a newer one. Firestore's own queue still
+delivers pending writes across reloads — the outbox never re-sends on its own
+— and a server-sourced snapshot settles the fate of an entry whose promise was
+lost to a reload or a crash (a pending delete is only confirmed from a
+snapshot with no pending writes at all).
+
+Fill-up documents carry a concurrency `version` and a per-attempt `writeId`;
+for a write that changes the `writeId` (every write of this client) the rules
+refuse an update whose version is not exactly the stored one plus one, so a
+stale edit — online or queued offline — is refused by the **server** rather
+than winning a check-then-write race. A write that leaves the `writeId` alone
+(a device still on the previous build) is let through as before, so a mixed
+rollout cannot lose an edit. A retry first re-reads the server: an unreachable or
+unauthorised read leaves the entry failed with "could not verify" and writes
+nothing; already-applied content is acknowledged; a newer document becomes a
+conflict the user resolves explicitly. A pending entry cannot be retried (the
+SDK owns that write), and removing one from the list is labelled for what it
+is — it does not cancel the SDK's queued write.
+
+Settings → `פעולות שלא סונכרנו` lists every entry with its original input,
+retry, edit (bound to the operation and its vehicle, opening the rejected
+input), export, conflict resolution and an explicitly confirmed discard.
+Unreadable storage is reported as *unknown*, never as "all synced": a legacy
+entry that cannot be parsed is quarantined byte-for-byte. Signing out clears
+nothing local automatically; wiping local data is an explicit choice that is
+refused whenever any account on the device may still hold an unacknowledged
+write.
+
+What this does **not** protect against: clearing site data, private windows,
+browser storage eviction, or a lost device. The export on that screen is the
+backup for those. See `docs/RELIABILITY-RECOVERY-2026-09-30.md`.
 
 ### Account switching
 
@@ -416,11 +458,17 @@ any host that is not `127.0.0.1` or `localhost`.
 | `format.test.ts` | 12 | leading signs, currency placement, true minus, previous-login wording |
 | `DateTimePicker.test.ts` | 9 | one-minute typed times, day-first dates, impossible dates |
 | `writes.test.ts` | 8 | pending → synced → failed, disposal after an account switch |
+| `outbox.test.ts` | 30 | payload survives reload and rejection, quota and IndexedDB-unavailable refusal, account scoping, immutable versions under late ack/rejection, concurrent enqueue/ack/replace/retry from two clients in both orders, lossless and idempotent legacy migration, quarantine of corrupt bytes, unknown-vs-none device state, reconciliation verdicts including pending deletes |
+| `fillupSerializer.test.ts` | 14 | no `id` in a patch, immutable creation metadata, station sanitising, malformed dates, every rule bound with its field |
+| `receipt.test.ts` | 11 | every typing order, suggested price never moves a typed figure, three-way conflicts reported not moved |
+| `numeric.test.ts` | 7 | grouped odometers, decimal commas, mixed separators, ambiguity flag, whole-input rejection |
+| `tank/outcome.test.ts` | 31 | draft → payload → replay round trips, provenance-aware tolerance, signature mutation sweep |
+| `prices/suggestion.test.ts` | — | one resolver for form, settings, home and statistics; manual vs regulated labelling; month-scoped overrides |
 | `csv.test.ts` | 6 | export round trip, formula-injection neutralisation, v1 compatibility |
 | `xlsx.test.ts` | 20 | Excel vs Google Sheets structure, shared and inline strings, styled date serials, empty cells, multiple sheets, formulas |
 | `ranking.test.ts` | 16 | nearest / cheapest / freshest / best value, no cross-fuel comparison, unknown prices last |
-| `tests/rules/` | 61 | owner / other user / admin / unauthenticated, on every collection |
-| `e2e/` | 60 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL |
+| `tests/rules/` | 185 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape; the fill-up `version` contract (create, stored + 1 on a write that changes `writeId`, legacy documents and pre-version clients let through) |
+| `e2e/` | 68 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL, and the data-preservation contract (offline ×3 + reload, server rejection kept and retried once, Undo read back, sign-out A → B → A) |
 
 ### The legacy workbook
 

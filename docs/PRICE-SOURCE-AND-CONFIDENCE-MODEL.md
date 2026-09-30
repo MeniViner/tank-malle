@@ -163,3 +163,86 @@ explicit API key, billing authorisation, verification of the current API
 documentation, a review of its storage and caching restrictions, an updated
 privacy disclosure, and user consent — because enabling it sends station
 coordinates off-device, which today's Privacy Policy says does not happen.
+
+## 9. Manual vs scheduled precedence
+
+`appConfig/fuelPrices` is written by two hands: the daily GitHub Actions job
+(`scripts/updateFuelPrices.mjs`, workflow `fuel-prices.yml`) and an admin in
+the console. Before this section existed the job overwrote `current` and
+`history[month]` unconditionally, so an admin's correction lasted until the
+next 02:15 UTC and then vanished; a failed run left no trace anywhere but the
+GitHub log; and three screens read three different fields of the document and
+disagreed.
+
+### The document
+
+```
+byFuelType.<fuel>.<mode>:
+  history:          { "2026-09": 7.55 }   # the EFFECTIVE price per month
+  scheduledHistory: { "2026-09": 7.19 }   # what the job read, kept regardless
+  current:          { pricePerLiter, effectiveFrom, updatedAt }
+  source:           "manual" | "scheduled" | "import"   # the latest write
+  manualOverride:   { pricePerLiter, month, setAt, note } | null
+automation:
+  lastAttemptAt, lastSuccessAt, lastFailureAt, lastError,
+  lastReadMonth, lastReadPrice, lastVia, targetProjectId
+```
+
+Every field is optional and additive. Documents written before this section
+keep working unchanged; the legacy top-level `current` / `history` are still
+read through `adaptLegacyConfig` and filed under 95 / self.
+
+### Who wins
+
+1. **Inside its own month, a manual override wins.** `regulatedMaxPrice` returns
+   `manualOverride.pricePerLiter` for `manualOverride.month` and nothing else.
+2. **Outside that month the override does nothing.** The month's `history`
+   record answers, then the carried-forward `current`. An override for August
+   is simply ignored in September; it is not deleted.
+3. **The job never displaces a same-month override.** On success it always
+   writes `scheduledHistory[month]` and the `automation` block; it writes
+   `current`, `history[month]`, `source: "scheduled"` and the legacy top-level
+   fields only when no override exists for the month it read. The log line is
+   `manual override for <month> kept`.
+4. **A failed run is recorded.** The job obtains credentials before fetching,
+   and on any read or parse failure writes `automation.{lastAttemptAt,
+   lastFailureAt, lastError}` and exits 1 — the workflow stays red on purpose,
+   and the admin console shows the error text. `--dry-run` writes nothing in
+   either branch and prints the plan it would have written.
+5. **A manual figure is never labelled "מפוקח".** `suggestPricePerLiter` and
+   `officialPriceFor` return `isManual: true, isRegulated: false` for an
+   override, for a series whose latest write was manual, and for every fuel
+   type Israel does not regulate. The wording is `מחיר שהוזן ידנית` (the form
+   says `מחיר שהוזן ידנית על ידי מנהל המערכת · <month>`). A month the job
+   wrote stays "automatic" even after a later manual write elsewhere, because
+   `scheduledHistory[month] === history[month]` proves its origin.
+6. **A carry-over says so.** When no record exists for the requested month the
+   label is `לפי המחיר האחרון הידוע · <month it belongs to>`, never the month
+   that was asked for.
+7. **Historical comparisons are date-matched.** `officialPriceFor(config,
+   fuelType, fillupDate)` gives the figure in force on that date; statistics
+   compare each fill-up with its own month, and `avgPriceVsOfficial` is
+   labelled `מול המחיר הרשמי בתאריכי התדלוקים`.
+
+### Restoring the automatic value
+
+In the admin console, a row whose figure is a manual override shows
+`ידני · <month> · דורס את הערך האוטומטי ₪7.19` and a `החזרת הערך האוטומטי`
+action. It clears `manualOverride`, copies `scheduledHistory[month]` back into
+`history[month]` and `current`, and sets `source: "scheduled"`. The action is
+offered only when the job has actually recorded a value for that month; when it
+has not, the row says so, and the next successful run will write the month
+normally once the override is cleared.
+
+### Reading the health row
+
+The console's `עדכון אוטומטי` row is derived from `automation` only — never
+from a series' `source`, which flips to `manual` on every admin save while the
+job keeps running daily. `lastAttemptAt` missing means the document was last
+written by an older script that reported nothing, and the row says exactly
+that (`אין דיווח ריצות עדיין`) rather than `לא רץ`.
+
+For the record, the workflow's own history for September 2026 shows daily
+successes except 24–25 September, which failed with `no price in page` for
+both the September and August pages — a run that previously left no mark in
+the document at all.

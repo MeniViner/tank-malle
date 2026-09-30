@@ -13,6 +13,7 @@
     "emulators": "npx --no-install firebase emulators:start --only auth,firestore",
     "test:rules": "npx --no-install firebase emulators:exec --only firestore --project tank-maleh-rules-test \"vitest run --config vitest.rules.config.ts\"",
     "test:e2e": "playwright test",
+    "test:e2e:pwa": "playwright test --project=pwa",
     "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
@@ -30,6 +31,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.1.0",
+    "fake-indexeddb": "^6.2.5",
     "firebase-admin": "^14.3.0",
     "firebase-tools": "^15.28.2",
     "oxlint": "^1.79.0",

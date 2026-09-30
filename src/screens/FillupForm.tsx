@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { useStats } from "../hooks/useStats";
@@ -13,10 +13,7 @@ import {
 } from "../lib/stats";
 import { capacityNote, resolveCapacity } from "../lib/tank/capacity";
 import {
-  FUEL_TYPE_SHORT,
-  heMonthName,
   num,
-  parseDecimal,
   price,
   relativeDate,
   shekel,
@@ -24,6 +21,23 @@ import {
   timeAgo,
   vehicleShort,
 } from "../lib/format";
+import { parseNumberInput } from "../lib/numeric";
+import {
+  receiptConflict,
+  receiptNumbers,
+  suggestReceiptPrice,
+  typeReceiptField,
+  type ReceiptState,
+} from "../lib/receipt";
+import {
+  fillupFromPayload,
+  serializeFillup,
+  serializeFillupPatch,
+  validateFillupPayload,
+  type FieldError,
+  type FillupWrite,
+} from "../lib/fillupSerializer";
+import { OutboxStorageError, type OutboxOperation } from "../lib/outbox";
 import {
   distanceMeters,
   formatDistance,
@@ -49,17 +63,20 @@ import {
   type StationSort,
 } from "../lib/prices/ranking";
 import { TANK_SCHEMA_VERSION } from "../lib/tank/config";
-import type { FillEndState, FillEndStateSource, LevelSource } from "../lib/tank/types";
-import { GAUGE_SD_BY_SOURCE } from "../lib/tank/config";
 import { TankStateSection } from "../components/TankStateSection";
 import {
   EMPTY_TANK_DRAFT,
+  draftFromFields,
+  effectiveEndChoice,
   hasTankAnswer,
+  resolveTankOutcome,
+  withEndChoice,
+  type TankEndChoice,
   type TankStateDraft,
 } from "../lib/tank/draft";
 import { Button } from "../components/Button";
 import { Field, InfoStrip, SoftWarningBanner } from "../components/Field";
-import { Card, Label, IconTile } from "../components/Card";
+import { Card, Label, IconTile, Skeleton } from "../components/Card";
 import { Toggle } from "../components/Segmented";
 import { Sheet, ConfirmDialog } from "../components/Sheet";
 import { Num } from "../components/Num";
@@ -76,19 +93,264 @@ import {
   PinIcon,
   SearchIcon,
   TrashIcon,
+  WarningIcon,
 } from "../components/icons";
 
 /**
  * Add / edit fill-up (designs 10–13).
  *
- * Opens fully pre-filled: date = now, price from the price chain, station from
- * geolocation, full tank on. The user normally types only odometer and liters.
- * Every pre-filled value stays editable — auto-fill is a starting point, never
- * a lock.
+ * The route component resolves WHAT is being edited before any field state
+ * exists: a record still loading, a record that does not exist, a history
+ * that failed to load and an unsynced operation being corrected are four
+ * different screens, and none of them may silently become "a new record".
+ * The editor itself is keyed on the record, so its state is created once
+ * from a resolved record and never re-initialised underneath a typing user.
  */
 export function FillupForm() {
   const navigate = useNavigate();
   const { fillupId } = useParams();
+  const [search] = useSearchParams();
+  const opId = search.get("op");
+  const { fillups, loadingFillups, fillupsError, malformedFillups, outbox } = useData();
+  // Bumped when the user chooses to reload a record another device changed.
+  const [reloads, setReloads] = useState(0);
+
+  if (!fillupId) {
+    // A new record — possibly a corrected copy of an unsynced operation.
+    const operation = opId ? outbox.find((entry) => entry.opId === opId) ?? null : null;
+    if (opId && !operation) {
+      return (
+        <EditState
+          kind="not-found"
+          title="הפעולה כבר לא קיימת"
+          body="ייתכן שהיא סונכרנה או נמחקה במכשיר אחר."
+          onBack={() => navigate("/settings/unsynced", { replace: true })}
+        />
+      );
+    }
+    const initial =
+      operation?.payload ? fillupFromPayload(operation.docId, operation.payload) : null;
+    return (
+      <FillupEditor
+        key={opId ?? "new"}
+        mode="new"
+        initial={initial}
+        operation={operation}
+      />
+    );
+  }
+
+  // A failed UPDATE being corrected: the editor opens the REJECTED input,
+  // not whatever the server holds under that id, and re-sends under the
+  // same operation. The base version is the one the rejected edit was made
+  // against, so the server's version check still applies to the re-send.
+  const failedUpdate = opId
+    ? outbox.find((entry) => entry.opId === opId && entry.docId === fillupId && entry.kind === "fillup.update") ?? null
+    : null;
+  if (opId && failedUpdate?.payload) {
+    const base = failedUpdate.beforeImage ? fillupFromPayload(fillupId, failedUpdate.beforeImage) : null;
+    const rejected = fillupFromPayload(fillupId, { ...(failedUpdate.beforeImage ?? {}), ...failedUpdate.payload });
+    return (
+      <FillupEditor
+        key={`${fillupId}:${opId}`}
+        mode="edit"
+        initial={rejected ?? base}
+        baseRecord={base}
+        operation={failedUpdate}
+      />
+    );
+  }
+  if (opId && !failedUpdate) {
+    const anyOp = outbox.find((entry) => entry.opId === opId) ?? null;
+    if (!anyOp) {
+      return (
+        <EditState
+          kind="not-found"
+          title="הפעולה כבר לא קיימת"
+          body="ייתכן שהיא סונכרנה או נמחקה במכשיר אחר."
+          onBack={() => navigate("/settings/unsynced", { replace: true })}
+        />
+      );
+    }
+  }
+
+  const editing = fillups.find((entry) => entry.id === fillupId) ?? null;
+  if (editing) {
+    return (
+      <FillupEditor
+        key={`${fillupId}:${reloads}`}
+        mode="edit"
+        initial={editing}
+        onReload={() => setReloads((value) => value + 1)}
+      />
+    );
+  }
+
+  const malformed = malformedFillups.find((entry) => entry.id === fillupId) ?? null;
+  if (malformed) {
+    return (
+      <FillupEditor
+        key={`${fillupId}:malformed`}
+        mode="edit"
+        initial={malformedAsFillup(malformed.id, malformed.raw)}
+        malformedReason={malformed.reason}
+      />
+    );
+  }
+
+  // A create that the server rejected: the record is not in the history, but
+  // the user's input is in the outbox and can be corrected from here.
+  const rejected =
+    outbox.find((entry) => entry.docId === fillupId && entry.kind === "fillup.add") ?? null;
+  if (rejected?.payload) {
+    return (
+      <FillupEditor
+        key={`${fillupId}:op`}
+        mode="new"
+        initial={fillupFromPayload(rejected.docId, rejected.payload)}
+        operation={rejected}
+      />
+    );
+  }
+
+  if (loadingFillups) return <EditState kind="loading" />;
+  if (fillupsError) {
+    return (
+      <EditState
+        kind="failed"
+        title="ההיסטוריה לא נטענה"
+        body={fillupsError}
+        onBack={() => navigate(-1)}
+      />
+    );
+  }
+  return (
+    <EditState
+      kind="not-found"
+      title="הרשומה לא נמצאה"
+      body="ייתכן שנמחקה, או שהיא שייכת לרכב אחר."
+      onBack={() => navigate("/history", { replace: true })}
+    />
+  );
+}
+
+/** The four non-editing states of the route, each stated for what it is. */
+function EditState({
+  kind,
+  title,
+  body,
+  onBack,
+  action,
+}: {
+  kind: "loading" | "not-found" | "failed";
+  title?: string;
+  body?: string;
+  onBack?: () => void;
+  action?: { label: string; onClick: () => void };
+}) {
+  return (
+    <main className="flex min-h-dvh flex-1 flex-col gap-3 bg-bg px-5 pt-safe" data-edit-state={kind}>
+      <header className="flex items-center justify-between py-3">
+        <h1 className="text-[24px] font-bold text-ink">עריכת תדלוק</h1>
+        {onBack ? (
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="סגירה"
+            className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink"
+          >
+            <CloseIcon size={17} />
+          </button>
+        ) : null}
+      </header>
+      {kind === "loading" ? (
+        <div className="flex flex-col gap-3">
+          <Skeleton className="h-[120px] rounded-hero" />
+          <Skeleton className="h-[180px] rounded-card" />
+          <Skeleton className="h-[120px] rounded-card" />
+        </div>
+      ) : (
+        <Card className="flex flex-col gap-2 p-5">
+          <span className="text-[16px] font-bold text-ink">{title}</span>
+          <span className="text-[13.5px] leading-relaxed text-muted">{body}</span>
+          {action ? (
+            <Button onClick={action.onClick}>{action.label}</Button>
+          ) : null}
+        </Card>
+      )}
+    </main>
+  );
+}
+
+/** A stored record this client could not read, rebuilt as far as it goes. */
+function malformedAsFillup(id: string, raw: Record<string, unknown>): Fillup {
+  const number = (value: unknown, fallback: number) =>
+    typeof value === "number" && Number.isFinite(value) ? value : fallback;
+  return {
+    id,
+    // The date is exactly the field that could not be read; the editor asks
+    // for it explicitly and refuses to save until it is set.
+    date: Number.NaN,
+    odometer: number(raw.odometer, 0),
+    liters: number(raw.liters, 0),
+    pricePerLiter: number(raw.pricePerLiter, 0),
+    totalCost: number(raw.totalCost, 0),
+    isFullTank: raw.isFullTank !== false,
+    station: (raw.station as Station | null | undefined) ?? null,
+    notes: typeof raw.notes === "string" ? raw.notes : null,
+    continuityBreakBefore: raw.continuityBreakBefore === true,
+    fullTankSource: raw.fullTankSource === "legacy-assumption" ? "legacy-assumption" : "user",
+    postedPricePerLiter: typeof raw.postedPricePerLiter === "number" ? raw.postedPricePerLiter : null,
+    fuelType: (raw.fuelType as Fillup["fuelType"]) ?? null,
+  };
+}
+
+/** The tank-state part of a stored record, for an untouched legacy edit. */
+function storedTankFields(fillup: Fillup) {
+  return {
+    fillEndState: fillup.fillEndState,
+    fillEndStateSource: fillup.fillEndStateSource,
+    preFillLevel: fillup.preFillLevel,
+    preFillLevelSource: fillup.preFillLevelSource,
+    preFillLevelUncertainty: fillup.preFillLevelUncertainty,
+    postFillLevel: fillup.postFillLevel,
+    postFillLevelSource: fillup.postFillLevelSource,
+    postFillLevelUncertainty: fillup.postFillLevelUncertainty,
+    refuelReason: fillup.refuelReason,
+    capacityLitersAtEntry: fillup.capacityLitersAtEntry,
+    tankSchemaVersion: fillup.tankSchemaVersion,
+  };
+}
+
+const END_CHOICES: { value: TankEndChoice; label: string; hint: string }[] = [
+  { value: "full", label: "מילאתי מיכל מלא", hint: "סוגר מקטע צריכה" },
+  { value: "partial", label: "תדלוק חלקי", hint: "הליטרים ייכללו בתדלוק המלא הבא" },
+  { value: "unknown", label: "לא יודע", hint: "הצריכה לא תחושב מהרשומה הזו" },
+];
+
+function FillupEditor({
+  mode,
+  initial,
+  baseRecord = null,
+  operation = null,
+  malformedReason = null,
+  onReload,
+}: {
+  mode: "new" | "edit";
+  /** The resolved record for an edit, or a prefilled draft for a new one. */
+  initial: Fillup | null;
+  /**
+   * For a failed update being corrected: the record as it was when the
+   * rejected edit was made (the version base). Otherwise the edit's own
+   * `initial` is the base.
+   */
+  baseRecord?: Fillup | null;
+  /** The unsynced operation this editor corrects, when it does. */
+  operation?: OutboxOperation | null;
+  malformedReason?: string | null;
+  onReload?: () => void;
+}) {
+  const navigate = useNavigate();
   const { showToast } = useToast();
   const {
     activeVehicle,
@@ -99,107 +361,149 @@ export function FillupForm() {
     updateFillup,
     deleteFillup,
     restoreFillup,
+    discardOperation,
+    setActiveVehicle,
+    vehicles,
   } = useData();
+
+  // An operation belongs to the vehicle it was journaled for. Editing it
+  // under another active vehicle would write to the wrong subtree.
+  const wrongVehicle =
+    operation !== null && operation.vehicleId !== null && activeVehicle?.id !== operation.vehicleId
+      ? operation.vehicleId
+      : null;
 
   // Whole-history statistics for this vehicle, used only for the best-value
   // station ranking — which needs a real measured consumption or nothing.
   const vehicleStats = useStats();
 
-  const editing = fillupId ? fillups.find((f) => f.id === fillupId) ?? null : null;
-  const isEdit = Boolean(fillupId);
-
-  const [date, setDate] = useState<number>(() => editing?.date ?? Date.now());
-  const [odometer, setOdometer] = useState(() =>
-    editing ? String(editing.odometer) : "",
-  );
-  const [liters, setLiters] = useState(() => (editing ? String(editing.liters) : ""));
-  const [total, setTotal] = useState(() =>
-    editing ? String(Math.round(editing.totalCost * 100) / 100) : "",
-  );
-  const [pricePerLiter, setPricePerLiter] = useState("");
-  const [priceTouched, setPriceTouched] = useState(false);
+  const isEdit = mode === "edit";
   /**
-   * Optional tank state.
+   * The record as it was when this editor OPENED, captured once.
    *
-   * An existing record is loaded back only when it was written by THIS UI —
-   * a legacy document's `isFullTank` is an assumption nobody made, and
-   * pre-selecting "מילאתי מיכל מלא" from it would turn that assumption into a
-   * confirmation the moment the record was opened.
+   * `initial` is a prop that follows the live listener: if another device
+   * writes while the form is open, the prop moves to the newer version. The
+   * edit must stay based on what the user actually saw — otherwise its
+   * version base would silently follow the other write and the server would
+   * accept an overwrite nobody reviewed. The live record is compared against
+   * this snapshot only to WARN (see `changedElsewhere`).
+   */
+  const [openedRecord] = useState(initial);
+  const editing = isEdit ? openedRecord : null;
+  /** The record an edit is based on: the opened snapshot, or the rejected edit's base. */
+  const editBase = baseRecord ?? editing;
+  const dateWasInvalid = editing !== null && !Number.isFinite(editing.date);
+
+  const [date, setDate] = useState<number>(() =>
+    initial && Number.isFinite(initial.date) ? initial.date : Date.now(),
+  );
+  // A record whose date could not be read is saved only once the user has
+  // deliberately set one.
+  const [dateConfirmed, setDateConfirmed] = useState(!dateWasInvalid);
+  const [odometer, setOdometer] = useState(() =>
+    initial && initial.odometer > 0 ? String(initial.odometer) : "",
+  );
+
+  /**
+   * The receipt: litres, price, total, and WHO set each.
+   *
+   * On an existing record the litres and the price are the measured facts and
+   * count as authored. The total counts as authored only when it DISAGREES
+   * with litres × price — a receipt with a discount on it — so editing the
+   * litres of an ordinary record recomputes its total instead of turning the
+   * stored total into a conflict. On a new record the price arrives as a
+   * suggestion and only ever fills the one field nobody has typed.
+   */
+  const [receipt, setReceipt] = useState<ReceiptState>(() => {
+    if (!initial) return { liters: "", pricePerLiter: "", totalCost: "", authored: [] };
+    const expected = initial.liters * initial.pricePerLiter;
+    const totalIsOwn =
+      initial.totalCost > 0 && Math.abs(initial.totalCost - expected) > Math.max(1, expected * 0.01);
+    return {
+      liters: initial.liters > 0 ? String(initial.liters) : "",
+      pricePerLiter: initial.pricePerLiter > 0 ? String(initial.pricePerLiter) : "",
+      totalCost: initial.totalCost > 0 ? String(Math.round(initial.totalCost * 100) / 100) : "",
+      authored: [
+        ...(initial.liters > 0 ? (["liters"] as const) : []),
+        ...(initial.pricePerLiter > 0 ? (["pricePerLiter"] as const) : []),
+        ...(totalIsOwn ? (["totalCost"] as const) : []),
+      ],
+    };
+  });
+
+  /**
+   * Optional tank state. Loaded back only from a record written by THIS UI —
+   * a legacy document's `isFullTank` is an assumption nobody made.
    */
   const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
-    editing?.tankSchemaVersion === TANK_SCHEMA_VERSION
-      ? {
-          beforeLevel: editing.preFillLevel ?? null,
-          afterLevelOverride:
-            editing.postFillLevelSource === "user-correction"
-              ? (editing.postFillLevel ?? null)
-              : null,
-          confirmedFull:
-            editing.fillEndState === "full" &&
-            editing.fillEndStateSource === "user-confirmed",
-          reason: editing.refuelReason ?? null,
-        }
-      : EMPTY_TANK_DRAFT,
+    initial ? draftFromFields(initial) : EMPTY_TANK_DRAFT,
   );
 
   /**
    * True when this record's tank state is something the user actually stated.
-   *
-   * A legacy record that is merely opened and re-saved keeps its old fields
-   * untouched; only an actual interaction moves it onto the new schema.
+   * A legacy record that is merely opened and re-saved keeps its old fields.
    */
   const tankTouched =
     !isEdit ||
     editing?.tankSchemaVersion === TANK_SCHEMA_VERSION ||
     hasTankAnswer(tankDraft);
 
-  /**
-   * End state of the tank, and what backs the claim.
-   *
-   * Only the explicit chip produces `full`. Everything else is `partial` when
-   * the level is derivable and `unknown` when nobody said — which is a real
-   * answer, and the one the old form could not express.
-   */
-  const tankState = resolveTankState(tankDraft);
-
-  /**
-   * `isFullTank`, the compatibility projection.
-   *
-   * An untouched legacy record keeps exactly what it was stored with, so an
-   * imported partial is never promoted and an old full is never demoted.
-   */
-  const isFullTank = tankTouched ? tankState.endState === "full" : (editing?.isFullTank ?? false);
   const [continuityBreak, setContinuityBreak] = useState(
-    editing?.continuityBreakBefore === true,
+    initial?.continuityBreakBefore === true,
   );
+
   /**
    * Whether the price paid was also the price on the pump.
    *
-   * Never assumed. totalCost / liters is what this person paid, which may
-   * include a discount that is theirs and nobody else's — publishing it as the
-   * station's posted price would both corrupt a shared figure and leak a
-   * private arrangement.
+   * On an edit the answer is reconstructed from what is STORED: a posted
+   * price equal to the paid one was "same"; a different one was "different",
+   * with that price — never "same" by default, which used to overwrite a
+   * distinct pump price with the paid one on any re-save.
    */
-  const [pumpAnswer, setPumpAnswer] = useState<PumpAnswer>(
-    editing?.postedPricePerLiter != null ? "same" : "unanswered",
-  );
+  const [pumpAnswer, setPumpAnswer] = useState<PumpAnswer>(() => {
+    if (initial?.postedPricePerLiter == null) return "unanswered";
+    return Math.abs(initial.postedPricePerLiter - initial.pricePerLiter) < 1e-9 ? "same" : "different";
+  });
   const [pumpPrice, setPumpPrice] = useState(() =>
-    editing?.postedPricePerLiter != null ? String(editing.postedPricePerLiter) : "",
+    initial?.postedPricePerLiter != null ? String(initial.postedPricePerLiter) : "",
   );
-  const [station, setStation] = useState<Station | null>(editing?.station ?? null);
+  const [pumpTouched, setPumpTouched] = useState(false);
+  const [station, setStation] = useState<Station | null>(initial?.station ?? null);
   const [stationAuto, setStationAuto] = useState(false);
-  const [notes, setNotes] = useState(editing?.notes ?? "");
+  const [notes, setNotes] = useState(initial?.notes ?? "");
 
   const [stationSheetOpen, setStationSheetOpen] = useState(false);
   const [dateSheetOpen, setDateSheetOpen] = useState(false);
+  // The latest allowed date, sampled when the sheet is opened (an event), so
+  // the render itself never reads the clock.
+  const [dateSheetNow, setDateSheetNow] = useState(() => Date.now());
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   // Fill-ups other than the one being edited — the basis for all validation.
   const others = useMemo(
     () => (editing ? fillups.filter((f) => f.id !== editing.id) : fillups),
     [fillups, editing],
   );
+
+  /* ---------- concurrent edits ---------- */
+
+  /**
+   * The record as it was when this editor opened. If a later snapshot brings
+   * a DIFFERENT version (another tab, another device), the user is told and
+   * offered a reload; their typing is never overwritten underneath them.
+   */
+  const baseline = useMemo(
+    () => (editing ? JSON.stringify(serializeFillupPatch(editing)) : null),
+    // The editor is keyed on the record, so `editing` is the opening snapshot.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+  const live = editing ? fillups.find((entry) => entry.id === editing.id) ?? null : null;
+  const changedElsewhere =
+    baseline !== null && live !== null && JSON.stringify(serializeFillupPatch(live)) !== baseline;
+  const deletedElsewhere = baseline !== null && live === null && !dateWasInvalid;
 
   /* ---------- price chain ---------- */
 
@@ -208,24 +512,19 @@ export function FillupForm() {
     [date, activeVehicle, prices],
   );
 
-  // Re-resolve when the date moves to another month, unless the user has
-  // overridden the price for this specific fill-up.
+  // A suggestion fills the price only while nobody has typed it, and never
+  // moves a typed litres or total (see receipt.ts). Runs again when the date
+  // moves to another month or a late price arrives.
   useEffect(() => {
-    if (priceTouched) return;
-    if (editing && pricePerLiter === "") {
-      setPricePerLiter(String(editing.pricePerLiter));
-      return;
-    }
-    if (!editing && resolved.price !== null) setPricePerLiter(String(resolved.price));
-  }, [resolved.price, priceTouched, editing, pricePerLiter]);
+    setReceipt((current) => suggestReceiptPrice(current, resolved.price));
+  }, [resolved.price]);
 
-  const priceValue = parseDecimal(pricePerLiter);
+  const { liters: litersValue, pricePerLiter: priceValue, totalCost: totalValue } =
+    receiptNumbers(receipt);
+  const conflict = receiptConflict(receipt);
 
   /* ---------- geolocation → station suggestion ---------- */
 
-  // Stations the user has actually used, most recent first. These win over a
-  // catalog match at the same spot because they carry the name the user
-  // recognises.
   const pastStations = useMemo(() => {
     const map = new Map<string, Station>();
     for (const fillup of [...fillups].sort((a, b) => b.date - a.date)) {
@@ -235,11 +534,6 @@ export function FillupForm() {
     return [...map.values()];
   }, [fillups]);
 
-  /**
-   * What this driver last paid at each station, keyed by station id AND by
-   * name (legacy records carry no id). Their own receipt is real knowledge
-   * about a station; the nationwide regulated ceiling is not.
-   */
   const lastPaidByStation = useMemo(() => {
     const map = new Map<string, { price: number; observedAt: number }>();
     for (const fillup of [...fillups].sort((a, b) => b.date - a.date)) {
@@ -265,17 +559,12 @@ export function FillupForm() {
       setGeo(result);
       if (result.status !== "ok" || result.position === null) return;
 
-      // Prefer a previously used station within range — same place, familiar
-      // name — and otherwise take the nearest one from the public register.
       const here = result.position;
       let bestPast: Station | null = null;
       let bestPastDistance = Number.POSITIVE_INFINITY;
       for (const candidate of pastStations) {
         if (candidate.lat === undefined || candidate.lng === undefined) continue;
-        const distance = distanceMeters(
-          { lat: candidate.lat, lng: candidate.lng },
-          here,
-        );
+        const distance = distanceMeters({ lat: candidate.lat, lng: candidate.lng }, here);
         if (distance < bestPastDistance) {
           bestPastDistance = distance;
           bestPast = candidate;
@@ -291,43 +580,16 @@ export function FillupForm() {
   );
 
   useEffect(() => {
-    if (isEdit || station) return;
+    if (isEdit || station || operation) return;
     void detectStation();
-  }, [isEdit, station, detectStation]);
-
-  /* ---------- paired liters ⇄ total ---------- */
-
-  function onLitersChange(value: string) {
-    setLiters(value);
-    const parsed = parseDecimal(value);
-    if (Number.isFinite(parsed) && Number.isFinite(priceValue) && priceValue > 0) {
-      setTotal((Math.round(parsed * priceValue * 100) / 100).toFixed(2));
-    }
-  }
-
-  function onTotalChange(value: string) {
-    setTotal(value);
-    const parsed = parseDecimal(value);
-    if (Number.isFinite(parsed) && Number.isFinite(priceValue) && priceValue > 0) {
-      setLiters((Math.round((parsed / priceValue) * 100) / 100).toFixed(2));
-    }
-  }
-
-  function onPriceChange(value: string) {
-    setPricePerLiter(value);
-    setPriceTouched(true);
-    const parsedPrice = parseDecimal(value);
-    const parsedLiters = parseDecimal(liters);
-    if (Number.isFinite(parsedPrice) && parsedPrice > 0 && Number.isFinite(parsedLiters)) {
-      setTotal((Math.round(parsedLiters * parsedPrice * 100) / 100).toFixed(2));
-    }
-  }
+  }, [isEdit, station, operation, detectStation]);
 
   /* ---------- validation ---------- */
 
-  const odometerValue = parseDecimal(odometer);
-  const litersValue = parseDecimal(liters);
-  const totalValue = parseDecimal(total);
+  const odometerParsed = parseNumberInput(odometer, "odometer");
+  const odometerValue = odometerParsed.value;
+  const litersParsed = parseNumberInput(receipt.liters, "liters");
+  const priceParsed = parseNumberInput(receipt.pricePerLiter, "price");
 
   const bounds = useMemo(() => odometerBounds(others, date), [others, date]);
 
@@ -336,8 +598,38 @@ export function FillupForm() {
     return hardBlock({ date, odometer: odometerValue }, others);
   }, [odometer, odometerValue, date, others]);
 
+  /**
+   * Capacity, from the same ladder the rest of the app uses, with its
+   * provenance. `capacityLitersAtEntry` records which revision every
+   * derivation on this record was made against.
+   */
+  const capacity = useMemo(() => resolveCapacity(activeVehicle, fillups), [activeVehicle, fillups]);
+
+  /**
+   * The ONE tank computation. The gauges display it, the payload stores its
+   * fields, and the engine replays exactly those fields.
+   */
+  const tankOutcome = useMemo(
+    () =>
+      resolveTankOutcome({
+        draft: tankDraft,
+        litersAdded: Number.isFinite(litersValue) && litersValue > 0 ? litersValue : null,
+        capacity,
+      }),
+    [tankDraft, litersValue, capacity],
+  );
+  const endChoice = effectiveEndChoice(tankDraft);
+
+  /**
+   * `isFullTank`, the compatibility projection. An untouched legacy record
+   * keeps exactly what it was stored with.
+   */
+  const isFullTank = tankTouched
+    ? tankOutcome.endState === "full"
+    : (editing?.isFullTank ?? false);
+
   const warnings = useMemo(() => {
-    if (!odometer || !liters) return [];
+    if (!odometer || !receipt.liters) return [];
     return softWarnings(
       {
         date,
@@ -345,32 +637,30 @@ export function FillupForm() {
         liters: litersValue,
         pricePerLiter: priceValue,
         isFullTank,
-        fillEndState: tankTouched ? tankState.endState : undefined,
+        fillEndState: tankTouched ? tankOutcome.endState : undefined,
         continuityBreakBefore: continuityBreak,
       },
       others,
       activeVehicle,
+      undefined,
+      capacity,
     );
   }, [
     odometer,
-    liters,
+    receipt.liters,
     date,
     odometerValue,
     litersValue,
     priceValue,
     isFullTank,
     tankTouched,
-    tankState.endState,
+    tankOutcome.endState,
     continuityBreak,
     others,
     activeVehicle,
+    capacity,
   ]);
 
-  /**
-   * What this draft will actually do, from the central engine — the same one
-   * that produces every other consumption number in the app. Drives both the
-   * live explanation under the toggle and the post-save message.
-   */
   const draftEvaluation = useMemo(() => {
     if (!Number.isFinite(odometerValue) || !Number.isFinite(litersValue)) return null;
     return evaluateDraft(
@@ -381,7 +671,7 @@ export function FillupForm() {
         pricePerLiter: priceValue,
         totalCost: Number.isFinite(totalValue) ? totalValue : undefined,
         isFullTank,
-        fillEndState: tankTouched ? tankState.endState : undefined,
+        fillEndState: tankTouched ? tankOutcome.endState : undefined,
         continuityBreakBefore: continuityBreak,
       },
       others,
@@ -395,55 +685,109 @@ export function FillupForm() {
     totalValue,
     isFullTank,
     tankTouched,
-    tankState.endState,
+    tankOutcome.endState,
     continuityBreak,
     others,
     editing,
   ]);
 
-  /**
-   * Capacity, from the same ladder the rest of the app uses.
-   *
-   * An approximation is allowed through — a gauge with no litres beside it is
-   * most of the interaction missing — but it travels with its provenance, and
-   * `capacityLitersAtEntry` records which revision every derivation on this
-   * record was made against, so a later correction cannot silently rewrite
-   * what was measured today.
-   */
-  const capacity = useMemo(
-    () => resolveCapacity(activeVehicle, fillups),
-    [activeVehicle, fillups],
-  );
-  const trustedCapacity = capacity.liters;
-
   const isBackdated = date < Date.now() - 12 * 3600_000;
 
   /** What the receipt shows: the typed total, else litres × price. */
-  const totalDue = Number.isFinite(totalValue) && totalValue > 0
-    ? totalValue
-    : Number.isFinite(litersValue) && litersValue > 0 && Number.isFinite(priceValue)
-      ? Math.round(litersValue * priceValue * 100) / 100
-      : 0;
-
-  const canSave =
-    Number.isFinite(odometerValue) &&
-    odometerValue > 0 &&
-    Number.isFinite(litersValue) &&
-    litersValue > 0 &&
-    Number.isFinite(priceValue) &&
-    priceValue > 0 &&
-    !blockMessage &&
-    !saving;
+  const totalDue =
+    Number.isFinite(totalValue) && totalValue > 0
+      ? totalValue
+      : Number.isFinite(litersValue) && litersValue > 0 && Number.isFinite(priceValue)
+        ? Math.round(litersValue * priceValue * 100) / 100
+        : 0;
 
   /**
-   * The line under the save button says what is ACTUALLY missing.
-   *
-   * "מלאו קילומטראז׳ וליטרים או סכום" was printed whatever the state, so it
-   * asked for the field you had just filled and stayed on screen while the
-   * real blocker — an odometer below the previous record — went unnamed.
+   * The document exactly as it will be written, built from the same
+   * serializer every write goes through, and validated against the same
+   * bounds the server enforces — so a doomed write never leaves the device.
    */
+  const nextRecord = useMemo<FillupWrite | null>(() => {
+    if (!activeVehicle) return null;
+    if (!Number.isFinite(odometerValue) || !Number.isFinite(litersValue)) return null;
+    if (!Number.isFinite(priceValue)) return null;
+
+    const tankFields = tankTouched
+      ? tankOutcome.fields
+      : editing
+        ? storedTankFields(editing)
+        : {};
+
+    return {
+      date,
+      odometer: odometerValue,
+      liters: litersValue,
+      pricePerLiter: priceValue,
+      totalCost: Number.isFinite(totalValue)
+        ? totalValue
+        : Math.round(litersValue * priceValue * 100) / 100,
+      isFullTank,
+      // The boolean is a projection of the user's stated end state; the real
+      // provenance lives in the tank fields. An edit keeps what was stored.
+      fullTankSource: editing?.fullTankSource ?? "user",
+      continuityBreakBefore: continuityBreak,
+      ...tankFields,
+      // Only ever set from an explicit answer; an untouched question on an
+      // edit keeps the stored pump price exactly, including a distinct one.
+      postedPricePerLiter:
+        isEdit && !pumpTouched
+          ? (editing?.postedPricePerLiter ?? null)
+          : resolvePostedPrice(pumpAnswer, priceValue, pumpPrice),
+      fuelType: activeVehicle.fuelType,
+      station: station ?? null,
+      notes: notes.trim() || null,
+      // Import provenance and creation metadata travel unchanged.
+      importSource: editing?.importSource,
+      importBatchId: editing?.importBatchId,
+      importRowHash: editing?.importRowHash,
+      schemaVersion: editing?.schemaVersion,
+      createdAt: editing?.createdAt ?? null,
+    };
+  }, [
+    activeVehicle,
+    odometerValue,
+    litersValue,
+    priceValue,
+    totalValue,
+    date,
+    isFullTank,
+    editing,
+    continuityBreak,
+    tankTouched,
+    tankOutcome.fields,
+    isEdit,
+    pumpTouched,
+    pumpAnswer,
+    pumpPrice,
+    station,
+    notes,
+  ]);
+
+  const fieldErrors = useMemo<FieldError[]>(
+    () => (nextRecord ? validateFillupPayload(serializeFillup(nextRecord)) : []),
+    [nextRecord],
+  );
+  const errorFor = (field: FieldError["field"]) =>
+    fieldErrors.find((entry) => entry.field === field)?.message ?? null;
+
+  const canSave =
+    nextRecord !== null &&
+    odometerValue > 0 &&
+    litersValue > 0 &&
+    priceValue > 0 &&
+    !blockMessage &&
+    fieldErrors.length === 0 &&
+    dateConfirmed &&
+    !saving;
+
   const saveHint = useMemo(() => {
     if (blockMessage) return blockMessage;
+    if (!dateConfirmed) return "לרשומה הזו לא היה תאריך קריא — בחרו תאריך ושעה";
+    if (fieldErrors.length > 0) return fieldErrors[0].message;
 
     const missing: string[] = [];
     if (!(Number.isFinite(odometerValue) && odometerValue > 0)) missing.push("קילומטראז׳");
@@ -453,72 +797,52 @@ export function FillupForm() {
     if (missing.length === 0) return "הכול מוכן — אפשר לשמור";
     if (missing.length === 1) return `מלאו ${missing[0]}`;
     return `מלאו ${missing.slice(0, -1).join(", ")} ו${missing[missing.length - 1]}`;
-  }, [blockMessage, odometerValue, litersValue, priceValue]);
+  }, [blockMessage, dateConfirmed, fieldErrors, odometerValue, litersValue, priceValue]);
 
   /* ---------- save ---------- */
 
   async function save() {
-    if (!canSave || !activeVehicle) return;
+    setSubmitAttempted(true);
+    if (!canSave || !activeVehicle || !nextRecord) return;
     setSaving(true);
 
-    // Written only when the user actually interacted. An untouched legacy
-    // record keeps its original fields and stays off the new schema.
-    const tankFields = tankTouched
-      ? buildTankFields(tankDraft, tankState, litersValue, trustedCapacity)
-      : {};
-
-    const payload = {
-      date,
-      odometer: odometerValue,
-      liters: litersValue,
-      pricePerLiter: priceValue,
-      totalCost: Number.isFinite(totalValue)
-        ? totalValue
-        : Math.round(litersValue * priceValue * 100) / 100,
-      isFullTank,
-      // Provenance is preserved on an edit: a record imported under the legacy
-      // full-tank assumption does not become a user statement by being opened.
-      // On a NEW record "user" now requires an actual confirmation — the old
-      // form stamped it on every save, which is what made the flag useless.
-      fullTankSource: editing?.fullTankSource ??
-        (tankDraft.confirmedFull ? ("user" as const) : ("legacy-assumption" as const)),
-      continuityBreakBefore: continuityBreak,
-      ...tankFields,
-      // Only ever set from an explicit answer. "לא יודע" and no answer both
-      // leave it null, so nothing unverified can reach a public aggregate.
-      postedPricePerLiter: resolvePostedPrice(pumpAnswer, priceValue, pumpPrice),
-      fuelType: activeVehicle.fuelType,
-      station: station ?? null,
-      notes: notes.trim() || null,
-    };
-
     try {
-      if (editing) {
-        const previous: Fillup = { ...editing };
-        await updateFillup(editing.id, payload);
+      if (editing && (!operation || operation.kind === "fillup.update")) {
+        const previous: Fillup = { ...(editBase ?? editing) };
+        await updateFillup(editing.id, nextRecord, previous, {
+          replaceOpId: operation?.opId ?? null,
+          vehicleId: operation?.vehicleId ?? undefined,
+        });
+        // What the server will hold once this edit lands: the base plus one.
+        const written: Fillup = { ...(nextRecord as Fillup), id: editing.id, version: (previous.version ?? 0) + 1 };
         showToast({
           tone: "success",
-          title: "התדלוק עודכן",
-          undoLabel: "ביטול",
-          onUndo: () => updateFillup(previous.id, previous),
+          title: operation ? "התדלוק נשלח מחדש" : "התדלוק עודכן",
+          detail: "נשמר במכשיר · יאושר מול השרת ברקע",
+          undoLabel: operation ? undefined : "ביטול",
+          // The Undo sends the previous record through the same serializer —
+          // never the UI object with its `id` — based on the version this
+          // edit produced, so the server accepts exactly one of the two.
+          onUndo: operation ? undefined : () => updateFillup(previous.id, previous, written),
         });
       } else {
-        const newId = await addFillup(payload);
-        // What this record did is decided by the central segment engine, not by
-        // an approximation local to this screen. A partial fill-up never gets a
-        // consumption headline, because it does not close a segment.
+        const newId = await addFillup(nextRecord, {
+          replaceOpId: operation?.opId ?? null,
+          vehicleId: operation?.vehicleId ?? undefined,
+        });
         const { title, detail } = savedMessage(
           evaluateDraft(
-            { ...payload, continuityBreakBefore: continuityBreak },
+            {
+              ...nextRecord,
+              fillEndState: nextRecord.fillEndState ?? undefined,
+              continuityBreakBefore: continuityBreak,
+            },
             others,
           ),
           settings.units,
         );
-
-        // One short, plain line — no coefficients, no confidence scores and no
-        // claim that anything "learned" this from you.
         const tankSaved =
-          tankTouched && (tankDraft.confirmedFull || tankDraft.beforeLevel !== null);
+          tankTouched && (endChoice === "full" || tankDraft.beforeLevel !== null);
 
         showToast({
           tone: "success",
@@ -526,12 +850,25 @@ export function FillupForm() {
           detail: tankSaved ? `מצב המיכל נשמר — התחזית תשתפר · ${detail}` : detail,
           undoLabel: "ביטול",
           duration: 5000,
-          onUndo: () => deleteFillup(newId),
+          onUndo: () => {
+            const created = { ...(nextRecord as Fillup), id: newId };
+            void deleteFillup(created);
+          },
         });
       }
-      navigate("/", { replace: true });
-    } catch {
-      showToast({ tone: "error", title: "השמירה נכשלה", detail: "נסו שוב בעוד רגע" });
+      navigate(operation ? "/settings/unsynced" : "/", { replace: true });
+    } catch (error) {
+      // Local storage refused to keep the record. The form stays open with
+      // everything typed; there is no success to report.
+      showToast({
+        tone: "error",
+        title: error instanceof OutboxStorageError ? error.message : "השמירה נכשלה",
+        detail:
+          error instanceof OutboxStorageError
+            ? "פנו מקום באחסון הדפדפן או ייצאו את הרשומה, ונסו שוב"
+            : "נסו שוב בעוד רגע",
+        duration: 8000,
+      });
     } finally {
       setSaving(false);
     }
@@ -541,7 +878,15 @@ export function FillupForm() {
     if (!editing) return;
     const snapshot: Fillup = { ...editing };
     setConfirmDelete(false);
-    await deleteFillup(editing.id);
+    try {
+      await deleteFillup(snapshot);
+    } catch (error) {
+      showToast({
+        tone: "error",
+        title: error instanceof OutboxStorageError ? error.message : "המחיקה נכשלה",
+      });
+      return;
+    }
     showToast({
       tone: "success",
       title: "התדלוק נמחק",
@@ -553,15 +898,35 @@ export function FillupForm() {
   }
 
   const lastFillup = bounds.prev;
+  const showErrors = submitAttempted;
+
+  if (wrongVehicle) {
+    const owner = vehicles.find((entry) => entry.id === wrongVehicle);
+    return (
+      <EditState
+        kind="not-found"
+        title="הפעולה שייכת לרכב אחר"
+        body={
+          owner
+            ? `הרשומה נרשמה עבור ${owner.make} ${owner.model}. יש לעבור לרכב הזה כדי לתקן אותה.`
+            : "הרכב שהרשומה שייכת לו כבר לא קיים במכשיר הזה."
+        }
+        onBack={() => navigate("/settings/unsynced", { replace: true })}
+        action={
+          owner
+            ? { label: `מעבר ל${owner.make} ${owner.model}`, onClick: () => void setActiveVehicle(owner.id) }
+            : undefined
+        }
+      />
+    );
+  }
 
   return (
     <main className="flex min-h-dvh flex-1 flex-col bg-bg pt-safe">
-      {/* The title leads and the vehicle sits under it as a quiet tag, rather
-          than a centred title with the car floating opposite it. */}
       <header className="flex flex-none items-start justify-between gap-3 px-5 pb-3 pt-2.5">
         <div className="flex min-w-0 flex-col gap-1.5">
           <h1 className="truncate text-[24px] font-bold leading-tight text-ink">
-            {isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
+            {operation ? "תיקון תדלוק שלא סונכרן" : isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
           </h1>
           <span className="flex w-fit max-w-full items-center gap-1.5 truncate rounded-pill border border-line bg-surface px-2.5 py-1 text-[12px] font-semibold text-muted">
             <CarIcon size={13} />
@@ -570,7 +935,7 @@ export function FillupForm() {
         </div>
 
         <div className="flex flex-none items-center gap-2">
-          {isEdit ? (
+          {isEdit && !dateWasInvalid ? (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
@@ -592,16 +957,54 @@ export function FillupForm() {
       </header>
 
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-5 pb-40">
-        {/* A live receipt, on the same dark card the home screen uses. It adds
-            up while you type, so the number you are about to be charged is on
-            screen before you save it. */}
+        {operation ? (
+          <div className="flex flex-col gap-1 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
+            <span className="text-[13.5px] font-bold">
+              הרשומה הזו נדחתה על ידי השרת ונשמרה במכשיר
+            </span>
+            {operation.error ? (
+              <span className="text-[12.5px] leading-relaxed">
+                {operation.error.message}
+                {operation.error.code ? ` (${operation.error.code})` : ""}
+              </span>
+            ) : null}
+            <span className="text-[12.5px] leading-relaxed">
+              שמירה מכאן שולחת אותה מחדש עם אותו מזהה — בלי כפילות.
+            </span>
+          </div>
+        ) : null}
+
+        {malformedReason ? (
+          <SoftWarningBanner message="הרשומה נקראה חלקית" detail={`${malformedReason}. השלימו את החסר ושמרו.`} />
+        ) : null}
+
+        {deletedElsewhere ? (
+          <SoftWarningBanner
+            message="הרשומה נמחקה במכשיר אחר"
+            detail="שמירה תיצור אותה מחדש עם אותו מזהה."
+          />
+        ) : changedElsewhere ? (
+          <div className="flex flex-col gap-2 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
+            <span className="text-[13.5px] font-bold">הרשומה השתנתה במכשיר אחר</span>
+            <span className="text-[12.5px] leading-relaxed">
+              מה שהקלדתם כאן נשמר. שמירה תדרוס את הגרסה החדשה; טעינה מחדש תציג אותה ותוותר על השינויים שכאן.
+            </span>
+            {onReload ? (
+              <button
+                type="button"
+                onClick={onReload}
+                className="w-fit min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[12.5px] font-semibold text-warning-ink"
+              >
+                טעינת הגרסה החדשה
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* A live receipt, on the same dark card the home screen uses. */}
         <div className="mt-1 flex flex-col rounded-hero bg-hero p-[18px_20px_15px] text-hero-ink shadow-raised">
           <span className="text-[12.5px] text-hero-muted">סה״כ לתשלום</span>
-          <span
-            className={`mt-0.5 flex items-baseline gap-1.5 ${
-              totalDue > 0 ? "" : "text-hero-muted"
-            }`}
-          >
+          <span className={`mt-0.5 flex items-baseline gap-1.5 ${totalDue > 0 ? "" : "text-hero-muted"}`}>
             <Num className="text-[40px] font-bold leading-none tracking-[-0.02em]">
               {shekel(totalDue, 2)}
             </Num>
@@ -609,22 +1012,11 @@ export function FillupForm() {
 
           <div className="mt-4 grid grid-cols-3 border-t border-hero-line pt-3">
             <ReceiptCell label="ליטרים" divided>
-              {Number.isFinite(litersValue) && litersValue > 0 ? (
-                <Num>{num(litersValue, 1)}</Num>
-              ) : (
-                "—"
-              )}
+              {Number.isFinite(litersValue) && litersValue > 0 ? <Num>{num(litersValue, 1)}</Num> : "—"}
             </ReceiptCell>
             <ReceiptCell label="מחיר לליטר" divided>
-              {Number.isFinite(priceValue) && priceValue > 0 ? (
-                <Num>{price(priceValue)}</Num>
-              ) : (
-                "—"
-              )}
+              {Number.isFinite(priceValue) && priceValue > 0 ? <Num>{price(priceValue)}</Num> : "—"}
             </ReceiptCell>
-            {/* From the engine, never from (distance ÷ litres) on the spot:
-                that ignores partials and open segments, and prints a four-digit
-                "consumption" the moment an odometer is mistyped. */}
             <ReceiptCell label="צריכה">
               {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? (
                 <ConsumptionValue
@@ -639,12 +1031,14 @@ export function FillupForm() {
           </div>
         </div>
 
-        {/* Pre-filled context: date, station, price. */}
         <Eyebrow>פרטי התדלוק</Eyebrow>
         <Card className="overflow-hidden">
           <button
             type="button"
-            onClick={() => setDateSheetOpen(true)}
+            onClick={() => {
+              setDateSheetNow(Date.now());
+              setDateSheetOpen(true);
+            }}
             className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
           >
             <IconTile>
@@ -653,10 +1047,16 @@ export function FillupForm() {
             <span className="flex flex-1 flex-col gap-0.5">
               <Label className="text-[12.5px]">תאריך ושעה</Label>
               <span className="text-[15px] font-semibold text-ink">
-                {relativeDate(date)} · <Num>{time(date)}</Num>
+                {dateConfirmed ? (
+                  <>
+                    {relativeDate(date)} · <Num>{time(date)}</Num>
+                  </>
+                ) : (
+                  <span className="text-danger-ink">יש לבחור תאריך</span>
+                )}
               </span>
             </span>
-            {isBackdated ? (
+            {isBackdated && dateConfirmed ? (
               <span className="flex-none rounded-pill bg-warning-soft px-2.5 py-1 text-[12px] font-semibold text-warning-ink">
                 תאריך בעבר
               </span>
@@ -691,28 +1091,47 @@ export function FillupForm() {
             </IconTile>
             <span className="flex flex-1 flex-col gap-0.5">
               <Label className="text-[12.5px]">מחיר לליטר</Label>
-              {/* What this number IS, stated every time. A legacy vehicle-wide
-                  override used to set the price silently and permanently. */}
-              <span className="text-[12px] text-muted">{priceSourceText(resolved, date)}</span>
+              <span className="text-[12px] text-muted">
+                {receipt.authored.includes("pricePerLiter")
+                  ? "מחיר שהוזן ידנית לתדלוק הזה"
+                  : resolved.label}
+              </span>
+              {priceParsed.ambiguous && priceParsed.interpretation ? (
+                <span className="text-[12px] text-warning-ink">{priceParsed.interpretation}</span>
+              ) : null}
             </span>
             <input
               dir="ltr"
               inputMode="decimal"
               aria-label="מחיר לליטר"
-              value={pricePerLiter}
-              onChange={(event) => onPriceChange(event.target.value)}
+              aria-invalid={showErrors && errorFor("pricePerLiter") ? true : undefined}
+              value={receipt.pricePerLiter}
+              onChange={(event) =>
+                setReceipt((current) => typeReceiptField(current, "pricePerLiter", event.target.value))
+              }
               className="num min-h-[44px] w-[88px] flex-none rounded-[11px] border border-line bg-surface px-2 text-center text-[16px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
             />
           </div>
+          {showErrors && errorFor("pricePerLiter") ? (
+            <span className="block px-4 pb-3 text-[12.5px] font-semibold text-danger">
+              {errorFor("pricePerLiter")}
+            </span>
+          ) : null}
         </Card>
 
         {station && Number.isFinite(priceValue) && priceValue > 0 ? (
           <PumpPriceQuestion
             paid={priceValue}
             answer={pumpAnswer}
-            onAnswer={setPumpAnswer}
+            onAnswer={(value) => {
+              setPumpTouched(true);
+              setPumpAnswer(value);
+            }}
             pumpPrice={pumpPrice}
-            onPumpPrice={setPumpPrice}
+            onPumpPrice={(value) => {
+              setPumpTouched(true);
+              setPumpPrice(value);
+            }}
           />
         ) : null}
 
@@ -726,9 +1145,13 @@ export function FillupForm() {
             value={odometer}
             onChange={(event) => setOdometer(event.target.value)}
             placeholder="0"
-            error={blockMessage}
+            error={blockMessage ?? (showErrors ? errorFor("odometer") : null)}
             hint={
-              lastFillup ? (
+              odometerParsed.interpretation ? (
+                <>
+                  {odometerParsed.interpretation}: <Num>{num(odometerValue, 0)}</Num>
+                </>
+              ) : lastFillup ? (
                 <>
                   אחרון: <Num>{num(lastFillup.odometer, 0)}</Num> · {timeAgo(lastFillup.date)}
                 </>
@@ -745,11 +1168,7 @@ export function FillupForm() {
           {warnings
             .filter((warning) => warning.field === "odometer")
             .map((warning) => (
-              <SoftWarningBanner
-                key={warning.field}
-                message={warning.message}
-                detail={warning.detail}
-              />
+              <SoftWarningBanner key={warning.field} message={warning.message} detail={warning.detail} />
             ))}
         </Card>
 
@@ -761,9 +1180,13 @@ export function FillupForm() {
                 big
                 label="ליטרים"
                 inputMode="decimal"
-                value={liters}
-                onChange={(event) => onLitersChange(event.target.value)}
+                value={receipt.liters}
+                onChange={(event) =>
+                  setReceipt((current) => typeReceiptField(current, "liters", event.target.value))
+                }
                 placeholder="0"
+                error={showErrors ? errorFor("liters") : null}
+                hint={litersParsed.ambiguous ? litersParsed.interpretation : undefined}
               />
             </div>
             <div className="min-w-0 flex-1">
@@ -771,51 +1194,90 @@ export function FillupForm() {
                 big
                 label="סה״כ לתשלום"
                 inputMode="decimal"
-                value={total}
-                onChange={(event) => onTotalChange(event.target.value)}
+                value={receipt.totalCost}
+                onChange={(event) =>
+                  setReceipt((current) => typeReceiptField(current, "totalCost", event.target.value))
+                }
                 placeholder="0"
+                error={showErrors ? errorFor("totalCost") : null}
               />
             </div>
           </div>
 
           <span className="text-[12.5px] text-muted">
-            עדכון של שדה אחד מחשב את השני לפי{" "}
-            <Num>{Number.isFinite(priceValue) ? price(priceValue) : "—"}</Num> לליטר
+            {receipt.authored.length >= 3
+              ? "שלושת השדות הוזנו ידנית — אף אחד מהם לא ישתנה אוטומטית"
+              : "שדה שלא הוזן ידנית מחושב מהשניים האחרים"}
           </span>
+
+          {conflict ? (
+            <SoftWarningBanner
+              message="הליטרים, המחיר והסכום לא מסתדרים"
+              detail={`${conflict.message}. נקו את השדה השגוי כדי שיחושב מחדש — שום ערך לא ישתנה מעצמו.`}
+            />
+          ) : null}
 
           {warnings
             .filter((warning) => warning.field !== "odometer")
             .map((warning) => (
-              <SoftWarningBanner
-                key={warning.field}
-                message={warning.message}
-                detail={warning.detail}
-              />
+              <SoftWarningBanner key={warning.field} message={warning.message} detail={warning.detail} />
             ))}
         </Card>
 
-        {/* Optional, collapsed, and skippable. The financial record saves
-            whether or not anybody opens it.
+        {/* The end state is a visible, deliberate choice at form level — not
+            a chip inside a collapsed section. Nothing is pre-selected: an
+            untouched default must never be stored as a user statement. */}
+        <Eyebrow>בסיום התדלוק</Eyebrow>
+        <Card className="flex flex-col gap-3 p-4">
+          <div className="flex flex-wrap gap-2">
+            {END_CHOICES.map((choice) => (
+              <button
+                key={choice.value}
+                type="button"
+                aria-pressed={endChoice === choice.value}
+                onClick={() =>
+                  setTankDraft((current) =>
+                    withEndChoice(current, endChoice === choice.value ? null : choice.value),
+                  )
+                }
+                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-pill px-4 text-[13.5px] font-bold transition-[background-color,scale] duration-200 active:scale-[0.97] ${
+                  endChoice === choice.value
+                    ? "bg-accent text-accent-contrast"
+                    : "border border-line bg-surface text-ink"
+                }`}
+              >
+                {endChoice === choice.value ? <CheckIcon size={15} /> : null}
+                {choice.label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[12.5px] leading-relaxed text-muted">
+            {endChoice === null
+              ? isEdit && !tankTouched && editing?.isFullTank
+                ? "ברשומה הישנה הזו סומן מיכל מלא בלי שנשאלתם. בחירה כאן תהפוך את זה להצהרה שלכם."
+                : "בלי בחירה, הרשומה נשמרת עם מצב לא ידוע והצריכה לא תחושב ממנה."
+              : END_CHOICES.find((choice) => choice.value === endChoice)?.hint}
+          </span>
+          {tankOutcome.state === "conflict" ||
+          tankOutcome.state === "capacitySuspect" ||
+          tankOutcome.state === "overCapacity" ? (
+            <SoftWarningBanner message="הנתונים לא לגמרי מסתדרים" detail={tankOutcome.message ?? undefined} />
+          ) : null}
+        </Card>
 
-            No eyebrow above it: the row already says "מצב המיכל", and a
-            heading repeating the control underneath it says the same thing
-            twice. */}
+        {/* Optional gauges: before / after. The financial record saves
+            whether or not anybody opens this. */}
         <TankStateSection
           draft={tankDraft}
           onChange={setTankDraft}
-          litersAdded={Number.isFinite(litersValue) ? litersValue : 0}
-          capacityLiters={trustedCapacity}
+          outcome={tankOutcome}
+          capacity={capacity}
           capacityNote={capacityNote(capacity)}
           onReviewCapacity={() => navigate("/settings/vehicles")}
         />
 
-        {/* What this entry will do to the calculation. One line, from the
-            engine itself — not a description of a control that no longer
-            exists. */}
         {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
 
-        {/* Missing history. Never inferred from elapsed time or distance — a
-            month without refuelling is a real thing, not evidence of a gap. */}
         <Eyebrow>תיעוד</Eyebrow>
         <Card className="flex flex-col p-4">
           <div className="flex items-center gap-3">
@@ -828,8 +1290,6 @@ export function FillupForm() {
               ariaLabel="היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת"
             />
           </div>
-          {/* Off is the normal state and needs no paragraph; the consequence
-              is worth spelling out only once it is actually on. */}
           {continuityBreak ? (
             <p className="pt-2.5 text-[12.5px] leading-relaxed text-muted">
               מתחיל תקופת חישוב חדשה. הרשומות הישנות נשמרות — פשוט לא יחושב שום נתון
@@ -840,35 +1300,54 @@ export function FillupForm() {
 
         <Eyebrow>הערה</Eyebrow>
         <Card className="p-4">
-          {/* The eyebrow above is the label, so the field carries only an
-              accessible name — a second visible "הערה" said it twice. */}
           <input
             aria-label="הערה"
             dir="rtl"
             value={notes}
+            maxLength={500}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="לא חובה"
             className="min-h-[52px] w-full rounded-[14px] border border-line bg-bg px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
           />
+          {showErrors && errorFor("notes") ? (
+            <span className="block pt-2 text-[12.5px] font-semibold text-danger">{errorFor("notes")}</span>
+          ) : null}
         </Card>
+
+        {showErrors && errorFor("station") ? (
+          <SoftWarningBanner message={errorFor("station")} />
+        ) : null}
 
         {warnings.length > 0 ? (
           <InfoStrip>
             אזהרות רכות לא חוסמות שמירה — הרשומה תסומן כחריגה בהיסטוריה עד שתאושר.
           </InfoStrip>
         ) : null}
+
+        {operation ? (
+          <button
+            type="button"
+            onClick={() => {
+              void discardOperation(operation.opId);
+              navigate("/settings/unsynced", { replace: true });
+            }}
+            className="min-h-[44px] text-[13px] font-semibold text-danger"
+          >
+            מחיקת הרשומה שלא סונכרנה
+          </button>
+        ) : null}
       </div>
 
-      {/* Primary action pinned to the thumb zone. */}
       <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[430px] border-t border-line bg-[color-mix(in_srgb,var(--surface)_95%,transparent)] p-4 pb-safe backdrop-blur-xl">
         <Button full onClick={save} disabled={!canSave} loading={saving}>
-          {isEdit ? "שמירת שינויים" : "שמירת תדלוק"}
+          {operation ? "שמירה ושליחה מחדש" : isEdit ? "שמירת שינויים" : "שמירת תדלוק"}
         </Button>
         <p
-          className={`pt-2 text-center text-[12.5px] ${
-            blockMessage ? "text-danger-ink" : "text-muted"
+          className={`flex items-center justify-center gap-1.5 pt-2 text-center text-[12.5px] ${
+            blockMessage || (fieldErrors.length > 0 && showErrors) ? "text-danger-ink" : "text-muted"
           }`}
         >
+          {fieldErrors.length > 0 && showErrors ? <WarningIcon size={13} /> : null}
           {saveHint}
         </p>
       </div>
@@ -897,10 +1376,13 @@ export function FillupForm() {
         open={dateSheetOpen}
         onClose={() => setDateSheetOpen(false)}
         value={date}
+        maxDate={dateSheetNow}
         bounds={bounds}
         onChange={(next) => {
+          // A date change re-resolves the SUGGESTED price only; a price the
+          // user typed for this fill-up is theirs and stays.
           setDate(next);
-          setPriceTouched(false);
+          setDateConfirmed(true);
         }}
       />
 
@@ -1013,12 +1495,20 @@ function StationSheet({
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
 
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
+    if (!open) return;
     void loadStationCatalog().then(setCatalog);
   }, [open]);
+
+  // The query is cleared by the events that close the sheet, not by an
+  // effect watching `open`.
+  const close = () => {
+    setQuery("");
+    onClose();
+  };
+  const pick = (next: Station | null) => {
+    setQuery("");
+    onPick(next);
+  };
 
   const matches = useMemo(
     () => searchStations(catalog, query),
@@ -1030,7 +1520,7 @@ function StationSheet({
   return (
     <Sheet
       open={open}
-      onClose={onClose}
+      onClose={close}
       title={<h2 className="text-[17px] font-bold text-ink">תחנת דלק</h2>}
     >
       <div className="flex max-h-[64vh] flex-col gap-3">
@@ -1055,7 +1545,7 @@ function StationSheet({
                   brand={entry.c}
                   view={viewFor(entry.i ?? null, entry.n)}
                   selected={current?.name === entry.n}
-                  onClick={() => onPick(toStation(entry))}
+                  onClick={() => pick(toStation(entry))}
                 />
               ))
             ) : (
@@ -1065,7 +1555,7 @@ function StationSheet({
                 </p>
                 <button
                   type="button"
-                  onClick={() => onPick({ name: trimmed })}
+                  onClick={() => pick({ name: trimmed })}
                   className="min-h-[46px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent"
                 >
                   שמירה בשם „{trimmed}״
@@ -1126,7 +1616,7 @@ function StationSheet({
                       brand={entry.station.c}
                       view={viewFor(entry.station.i ?? null, entry.station.n)}
                       selected={current?.name === entry.station.n}
-                      onClick={() => onPick(toStation(entry.station))}
+                      onClick={() => pick(toStation(entry.station))}
                     />
                   ))}
                 </>
@@ -1142,7 +1632,7 @@ function StationSheet({
                       brand={entry.brand}
                       view={viewFor(entry.stationId ?? null, entry.name)}
                       selected={current?.name === entry.name}
-                      onClick={() => onPick(entry)}
+                      onClick={() => pick(entry)}
                     />
                   ))}
                 </>
@@ -1153,7 +1643,7 @@ function StationSheet({
 
         <button
           type="button"
-          onClick={() => onPick(null)}
+          onClick={() => pick(null)}
           className="min-h-[48px] flex-none rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.97]"
         >
           ללא מיקום
@@ -1295,12 +1785,14 @@ function DateSheet({
   open,
   onClose,
   value,
+  maxDate,
   bounds,
   onChange,
 }: {
   open: boolean;
   onClose: () => void;
   value: number;
+  maxDate: number;
   bounds: ReturnType<typeof odometerBounds>;
   onChange: (value: number) => void;
 }) {
@@ -1311,7 +1803,7 @@ function DateSheet({
       title={<h2 className="text-[17px] font-bold text-ink">תאריך ושעה</h2>}
     >
       <div className="flex flex-col gap-3">
-        <DateTimePicker value={value} onChange={onChange} maxDate={Date.now()} />
+        <DateTimePicker value={value} onChange={onChange} maxDate={maxDate} />
 
         {bounds.min !== null || bounds.max !== null ? (
           <InfoStrip>
@@ -1344,91 +1836,6 @@ function DateSheet({
   );
 }
 
-
-/**
- * Live explanation of what the current draft will produce, straight from the
- * segment engine. No consumption figure is ever shown for a draft that does
- * not close a segment.
- */
-/**
- * What the tank draft actually claims.
- *
- * `full` requires the explicit chip and nothing else — a suggestion nobody
- * touched, or an after-level that happens to land on 100%, is not a
- * confirmation. `unknown` is a real answer and the one the previous form had
- * no way to express, so it stopped being able to tell "I filled up" from
- * "I did not say".
- */
-function resolveTankState(draft: TankStateDraft): {
-  endState: FillEndState;
-  endStateSource: FillEndStateSource;
-} {
-  if (draft.confirmedFull) {
-    return { endState: "full", endStateSource: "user-confirmed" };
-  }
-  if (draft.afterLevelOverride !== null) {
-    return { endState: "partial", endStateSource: "user-confirmed" };
-  }
-  if (draft.beforeLevel !== null) {
-    // The end state follows from a stated before-level plus the pump reading.
-    return { endState: "partial", endStateSource: "gauge-estimate" };
-  }
-  return { endState: "unknown", endStateSource: "unknown" };
-}
-
-/**
- * The optional tank fields to store, with the uncertainty each source earns.
- *
- * A derived value is stored as derived. A direct reading keeps the resolution
- * of the control that produced it, which is coarse — someone dragging to "about
- * a quarter" has not measured 0.250000 of anything.
- */
-function buildTankFields(
-  draft: TankStateDraft,
-  state: ReturnType<typeof resolveTankState>,
-  litersAdded: number,
-  capacityLiters: number | null,
-): Record<string, unknown> {
-  const fields: Record<string, unknown> = {
-    fillEndState: state.endState,
-    fillEndStateSource: state.endStateSource,
-    refuelReason: draft.reason,
-    // The revision every derivation on this record was made against, so a
-    // later capacity change cannot retroactively rewrite what was measured.
-    capacityLitersAtEntry: capacityLiters,
-    tankSchemaVersion: TANK_SCHEMA_VERSION,
-    preFillLevel: null,
-    preFillLevelSource: null,
-    preFillLevelUncertainty: null,
-    postFillLevel: null,
-    postFillLevelSource: null,
-    postFillLevelUncertainty: null,
-  };
-
-  if (draft.beforeLevel !== null) {
-    fields.preFillLevel = draft.beforeLevel;
-    fields.preFillLevelSource = "direct-gauge" satisfies LevelSource;
-    fields.preFillLevelUncertainty = GAUGE_SD_BY_SOURCE["direct-gauge"];
-  }
-
-  if (draft.afterLevelOverride !== null) {
-    // A correction the user made outranks the calculated value, and replaces
-    // it — the calculated number is reproducible from the inputs, so keeping
-    // a second copy of it would only be a way to disagree with itself later.
-    fields.postFillLevel = draft.afterLevelOverride;
-    fields.postFillLevelSource = "user-correction" satisfies LevelSource;
-    fields.postFillLevelUncertainty = GAUGE_SD_BY_SOURCE["user-correction"];
-  } else if (draft.beforeLevel !== null && capacityLiters && capacityLiters > 0) {
-    fields.postFillLevel = Math.min(
-      1,
-      draft.beforeLevel + (Number.isFinite(litersAdded) ? litersAdded : 0) / capacityLiters,
-    );
-    fields.postFillLevelSource = "derived-after-partial" satisfies LevelSource;
-    fields.postFillLevelUncertainty = GAUGE_SD_BY_SOURCE["derived-after-partial"];
-  }
-
-  return fields;
-}
 
 function DraftExplanation({
   evaluation,
@@ -1534,37 +1941,6 @@ function savedMessage(
 }
 
 
-/**
- * Name the source of the suggested price.
- *
- * The regulated maximum applies to 95-octane self-service only, so a diesel or
- * 98 vehicle is told there is no official figure rather than being handed the
- * 95 one. A legacy vehicle-wide override is named as such every time it is
- * used, so it cannot go on quietly setting prices after being forgotten.
- */
-function priceSourceText(
-  resolved: ReturnType<typeof resolvePricePerLiter>,
-  date: number,
-): string {
-  switch (resolved.source) {
-    case "legacyManual":
-      return "מחיר קבוע שהוגדר ברכב · ניתן לשינוי בהגדרות הרכב";
-    case "unsupportedFuelType":
-      return `אין מחיר מרבי מפוקח ל${FUEL_TYPE_SHORT[resolved.fuelType] ?? "סוג דלק זה"} — הזינו את המחיר ששילמתם`;
-    case "none":
-      return "לא הוזן מחיר מרבי מפוקח — הזינו את המחיר ששילמתם";
-    case "legacyAdjusted":
-      return resolved.fromHistory
-        ? `מחיר מרבי מפוקח + התאמה קבועה · ${heMonthName(new Date(date).getMonth() + 1)}`
-        : "מחיר מרבי מפוקח אחרון + התאמה קבועה";
-    case "regulatedMax":
-      return resolved.fromHistory
-        ? `מחיר מרבי מפוקח לבנזין 95 · ${heMonthName(new Date(date).getMonth() + 1)}`
-        : "המחיר המרבי המפוקח האחרון הידוע";
-  }
-}
-
-
 /** Answers to "was this also the price on the pump?". */
 type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
 
@@ -1582,7 +1958,7 @@ function resolvePostedPrice(
 ): number | null {
   if (answer === "same") return Number.isFinite(paid) && paid > 0 ? paid : null;
   if (answer === "different") {
-    const value = parseDecimal(typed);
+    const value = parseNumberInput(typed, "price").value;
     return Number.isFinite(value) && value > 0 ? value : null;
   }
   return null;

@@ -1,9 +1,13 @@
 /**
- * Admin seed for the global fuel price.
+ * Admin seed for the global fuel price — a MANUAL entry, and recorded as one.
  *
- * The scheduled Cloud Function needs the Blaze plan. Until then (and any time
- * the official source changes shape), this writes appConfig/fuelPrices
- * directly so the app always has a price to auto-fill.
+ * The daily GitHub Actions job (scripts/updateFuelPrices.mjs) is the normal
+ * source. This is for a first seed, a backfill, or a correction when the
+ * ministry's page cannot be read. It writes the 95 self-service series in the
+ * same shape the app reads, tagged `source: "manual"` with a `manualOverride`
+ * for the seeded month — so the app never labels it "מחיר מרבי מפוקח", and the
+ * job leaves it in force for that month (see
+ * docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md §9).
  *
  *   GOOGLE_APPLICATION_CREDENTIALS=~/Downloads/tank-malle-…json \
  *     node scripts/seedFuelPrice.mjs 7.31
@@ -68,17 +72,36 @@ const existing = snapshot.exists ? snapshot.data() : undefined;
 const existingEffective = existing?.current?.effectiveFrom?.toDate?.() ?? new Date(0);
 const isCurrentOrNewer = effectiveFrom >= existingEffective;
 
+const current = {
+  pricePerLiter: price,
+  effectiveFrom,
+  updatedAt: FieldValue.serverTimestamp(),
+};
+
 const payload = {
+  // Legacy top-level fields, for the adapter.
   history: { [month]: price },
   source: "manual-seed",
+  // The per-fuel series every screen actually reads.
+  byFuelType: {
+    95: {
+      self: {
+        history: { [month]: price },
+        source: "manual",
+        manualOverride: {
+          pricePerLiter: price,
+          month,
+          setAt: FieldValue.serverTimestamp(),
+          note: "seed",
+        },
+        ...(isCurrentOrNewer ? { current } : {}),
+      },
+    },
+  },
 };
 
 if (isCurrentOrNewer) {
-  payload.current = {
-    pricePerLiter: price,
-    effectiveFrom,
-    updatedAt: FieldValue.serverTimestamp(),
-  };
+  payload.current = current;
 }
 
 await ref.set(payload, { merge: true });

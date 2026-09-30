@@ -189,10 +189,10 @@ test("a refresh does not invent a new previous login", async ({ page }) => {
   const uid = await uidOf(ALICE);
 
   await page.goto("/settings/profile");
-  await expect(page.getByText("התחברות קודמת", { exact: true })).toBeVisible();
   // The very first sign-in has no predecessor, and says so rather than
-  // showing the current session.
-  await expect(page.getByText("אין עדיין התחברות קודמת")).toBeVisible();
+  // showing the current session. (The profile was rebuilt in 7a72538; this
+  // is its wording.)
+  await expect(page.getByText("זו ההתחברות הראשונה")).toBeVisible({ timeout: 20_000 });
 
   const afterSignIn = await getDocument(`users/${uid}`);
   const firstAuthTime = afterSignIn?.lastProcessedAuthTime;
@@ -209,7 +209,7 @@ test("a refresh does not invent a new previous login", async ({ page }) => {
   expect(afterReloads?.previousLoginAt ?? null).toBeNull();
 
   await page.goto("/settings/profile");
-  await expect(page.getByText("אין עדיין התחברות קודמת")).toBeVisible();
+  await expect(page.getByText("זו ההתחברות הראשונה")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("עכשיו")).toHaveCount(0);
 });
 
@@ -236,9 +236,11 @@ test("previous login advances only after a genuine new authentication", async ({
   expect(second?.currentLoginAt).not.toBe(firstLogin);
 
   await page.goto("/settings/profile");
-  const row = page.getByText("התחברות קודמת", { exact: true }).locator("..");
+  // The rebuilt profile (7a72538) words the previous login as "נכנס לאחרונה …".
+  const row = page.getByText(/נכנס לאחרונה/);
+  await expect(row).toBeVisible({ timeout: 20_000 });
   await expect(row).toContainText(/היום|אתמול|\d/);
-  await expect(page.getByText("אין עדיין התחברות קודמת")).toHaveCount(0);
+  await expect(page.getByText("זו ההתחברות הראשונה")).toHaveCount(0);
 });
 
 // Keep the seeding helpers referenced so the import is not stripped.

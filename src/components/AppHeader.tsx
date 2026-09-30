@@ -23,7 +23,11 @@ import { Avatar } from "./Avatar";
 export function AppHeader() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { activeVehicle, offline, writes } = useData();
+  const { activeVehicle, offline, writes, outbox, outboxHealth, outboxReady } = useData();
+  const failed =
+    outbox.filter((op) => op.status !== "pending").length +
+    (outboxReady && outboxHealth.state !== "ok" ? 1 : 0);
+  const pending = outbox.filter((op) => op.status === "pending").length;
 
   return (
     <header className="flex flex-none items-center justify-between gap-2 px-5 pb-1 pt-3">
@@ -66,24 +70,27 @@ export function AppHeader() {
       <div className="flex items-center gap-2">
         {/* Four distinct states, never conflated: a permanent rejection is not
             the same thing as a queued write, and neither is "no connection". */}
-        {writes.failed.length > 0 ? (
+        {failed > 0 || writes.failed.length > 0 ? (
           <button
             type="button"
-            onClick={() => navigate("/settings")}
+            onClick={() => navigate("/settings/unsynced")}
             className="flex h-9 items-center gap-1.5 rounded-pill bg-danger-soft px-2.5 text-[12px] font-semibold text-danger-ink"
-            title={writes.failed[0].error ?? "הסנכרון נכשל"}
+            aria-label="פעולות שלא סונכרנו"
           >
             <WarningIcon size={15} />
-            הסנכרון נכשל
+            לא סונכרן
+            {failed > 0 ? <Num>{failed}</Num> : null}
           </button>
-        ) : writes.syncing ? (
-          <span
+        ) : writes.syncing || pending > 0 ? (
+          <button
+            type="button"
+            onClick={() => navigate("/settings/unsynced")}
             className="flex h-9 items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 text-[12px] font-semibold text-muted"
             title={offline ? "אין חיבור — יסונכרן כשיחזור" : "ממתין לאישור מהשרת"}
           >
             <CloudOffIcon size={15} />
             {offline ? "נשמר במכשיר" : "ממתין לסנכרון"}
-          </span>
+          </button>
         ) : offline ? (
           <span
             className="flex size-9 items-center justify-center rounded-full bg-warning-soft text-warning-ink"

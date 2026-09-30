@@ -162,6 +162,7 @@ export type ReasonCode =
   | "staleAnchor"
   | "conflictingObservations"
   | "overCapacityResidual"
+  | "capacitySuspect"
   | "negativeResidual"
   | "unsupportedFuelType";
 
@@ -202,7 +203,15 @@ export const UNKNOWN_PASSAGE: PassageResult = {
 /** How the balance replay ended up. */
 export type ReconciliationState =
   | "ok"
+  /** The arithmetic exceeds a TRUSTED capacity: a measurement is suspect. */
   | "overCapacity"
+  /**
+   * The arithmetic exceeds an UNTRUSTED capacity (a body-type estimate or the
+   * largest fill on record). That is evidence the capacity figure is too
+   * small, not that the tank state is broken — a confirmed full with more
+   * fuel in it than the estimate allows says the tank is bigger than guessed.
+   */
+  | "capacitySuspect"
   | "negative"
   | "conflict"
   | "noAnchor"

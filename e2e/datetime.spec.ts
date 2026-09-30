@@ -23,6 +23,14 @@ async function openDateSheet(page: import("@playwright/test").Page): Promise<voi
   await expect(page.getByLabel("שעה — הקלדה ידנית")).toBeVisible();
 }
 
+/** Yesterday, as the native date input wants it — any clock time on it is in the past. */
+function yesterdayIso(): string {
+  const day = new Date();
+  day.setDate(day.getDate() - 1);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`;
+}
+
 test.beforeEach(async ({ page }) => {
   await signIn(page, ALICE);
   const header = page.getByText("מאזדה 3", { exact: false }).first();
@@ -35,10 +43,11 @@ test("an exact minute can be typed", async ({ page }) => {
   await openDateSheet(page);
 
   const time = page.getByLabel("שעה — הקלדה ידנית");
-  // 47 is not a multiple of five; the old stepper could not reach it. The hour
-  // is 00 so the value is in the past whatever time of day the suite runs —
-  // a future time is legitimately refused, and used to fail this test at
-  // certain hours.
+  // 47 is not a multiple of five; the old stepper could not reach it. The
+  // date is set to yesterday first so the time is in the past whatever the
+  // clock says — a future time is legitimately refused, and "00:47 today"
+  // used to fail this test between midnight and 00:47.
+  await page.getByLabel("בחירת תאריך מהמכשיר").fill(yesterdayIso());
   await time.fill("00:47");
   await time.press("Enter");
 
@@ -109,7 +118,9 @@ test("the system pickers are offered and are the right kind", async ({ page }) =
   // only by accident.
   await expect(nativeTime).toHaveAttribute("step", "60");
 
-  // Setting them through the native control feeds the same commit path.
+  // Setting them through the native control feeds the same commit path. The
+  // date goes to yesterday first, so 06:03 is never a refused future time.
+  await nativeDate.fill(yesterdayIso());
   await nativeTime.fill("06:03");
   await expect(page.getByLabel("שעה — הקלדה ידנית")).toHaveValue("06:03");
 });

@@ -294,13 +294,51 @@ export async function seedBenchmark(
   });
 }
 
-/** The regulated maximum, as the admin editor would have written it. */
+/**
+ * The regulated maximum, as the scheduled job writes it: the fuel-type series
+ * marked `scheduled` plus the legacy top-level fields tagged `gov.il`. A
+ * legacy-only document with no source tag is honestly a MANUAL entry and is
+ * labelled as such by the resolver, so a test about the regulated figure has
+ * to seed the regulated shape.
+ */
+/**
+ * The month key as the APP computes it — in the browser's timezone. The
+ * Playwright project runs the browser in Asia/Jerusalem while the test
+ * process runs on the machine's clock (UTC on CI): for two to three hours at
+ * every month boundary the two disagree, and a key computed here from the
+ * runner's clock seeded last month while the app looked up this one.
+ */
+export const BROWSER_TIME_ZONE = "Asia/Jerusalem";
+
+export function monthKeyInBrowserTimeZone(date: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: BROWSER_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+  }).formatToParts(date);
+  const year = parts.find((part) => part.type === "year")?.value ?? "";
+  const month = parts.find((part) => part.type === "month")?.value ?? "";
+  return `${year}-${month}`;
+}
+
 export async function seedRegulatedPrice(pricePerLiter: number): Promise<void> {
-  const month = new Date();
-  const key = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, "0")}`;
+  const key = monthKeyInBrowserTimeZone();
+  const now = new Date();
   await setDocument("appConfig/fuelPrices", {
-    current: { pricePerLiter, updatedAt: new Date() },
+    byFuelType: {
+      "95": {
+        self: {
+          current: { pricePerLiter, updatedAt: now },
+          history: { [key]: pricePerLiter },
+          scheduledHistory: { [key]: pricePerLiter },
+          source: "scheduled",
+          retrievedAt: now,
+        },
+      },
+    },
+    current: { pricePerLiter, updatedAt: now },
     history: { [key]: pricePerLiter },
+    source: "gov.il",
   });
 }
 
@@ -331,3 +369,35 @@ export async function waitForDocument(
     `no document in ${collectionPath} matched within ${timeoutMs}ms (saw ${last.length})`,
   );
 }
+
+/* ------------------------------------------------------------------ *
+ * Rules control
+ *
+ * The emulator lets a test replace the loaded rules. That is how a server
+ * REJECTION is produced on demand: install deny-all rules, write, watch the
+ * client cope, restore the real rules, retry.
+ * ------------------------------------------------------------------ */
+
+const RULES_URL = `${FIRESTORE_HOST}/emulator/v1/projects/${PROJECT_ID}:securityRules`;
+
+export async function installRules(content: string): Promise<void> {
+  await call(RULES_URL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ rules: { files: [{ name: "firestore.rules", content }] } }),
+  });
+}
+
+/** The repository's real rules, exactly as deployed. */
+export async function restoreRules(): Promise<void> {
+  const { readFileSync } = await import("node:fs");
+  const content = readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8");
+  await installRules(content);
+}
+
+export const DENY_ALL_RULES = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read: if request.auth != null; allow write: if false; }
+  }
+}`;

@@ -13,6 +13,14 @@
 import { TANK_SCHEMA_VERSION } from "./tank/config";
 import { closesInterval } from "./tank/observations";
 import type { FillEndState, FillupTankFields, TankPreferences } from "./tank/types";
+import { resolveCapacity, type ResolvedCapacity } from "./tank/capacity";
+import { litersVsCapacity } from "./tank/capacityChecks";
+import {
+  officialPriceFor,
+  suggestPricePerLiter,
+  type PriceSuggestion,
+  type RegulatedPriceConfig,
+} from "./prices/regulated";
 
 export type FuelType = "95" | "98" | "diesel" | "other";
 
@@ -65,6 +73,14 @@ export interface Fillup extends FillupTankFields {
   importBatchId?: string | null;
   importRowHash?: string | null;
   schemaVersion?: number;
+  /**
+   * Optimistic-concurrency version. 0 for a document written before the
+   * field existed; the rules require every update to carry exactly the
+   * stored version plus one.
+   */
+  version?: number;
+  /** Per-write marker of the last version-aware write; read back for completeness only. */
+  writeId?: string | null;
 }
 
 /** A station reference. `stationId` is the identity; the rest are snapshots. */
@@ -539,22 +555,27 @@ function buildAnomalies(
     }
   }
 
-  if (vehicle?.tankLiters) {
-    for (const fill of sorted) {
-      if (fill.liters > vehicle.tankLiters * 1.05) {
-        anomalies.push({
-          fillupId: fill.id,
-          kind: "tankOverfill",
-          message: `כמות הליטרים גדולה מנפח המיכל (${vehicle.tankLiters} ל׳)`,
-        });
-      }
+  // Only a capacity the user stated or confirmed can make a fill-up "wrong".
+  // A body-type estimate that is smaller than a real fill says the ESTIMATE is
+  // low, which is a capacity hint, not a flag on the record.
+  const capacity = resolveCapacity(vehicle, sorted);
+  for (const fill of sorted) {
+    const check = litersVsCapacity(fill.liters, capacity);
+    if (check.state === "overfill") {
+      anomalies.push({ fillupId: fill.id, kind: "tankOverfill", message: check.message ?? "" });
     }
   }
 
   if (segments.length >= 3) {
     const meanKmPerLiter =
       segments.reduce((sum, s) => sum + s.kmPerLiter, 0) / segments.length;
-    const meanKm = segments.reduce((sum, s) => sum + s.km, 0) / segments.length;
+    // Distance PER FILL-UP, not per segment: a segment that closes after
+    // several partial or unknown records legitimately spans several tanks'
+    // worth of driving, and flagging its closing record as a "jump" punished
+    // exactly the record that finally made the interval measurable.
+    const totalKm = segments.reduce((sum, s) => sum + s.km, 0);
+    const totalFills = segments.reduce((sum, s) => sum + Math.max(1, s.fillupCount), 0);
+    const meanKmPerFill = totalKm / totalFills;
 
     for (const segment of segments) {
       if (Math.abs(segment.kmPerLiter - meanKmPerLiter) / meanKmPerLiter > 0.4) {
@@ -564,7 +585,8 @@ function buildAnomalies(
           message: `צריכה חריגה: ${round(segment.kmPerLiter, 1)} קמ״ל מול ממוצע ${round(meanKmPerLiter, 1)}`,
         });
       }
-      if (segment.km > meanKm * 3) {
+      const kmPerFill = segment.km / Math.max(1, segment.fillupCount);
+      if (kmPerFill > meanKmPerFill * 3) {
         anomalies.push({
           fillupId: segment.endId,
           kind: "kmJump",
@@ -641,7 +663,7 @@ function shortLabel(date: number): string {
 export function computeStats(
   fillups: Fillup[],
   vehicle?: Vehicle | null,
-  prices?: FuelPrices | null,
+  prices?: FuelPrices | RegulatedPriceConfig | null,
   now: number = Date.now(),
 ): Stats {
   const sorted = sortFillups(fillups);
@@ -706,14 +728,25 @@ export function computeStats(
   const avgPricePaid =
     records.totalLiters > 0 ? round(records.totalCost / records.totalLiters, 3) : null;
 
+  // The official figure for THIS vehicle's fuel type on the fill-up's own
+  // date — never today's price applied to all of history, and never the 95
+  // figure for a diesel car.
+  const fuelType = vehicle?.fuelType ?? "95";
   const officialFor = (date: number): number | null =>
-    prices?.history?.[monthKey(date)] ?? prices?.current?.pricePerLiter ?? null;
+    officialPriceFor(prices, fuelType, date).price;
 
-  const currentOfficial = prices?.current?.pricePerLiter ?? null;
+  // Mean of (paid − official on that date) over the records that have a
+  // date-matched official figure. Liters-weighted, like the paid average.
+  let officialDeltaLiters = 0;
+  let officialDeltaSum = 0;
+  for (const fill of sorted) {
+    const official = officialFor(fill.date);
+    if (official === null || fill.liters <= 0) continue;
+    officialDeltaLiters += fill.liters;
+    officialDeltaSum += (fill.pricePerLiter - official) * fill.liters;
+  }
   const avgPriceVsOfficial =
-    avgPricePaid !== null && currentOfficial !== null
-      ? round(avgPricePaid - currentOfficial, 3)
-      : null;
+    officialDeltaLiters > 0 ? round(officialDeltaSum / officialDeltaLiters, 3) : null;
 
   return {
     fillups: sorted,
@@ -807,17 +840,18 @@ export function softWarnings(
   fillups: Fillup[],
   vehicle?: Vehicle | null,
   excludeId?: string,
+  capacity?: ResolvedCapacity,
 ): SoftWarning[] {
   const warnings: SoftWarning[] = [];
   const others = fillups.filter((f) => f.id !== excludeId);
   const { prev } = odometerBounds(others, draft.date);
 
-  if (vehicle?.tankLiters && draft.liters > vehicle.tankLiters) {
-    warnings.push({
-      field: "liters",
-      message: "כמות גדולה מנפח המיכל — בדקו את הערך",
-      detail: `נפח המיכל שהוגדר הוא ${vehicle.tankLiters} ליטר. אפשר לשמור בכל זאת.`,
-    });
+  // Capacity-aware, by provenance: a fill larger than a CONFIRMED tank is
+  // a value to check; a fill larger than a body-type ESTIMATE says the
+  // estimate is low, and the message says that instead of "חריג".
+  const check = litersVsCapacity(draft.liters, capacity ?? resolveCapacity(vehicle, others));
+  if (check.state !== "ok" && check.message) {
+    warnings.push({ field: "liters", message: check.message, detail: check.detail ?? undefined });
   }
 
   if (prev) {
@@ -907,57 +941,9 @@ export function resolvePricePerLiter(
     | Pick<Vehicle, "priceAdjustment" | "manualPricePerLiter" | "fuelType">
     | null
     | undefined,
-  prices: FuelPrices | null | undefined,
-): {
-  price: number | null;
-  source:
-    | "legacyManual"
-    | "regulatedMax"
-    | "legacyAdjusted"
-    | "unsupportedFuelType"
-    | "none";
-  /** True when the figure came from that month's own record rather than
-   *  falling back to the latest known price. */
-  fromHistory: boolean;
-  /** The fuel type the figure applies to, so a caller cannot misattribute it. */
-  fuelType: FuelType;
-} {
-  const fuelType = vehicle?.fuelType ?? "95";
-
-  if (vehicle?.manualPricePerLiter && vehicle.manualPricePerLiter > 0) {
-    return {
-      price: round(vehicle.manualPricePerLiter, 3),
-      source: "legacyManual",
-      fromHistory: false,
-      fuelType,
-    };
-  }
-
-  // The regulated maximum is published for 95 self-service only. There is no
-  // authoritative Israeli figure for 98 or diesel, and substituting the 95 one
-  // would be a fabrication — so the honest answer is "we do not know".
-  if (fuelType !== "95") {
-    return { price: null, source: "unsupportedFuelType", fromHistory: false, fuelType };
-  }
-
-  const historic = prices?.history?.[monthKey(date)];
-  const fromHistory = typeof historic === "number" && Number.isFinite(historic);
-  const regulated = fromHistory ? historic : (prices?.current?.pricePerLiter ?? null);
-
-  if (regulated === null || !Number.isFinite(regulated)) {
-    return { price: null, source: "none", fromHistory: false, fuelType };
-  }
-
-  const adjustment = vehicle?.priceAdjustment ?? 0;
-  if (adjustment !== 0) {
-    return {
-      price: round(Math.max(0, regulated + adjustment), 3),
-      source: "legacyAdjusted",
-      fromHistory,
-      fuelType,
-    };
-  }
-  return { price: round(regulated, 3), source: "regulatedMax", fromHistory, fuelType };
+  prices: FuelPrices | RegulatedPriceConfig | null | undefined,
+): PriceSuggestion {
+  return suggestPricePerLiter(date, vehicle, prices);
 }
 
 /** Restrict a fill-up list to a trailing window, for the stats range control. */

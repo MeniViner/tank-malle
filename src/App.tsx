@@ -17,6 +17,7 @@ import { Settings } from "./screens/Settings";
 import { Profile } from "./screens/Profile";
 import { VehicleManager } from "./screens/VehicleManager";
 import { ImportData } from "./screens/ImportData";
+import { Unsynced } from "./screens/Unsynced";
 import { Legal } from "./screens/Legal";
 import { Feedback } from "./screens/Feedback";
 
@@ -45,7 +46,7 @@ export default function App() {
 }
 
 function Shell() {
-  const { user, loading } = useAuth();
+  const { user, loading, signingOut } = useAuth();
   const { ready, activeVehicles, vehicles } = useData();
   const location = useLocation();
 
@@ -65,7 +66,7 @@ function Shell() {
     return () => clearTimeout(timer);
   }, []);
 
-  if (loading || !splashDone) return <Splash />;
+  if (loading || !splashDone || signingOut) return <Splash />;
 
   // The legal pages must be reachable before signing in — that is exactly
   // when someone wants to read them.
@@ -103,7 +104,13 @@ function Shell() {
   // A signed-in user with no vehicle at all goes straight to the wizard —
   // except on routes that are meaningful without one (admin, legal, profile),
   // which must stay reachable.
-  const ALWAYS_REACHABLE = ["/vehicles/new", "/admin", "/legal", "/settings/profile"];
+  const ALWAYS_REACHABLE = [
+    "/vehicles/new",
+    "/admin",
+    "/legal",
+    "/settings/profile",
+    "/settings/unsynced",
+  ];
   const needsFirstVehicle =
     vehicles.length === 0 &&
     !ALWAYS_REACHABLE.some((path) => location.pathname.startsWith(path));
@@ -136,6 +143,7 @@ function Shell() {
         <Route path="/settings/profile" element={<Profile />} />
         <Route path="/settings/vehicles" element={<VehicleManager />} />
         <Route path="/settings/import" element={<ImportData />} />
+        <Route path="/settings/unsynced" element={<Unsynced />} />
         <Route path="/legal/:doc" element={<Legal />} />
         <Route path="/feedback" element={<Feedback />} />
         <Route

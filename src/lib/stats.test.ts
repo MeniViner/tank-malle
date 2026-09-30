@@ -522,9 +522,11 @@ describe("resolvePricePerLiter", () => {
 
   it("uses the official price of the fill-up's own month", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), null, prices);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       price: 7.12,
-      source: "regulatedMax",
+      // A legacy top-level document carries no source tag; the seed script and
+      // the old admin editor wrote those by hand, so it is honestly "manual".
+      source: "manualConfig",
       fromHistory: true,
       fuelType: "95",
     });
@@ -543,7 +545,7 @@ describe("resolvePricePerLiter", () => {
       manualPricePerLiter: null,
       fuelType: "95",
     }, prices);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       price: 7.07,
       source: "legacyAdjusted",
       fromHistory: true,
@@ -557,7 +559,7 @@ describe("resolvePricePerLiter", () => {
       manualPricePerLiter: 6.8,
       fuelType: "95",
     }, prices);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       price: 6.8,
       source: "legacyManual",
       fromHistory: false,
@@ -575,7 +577,7 @@ describe("resolvePricePerLiter", () => {
   });
 
   it("reports 'none' when no price is known at all", () => {
-    expect(resolvePricePerLiter(base, null, null)).toEqual({
+    expect(resolvePricePerLiter(base, null, null)).toMatchObject({
       price: null,
       source: "none",
       fromHistory: false,

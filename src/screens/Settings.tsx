@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { describeOfficialPrice, officialPriceFor } from "../lib/prices/regulated";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useTheme } from "../context/ThemeContext";
@@ -78,7 +79,16 @@ export function Settings() {
     observations,
     plans,
     ready,
+    outbox,
   } = useData();
+
+  // The official figure for THIS vehicle's fuel type, today — the same
+  // resolver the fill-up form and the home card use.
+  const [today] = useState(() => Date.now());
+  const officialToday = useMemo(
+    () => officialPriceFor(prices, activeVehicle?.fuelType ?? "95", today),
+    [prices, activeVehicle?.fuelType, today],
+  );
 
   const [accentSheetOpen, setAccentSheetOpen] = useState(false);
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
@@ -147,6 +157,20 @@ export function Settings() {
               title="ניהול רכבים וארכיון"
               onClick={() => navigate("/settings/vehicles")}
             />
+            <RowButton
+              icon={
+                <IconTile tone={outbox.length > 0 ? "danger" : "muted"}>
+                  <ChevronStart size={18} />
+                </IconTile>
+              }
+              title="פעולות שלא סונכרנו"
+              subtitle={
+                outbox.length > 0
+                  ? `${outbox.length} פעולות ממתינות או שנדחו`
+                  : "הכול מסונכרן"
+              }
+              onClick={() => navigate("/settings/unsynced")}
+            />
           </Card>
         </section>
 
@@ -154,18 +178,25 @@ export function Settings() {
         <section className="flex flex-col gap-2">
           <Label>מחיר דלק</Label>
           <Card className="overflow-hidden">
+            {/* The same resolver the fill-up form uses, for THIS vehicle's
+                fuel type and today — so the two screens cannot disagree, and a
+                manual admin entry is named as such rather than as "מפוקח". */}
             <div className="flex min-h-[58px] items-center gap-3 px-4 py-3">
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-[15px] font-semibold text-ink">מחיר רשמי נוכחי</span>
                 <span className="truncate text-[12.5px] text-muted">
-                  בנזין 95 ·{" "}
-                  {prices?.current?.updatedAt
-                    ? `עודכן ${dayMonthShort(prices.current.updatedAt)}`
-                    : "טרם עודכן"}
+                  {FUEL_TYPE_SHORT[activeVehicle?.fuelType ?? "95"]} ·{" "}
+                  {officialToday.price === null
+                    ? "אין מחיר רשמי לסוג דלק זה"
+                    : `${describeOfficialPrice(officialToday)}${
+                        officialToday.updatedAt
+                          ? ` · עודכן ${dayMonthShort(officialToday.updatedAt)}`
+                          : ""
+                      }`}
                 </span>
               </span>
               <Num className="flex-none text-[17px] font-bold text-ink">
-                {prices?.current ? price(prices.current.pricePerLiter) : "—"}
+                {officialToday.price !== null ? price(officialToday.price) : "—"}
               </Num>
             </div>
 

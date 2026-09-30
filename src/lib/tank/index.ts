@@ -90,6 +90,7 @@ export function fitTankModel(input: TankModelInput): TankModelFit {
     capacityRelativeSd: capacityTrusted
       ? CAPACITY_RELATIVE_SD
       : CAPACITY_RELATIVE_SD * UNTRUSTED_CAPACITY_SD_FACTOR,
+    capacityTrusted,
   });
 
   const allSamples = buildBehaviorSamples({
@@ -183,8 +184,19 @@ export interface TankEstimate {
    * full re-anchored the balance; keeping it on screen would leave a permanent
    * warning nobody can clear, which is how a warning stops being read. The
    * full list stays available for the details sheet.
+   *
+   * Never contains a note about the CAPACITY: those are in `capacityNotes`.
    */
   activeNotes: ReconciliationNote[];
+  /**
+   * Notes that say the capacity figure is what the evidence contradicts.
+   *
+   * A confirmed full that held more than the estimated tank is not a broken
+   * tank state — it is the anchor, and the tank is simply bigger than
+   * guessed. Reporting it as "needs checking" until the next full would
+   * leave a warning nobody can clear by doing the right thing.
+   */
+  capacityNotes: ReconciliationNote[];
 }
 
 export interface ProjectionInput {
@@ -274,9 +286,38 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     primaryReason: primaryReason(reasons),
     nextUpdate: chooseNextUpdate(qualityInput, input.dismissedPrompts),
     notes: fit.balance.notes,
-    activeNotes: fit.balance.anchor
-      ? fit.balance.notes.filter((note) => note.at >= fit.balance.anchor!.at)
-      : fit.balance.notes,
+    ...splitNotes(fit.balance),
+  };
+}
+
+/**
+ * Current-state problems on one side, capacity findings on the other.
+ *
+ * A `capacitySuspect` note is always about the capacity. An `overCapacity`
+ * note attached to the current confirmed-full anchor is too: the tank was
+ * filled, the tank is full, and the only thing the arithmetic can be wrong
+ * about is how big "full" is (or the reading before it — either way not the
+ * state now).
+ */
+function splitNotes(balance: BalanceResult): {
+  activeNotes: ReconciliationNote[];
+  capacityNotes: ReconciliationNote[];
+} {
+  const anchor = balance.anchor;
+  const aboutCapacity = (note: ReconciliationNote): boolean =>
+    note.state === "capacitySuspect" ||
+    (note.state === "overCapacity" &&
+      anchor !== null &&
+      anchor.quality === "confirmed-full" &&
+      note.sourceId === anchor.sourceId);
+
+  const current = anchor
+    ? balance.notes.filter((note) => note.at >= anchor.at)
+    : balance.notes;
+
+  return {
+    activeNotes: current.filter((note) => !aboutCapacity(note)),
+    capacityNotes: balance.notes.filter(aboutCapacity),
   };
 }
 
@@ -292,15 +333,16 @@ function lastRefuelOf(fit: TankModelFit): LastRefuelState | null {
   for (let i = fit.events.length - 1; i >= 0; i -= 1) {
     const event = fit.events[i];
     if (event.kind !== "fillup") continue;
+    const confirmedFull =
+      event.endState === "full" && event.endStateSource === "user-confirmed";
     return {
       fillupId: event.id,
       at: event.at,
-      level:
-        event.postFill?.level ??
-        (event.endState === "full" && event.endStateSource === "user-confirmed" ? 1 : null),
+      // A confirmed full is full, whatever an older record stored beside it.
+      // A stored after-level only speaks for a fill that was not one.
+      level: confirmedFull ? 1 : (event.postFill?.level ?? null),
       endState: event.endState,
-      confirmed:
-        event.endStateSource === "user-confirmed" || Boolean(event.postFill?.confirmed),
+      confirmed: confirmedFull || Boolean(event.postFill?.confirmed),
     };
   }
   return null;
@@ -329,13 +371,17 @@ export function tankInputSignature(input: {
     String(input.vehicle?.tankLitersSource ?? "-"),
     String(input.vehicle?.fuelType ?? "-"),
     String(input.vehicle?.declaredKmPerLiter ?? "-"),
-    `p${input.preferences.reserveFraction}:${input.preferences.refuelLevelOverride ?? "-"}:${input.preferences.usualRefuelLevel ?? "-"}:${input.preferences.habitResetAt ?? "-"}`,
+    String(input.vehicle?.declaredSource ?? "-"),
+    `p${input.preferences.reserveFraction}:${input.preferences.refuelLevelOverride ?? "-"}:${input.preferences.usualFillStyle ?? "-"}:${input.preferences.usualRefuelLevel ?? "-"}:${input.preferences.habitResetAt ?? "-"}`,
     `f${input.fillups.length}`,
     `o${input.observations.length}`,
     `t${input.plans.length}`,
   ];
 
-  // Only the fields the model actually reads; a notes edit must not refit.
+  // Every field the model reads and nothing else: a notes or station edit
+  // must not refit, and a provenance-only edit (the level is the same, the
+  // source changed) MUST, because provenance decides whether a reading is an
+  // anchor or a vote.
   let fold = 0;
   const mix = (text: string) => {
     for (let i = 0; i < text.length; i += 1) {
@@ -344,12 +390,40 @@ export function tankInputSignature(input: {
   };
   for (const fillup of input.fillups) {
     mix(
-      `${fillup.id}|${fillup.date}|${fillup.odometer}|${fillup.liters}|${fillup.isFullTank}|${fillup.fillEndState ?? ""}|${fillup.fillEndStateSource ?? ""}|${fillup.preFillLevel ?? ""}|${fillup.postFillLevel ?? ""}|${fillup.refuelReason ?? ""}|${fillup.continuityBreakBefore === true}|${fillup.tankSchemaVersion ?? ""}`,
+      [
+        fillup.id,
+        fillup.date,
+        fillup.odometer,
+        fillup.liters,
+        fillup.isFullTank,
+        fillup.fillEndState ?? "",
+        fillup.fillEndStateSource ?? "",
+        fillup.preFillLevel ?? "",
+        fillup.preFillLevelSource ?? "",
+        fillup.preFillLevelUncertainty ?? "",
+        fillup.postFillLevel ?? "",
+        fillup.postFillLevelSource ?? "",
+        fillup.postFillLevelUncertainty ?? "",
+        fillup.refuelReason ?? "",
+        fillup.continuityBreakBefore === true,
+        fillup.capacityLitersAtEntry ?? "",
+        fillup.tankSchemaVersion ?? "",
+      ].join("|"),
     );
   }
   for (const observation of input.observations) {
     mix(
-      `${observation.id}|${observation.observedAt}|${observation.odometer ?? ""}|${observation.level ?? ""}|${observation.confirmed}`,
+      [
+        observation.id,
+        observation.observedAt,
+        observation.odometer ?? "",
+        observation.level ?? "",
+        observation.levelUncertainty ?? "",
+        observation.levelSource ?? "",
+        observation.confirmed,
+        observation.fillupId ?? "",
+        observation.phase ?? "",
+      ].join("|"),
     );
   }
   for (const plan of input.plans) {
@@ -390,6 +464,22 @@ export function estimateTank(
 
 export * from "./types";
 export { projectAfterFill, derivePreFillLevel, primaryNote } from "./balance";
+export {
+  EMPTY_TANK_DRAFT,
+  draftFromFields,
+  effectiveEndChoice,
+  hasTankAnswer,
+  resolveTankOutcome,
+  withEndChoice,
+  type PersistedTankFields,
+  type TankEndChoice,
+  type TankOutcome,
+  type TankOutcomeInput,
+  type TankOutcomeState,
+  type TankStateDraft,
+} from "./draft";
+export { litersVsCapacity, type LitersVsCapacity } from "./capacityChecks";
+export { resolveCapacity, capacityNote, type ResolvedCapacity } from "./capacity";
 export { closesInterval, resolveEndState } from "./observations";
 export type { HabitProfile } from "./habits";
 export { claimsFillsToFull, claimsPartialTopUps } from "./habits";

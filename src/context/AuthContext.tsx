@@ -24,12 +24,21 @@ import {
   terminate,
 } from "firebase/firestore";
 import { auth, db, googleProvider } from "../lib/firebase";
+import { unacknowledgedState } from "../lib/outbox";
 
 interface AuthContextValue {
   user: User | null;
   /** True until the first auth state resolution completes. */
   loading: boolean;
   signingIn: boolean;
+  /**
+   * True from the moment sign-out starts until the page reloads. The shell
+   * shows the splash for that window: rendering the sign-in screen while the
+   * cache is still being cleared invited a second navigation to race the
+   * pending `location.replace`, which is how the account-switch flow got
+   * "navigation aborted" errors.
+   */
+  signingOut: boolean;
   error: string | null;
   /** Mirrors the signed `admin` custom claim on the ID token. */
   isAdmin: boolean;
@@ -48,7 +57,15 @@ interface AuthContextValue {
   /** False until the token claims have been read at least once. */
   claimsLoaded: boolean;
   signIn: () => Promise<void>;
-  signOutUser: () => Promise<void>;
+  /**
+   * Sign out. Nothing local is cleared automatically: Firestore's persistent
+   * cache is shared by every account that signed in on this device and may
+   * hold queued writes the outbox knows nothing about (an older build's
+   * writes, or a write journaled elsewhere). `clearLocalData` asks for an
+   * explicit wipe; it is honoured only when the device provably holds no
+   * unacknowledged write, and refused — with the reason — otherwise.
+   */
+  signOutUser: (options?: { clearLocalData?: boolean }) => Promise<{ cleared: boolean; refused: string | null }>;
   refreshClaims: () => Promise<void>;
 }
 
@@ -67,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [signingIn, setSigningIn] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [claimsLoaded, setClaimsLoaded] = useState(false);
@@ -163,18 +181,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * made "switch account" look broken. Clearing the persistent cache and
    * reloading gives the next sign-in a genuinely clean process.
    */
-  const signOutUser = useCallback(async () => {
+  const signOutUser = useCallback(async (options: { clearLocalData?: boolean } = {}) => {
+    setSigningOut(true);
+    let cleared = false;
+    let refused: string | null = null;
+
+    // Decide about the local data BEFORE signing out, while the outbox can
+    // still be read. "unknown" (unreadable or quarantined storage) is treated
+    // as "maybe": it never permits a wipe.
+    if (options.clearLocalData) {
+      const state = await unacknowledgedState().catch(() => "unknown" as const);
+      if (state !== "none") {
+        refused =
+          state === "some"
+            ? "יש פעולות שעדיין לא אושרו על ידי השרת — הנתונים המקומיים נשמרו"
+            : "לא ניתן לוודא שאין פעולות שלא סונכרנו — הנתונים המקומיים נשמרו";
+      }
+    }
+
     await signOut(auth);
 
-    try {
-      // The cache can only be cleared while no client is using it.
-      await terminate(db);
-      await clearIndexedDbPersistence(db);
-    } catch {
-      /* best effort — a second tab may still hold the lease */
+    if (options.clearLocalData && !refused) {
+      try {
+        // The cache can only be cleared while no client is using it.
+        await terminate(db);
+        await clearIndexedDbPersistence(db);
+        cleared = true;
+      } catch {
+        refused = "לא ניתן היה לנקות את המטמון (ייתכן שלשונית נוספת פתוחה)";
+      }
     }
 
     window.location.replace("/");
+    return { cleared, refused };
   }, []);
 
   const value = useMemo<AuthContextValue>(
@@ -182,6 +221,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       signingIn,
+      signingOut,
       error,
       isAdmin,
       previousLoginAt,
@@ -194,6 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       loading,
       signingIn,
+      signingOut,
       error,
       isAdmin,
       previousLoginAt,
