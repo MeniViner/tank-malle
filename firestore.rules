@@ -26,6 +26,13 @@ service cloud.firestore {
         && value < 9999999999;
     }
 
+    // The cheap half of isNumber, for a field that carries its own, tighter
+    // bounds: a bound below 1e10 already excludes Infinity, so only the NaN
+    // check needs to be explicit. Never use this without a bound.
+    function isNonNaNNumber(value) {
+      return value is number && !math.isNaN(value);
+    }
+
     // Epoch milliseconds do not fit isNumber's bound — 1.7e12 is far above the
     // 1e10 ceiling that keeps odometers and prices sane. Timestamps get their
     // own predicate rather than a loosened shared one.
@@ -44,12 +51,25 @@ service cloud.firestore {
       return value is string && value.size() <= maxLength;
     }
 
+    // The optional-field helpers read the field ONCE with `data.get(field,
+    // null)`: absent and null collapse into the same value, exactly as the
+    // former `!(field in data) || data[field] == null` spelling did, at a
+    // fraction of the expression count. This matters because Firestore
+    // evaluates at most 1,000 expressions per request (see validFillup).
+    function stringOrNull(value, maxLength) {
+      return value == null || (value is string && value.size() <= maxLength);
+    }
+
+    function numberOrNull(value) {
+      return value == null || isNumber(value);
+    }
+
     function optionalString(data, field, maxLength) {
-      return !(field in data) || data[field] == null || isString(data[field], maxLength);
+      return stringOrNull(data.get(field, null), maxLength);
     }
 
     function optionalNumber(data, field) {
-      return !(field in data) || data[field] == null || isNumber(data[field]);
+      return numberOrNull(data.get(field, null));
     }
 
     function optionalBool(data, field) {
@@ -65,6 +85,22 @@ service cloud.firestore {
         && optionalNumber(station, 'lng')
         && optionalString(station, 'stationId', 64)
         && optionalString(station, 'brand', 60);
+    }
+
+    // Liters x paid price should reconcile with the total. pricePerLiter is
+    // the price actually PAID, so a discount is already inside it and only
+    // pump rounding and small manual edits need room. The tolerance is the
+    // larger of 5 shekels and 5%, so the check stays meaningful on a small
+    // fill-up without rejecting a large legitimate one. A zero total is
+    // left alone rather than forced to reconcile.
+    //
+    // `expected` (liters x price) is computed once by the caller instead of
+    // four times inline; each term below is evaluated in the same order as
+    // before, so the floating-point result is identical.
+    function costReconciles(total, expected) {
+      return total == 0
+        || (total <= expected + 5 + expected * 0.05
+            && total >= expected - 5 - expected * 0.05);
     }
 
     // Only raw fill-up data is ever stored — no derived fields to validate.
@@ -86,78 +122,109 @@ service cloud.firestore {
              'postFillLevel', 'postFillLevelSource', 'postFillLevelUncertainty',
              'refuelReason', 'capacityLitersAtEntry', 'tankSchemaVersion'
            ])
-        && isNumber(data.odometer) && data.odometer > 0 && data.odometer < 3000000
-        && isNumber(data.liters) && data.liters > 0 && data.liters <= 500
-        && isNumber(data.pricePerLiter) && data.pricePerLiter >= 0 && data.pricePerLiter <= 100
-        && isNumber(data.totalCost) && data.totalCost >= 0 && data.totalCost <= 50000
+        // Each bound here is tighter than isNumber's ±1e10, so the cheaper
+        // NaN-only predicate gives the same accepted set (Infinity fails the
+        // upper bound). See the expression-budget note above validTankFields.
+        && isNonNaNNumber(data.odometer) && data.odometer > 0 && data.odometer < 3000000
+        && isNonNaNNumber(data.liters) && data.liters > 0 && data.liters <= 500
+        && isNonNaNNumber(data.pricePerLiter) && data.pricePerLiter >= 0 && data.pricePerLiter <= 100
+        && isNonNaNNumber(data.totalCost) && data.totalCost >= 0 && data.totalCost <= 50000
         && data.isFullTank is bool
         && data.date is timestamp
-        // Liters x paid price should reconcile with the total. pricePerLiter is
-        // the price actually PAID, so a discount is already inside it and only
-        // pump rounding and small manual edits need room. The tolerance is the
-        // larger of 5 shekels and 5%, so the check stays meaningful on a small
-        // fill-up without rejecting a large legitimate one. A zero total is
-        // left alone rather than forced to reconcile.
-        && (data.totalCost == 0
-            || (data.totalCost <= data.liters * data.pricePerLiter + 5
-                  + data.liters * data.pricePerLiter * 0.05
-                && data.totalCost >= data.liters * data.pricePerLiter - 5
-                  - data.liters * data.pricePerLiter * 0.05))
+        && costReconciles(data.totalCost, data.liters * data.pricePerLiter)
         && optionalBool(data, 'continuityBreakBefore')
         && (!('fullTankSource' in data)
             || data.fullTankSource in ['user', 'legacy-assumption'])
-        && (!('postedPricePerLiter' in data) || data.postedPricePerLiter == null
-            || (isNumber(data.postedPricePerLiter)
+        // `data.get(field, null) == null` is the cheap spelling of "absent or
+        // null" — see the expression-budget note above validTankFields.
+        // (fullTankSource above keeps its `in data` form on purpose: it
+        // rejects an explicit null, which `get(field, null)` cannot see.)
+        && (data.get('postedPricePerLiter', null) == null
+            || (isNonNaNNumber(data.postedPricePerLiter)
                 && data.postedPricePerLiter >= 0 && data.postedPricePerLiter <= 100))
-        && (!('fuelType' in data) || data.fuelType == null
+        && (data.get('fuelType', null) == null
             || data.fuelType in ['95', '98', 'diesel', 'other'])
         && optionalString(data, 'importSource', 60)
         && optionalString(data, 'importBatchId', 64)
         && optionalString(data, 'importRowHash', 64)
         && optionalNumber(data, 'schemaVersion')
         && optionalString(data, 'notes', 500)
-        && (!('station' in data) || data.station == null || validStation(data.station))
+        && (data.get('station', null) == null || validStation(data.station))
         && validTankFields(data);
     }
 
+    // ---------------------------------------------------------------------
+    // EXPRESSION BUDGET. Firestore evaluates at most 1,000 expressions per
+    // request, and a fully-populated fill-up — station map, before-level,
+    // note, import stamps — used to exhaust it inside these helpers. The
+    // request then fails PERMISSION_DENIED, the client SDK rolls back its
+    // optimistic local write, and the record silently disappears.
+    //
+    // The helpers below therefore read each optional field ONCE with
+    // `data.get(field, null)` (absent and null collapse into one value) and
+    // test the VALUE, instead of spelling `field in data`, `data[field]` and
+    // a nested `isNumber(...)` call out per field. The accepted set is
+    // unchanged: NaN is still rejected explicitly, and every numeric bound
+    // below is the one `isNumber` would have imposed (or a tighter one), so
+    // ±Infinity is still rejected too. See tests/rules/fillup-budget.test.ts.
+    // ---------------------------------------------------------------------
+
     // A level is a FRACTION of the tank, 0-1. Enforced here so a client cannot
     // store a percentage, a litre count or a negative reading in a field the
-    // engine will read back as a fraction.
+    // engine will read back as a fraction. The 0..1 window sits well inside
+    // isNumber's ±1e10 bound, so that predicate is not needed here.
+    function levelOk(value) {
+      return value == null
+        || (value is number && !math.isNaN(value) && value >= 0 && value <= 1);
+    }
+
+    function levelSourceOk(value) {
+      return value == null
+        || value in ['direct-gauge', 'user-correction',
+                     'derived-from-full-and-liters', 'derived-after-partial',
+                     'imported-legacy', 'unknown'];
+    }
+
     function optionalLevel(data, field) {
-      return !(field in data) || data[field] == null
-        || (isNumber(data[field]) && data[field] >= 0 && data[field] <= 1);
+      return levelOk(data.get(field, null));
     }
 
     function optionalLevelSource(data, field) {
-      return !(field in data) || data[field] == null
-        || data[field] in ['direct-gauge', 'user-correction',
-                           'derived-from-full-and-liters', 'derived-after-partial',
-                           'imported-legacy', 'unknown'];
+      return levelSourceOk(data.get(field, null));
     }
 
     // The optional tank-state block. Every field may be absent — absence is a
     // missing observation, which is a valid and common state.
     function validTankFields(data) {
-      return (!('fillEndState' in data) || data.fillEndState == null
+      return (data.get('fillEndState', null) == null
               || data.fillEndState in ['full', 'partial', 'unknown'])
-        && (!('fillEndStateSource' in data) || data.fillEndStateSource == null
+        && (data.get('fillEndStateSource', null) == null
             || data.fillEndStateSource in ['user-confirmed', 'gauge-estimate',
                                            'inferred', 'legacy-assumption', 'unknown'])
-        && optionalLevel(data, 'preFillLevel')
-        && optionalLevel(data, 'postFillLevel')
-        && optionalLevelSource(data, 'preFillLevelSource')
-        && optionalLevelSource(data, 'postFillLevelSource')
-        && optionalLevel(data, 'preFillLevelUncertainty')
-        && optionalLevel(data, 'postFillLevelUncertainty')
-        && (!('refuelReason' in data) || data.refuelReason == null
+        && levelOk(data.get('preFillLevel', null))
+        && levelOk(data.get('postFillLevel', null))
+        && levelSourceOk(data.get('preFillLevelSource', null))
+        && levelSourceOk(data.get('postFillLevelSource', null))
+        && levelOk(data.get('preFillLevelUncertainty', null))
+        && levelOk(data.get('postFillLevelUncertainty', null))
+        && (data.get('refuelReason', null) == null
             || data.refuelReason in ['routine', 'low-fuel', 'before-trip',
                                      'good-price', 'unsure'])
-        && (!('capacityLitersAtEntry' in data) || data.capacityLitersAtEntry == null
-            || (isNumber(data.capacityLitersAtEntry)
-                && data.capacityLitersAtEntry > 0
-                && data.capacityLitersAtEntry <= 500))
-        && (!('tankSchemaVersion' in data) || data.tankSchemaVersion == null
-            || (isNumber(data.tankSchemaVersion) && data.tankSchemaVersion >= 1));
+        && capacityOk(data.get('capacityLitersAtEntry', null))
+        && tankSchemaVersionOk(data.get('tankSchemaVersion', null));
+    }
+
+    // 0 < capacity <= 500 lies inside isNumber's bound; NaN stays explicit.
+    function capacityOk(value) {
+      return value == null
+        || (isNonNaNNumber(value) && value > 0 && value <= 500);
+    }
+
+    // Same domain as `isNumber(x) && x >= 1`: the upper bound is isNumber's
+    // own ceiling, so Infinity is still rejected.
+    function tankSchemaVersionOk(value) {
+      return value == null
+        || (isNonNaNNumber(value) && value >= 1 && value < 9999999999);
     }
 
     /**
