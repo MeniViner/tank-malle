@@ -6,6 +6,8 @@
  * and separators keep their visual order inside RTL text.
  */
 
+import { parseNumber } from "./numeric";
+
 const HE_MONTHS = [
   "ינואר",
   "פברואר",
@@ -255,11 +257,15 @@ export function initials(name?: string | null): string {
   return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`;
 }
 
-/** Parse a decimal the user typed, tolerating a comma as the separator. */
+/**
+ * Parse a decimal the user typed.
+ *
+ * Kept for the callers that read a plain decimal (a capacity, a manufacturer
+ * figure). It now consumes the WHOLE input and treats a lone comma as a
+ * decimal comma; field-aware parsing for the fill-up form lives in numeric.ts.
+ */
 export function parseDecimal(value: string): number {
-  const normalized = value.replace(/,/g, ".").replace(/[^\d.-]/g, "");
-  const parsed = Number.parseFloat(normalized);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
+  return parseNumber(value, "decimal");
 }
 
 /**
