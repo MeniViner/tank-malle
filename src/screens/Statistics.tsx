@@ -55,9 +55,11 @@ import {
   num,
   price,
   shekel,
+  shekelSigned,
   vehicleLabel,
   vehicleShort,
 } from "../lib/format";
+import { officialPriceFor } from "../lib/prices/regulated";
 
 /* ------------------------------------------------------------------ *
  * Information architecture
@@ -186,6 +188,16 @@ export function Statistics() {
         })),
     [stats.priceSeries, range],
   );
+
+  // What the official figure IS for this vehicle's fuel type — the regulated
+  // maximum, or a figure an admin typed in — decides the legend wording. The
+  // line itself is drawn whenever computeStats attached a figure to a point.
+  const officialToday = useMemo(
+    () => officialPriceFor(prices, activeVehicle?.fuelType ?? "95", now),
+    [prices, activeVehicle?.fuelType, now],
+  );
+  const hasOfficialLine =
+    officialToday.price !== null && priceData.some((point) => point.official !== null);
 
   const odometerData = useMemo(
     () =>
@@ -475,13 +487,21 @@ export function Statistics() {
                   />
                 </div>
 
+                {/* The dashed line is drawn from `point.official`, the
+                    date-matched figure computeStats attaches to each fill-up.
+                    It is shown for any fuel type that has one, and named for
+                    what it is: the regulated maximum, or an admin's entry. */}
                 <ChartCard
                   title="מחיר לליטר"
                   legend={
                     <>
                       <LegendDot color="var(--accent)" label="ששולם" />
-                      {activeVehicle?.fuelType === "95" ? (
-                        <LegendDot color="var(--muted)" label="מחיר מרבי מפוקח" dashed />
+                      {hasOfficialLine ? (
+                        <LegendDot
+                          color="var(--muted)"
+                          label={officialToday.isRegulated ? "מחיר מרבי מפוקח" : "מחיר שהוזן ידנית"}
+                          dashed
+                        />
                       ) : null}
                     </>
                   }
@@ -491,7 +511,7 @@ export function Statistics() {
                     <XAxis {...xAxis} />
                     <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
                     <Tooltip content={<ChartTooltip currency />} />
-                    {activeVehicle?.fuelType === "95" ? (
+                    {hasOfficialLine ? (
                       <Line
                         type="monotone"
                         dataKey="official"
@@ -511,7 +531,23 @@ export function Statistics() {
                   </LineChart>
                 </ChartCard>
 
-                {activeVehicle && activeVehicle.fuelType !== "95" ? (
+                {stats.avgPriceVsOfficial !== null && hasOfficialLine ? (
+                  <Card className="flex flex-col gap-1.5 p-[14px_16px]">
+                    <Label className="text-[12.5px]">
+                      מול המחיר הרשמי בתאריכי התדלוקים
+                    </Label>
+                    <Num className="text-[22px] font-bold leading-tight text-ink">
+                      {shekelSigned(stats.avgPriceVsOfficial)}
+                    </Num>
+                    <span className="text-[12.5px] text-muted">
+                      {stats.avgPriceVsOfficial <= 0 ? "לליטר פחות" : "לליטר יותר"} מ
+                      {officialToday.isRegulated ? "המחיר המרבי המפוקח" : "המחיר שהוזן ידנית"}{" "}
+                      שהיה בתוקף בכל תדלוק
+                    </span>
+                  </Card>
+                ) : null}
+
+                {activeVehicle && !hasOfficialLine ? (
                   <p className="px-1 text-[12px] leading-relaxed text-muted">
                     אין מחיר מרבי מפוקח ל
                     {FUEL_TYPE_SHORT[activeVehicle.fuelType]} בישראל, ולכן מוצג רק המחיר
