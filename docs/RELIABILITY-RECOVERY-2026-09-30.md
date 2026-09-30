@@ -1,7 +1,7 @@
 # Reliability recovery — 30 September 2026
 
-Branch `codex/tank-malle-reliability-recovery`, base `main@d8672c2`.
-Rules-only hotfix branch `codex/rules-expression-budget-hotfix` (one commit, `77e5685`).
+Branch `codex/tank-malle-reliability-recovery`, base `main@d8672c2` — PR [MeniViner/tank-malle#4](https://github.com/MeniViner/tank-malle/pull/4).
+Rules-only hotfix branch `codex/rules-expression-budget-hotfix` (one commit, `77e5685`) — PR [MeniViner/tank-malle#3](https://github.com/MeniViner/tank-malle/pull/3).
 
 This document is the persistent record the execution brief asked for: the
 incident boundary, the evidence-backed cause, the recovery status, and the
