@@ -48,9 +48,11 @@ import {
   REGULATED_SERVICE_MODE,
   adaptLegacyConfig,
   normalizePriceDocument,
+  priceMonthLabel,
   regulatedMaxPrice,
   type RegulatedLookup,
   type RegulatedPriceConfig,
+  type RegulatedSeries,
 } from "../lib/prices/regulated";
 
 /**
@@ -701,20 +703,49 @@ const EDITABLE_FUELS: { fuelType: FuelType; label: string }[] = [
   { fuelType: "other", label: "אחר" },
 ];
 
+/** Which copy answered the last read — shown beside the panel title. */
+type ReadSource = "server" | "cache" | null;
+
+/** Firestore's error shape, duck-typed so this file needs no SDK error class. */
+function firestoreCode(error: unknown): string {
+  const code = (error as { code?: unknown })?.code;
+  return typeof code === "string" ? code : "unknown";
+}
+
+function daysAgoText(at: number, now: number): string {
+  const days = Math.floor((now - at) / 86_400_000);
+  if (days <= 0) return "רץ היום";
+  if (days === 1) return "רץ אתמול";
+  return `רץ לפני ${days} ימים`;
+}
+
 function FuelPriceEditor() {
   const { showToast } = useToast();
+  const { isAdmin, claimsLoaded } = useAuth();
   const [config, setConfig] = useState<RegulatedPriceConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const [readSource, setReadSource] = useState<ReadSource>(null);
 
-  const load = useCallback(async (fromServer = false) => {
+  const load = useCallback(async (fromServer = false): Promise<ReadSource> => {
     setLoading(true);
     try {
       const ref = doc(db, "appConfig", "fuelPrices");
       // The refresh must not be answered by the offline cache — the whole
-      // point of it is to see what the server holds right now.
-      const snapshot = fromServer
-        ? await getDocFromServer(ref).catch(() => getDoc(ref))
-        : await getDoc(ref);
+      // point of it is to see what the server holds right now. When the
+      // server cannot be reached the cache answers, and the caller is told.
+      let source: ReadSource = "cache";
+      let snapshot;
+      if (fromServer) {
+        try {
+          snapshot = await getDocFromServer(ref);
+          source = "server";
+        } catch {
+          snapshot = await getDoc(ref);
+        }
+      } else {
+        snapshot = await getDoc(ref);
+        source = snapshot.metadata.fromCache ? "cache" : "server";
+      }
       // Normalised first: the raw document carries Firestore Timestamps, and
       // the freshness line does date arithmetic on them.
       setConfig(
@@ -722,6 +753,8 @@ function FuelPriceEditor() {
           ? adaptLegacyConfig(normalizePriceDocument(snapshot.data()))
           : { byFuelType: {} },
       );
+      setReadSource(source);
+      return source;
     } finally {
       setLoading(false);
     }
@@ -731,29 +764,21 @@ function FuelPriceEditor() {
     void load().catch(() => setLoading(false));
   }, [load]);
 
-  async function save(fuelType: FuelType, value: number) {
-    const now = new Date();
-    await setDoc(
-      doc(db, "appConfig", "fuelPrices"),
-      {
-        byFuelType: {
-          [fuelType]: {
-            [REGULATED_SERVICE_MODE]: {
-              current: {
-                pricePerLiter: value,
-                effectiveFrom: new Date(now.getFullYear(), now.getMonth(), 1),
-                updatedAt: serverTimestamp(),
-              },
-              history: { [monthKey(now.getTime())]: value },
-              source: "manual",
-            },
-          },
-        },
-      },
-      { merge: true },
-    );
-    // serverTimestamp() resolves only after the server acks, so reflect the
-    // new value locally rather than re-reading a null timestamp.
+  /** The Hebrew reason a write was refused, precise enough to act on. */
+  function writeErrorTitle(error: unknown): string {
+    const code = firestoreCode(error);
+    if (code === "permission-denied") {
+      return "אין הרשאת מנהל (custom claim admin) — ראו scripts/grantAdmin.mjs";
+    }
+    if (code === "unavailable") return "השרת לא זמין — נסו שוב";
+    return `השמירה נכשלה (${code})`;
+  }
+
+  /** Apply a merged write locally, so the row reflects it before any ack. */
+  function applyLocal(
+    fuelType: FuelType,
+    update: (series: RegulatedSeries | undefined) => RegulatedSeries,
+  ) {
     setConfig((previous) => {
       const base = previous ?? { byFuelType: {} };
       const series = base.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
@@ -763,60 +788,179 @@ function FuelPriceEditor() {
           ...base.byFuelType,
           [fuelType]: {
             ...base.byFuelType?.[fuelType],
-            [REGULATED_SERVICE_MODE]: {
-              history: {
-                ...(series?.history ?? {}),
-                [monthKey(now.getTime())]: value,
-              },
-              current: {
-                pricePerLiter: value,
-                effectiveFrom: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
-                updatedAt: Date.now(),
-              },
-              source: "manual" as const,
-            },
+            [REGULATED_SERVICE_MODE]: update(series),
           },
         },
       };
     });
-    showToast({ tone: "success", title: "המחיר עודכן לכל המשתמשים" });
   }
 
   /**
-   * The freshness of the automatic path, from the stored figure itself: a
-   * series written by the job carries source "scheduled". Anything else means
-   * the last value on record was typed in by hand.
+   * Commit a merged write. Online, the server's answer is awaited so a refused
+   * write is reported and the draft kept. Offline, a Firestore promise never
+   * settles until the connection returns, so it is NOT awaited: the local
+   * cache holds the change and the toast says exactly that — never
+   * "עודכן לכל המשתמשים" before an ack.
    */
-  const regulated = regulatedMaxPrice(config, "95", Date.now());
-  const ranRecently =
-    regulated.source === "scheduled" &&
-    regulated.updatedAt !== null &&
-    Date.now() - regulated.updatedAt < 3 * 86_400_000;
+  async function commit(payload: Record<string, unknown>, successTitle: string) {
+    const ref = doc(db, "appConfig", "fuelPrices");
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setDoc(ref, payload, { merge: true }).catch((error: unknown) =>
+        showToast({ tone: "error", title: writeErrorTitle(error) }),
+      );
+      showToast({ tone: "info", title: "נשמר במכשיר — יישלח כשיחזור החיבור" });
+      return;
+    }
+    await setDoc(ref, payload, { merge: true });
+    showToast({ tone: "success", title: successTitle });
+  }
 
-  const automatic = {
-    ok: ranRecently,
-    value: regulated.source === "scheduled" ? "פעיל" : "לא רץ",
-    detail:
-      regulated.source === "scheduled"
-        ? regulated.updatedAt
-          ? `הריצה האחרונה: ${dayMonthShort(regulated.updatedAt)}${
-              ranRecently ? "" : " — לא רץ מאז, בדקו את הלוג ב־GitHub Actions"
-            }`
-          : "רץ, אך ללא חותמת זמן"
-        : "המשימה היומית טרם כתבה ערך. הפעילו אותה ב־GitHub → Actions → Fuel price, ומלאו את הסוד FIREBASE_SERVICE_ACCOUNT.",
-  };
+  /** A manual entry for the current month. Never labelled "מפוקח". */
+  async function save(fuelType: FuelType, value: number) {
+    const now = new Date();
+    const month = monthKey(now.getTime());
+    const effectiveFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+    await commit(
+      {
+        byFuelType: {
+          [fuelType]: {
+            [REGULATED_SERVICE_MODE]: {
+              current: {
+                pricePerLiter: value,
+                effectiveFrom,
+                updatedAt: serverTimestamp(),
+              },
+              history: { [month]: value },
+              source: "manual",
+              manualOverride: {
+                pricePerLiter: value,
+                month,
+                setAt: serverTimestamp(),
+                note: null,
+              },
+            },
+          },
+        },
+      },
+      "המחיר עודכן לכל המשתמשים",
+    );
+    // serverTimestamp() resolves only after the server acks, so reflect the
+    // new value locally rather than re-reading a null timestamp.
+    applyLocal(fuelType, (series) => ({
+      ...series,
+      history: { ...(series?.history ?? {}), [month]: value },
+      current: {
+        pricePerLiter: value,
+        effectiveFrom: effectiveFrom.getTime(),
+        updatedAt: Date.now(),
+      },
+      source: "manual" as const,
+      manualOverride: { pricePerLiter: value, month, setAt: Date.now(), note: null },
+    }));
+  }
+
+  /** Clear the override and put the job's figure for that month back in force. */
+  async function restoreScheduled(fuelType: FuelType, month: string, scheduled: number) {
+    const [year, monthNumber] = month.split("-").map(Number);
+    const effectiveFrom = new Date(year, monthNumber - 1, 1);
+    await commit(
+      {
+        byFuelType: {
+          [fuelType]: {
+            [REGULATED_SERVICE_MODE]: {
+              manualOverride: null,
+              history: { [month]: scheduled },
+              current: {
+                pricePerLiter: scheduled,
+                effectiveFrom,
+                updatedAt: serverTimestamp(),
+              },
+              source: "scheduled",
+            },
+          },
+        },
+      },
+      "הערך האוטומטי הוחזר",
+    );
+    applyLocal(fuelType, (series) => ({
+      ...series,
+      history: { ...(series?.history ?? {}), [month]: scheduled },
+      current: {
+        pricePerLiter: scheduled,
+        effectiveFrom: effectiveFrom.getTime(),
+        updatedAt: Date.now(),
+      },
+      source: "scheduled" as const,
+      manualOverride: null,
+    }));
+  }
+
+  /**
+   * Whether the daily job is alive, from what the job itself reports — never
+   * inferred from a series' `source`, which flips to "manual" on every admin
+   * save while the job keeps running.
+   */
+  const now = Date.now();
+  const automation = config?.automation ?? null;
+  const lastAttempt = automation?.lastAttemptAt ?? null;
+  const lastSuccess = automation?.lastSuccessAt ?? null;
+  const lastFailure = automation?.lastFailureAt ?? null;
+  const failedLast = lastFailure !== null && (lastSuccess === null || lastFailure > lastSuccess);
+  const ranRecently = lastSuccess !== null && now - lastSuccess < 3 * 86_400_000;
+
+  const automatic =
+    lastAttempt === null
+      ? {
+          ok: false,
+          value: "אין דיווח",
+          detail:
+            "אין דיווח ריצות עדיין (גרסת סקריפט ישנה). המשימה היומית ב־GitHub Actions מדווחת על עצמה מגרסה זו ואילך — בדקו את הלוג ב־GitHub → Actions → Fuel price.",
+        }
+      : {
+          ok: ranRecently && !failedLast,
+          value: failedLast ? "נכשל" : ranRecently ? "פעיל" : "לא רץ לאחרונה",
+          detail: [
+            `ניסיון אחרון: ${daysAgoText(lastAttempt, now)} (${dayMonthShort(lastAttempt)})`,
+            lastSuccess !== null
+              ? `הצלחה אחרונה: ${dayMonthShort(lastSuccess)}${
+                  automation?.lastReadMonth
+                    ? ` · נקרא ${priceMonthLabel(automation.lastReadMonth, now)}${
+                        automation.lastReadPrice != null ? ` ₪${automation.lastReadPrice}` : ""
+                      }`
+                    : ""
+                }${automation?.lastVia ? ` · דרך ${automation.lastVia}` : ""}`
+              : "טרם הצליח",
+            failedLast && automation?.lastError
+              ? `שגיאה אחרונה: ${automation.lastError.split("\n")[0]}`
+              : null,
+            automation?.targetProjectId ? `פרויקט: ${automation.targetProjectId}` : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        };
 
   return (
     <Panel
       title="מחירי דלק רשמיים"
+      note={
+        readSource === "server"
+          ? "נקרא מהשרת"
+          : readSource === "cache"
+            ? "מוצג עותק מקומי"
+            : undefined
+      }
       trailing={
         <RefreshButton
           busy={loading}
           label="בדיקת עדכון"
           onClick={() =>
             void load(true)
-              .then(() => showToast({ tone: "success", title: "הנתונים נקראו מהשרת" }))
-              .catch(() => showToast({ tone: "error", title: "הקריאה מהשרת נכשלה" }))
+              .then((source) =>
+                source === "server"
+                  ? showToast({ tone: "success", title: "נקרא מהשרת" })
+                  : showToast({ tone: "info", title: "השרת לא זמין — מוצג עותק מקומי" }),
+              )
+              .catch(() => showToast({ tone: "error", title: "הקריאה נכשלה" }))
           }
         />
       }
@@ -832,20 +976,36 @@ function FuelPriceEditor() {
           detail={automatic.detail}
         />
 
-        {EDITABLE_FUELS.map(({ fuelType, label }) => (
-          <FuelPriceRow
-            key={fuelType}
-            label={label}
-            lookup={regulatedMaxPrice(config, fuelType, Date.now())}
-            onSave={(value) => save(fuelType, value)}
-          />
-        ))}
+        <DiagnosticRow
+          title="הרשאת כתיבה"
+          ok={isAdmin}
+          value={!claimsLoaded ? "בודק…" : isAdmin ? "custom claim admin קיים" : "חסר"}
+          detail={
+            isAdmin
+              ? "האסימון של החשבון הזה נושא claim admin; שמירה כאן תתקבל בשרת."
+              : "ללא claim admin כל שמירה תידחה (permission-denied). מוענק רק מהמחשב של המפתח: scripts/grantAdmin.mjs."
+          }
+        />
+
+        {EDITABLE_FUELS.map(({ fuelType, label }) => {
+          const series = config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
+          return (
+            <FuelPriceRow
+              key={fuelType}
+              label={label}
+              lookup={regulatedMaxPrice(config, fuelType, now)}
+              series={series}
+              onSave={(value) => save(fuelType, value)}
+              onRestore={(month, scheduled) => restoreScheduled(fuelType, month, scheduled)}
+            />
+          );
+        })}
 
         <p className="text-[11.5px] leading-relaxed text-muted">
           בנזין 95 מתעדכן אוטומטית: משימה יומית ב־GitHub Actions קוראת את הודעת
-          משרד האנרגיה לאותו חודש וכותבת אותה לכאן, בחינם. 98 וסולר אינם בפיקוח
-          ואין להם מחיר מפורסם — הם נשארים ידניים. כל משתמש מקבל את המחיר לסוג
-          הדלק של הרכב שלו מיד עם הכניסה, כי המסמך נקרא בזמן אמת.
+          משרד האנרגיה לאותו חודש וכותבת אותה לכאן, בחינם. מחיר שהוזן כאן ידנית
+          גובר על הערך האוטומטי רק בחודש שבו הוזן, ולעולם אינו מוצג כ״מחיר מרבי
+          מפוקח״. 98 וסולר אינם בפיקוח ואין להם מחיר מפורסם — הם נשארים ידניים.
         </p>
       </Card>
     </Panel>
@@ -875,24 +1035,63 @@ function RefreshButton({
   );
 }
 
-/** One fuel type: the stored figure, how fresh it is, and an inline edit. */
+/** One fuel type: the stored figure, where it came from, and an inline edit. */
 function FuelPriceRow({
   label,
   lookup,
+  series,
   onSave,
+  onRestore,
 }: {
   label: string;
   lookup: RegulatedLookup;
+  series: RegulatedSeries | undefined;
   onSave: (value: number) => Promise<void>;
+  onRestore: (month: string, scheduled: number) => Promise<void>;
 }) {
+  const { showToast } = useToast();
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   const parsed = parseDecimal(draft);
   const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
   const changed = valid && parsed !== lookup.price;
 
-  const currentMonth = lookup.effectiveMonth === monthKey(Date.now());
+  const now = Date.now();
+  const thisMonth = monthKey(now);
+  const currentMonth = lookup.effectiveMonth === thisMonth;
+  const monthText = priceMonthLabel(lookup.effectiveMonth, now);
+
+  // The job's own figure for the month the override covers, when it exists.
+  const override = series?.manualOverride ?? null;
+  const overrideActive = override !== null && override.month === thisMonth;
+  const scheduledForMonth = overrideActive
+    ? (series?.scheduledHistory?.[override.month] ?? null)
+    : null;
+
+  const sourceText =
+    lookup.price === null
+      ? "לא הוזן"
+      : [
+          lookup.isManual ? "ידני" : "אוטומטי",
+          monthText || null,
+          overrideActive && scheduledForMonth !== null
+            ? `דורס את הערך האוטומטי ${price(scheduledForMonth)}`
+            : overrideActive
+              ? "אין ערך אוטומטי לחודש זה"
+              : null,
+          currentMonth ? null : "לא לחודש הנוכחי",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
+  function failureTitle(error: unknown): string {
+    const code = (error as { code?: unknown })?.code;
+    return code === "permission-denied"
+      ? "אין הרשאת מנהל (custom claim admin) — ראו scripts/grantAdmin.mjs"
+      : `הפעולה נכשלה (${typeof code === "string" ? code : "unknown"})`;
+  }
 
   return (
     <div className="flex flex-col gap-2 border-b border-line pb-3 last:border-b-0 last:pb-0">
@@ -902,11 +1101,7 @@ function FuelPriceRow({
           <span
             className={`text-[11.5px] ${currentMonth ? "text-muted" : "text-warning-ink"}`}
           >
-            {lookup.price === null
-              ? "לא הוזן"
-              : `${lookup.source === "scheduled" ? "אוטומטי" : "ידני"}${
-                  lookup.updatedAt ? ` · ${dayMonthShort(lookup.updatedAt)}` : ""
-                }${currentMonth ? "" : " · לא לחודש הנוכחי"}`}
+            {sourceText}
           </span>
           <Num className="text-[17px] font-bold text-ink">
             {lookup.price !== null ? price(lookup.price) : "—"}
@@ -933,14 +1128,37 @@ function FuelPriceRow({
           loading={saving}
           onClick={() => {
             setSaving(true);
+            // The draft is cleared only on success: a refused write keeps
+            // what was typed so it can be retried once the claim exists.
             void onSave(parsed)
               .then(() => setDraft(""))
+              .catch((error: unknown) =>
+                showToast({ tone: "error", title: failureTitle(error) }),
+              )
               .finally(() => setSaving(false));
           }}
         >
           שמירה
         </Button>
       </div>
+
+      {overrideActive && scheduledForMonth !== null && override ? (
+        <button
+          type="button"
+          disabled={restoring}
+          onClick={() => {
+            setRestoring(true);
+            void onRestore(override.month, scheduledForMonth)
+              .catch((error: unknown) =>
+                showToast({ tone: "error", title: failureTitle(error) }),
+              )
+              .finally(() => setRestoring(false));
+          }}
+          className="self-start text-[12.5px] font-semibold text-accent disabled:opacity-50"
+        >
+          {restoring ? "מחזיר…" : `החזרת הערך האוטומטי (${price(scheduledForMonth)})`}
+        </button>
+      ) : null}
     </div>
   );
 }
