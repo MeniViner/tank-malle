@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { seedRegulatedPrice, type SeedFillup } from "./helpers/emulator";
 import { signedInWithData } from "./helpers/app";
+import { outboxCount } from "./helpers/pwa";
 
 /**
  * RTL and bidi rendering.
@@ -102,7 +103,7 @@ test("price per litre reads ₪8.25 followed by the Hebrew unit", async ({ page 
 });
 
 test("chart tooltips carry the selected consumption unit, in both modes", async ({ page }) => {
-  await signedInWithData(page, { fillups: RECORDS });
+  const { uid } = await signedInWithData(page, { fillups: RECORDS });
 
   await page.goto("/stats");
   await page.getByRole("button", { name: "צריכה" }).click();
@@ -118,6 +119,10 @@ test("chart tooltips carry the selected consumption unit, in both modes", async 
     .getByRole("radiogroup", { name: "יחידת צריכה" })
     .getByRole("radio", { name: "ל׳/100 ק״מ" })
     .click();
+  // The setting is journaled and then written; a hard reload a few
+  // milliseconds after the click would abandon it. Wait for the server to
+  // acknowledge (the journal entry disappears) before reloading.
+  await expect.poll(() => outboxCount(page, uid), { timeout: 20_000 }).toBe(0);
 
   await page.goto("/stats");
   await page.getByRole("button", { name: "צריכה" }).click();
