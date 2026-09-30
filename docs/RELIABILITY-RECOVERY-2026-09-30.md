@@ -118,16 +118,33 @@ Artifacts: Playwright traces for any failure land in `test-results/` (none on th
 
 ## 5. Browser-storage limits (honest statement)
 
-The outbox lives in `localStorage` (typically 5 MB per origin, synchronous,
-per browser profile). It protects the user's input against server rejection,
-reloads, crashes, sign-out and account switches. It does **not** protect
-against the user clearing site data, a private window closing, browser
-storage eviction, or a lost device. The "ייצוא" action on the unsynced
-screen is the portable backup for those cases. A fill-up is under 1 KB, so
-hundreds of pending records fit; storage refusal is detected before
-submission and reported.
+The outbox lives in IndexedDB (database `tm-outbox`), which survives reloads,
+crashes, sign-outs and account switches, and whose transactions are atomic
+across tabs. It does **not** survive the user clearing site data, a private
+window closing, browser storage eviction under pressure, or a lost device. The
+"ייצוא" action on the unsynced screen is the portable backup for those cases.
+A pre-IndexedDB `localStorage` entry is migrated losslessly on the account's
+next sign-in (copied, then removed); one that cannot be read is moved to a
+quarantine key byte-for-byte and the account's state is reported as unknown.
 
 ---
+
+## 5a. Second review (1 October 2026): blocker → reproduction → fix → test → commit
+
+| Blocker | Reproduction (failing before) | Fix | Test (passing after) | Commit |
+| --- | --- | --- | --- | --- |
+| Acknowledgements bound to `opId` only: an edit-and-resend under the same id could be removed or marked by a late answer for the previous input | `outbox.test.ts` "a late acknowledgement of version 1 never removes the edited version 2" (fails on the localStorage outbox: the ack deleted the entry) | Immutable per-entry `version`, bumped on replace and on claimed retry; `acknowledge`/`fail`/`markConflict` are conditional on the version | unit: immutable-versions block (5); browser: `outbox-invariants.spec.ts` "a late acknowledgement or rejection … across pages" | this branch |
+| Read-modify-write on one localStorage JSON value; two tabs could overwrite each other | `outbox.test.ts` concurrency block with two clients issuing at once, in both orders (the old test was sequential) | IndexedDB, every transition one transaction; identity keyed by uid + full document path | unit: concurrency block (5); browser: "two pages enqueuing at once" | this branch |
+| Lossy migration risk / unreadable storage treated as empty | "quarantines corrupt legacy bytes…", "one corrupt account entry does not hide another account's valid pending queue", "a read exception … reports unknown" | Copy-then-remove migration, idempotent; unparseable bytes quarantined, never overwritten; `unacknowledgedState()` returns `unknown`; UI never claims "all synced" unless health is ok | unit: migration/health block (7) | this branch |
+| `retryOperation` treated a failed server read as "absent" and wrote | browser: "a retry that cannot verify against the server writes nothing" (fails before: the retry wrote through the outage) | Fail closed: read failure → entry stays failed with `unverified`, nothing written; already-applied → acknowledged; newer → conflict; pending entries cannot be retried; discard of a pending entry is labelled as journal-only | browser: that test; unit: `claimRetry` tests | this branch |
+| Check-then-write race on edits; unconditional `setDoc` on add/restore retries | browser: "a stale edit is refused by the server, kept as a conflict, and never overwrites the newer version silently" (fails before: the newer version was overwritten) | Fill-up `version` enforced by the rules (`update` needs stored + 1); form bases an edit on the OPENED snapshot, not the live prop; retries of set/update verify first; conflict overwrite re-bases explicitly | rules: `fillup-version.test.ts` (27); browser: that test | `ac230aa` + this branch |
+| `addFillupBatch`, `deleteImportBatch`, vehicles, settings, plans, price rules bypassed the journal | browser: "an import whose rows are rejected keeps every row, and retrying re-sends them under the same ids without duplicates" (fails before: rows lost, no retry) | Every user-data mutation goes through `submit`/`enqueueMany` with pre-generated ids and batch grouping; `account.delete` is the one remaining tracker-only path (multi-step, destructive by intent) and is documented as such | browser: that test; unit: enqueueMany | this branch |
+| Sign-out could erase SDK-only pending writes when the outbox was empty | reasoning + "reports none only when every account is empty and nothing is quarantined" | No automatic cache cleanup at all; explicit wipe only, refused unless device state is provably `none` | unit; browser A → B → A | this branch |
+| Failed-update "Edit" opened the server's record | browser: "correcting a rejected edit opens the rejected input, not the server's copy" (fails before: showed 40, not 35) | Editing is bound to `opId` + owning vehicle; a wrong active vehicle is blocked with a switch action | browser: that test | this branch |
+| Pending delete confirmed from a query view with pending writes; observations/vehicles never reconciled | unit: "does not confirm a delete from absence while the snapshot still carries pending writes" | Reconcile takes the snapshot's pending flag; fill-ups, observations and vehicles listeners all reconcile with `includeMetadataChanges` | unit; browser suites | this branch |
+| Offline tests only blocked the Firestore port | `pwa-offline.spec.ts` | Production build served with a primed service worker: full offline reload, records added offline, restore with rejection and retry, server verified | `pwa` Playwright project (2) | `8527b8d` |
+
+Not covered in the browser: storage-quota exhaustion (unit only, by refusing readwrite transactions), and deterministic interleaving inside a single IndexedDB transaction (the browser serialises them; the unit tests force both issue orders).
 
 ## 6. Release plan (nothing released by this work)
 

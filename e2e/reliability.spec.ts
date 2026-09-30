@@ -17,6 +17,7 @@ import {
   signedInWithData,
   uidOf,
 } from "./helpers/app";
+import { outboxCount } from "./helpers/pwa";
 
 /**
  * Data preservation, end to end.
@@ -77,17 +78,6 @@ const FIRESTORE_ROUTE = /127\.0\.0\.1:8080\//;
 const serverUnreachable = (context: BrowserContext) =>
   context.route(FIRESTORE_ROUTE, (route) => route.abort("connectionfailed"));
 const serverReachable = (context: BrowserContext) => context.unroute(FIRESTORE_ROUTE);
-
-const outboxCount = (page: Page) =>
-  page.evaluate(() => {
-    let total = 0;
-    for (let i = 0; i < localStorage.length; i += 1) {
-      const key = localStorage.key(i) ?? "";
-      if (!key.startsWith("tm.outbox.v1.")) continue;
-      total += (JSON.parse(localStorage.getItem(key) ?? "{}").operations ?? []).length;
-    }
-    return total;
-  });
 
 test.afterEach(async () => {
   // A test that swapped the rules must never leave the next one running
@@ -154,7 +144,7 @@ test("a fill-up with station, before-level, reason, note and pump price is ackno
   expect(data.fillEndStateSource).toBe("gauge-estimate");
 
   // And once acknowledged, nothing is left in the outbox.
-  await expect.poll(() => outboxCount(page), { timeout: 15_000 }).toBe(0);
+  await expect.poll(() => outboxCount(page, uid), { timeout: 15_000 }).toBe(0);
 });
 
 /* ------------------------------------------------------------------ *
@@ -174,7 +164,7 @@ test("three fill-ups saved offline survive a reload and reach the server exactly
 
   // Locally saved, honestly labelled, and durably recorded.
   await expect(page.getByRole("button", { name: /נשמר במכשיר|ממתין לסנכרון/ })).toBeVisible();
-  expect(await outboxCount(page)).toBe(3);
+  expect(await outboxCount(page, uid)).toBe(3);
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
   await page.reload();
@@ -188,7 +178,7 @@ test("three fill-ups saved offline survive a reload and reach the server exactly
   expect(new Set(records.map((r) => r.data.odometer)).size).toBe(3);
 
   // Acknowledged → gone from the outbox; no second copy anywhere.
-  await expect.poll(() => outboxCount(page), { timeout: 20_000 }).toBe(0);
+  await expect.poll(() => outboxCount(page, uid), { timeout: 20_000 }).toBe(0);
   await new Promise((resolve) => setTimeout(resolve, 1500));
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(3);
 });
@@ -291,7 +281,7 @@ test("Undo after an edit restores the previous record on the server", async ({ p
       timeout: 15_000,
     })
     .toBe(40);
-  await expect.poll(() => outboxCount(page), { timeout: 15_000 }).toBe(0);
+  await expect.poll(() => outboxCount(page, uid), { timeout: 15_000 }).toBe(0);
 });
 
 /* ------------------------------------------------------------------ *
@@ -308,9 +298,13 @@ test("a pending record survives sign-out A → B → A and never shows up for B"
   const aliceUid = await uidOf(ALICE);
   const aliceVehicle = await firstVehicleId(aliceUid);
 
+  // The vehicle creation and the settings write are journaled too; let the
+  // server acknowledge them before it becomes unreachable, so the one
+  // pending entry below is the fill-up.
+  await expect.poll(() => outboxCount(page, aliceUid), { timeout: 20_000 }).toBe(0);
   await serverUnreachable(context);
   await fillForm(page, { odometer: 100_000, liters: 30, price: 7, note: "של אליס" });
-  expect(await outboxCount(page)).toBe(1);
+  expect(await outboxCount(page, aliceUid)).toBe(1);
 
   // Signing out with an unacknowledged write warns and keeps it.
   await page.goto("/settings/profile");
@@ -340,7 +334,7 @@ test("a pending record survives sign-out A → B → A and never shows up for B"
   );
   expect(records).toHaveLength(1);
   expect(records[0].data.notes).toBe("של אליס");
-  await expect.poll(() => outboxCount(page), { timeout: 20_000 }).toBe(0);
+  await expect.poll(() => outboxCount(page, aliceUid), { timeout: 20_000 }).toBe(0);
 });
 
 /* ------------------------------------------------------------------ *

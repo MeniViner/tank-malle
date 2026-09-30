@@ -379,15 +379,36 @@ acknowledgement. Those are different things, so the states are kept distinct
 and shown in the header: `נשמר במכשיר`, `ממתין לסנכרון`, `סונכרן`,
 `נדחה`, `התנגשות`.
 
-Before any user-data write reaches Firestore, its complete serialised payload
-is recorded in a per-account **outbox** in `localStorage`. Acknowledgement
-removes the entry; a rejection keeps it with the real error. Firestore's own
-queue still delivers pending writes across reloads — the outbox never re-sends
-on its own — and a server-sourced snapshot settles the fate of an entry whose
-promise was lost to a reload or a crash. Settings → `פעולות שלא סונכרנו` lists
-every entry with its original input, retry, edit, export, conflict resolution
-and an explicitly confirmed discard. Signing out with unacknowledged writes
-warns and keeps them for the same account; another account never sees them.
+Before any user-data write reaches Firestore — fill-ups, imports and their
+rollbacks, vehicles, settings, observations, plans, price rules — its complete
+serialised payload is journaled in a per-account **outbox** in IndexedDB, in
+one transaction. Every entry carries an immutable *version* that changes on
+every edit-and-resend and every claimed retry; an acknowledgement or rejection
+is bound to the version it was issued for, so a late answer to a previous
+input can never remove or mark a newer one. Firestore's own queue still
+delivers pending writes across reloads — the outbox never re-sends on its own
+— and a server-sourced snapshot settles the fate of an entry whose promise was
+lost to a reload or a crash (a pending delete is only confirmed from a
+snapshot with no pending writes at all).
+
+Fill-up documents carry a concurrency `version`; the rules refuse an update
+whose version is not exactly the stored one plus one, so a stale edit — online
+or queued offline — is refused by the **server** rather than winning a
+check-then-write race. A retry first re-reads the server: an unreachable or
+unauthorised read leaves the entry failed with "could not verify" and writes
+nothing; already-applied content is acknowledged; a newer document becomes a
+conflict the user resolves explicitly. A pending entry cannot be retried (the
+SDK owns that write), and removing one from the list is labelled for what it
+is — it does not cancel the SDK's queued write.
+
+Settings → `פעולות שלא סונכרנו` lists every entry with its original input,
+retry, edit (bound to the operation and its vehicle, opening the rejected
+input), export, conflict resolution and an explicitly confirmed discard.
+Unreadable storage is reported as *unknown*, never as "all synced": a legacy
+entry that cannot be parsed is quarantined byte-for-byte. Signing out clears
+nothing local automatically; wiping local data is an explicit choice that is
+refused whenever any account on the device may still hold an unacknowledged
+write.
 
 What this does **not** protect against: clearing site data, private windows,
 browser storage eviction, or a lost device. The export on that screen is the
@@ -434,7 +455,7 @@ any host that is not `127.0.0.1` or `localhost`.
 | `format.test.ts` | 12 | leading signs, currency placement, true minus, previous-login wording |
 | `DateTimePicker.test.ts` | 9 | one-minute typed times, day-first dates, impossible dates |
 | `writes.test.ts` | 8 | pending → synced → failed, disposal after an account switch |
-| `outbox.test.ts` | 16 | payload survives reload and rejection, quota refusal, account scoping, two-tab revisions, server reconciliation verdicts |
+| `outbox.test.ts` | 30 | payload survives reload and rejection, quota and IndexedDB-unavailable refusal, account scoping, immutable versions under late ack/rejection, concurrent enqueue/ack/replace/retry from two clients in both orders, lossless and idempotent legacy migration, quarantine of corrupt bytes, unknown-vs-none device state, reconciliation verdicts including pending deletes |
 | `fillupSerializer.test.ts` | 14 | no `id` in a patch, immutable creation metadata, station sanitising, malformed dates, every rule bound with its field |
 | `receipt.test.ts` | 11 | every typing order, suggested price never moves a typed figure, three-way conflicts reported not moved |
 | `numeric.test.ts` | 7 | grouped odometers, decimal commas, mixed separators, ambiguity flag, whole-input rejection |
@@ -443,7 +464,7 @@ any host that is not `127.0.0.1` or `localhost`.
 | `csv.test.ts` | 6 | export round trip, formula-injection neutralisation, v1 compatibility |
 | `xlsx.test.ts` | 20 | Excel vs Google Sheets structure, shared and inline strings, styled date serials, empty cells, multiple sheets, formulas |
 | `ranking.test.ts` | 16 | nearest / cheapest / freshest / best value, no cross-fuel comparison, unknown prices last |
-| `tests/rules/` | 147 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape |
+| `tests/rules/` | 174 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape; the fill-up `version` contract (create, stored + 1 on update, legacy documents) |
 | `e2e/` | 68 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL, and the data-preservation contract (offline ×3 + reload, server rejection kept and retried once, Undo read back, sign-out A → B → A) |
 
 ### The legacy workbook
