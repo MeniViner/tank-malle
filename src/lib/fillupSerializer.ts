@@ -49,6 +49,11 @@ export const FILLUP_KEYS = [
   "refuelReason",
   "capacityLitersAtEntry",
   "tankSchemaVersion",
+  // Optimistic-concurrency version: 1 on create, previous + 1 on every
+  // update. The rules refuse an update whose version is not exactly the
+  // stored one plus one, so a stale edit is rejected by the SERVER rather
+  // than silently winning a check-then-write race.
+  "version",
 ] as const;
 
 const STATION_KEYS = ["name", "lat", "lng", "stationId", "brand"] as const;
@@ -255,6 +260,9 @@ export function parseFillupDocument(id: string, data: Record<string, unknown>): 
       : null) as Fillup["refuelReason"],
     capacityLitersAtEntry: numberOrNull(data.capacityLitersAtEntry),
     tankSchemaVersion: numberOrNull(data.tankSchemaVersion),
+    // Absent on every pre-upgrade document: read as 0, so the first
+    // versioned update writes 1 — which is what the rules expect.
+    version: numberOrNull(data.version) ?? 0,
   };
 
   return { ok: true, fillup };
@@ -409,6 +417,11 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
     errors.push({ field: "tank", message: "מצב המיכל אינו תקין — נקו את הסעיף ונסו שוב" });
   }
 
+  const version = payload.version;
+  if (version != null && !(typeof version === "number" && Number.isInteger(version) && version >= 1)) {
+    errors.push({ field: "tank", message: "גרסת הרשומה אינה תקינה" });
+  }
+
   for (const key of Object.keys(payload)) {
     if (!(FILLUP_KEYS as readonly string[]).includes(key)) {
       errors.push({ field: "tank", message: `שדה לא מוכר ברשומה: ${key}` });
@@ -422,7 +435,12 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
  * Comparison, for reconciling an outbox entry with a server read
  * ------------------------------------------------------------------ */
 
-const COMPARED_KEYS = FILLUP_KEYS.filter((key) => key !== "createdAt");
+/**
+ * Content comparison ignores creation metadata (the server stamps it) and the
+ * concurrency version (two writes with identical content are the same
+ * content whichever version number carried them).
+ */
+const COMPARED_KEYS = FILLUP_KEYS.filter((key) => key !== "createdAt" && key !== "version");
 
 function sameValue(a: unknown, b: unknown): boolean {
   if (a == null && b == null) return true;

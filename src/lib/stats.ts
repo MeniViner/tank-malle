@@ -73,6 +73,12 @@ export interface Fillup extends FillupTankFields {
   importBatchId?: string | null;
   importRowHash?: string | null;
   schemaVersion?: number;
+  /**
+   * Optimistic-concurrency version. 0 for a document written before the
+   * field existed; the rules require every update to carry exactly the
+   * stored version plus one.
+   */
+  version?: number;
 }
 
 /** A station reference. `stationId` is the identity; the rest are snapshots. */
