@@ -72,6 +72,6 @@ export function compareToPersonalAverage(
         outcome: "worse",
         signedPercent,
         percent,
-        label: `גבוה ב ${percent}% מהממוצע`,
+        label: `גבוה ב־${percent}% מהממוצע`,
       };
 }

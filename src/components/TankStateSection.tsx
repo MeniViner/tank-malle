@@ -3,19 +3,26 @@ import { Card, IconTile } from "./Card";
 import { Sheet } from "./Sheet";
 import { TankGauge } from "./TankGauge";
 import { Num } from "./Num";
-import { CheckIcon, ChevronDown, GaugeIcon, InfoIcon } from "./icons";
-import { derivePreFillLevel, projectAfterFill } from "../lib/tank/balance";
+import { ChevronDown, GaugeIcon, InfoIcon } from "./icons";
 import { levelLabel } from "../lib/tank/gaugeInteraction";
-import { EMPTY_TANK_DRAFT, type TankStateDraft } from "../lib/tank/draft";
+import {
+  EMPTY_TANK_DRAFT,
+  effectiveEndChoice,
+  withEndChoice,
+  type TankOutcome,
+  type TankStateDraft,
+} from "../lib/tank/draft";
+import type { ResolvedCapacity } from "../lib/tank/capacity";
 import type { RefuelReason } from "../lib/tank/types";
 
 /**
- * The optional tank-state interaction inside the fill-up form.
+ * The optional before/after gauges inside the fill-up form.
  *
  * Genuinely optional: someone recording odometer, litres, amount and station
- * can save without ever opening this. Nothing here blocks the financial record,
- * and no interaction means no observation — a skipped section produces no
- * training label rather than a fabricated one.
+ * can save without ever opening this. The end state (full / partial /
+ * unknown) is chosen at form level; this section only adds the gauges and
+ * the reason. It computes NOTHING about fuel: every number it shows comes
+ * from the one `TankOutcome` the form resolved, the same one that is stored.
  */
 
 const REASONS: { value: RefuelReason; label: string }[] = [
@@ -29,47 +36,42 @@ const REASONS: { value: RefuelReason; label: string }[] = [
 export function TankStateSection({
   draft,
   onChange,
-  litersAdded,
-  capacityLiters,
+  outcome,
+  capacity,
   capacityNote,
   onReviewCapacity,
 }: {
   draft: TankStateDraft;
   onChange: (next: TankStateDraft) => void;
-  litersAdded: number;
-  /** Resolved capacity, or null when nothing supports one. */
-  capacityLiters: number | null;
+  /** The canonical outcome for the current draft, litres and capacity. */
+  outcome: TankOutcome;
+  capacity: ResolvedCapacity;
   /** Set when that capacity is an approximation, so the UI can say so. */
   capacityNote?: string | null;
   onReviewCapacity?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  /**
+   * The after-gauge editor being open is a UI state. It is NOT a correction:
+   * only an actual drag or key press sets `afterLevelOverride`, so opening
+   * and closing the editor leaves the payload and its provenance untouched.
+   */
   const [editingAfter, setEditingAfter] = useState(false);
 
   const patch = (next: Partial<TankStateDraft>) => onChange({ ...draft, ...next });
 
-  // The one place the after-state is computed. The component never writes its
-  // own version of `before × capacity + litres`.
-  const projection = projectAfterFill({
-    beforeLevel: draft.beforeLevel,
-    litersAdded,
-    capacityLiters,
-    confirmedFull: draft.confirmedFull,
-  });
-
-  const afterLevel = draft.afterLevelOverride ?? projection.level;
-  const inconsistent = projection.state === "overCapacity";
-
-  // Case C: a confirmed full plus the litres bought says what was in the tank,
-  // even though the user never touched the gauge. Shown as a derived figure.
-  const derivedBefore =
-    draft.beforeLevel === null && draft.confirmedFull
-      ? derivePreFillLevel(litersAdded, capacityLiters)
-      : null;
+  const capacityLiters = capacity.liters;
+  const endChoice = effectiveEndChoice(draft);
+  const confirmedFull = endChoice === "full";
+  const afterLevel = outcome.displayAfterLevel;
+  const inconsistent =
+    outcome.state === "overCapacity" ||
+    outcome.state === "capacitySuspect" ||
+    outcome.state === "conflict";
 
   const hasAnswer =
-    draft.beforeLevel !== null || draft.confirmedFull || draft.afterLevelOverride !== null;
+    draft.beforeLevel !== null || draft.afterLevelOverride !== null || draft.reason !== null;
 
   return (
     <>
@@ -85,11 +87,11 @@ export function TankStateSection({
             aria-expanded={open}
             className="flex min-w-0 flex-1 flex-col gap-0.5 py-1 text-start"
           >
-            <span className="text-[15px] font-semibold text-ink">מצב המיכל</span>
+            <span className="text-[15px] font-semibold text-ink">מד הדלק לפני ואחרי</span>
             <span className="truncate text-[12px] text-muted">
-              {hasAnswer
-                ? summarise(draft, afterLevel)
-                : "עוזר להעריך כמה נשאר וללמוד מתי אתם נוהגים לתדלק"}
+              {hasAnswer || confirmedFull
+                ? summarise(draft, afterLevel, confirmedFull)
+                : "לא חובה · עוזר להעריך כמה נשאר וללמוד מתי אתם נוהגים לתדלק"}
             </span>
           </button>
 
@@ -116,17 +118,14 @@ export function TankStateSection({
 
         {open ? (
           <div className="flex flex-col gap-4 border-t border-line p-4">
-            {/* RTL: before on the right, after on the left. `flex-row-reverse`
-                is not needed — the document is already RTL, so the first child
-                lands on the right. */}
             <div className="flex items-start justify-center gap-5">
               <TankGauge
                 label="לפני"
                 ariaLabel="כמה דלק נשאר לפני התדלוק"
-                level={draft.beforeLevel ?? derivedBefore}
+                level={outcome.displayBeforeLevel}
                 onChange={(level) => patch({ beforeLevel: level })}
                 caption={
-                  draft.beforeLevel === null && derivedBefore !== null
+                  outcome.beforeIsDerived
                     ? "משוער לפי הכמות"
                     : capacityLiters && draft.beforeLevel !== null
                       ? litersCaption(draft.beforeLevel * capacityLiters)
@@ -138,68 +137,75 @@ export function TankStateSection({
                 label="אחרי"
                 ariaLabel="מצב המיכל אחרי התדלוק"
                 level={afterLevel}
-                onChange={editingAfter ? (level) => patch({ afterLevelOverride: level }) : undefined}
-                confirmedFull={draft.confirmedFull}
+                onChange={
+                  editingAfter && !confirmedFull
+                    ? (level) => patch({ afterLevelOverride: level })
+                    : undefined
+                }
+                confirmedFull={confirmedFull}
                 tone={inconsistent ? "warning" : "accent"}
                 caption={
-                  projection.liters !== null && !draft.confirmedFull
-                    ? litersCaption(draft.afterLevelOverride !== null && capacityLiters
-                        ? draft.afterLevelOverride * capacityLiters
-                        : projection.liters)
-                    : undefined
+                  outcome.state === "unknownLiters"
+                    ? "הזינו ליטרים כדי לחשב"
+                    : afterLevel !== null && capacityLiters && !confirmedFull
+                      ? litersCaption(afterLevel * capacityLiters)
+                      : undefined
                 }
               />
             </div>
 
-            {/* One compact, explicit confirmation. Never selected on its own. */}
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                aria-pressed={draft.confirmedFull}
-                onClick={() =>
-                  patch({
-                    confirmedFull: !draft.confirmedFull,
-                    afterLevelOverride: null,
-                  })
-                }
-                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-pill px-4 text-[13.5px] font-bold transition-[background-color,scale] duration-200 active:scale-[0.97] ${
-                  draft.confirmedFull
-                    ? "bg-accent text-accent-contrast"
-                    : "border border-line bg-surface text-ink"
-                }`}
-              >
-                {draft.confirmedFull ? <CheckIcon size={15} /> : null}
-                מילאתי מיכל מלא
-              </button>
-
-              {!draft.confirmedFull && afterLevel !== null ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingAfter(true);
-                    if (draft.afterLevelOverride === null) patch({ afterLevelOverride: afterLevel });
-                  }}
-                  className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
-                >
-                  {editingAfter ? "אפשר לגרור את המד השמאלי" : "לא נראה נכון?"}
-                </button>
-              ) : null}
-            </div>
+            {!confirmedFull && afterLevel !== null ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {editingAfter ? (
+                  <>
+                    <span className="text-[13px] text-muted">אפשר לגרור את המד השמאלי</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingAfter(false);
+                        patch({ afterLevelOverride: null });
+                      }}
+                      className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
+                    >
+                      {draft.afterLevelOverride !== null ? "ביטול התיקון" : "סגירה"}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingAfter(true)}
+                    className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
+                  >
+                    {draft.afterLevelOverride !== null ? "תיקון המד אחרי" : "לא נראה נכון?"}
+                  </button>
+                )}
+              </div>
+            ) : null}
 
             {inconsistent ? (
               <Reconciliation
-                impliedLevel={projection.impliedLevel}
-                onAdjustBefore={() =>
-                  patch({
-                    beforeLevel:
-                      capacityLiters && capacityLiters > 0
-                        ? Math.max(0, 1 - litersAdded / capacityLiters)
-                        : null,
-                  })
+                message={outcome.message}
+                impliedLevel={outcome.impliedAfterLevel}
+                state={outcome.state}
+                onAdjustBefore={
+                  outcome.state !== "conflict"
+                    ? () =>
+                        patch({
+                          beforeLevel:
+                            capacityLiters && capacityLiters > 0 && outcome.impliedAfterLevel !== null
+                              ? Math.max(
+                                  0,
+                                  (draft.beforeLevel ?? 0) - (outcome.impliedAfterLevel - 1),
+                                )
+                              : null,
+                        })
+                    : undefined
                 }
-                onMarkFull={() => patch({ confirmedFull: true, afterLevelOverride: null })}
+                onMarkFull={
+                  !confirmedFull ? () => onChange(withEndChoice(draft, "full")) : undefined
+                }
                 onReviewCapacity={onReviewCapacity}
-                onDiscard={() => onChange(EMPTY_TANK_DRAFT)}
+                onDiscard={() => onChange(withEndChoice(EMPTY_TANK_DRAFT, endChoice))}
               />
             ) : null}
 
@@ -248,12 +254,14 @@ export function TankStateSection({
               <button
                 type="button"
                 onClick={() => {
-                  onChange(EMPTY_TANK_DRAFT);
+                  // Clears the gauges and the reason; the end choice made at
+                  // form level is the user's and stays.
+                  onChange(withEndChoice(EMPTY_TANK_DRAFT, endChoice));
                   setEditingAfter(false);
                 }}
                 className="min-h-[44px] text-[13px] font-semibold text-muted"
               >
-                ניקוי מצב המיכל
+                ניקוי המדים
               </button>
             ) : null}
           </div>
@@ -287,9 +295,9 @@ function litersCaption(liters: number): string {
   return `כ־${Math.round(liters)} ליטר`;
 }
 
-function summarise(draft: TankStateDraft, afterLevel: number | null): string {
+function summarise(draft: TankStateDraft, afterLevel: number | null, confirmedFull: boolean): string {
   const before = draft.beforeLevel !== null ? `לפני ${levelLabel(draft.beforeLevel)}` : null;
-  const after = draft.confirmedFull
+  const after = confirmedFull
     ? "אחרי מלא"
     : afterLevel !== null
       ? `אחרי ${levelLabel(afterLevel)}`
@@ -298,42 +306,49 @@ function summarise(draft: TankStateDraft, afterLevel: number | null): string {
 }
 
 /**
- * A physically impossible result, offered rather than silently clamped.
+ * A result that does not add up, offered rather than silently clamped.
  *
  * The financial record is never touched by any of this: the worst outcome is
  * that the optional tank observation is dropped.
  */
 function Reconciliation({
+  message,
   impliedLevel,
+  state,
   onAdjustBefore,
   onMarkFull,
   onReviewCapacity,
   onDiscard,
 }: {
+  message: string | null;
   impliedLevel: number | null;
-  onAdjustBefore: () => void;
-  onMarkFull: () => void;
+  state: TankOutcome["state"];
+  onAdjustBefore?: () => void;
+  onMarkFull?: () => void;
   onReviewCapacity?: () => void;
   onDiscard: () => void;
 }) {
   return (
     <div className="flex flex-col gap-2 rounded-[14px] border border-warning/40 bg-warning-soft p-3">
       <span className="text-[13px] font-semibold text-warning-ink">
-        הנתונים לא לגמרי מסתדרים עם נפח המיכל
+        {state === "capacitySuspect"
+          ? "נראה שנפח המיכל גדול מההערכה"
+          : "הנתונים לא לגמרי מסתדרים עם נפח המיכל"}
       </span>
-      {impliedLevel !== null ? (
+      {message ? <span className="text-[12.5px] text-warning-ink/85">{message}</span> : null}
+      {impliedLevel !== null && state !== "capacitySuspect" ? (
         <span className="text-[12.5px] text-warning-ink/85">
           לפי המצב שסימנת והכמות שמילאת יוצא <Num>{Math.round(impliedLevel * 100)}%</Num> —
           יותר ממיכל מלא.
         </span>
       ) : null}
       <div className="flex flex-wrap gap-2 pt-0.5">
-        <ReconcileAction label="התאמת המצב לפני" onClick={onAdjustBefore} />
-        <ReconcileAction label="מילאתי מיכל מלא" onClick={onMarkFull} />
+        {onAdjustBefore ? <ReconcileAction label="התאמת המצב לפני" onClick={onAdjustBefore} /> : null}
+        {onMarkFull ? <ReconcileAction label="מילאתי מיכל מלא" onClick={onMarkFull} /> : null}
         {onReviewCapacity ? (
           <ReconcileAction label="בדיקת נפח המיכל" onClick={onReviewCapacity} />
         ) : null}
-        <ReconcileAction label="המשך בלי מצב המיכל" onClick={onDiscard} />
+        <ReconcileAction label="המשך בלי המדים" onClick={onDiscard} />
       </div>
     </div>
   );
