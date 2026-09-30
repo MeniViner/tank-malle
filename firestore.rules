@@ -120,7 +120,11 @@ service cloud.firestore {
              'fillEndState', 'fillEndStateSource',
              'preFillLevel', 'preFillLevelSource', 'preFillLevelUncertainty',
              'postFillLevel', 'postFillLevelSource', 'postFillLevelUncertainty',
-             'refuelReason', 'capacityLitersAtEntry', 'tankSchemaVersion'
+             'refuelReason', 'capacityLitersAtEntry', 'tankSchemaVersion',
+             // Optimistic-concurrency stamp. Its VALUE is checked on the
+             // fill-up allow lines (versionOk on create, stored + 1 on
+             // update), not here, to keep the shared path cheap.
+             'version'
            ])
         // Each bound here is tighter than isNumber's ±1e10, so the cheaper
         // NaN-only predicate gives the same accepted set (Infinity fails the
@@ -151,6 +155,21 @@ service cloud.firestore {
         && optionalString(data, 'notes', 500)
         && (data.get('station', null) == null || validStation(data.station))
         && validTankFields(data);
+    }
+
+    // Optimistic-concurrency stamp on a fill-up, CREATE side. ABSENT is fine
+    // — an older client never sends it — but once present it must be a real
+    // number >= 1 (an explicit null is rejected, like fullTankSource). The
+    // upper bound is isNumber's own ceiling, so Infinity is still out.
+    //
+    // Deliberately not part of validFillup: on update the stamp must equal
+    // stored + 1 (see the fill-up `allow update` line), and that equality
+    // already forces a well-formed number — the stored value passed this
+    // check when it was written, or is absent and counts as 0 — so running
+    // the range check again there would only spend expression budget.
+    function versionOk(data) {
+      return !('version' in data)
+        || (isNonNaNNumber(data.version) && data.version >= 1 && data.version < 9999999999);
     }
 
     // ---------------------------------------------------------------------
@@ -448,7 +467,19 @@ service cloud.firestore {
         match /fillups/{fillupId} {
           allow read: if isOwner(uid);
           allow delete: if isOwner(uid);
-          allow create, update: if isOwner(uid) && validFillup(request.resource.data);
+          allow create: if isOwner(uid) && validFillup(request.resource.data)
+            && versionOk(request.resource.data);
+          // Optimistic concurrency: a client that stamps `version` must be
+          // writing over the document it read, so the new stamp has to be
+          // exactly stored + 1 (a legacy document with no stamp counts as 0).
+          // A patch that omits the field is a pre-version client and is let
+          // through — note that updateDoc merges the stored fields into
+          // request.resource.data, so on a versioned document that patch
+          // DOES carry the stored version, and stored == stored + 1 fails.
+          // Kept off the create line: `resource` is null there.
+          allow update: if isOwner(uid) && validFillup(request.resource.data)
+            && (!('version' in request.resource.data)
+                || request.resource.data.version == resource.data.get('version', 0) + 1);
         }
 
         /**
