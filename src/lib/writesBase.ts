@@ -23,4 +23,3 @@ export function fillupBaseMatches(before: OutboxPayload, server: OutboxPayload):
     return equal(before[key], server[key]);
   });
 }
-

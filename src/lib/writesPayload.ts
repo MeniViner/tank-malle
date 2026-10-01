@@ -17,4 +17,3 @@ export function genericPayloadMatches(mine: OutboxPayload, theirs: OutboxPayload
     return matches(value, other);
   });
 }
-
