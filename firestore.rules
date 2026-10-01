@@ -491,7 +491,11 @@ service cloud.firestore {
           //  - a pre-version client never touches `writeId`. Its updateDoc
           //    merges the stored `version` back in unchanged, and its setDoc
           //    carries neither field: both are let through as they were
-          //    before versions existed (last write wins, nothing lost).
+          //    before versions existed (legacy last-write-wins remains).
+          // Modern clients compare editable state in a server transaction:
+          // version/writeId alone cannot detect an intervening legacy patch.
+          // These compatible rules cannot protect older unconditional clients;
+          // preserve their queued inputs and upgrade before editing conflicts.
           allow update: if isOwner(uid) && validFillup(request.resource.data)
             && ((('writeId' in request.resource.data)
                  && request.resource.data.diff(resource.data).affectedKeys().hasAny(['writeId']))

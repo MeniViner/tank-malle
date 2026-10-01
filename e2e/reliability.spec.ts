@@ -372,3 +372,17 @@ test("a record changed on another device is flagged without overwriting what was
   await expect(page.getByLabel("הערה")).toHaveValue("מה שהקלדתי");
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("40");
 });
+
+test('Undo of a newly created fill-up uses its actual write marker and removes it on the server', async ({page}) => {
+  const {uid,vehicleId} = await signedInWithData(page);
+  await page.goto('/fillup/new');
+  await page.getByLabel(/^קילומטראז׳/).fill('100000');
+  await page.getByLabel('ליטרים',{exact:true}).fill('20');
+  await page.getByLabel('מחיר לליטר').fill('7');
+  await page.getByRole('button',{name:'שמירת תדלוק'}).click();
+  const undo = page.getByRole('button',{name:'ביטול',exact:true});
+  await expect(undo).toBeVisible();
+  await expect(async () => expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(1)).toPass({timeout:4000});
+  await undo.click();
+  await expect(async () => expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0)).toPass({timeout:15000});
+});

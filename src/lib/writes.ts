@@ -35,7 +35,8 @@ export type MutationKind =
   | "tank.observation.delete"
   | "tank.plan"
   | "tank.plan.delete"
-  | "account.delete";
+  | "account.delete"
+  | "adminPrice.update";
 
 export type MutationState = "pending" | "synced" | "failed";
 
@@ -91,6 +92,7 @@ export const MUTATION_LABELS: Record<MutationKind, string> = {
   "tank.plan": "שמירת נסיעה מתוכננת",
   "tank.plan.delete": "מחיקת נסיעה מתוכננת",
   "account.delete": "מחיקת חשבון",
+  "adminPrice.update": "עדכון מחיר מנהל",
 };
 
 let counter = 0;
@@ -199,6 +201,8 @@ export class WriteTracker {
 /** Hebrew explanation for the failure states worth distinguishing. */
 export function describeError(error: unknown): string {
   const code = (error as { code?: string })?.code ?? "";
+  if (code === "conflict") return "הרשומה השתנתה בשרת — העריכה שלך נשמרה להשוואה";
+  if (code === "unavailable") return "אין חיבור לשרת — נשמר במכשיר וממתין לניסיון חוזר";
   if (code === "permission-denied") return "אין הרשאה לשמור את הרשומה הזו";
   if (code === "invalid-argument") return "הנתונים שנשלחו אינם תקינים";
   if (code === "not-found") return "הרשומה כבר לא קיימת";

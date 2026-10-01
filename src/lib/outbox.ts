@@ -41,6 +41,8 @@
  */
 
 import type { MutationKind } from "./writes";
+import { fillupPayloadMatches } from "./fillupSerializer";
+import { fillupBaseMatches } from "./writesBase";
 
 export type OutboxStatus = "pending" | "failed" | "conflict";
 
@@ -910,11 +912,11 @@ export function reconcileWithServer(
     // earlier attempt got through), or the document moved past its base —
     // which is a conflict, whether the rejection or this snapshot came first.
     if (op.status === "failed") {
-      if (op.opType === "delete" || !server || server.hasPendingWrites) continue;
+      if (!server || server.hasPendingWrites) continue;
       if (op.payload && matches(op.payload, server.data)) {
         verdicts.push({ ...base, verdict: "synced" });
       } else if (
-        op.opType === "update" &&
+        (op.opType === "update" || op.opType === "delete" || op.kind === "fillup.restore") &&
         op.beforeImage &&
         !sameBase(op.beforeImage, server.data, matches)
       ) {
@@ -929,6 +931,8 @@ export function reconcileWithServer(
       if (server) {
         if (server.hasPendingWrites || snapshotHasPendingWrites) {
           verdicts.push({ ...base, verdict: "still-pending" });
+        } else if (op.beforeImage && !sameBase(op.beforeImage, server.data, matches)) {
+          verdicts.push({ ...base, verdict: "conflict", serverImage: server.data });
         } else {
           verdicts.push({
             ...base,
@@ -980,18 +984,21 @@ export function reconcileWithServer(
 
 /**
  * Whether the server still holds the document an update was based on. A
- * concurrency version decides when both sides carry one; otherwise the
- * content comparison does.
+ * version and content must both match: legacy patches can change content
+ * without advancing the modern version or writeId.
  */
 function sameBase(
   before: OutboxPayload,
   server: OutboxPayload,
   matches: (a: OutboxPayload, b: OutboxPayload) => boolean,
 ): boolean {
+  if (matches === fillupPayloadMatches) return fillupBaseMatches(before, server);
   const mine = before.version;
   const theirs = server.version;
   if (typeof mine === "number" || typeof theirs === "number") {
-    return (typeof mine === "number" ? mine : 0) === (typeof theirs === "number" ? theirs : 0);
+    return (typeof mine === "number" ? mine : 0) === (typeof theirs === "number" ? theirs : 0)
+      && (before.writeId ?? null) === (server.writeId ?? null)
+      && matches(before, server);
   }
   return matches(before, server);
 }

@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { parseFillupDocument, serializeFillup } from "../fillupSerializer";
 import { sortFillups, type Fillup, type Vehicle } from "../stats";
 import { levelAfter, projectAfterFill, replayBalance } from "./balance";
 import { litersVsCapacity, UNTRUSTED_CAPACITY_HEADROOM } from "./capacityChecks";
@@ -499,7 +500,7 @@ describe("tank outcome round trip", () => {
     expect(balance.anchor).toBeNull();
   });
 
-  it("an explicit 'unknown' choice is a complete answer that stores no levels", () => {
+  it("an explicit 'unknown' endpoint preserves independently entered before evidence", () => {
     const outcome = resolveTankOutcome({
       draft: withEndChoice(draft({ beforeLevel: 0.25 }), "unknown"),
       litersAdded: 30,
@@ -510,7 +511,8 @@ describe("tank outcome round trip", () => {
     expect(outcome.fields).toMatchObject({
       fillEndState: "unknown",
       fillEndStateSource: "unknown",
-      preFillLevel: null,
+      preFillLevel: 0.25,
+      preFillLevelSource: "direct-gauge",
       postFillLevel: null,
     });
     expect(outcome.displayAfterLevel).toBeNull();
@@ -934,4 +936,35 @@ describe("tankInputSignature", () => {
       });
     expect(signature(direct)).not.toBe(signature(derived));
   });
+});
+
+
+describe("tank measurement serializer/read/model round trips", () => {
+  for (const capacity of [none, estimated, trusted]) {
+    it(`keeps unknown before evidence for ${capacity.liters ?? "missing"} capacity, trusted=${capacity.trusted}`, () => {
+      const outcome = resolveTankOutcome({ draft: withEndChoice(draft({ beforeLevel: 0.25 }), "unknown"), litersAdded: 12, capacity });
+      const payload = serializeFillup(stored("unknown", { odometer: 1000, liters: 12 }, outcome.fields));
+      const read = parseFillupDocument("unknown", { ...payload, createdAt: T0 });
+      expect(read.ok).toBe(true);
+      if (!read.ok) throw new Error(read.reason);
+      expect(toFillEvent(read.fillup, capacity.liters).preFill?.level).toBe(0.25);
+      const reopened = resolveTankOutcome({ draft: draftFromFields(read.fillup), litersAdded: read.fillup.liters, capacity });
+      expect(reopened.fields).toEqual(outcome.fields);
+      expect(reopened.displayAfterLevel).toBeNull();
+    });
+
+    it(`keeps after-only without inventing before for ${capacity.liters ?? "missing"} capacity, trusted=${capacity.trusted}`, () => {
+      const outcome = resolveTankOutcome({ draft: draft({ afterLevelOverride: 0.6 }), litersAdded: 12, capacity });
+      const payload = serializeFillup(stored("after", { odometer: 1000, liters: 12 }, outcome.fields));
+      const read = parseFillupDocument("after", { ...payload, createdAt: T0 });
+      expect(read.ok).toBe(true);
+      if (!read.ok) throw new Error(read.reason);
+      expect(toFillEvent(read.fillup, capacity.liters).postFill?.level).toBe(0.6);
+      expect(read.fillup.preFillLevel).toBeNull();
+      const reopened = resolveTankOutcome({ draft: draftFromFields(read.fillup), litersAdded: read.fillup.liters, capacity });
+      expect(reopened.fields).toEqual(outcome.fields);
+      expect(reopened.displayAfterLevel).toBe(0.6);
+      expect(reopened.displayBeforeLevel).toBeNull();
+    });
+  }
 });

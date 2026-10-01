@@ -139,7 +139,7 @@ export function TankStateSection({
                 level={afterLevel}
                 onChange={
                   editingAfter && !confirmedFull
-                    ? (level) => patch({ afterLevelOverride: level })
+                    ? (level) => onChange({ ...withEndChoice(draft, "partial"), afterLevelOverride: level })
                     : undefined
                 }
                 confirmedFull={confirmedFull}
@@ -154,7 +154,7 @@ export function TankStateSection({
               />
             </div>
 
-            {!confirmedFull && afterLevel !== null ? (
+            {!confirmedFull ? (
               <div className="flex flex-wrap items-center justify-center gap-2">
                 {editingAfter ? (
                   <>
@@ -163,11 +163,10 @@ export function TankStateSection({
                       type="button"
                       onClick={() => {
                         setEditingAfter(false);
-                        patch({ afterLevelOverride: null });
                       }}
                       className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
                     >
-                      {draft.afterLevelOverride !== null ? "ביטול התיקון" : "סגירה"}
+                      סגירה
                     </button>
                   </>
                 ) : (
@@ -176,9 +175,18 @@ export function TankStateSection({
                     onClick={() => setEditingAfter(true)}
                     className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
                   >
-                    {draft.afterLevelOverride !== null ? "תיקון המד אחרי" : "לא נראה נכון?"}
+                    {draft.afterLevelOverride !== null ? "תיקון המד אחרי" : afterLevel === null ? "הזנת המצב אחרי" : "לא נראה נכון?"}
                   </button>
                 )}
+                {draft.afterLevelOverride !== null ? (
+                  <button
+                    type="button"
+                    onClick={() => patch({ afterLevelOverride: null })}
+                    className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-muted"
+                  >
+                    הסרת המד אחרי
+                  </button>
+                ) : null}
               </div>
             ) : null}
 
