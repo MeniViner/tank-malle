@@ -18,6 +18,7 @@ import {
   limit,
   onSnapshot,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
@@ -61,6 +62,8 @@ import {
   toEpochMillis,
   type FillupWrite,
 } from "../lib/fillupSerializer";
+import { genericPayloadMatches } from "../lib/writesPayload";
+import { conditionalFillupWrite, fillupBaseMatches, FillupConflictError } from "../lib/writesConditional";
 import { APP_VERSION } from "../lib/version";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
@@ -82,6 +85,8 @@ import {
   type TankPreferences,
 } from "../lib/tank/types";
 
+import { readScopedTankInput, type ScopedTankInput, type TankInputScope, type TankInputStatus } from "../lib/tank/inputScope";
+
 interface DataContextValue {
   ready: boolean;
   settings: UserSettings;
@@ -90,6 +95,7 @@ interface DataContextValue {
   activeVehicle: Vehicle | null;
   fillups: Fillup[];
   prices: RegulatedPriceConfig | null;
+  updateAdminPrices: (payload: OutboxPayload) => Promise<void>;
   /** True while the initial fill-up snapshot is still loading. */
   loadingFillups: boolean;
   /** True when the current view came from the local cache, not the server. */
@@ -150,7 +156,7 @@ interface DataContextValue {
    */
   addFillup: (
     fillup: FillupWrite,
-    options?: { replaceOpId?: string | null; vehicleId?: string },
+    options?: { replaceOpId?: string | null; vehicleId?: string; onWritten?: (fillup: Fillup) => void },
   ) => Promise<string>;
   /**
    * Replace a record's fields. `previous` is the before-image: kept in the
@@ -161,7 +167,7 @@ interface DataContextValue {
     next: FillupWrite,
     previous?: Fillup | null,
     options?: { replaceOpId?: string | null; vehicleId?: string },
-  ) => Promise<void>;
+  ) => Promise<Fillup | null>;
   deleteFillup: (fillup: Fillup) => Promise<void>;
   /** Re-create a deleted record with its original id and creation metadata, for Undo. */
   restoreFillup: (fillup: Fillup) => Promise<void>;
@@ -189,6 +195,9 @@ interface DataContextValue {
    * These are readings, not transactions: nothing here creates spending or
    * purchased litres, and none of it ever leaves the owner's own subtree.
    */
+  tankInputScope: TankInputScope;
+  observationsStatus: TankInputStatus;
+  plansStatus: TankInputStatus;
   observations: TankObservation[];
   addObservation: (
     observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">,
@@ -423,6 +432,7 @@ function toFirestoreData(payload: OutboxPayload): Record<string, unknown> {
     if (key === "date" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
     else if (key === "observedAt" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
     else if (value === SERVER_TIMESTAMP) out[key] = serverTimestamp();
+    else if (key.endsWith(".effectiveFrom") && typeof value === "number") out[key] = Timestamp.fromMillis(value);
     else if (key === "createdAt" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
     else if (key === "recordedAt" && typeof value === "number") out[key] = Timestamp.fromMillis(value);
     else out[key] = value;
@@ -478,19 +488,6 @@ function unverified(): { code: string; message: string; at: number } {
   };
 }
 
-/** Content equality for documents without a dedicated serializer (timestamps ignored). */
-function genericPayloadMatches(mine: OutboxPayload, theirs: OutboxPayload): boolean {
-  for (const [key, value] of Object.entries(mine)) {
-    if (value === SERVER_TIMESTAMP) continue;
-    const other = theirs[key];
-    const left = typeof value === "number" && (key === "date" || key === "observedAt") ? value : value;
-    const right = typeof other === "object" && other !== null && "toMillis" in (other as object)
-      ? toEpochMillis(other)
-      : other;
-    if (JSON.stringify(left ?? null) !== JSON.stringify(right ?? null)) return false;
-  }
-  return true;
-}
 
 /**
  * Journal several operations, hand ONE write to Firestore for them, and bind
@@ -519,7 +516,9 @@ async function submitMany(
     (error: unknown) =>
       Promise.all(
         operations.map((op) =>
-          outbox.fail(op.opId, op.version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
+          error instanceof FillupConflictError
+            ? outbox.markConflict(op.opId, op.version, error.serverImage)
+            : outbox.fail(op.opId, op.version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
         ),
       ),
   );
@@ -633,7 +632,7 @@ function applyVerdicts(outbox: Outbox, verdicts: ReconcileVerdict[]): void {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { setTheme, setAccent } = useTheme();
 
   // The uid, not the User object: a token refresh produces a NEW User instance
@@ -651,8 +650,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
   const [priceRules, setPriceRules] = useState<StoredPriceRule[]>([]);
-  const [observations, setObservations] = useState<TankObservation[]>([]);
-  const [plans, setPlans] = useState<TankPlan[]>([]);
+  const [observationSnapshot, setObservationSnapshot] = useState<ScopedTankInput<TankObservation> | null>(null);
+  const [planSnapshot, setPlanSnapshot] = useState<ScopedTankInput<TankPlan> | null>(null);
   const [outboxOps, setOutboxOps] = useState<OutboxOperation[]>([]);
   const [outboxHealth, setOutboxHealth] = useState<OutboxHealth>(UNOPENED_HEALTH);
   const [outboxReady, setOutboxReady] = useState(false);
@@ -965,6 +964,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   /* ---------- fill-ups for the active vehicle ---------- */
 
   const activeVehicleId = activeVehicle?.id ?? null;
+  const tankInputScope = useMemo<TankInputScope>(() => ({ uid, vehicleId: activeVehicleId }), [uid, activeVehicleId]);
+  const { records: observations, status: observationsStatus } = readScopedTankInput(observationSnapshot, tankInputScope);
+  const { records: plans, status: plansStatus } = readScopedTankInput(planSnapshot, tankInputScope);
 
   useEffect(() => {
     // Keyed on the vehicle ID, not the vehicle object: a vehicle edit (a
@@ -1048,18 +1050,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * it into `fillups` would make it one.
    */
   useEffect(() => {
-    if (!uid || !activeVehicle) {
-      setObservations([]);
+    if (!uid || !activeVehicleId) {
+      setObservationSnapshot(null);
       return;
     }
     const generation = generationRef.current;
-    const cached = readCache<TankObservation[]>(uid, `observations.${activeVehicle.id}`);
-    if (cached) setObservations(cached);
+    const cached = readCache<TankObservation[]>(uid, `observations.${activeVehicleId}`);
+    setObservationSnapshot({ scope: tankInputScope, records: cached ?? [], status: cached ? "cached" : "loading" });
 
     return subscribeResilient<QuerySnapshot<DocumentData>>(
       (onNext, onError) =>
         onSnapshot(
-          collection(db, "users", uid, "vehicles", activeVehicle.id, "observations"),
+          collection(db, "users", uid, "vehicles", activeVehicleId, "observations"),
           { includeMetadataChanges: true },
           onNext,
           onError,
@@ -1069,7 +1071,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const data = entry.data();
           return {
             id: entry.id,
-            vehicleId: activeVehicle.id,
+            vehicleId: activeVehicleId,
             observedAt: toMillis(data.observedAt),
             recordedAt: toMillis(data.recordedAt),
             kind: (data.kind ?? "both") as TankObservation["kind"],
@@ -1086,26 +1088,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
           } satisfies TankObservation;
         });
         list.sort((a, b) => a.observedAt - b.observedAt);
-        setObservations(list);
-        writeCache(uid, `observations.${activeVehicle.id}`, list);
+        setObservationSnapshot({ scope: tankInputScope, records: list, status: snapshot.metadata.fromCache ? "cached" : "ready" });
+        writeCache(uid, `observations.${activeVehicleId}`, list);
 
-        reconcileLater(snapshot, `users/${uid}/vehicles/${activeVehicle.id}/observations`, genericPayloadMatches);
+        reconcileLater(snapshot, `users/${uid}/vehicles/${activeVehicleId}/observations`, genericPayloadMatches);
       },
-      { isCurrent: isCurrent(generation), label: "tank observations" },
+      { isCurrent: isCurrent(generation), label: "tank observations", onError: () =>
+        setObservationSnapshot((previous) => ({ scope: tankInputScope, records: readScopedTankInput(previous, tankInputScope).records, status: "unavailable" })) },
     );
-  }, [uid, activeVehicle, isCurrent, reconcileLater]);
+  }, [uid, activeVehicleId, tankInputScope, isCurrent, reconcileLater]);
 
   useEffect(() => {
-    if (!uid || !activeVehicle) {
-      setPlans([]);
+    if (!uid || !activeVehicleId) {
+      setPlanSnapshot(null);
       return;
     }
     const generation = generationRef.current;
+    const cached = readCache<TankPlan[]>(uid, `tankPlans.${activeVehicleId}`);
+    setPlanSnapshot({ scope: tankInputScope, records: cached ?? [], status: cached ? "cached" : "loading" });
 
     return subscribeResilient<QuerySnapshot<DocumentData>>(
       (onNext, onError) =>
         onSnapshot(
-          collection(db, "users", uid, "vehicles", activeVehicle.id, "tankPlans"),
+          collection(db, "users", uid, "vehicles", activeVehicleId, "tankPlans"),
+          { includeMetadataChanges: true },
           onNext,
           onError,
         ),
@@ -1114,7 +1120,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const data = entry.data();
           return {
             id: entry.id,
-            vehicleId: activeVehicle.id,
+            vehicleId: activeVehicleId,
             date: toMillis(data.date),
             distanceKm: Number(data.distanceKm ?? 0),
             mode: data.mode === "replaces" ? "replaces" : "additional",
@@ -1124,11 +1130,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
           } satisfies TankPlan;
         });
         list.sort((a, b) => a.date - b.date);
-        setPlans(list);
+        setPlanSnapshot({ scope: tankInputScope, records: list, status: snapshot.metadata.fromCache ? "cached" : "ready" });
+        writeCache(uid, `tankPlans.${activeVehicleId}`, list);
       },
-      { isCurrent: isCurrent(generation), label: "tank plans" },
+      { isCurrent: isCurrent(generation), label: "tank plans", onError: () =>
+        setPlanSnapshot((previous) => ({ scope: tankInputScope, records: readScopedTankInput(previous, tankInputScope).records, status: "unavailable" })) },
     );
-  }, [uid, activeVehicle, isCurrent]);
+  }, [uid, activeVehicleId, tankInputScope, isCurrent]);
 
   /* ---------- personal pricing rules ---------- */
 
@@ -1259,6 +1267,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [requireOutbox, track],
   );
 
+  const updateAdminPrices = useCallback(async (payload: OutboxPayload) => {
+    if (!user) throw new Error("not signed in");
+    if (!isAdmin) throw new Error("admin required");
+    const path = "appConfig/fuelPrices";
+    await submit({ kind: "adminPrice.update", path, vehicleId: null, payload, opType: "update" },
+      () => updateDoc(refFor(path), toFirestoreData(payload)));
+  }, [user, isAdmin, submit, refFor]);
+
   const updateSettings = useCallback(
     async (patch: Partial<UserSettings>) => {
       if (!uid) return;
@@ -1384,7 +1400,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const addFillup = useCallback(
     async (
       fillup: FillupWrite,
-      options: { replaceOpId?: string | null; vehicleId?: string } = {},
+      options: { replaceOpId?: string | null; vehicleId?: string; onWritten?: (fillup: Fillup) => void } = {},
     ) => {
       const vehicleId = options.vehicleId ?? activeVehicle?.id;
       if (!uid || !vehicleId) throw new Error("no active vehicle");
@@ -1397,7 +1413,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const payload = serializeFillup({ ...fillup, version: fillup.version ?? 1 });
       await submit(
         { kind: "fillup.add", path, vehicleId, payload, replaceOpId: options.replaceOpId ?? null },
-        (op) => setDoc(refFor(path), toFirestoreData(stamped(payload, op))),
+        (op) => {
+          const outgoing = stamped(payload, op);
+          const parsed = parseFillupDocument(docId, outgoing);
+          if (parsed.ok) options.onWritten?.(parsed.fillup);
+          return replaced
+            ? conditionalFillupWrite(db, refFor(path), "set", toFirestoreData(outgoing), null)
+            : setDoc(refFor(path), toFirestoreData(outgoing));
+        },
       );
       return docId;
     },
@@ -1412,14 +1435,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       options: { replaceOpId?: string | null; vehicleId?: string } = {},
     ) => {
       const vehicleId = options.vehicleId ?? activeVehicle?.id;
-      if (!uid || !vehicleId) return;
-      // The version the edit was made against, plus one. The rules refuse
-      // the update unless the server still holds exactly that base, which is
-      // what closes the check-then-write race — for an online edit and for
-      // one queued offline alike.
+      if (!uid || !vehicleId) return null;
+      // The transaction checks content as well as markers on every attempt:
+      // a legacy patch can change content without incrementing version.
+      // Offline input is journaled for explicit retry, never sent unconditionally.
       const base = previous?.version ?? 0;
       const patch = serializeFillupPatch({ ...next, version: base + 1 });
       const path = fillupPath(vehicleId, fillupId);
+      let written: Fillup | null = null;
       await submit(
         {
           kind: "fillup.update",
@@ -1430,8 +1453,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
           beforeImage: previous ? serializeFillupPatch(previous) : null,
           replaceOpId: options.replaceOpId ?? null,
         },
-        (op) => updateDoc(refFor(path), toFirestoreData(stamped(patch, op))),
+        (op) => {
+          const outgoing = stamped(patch, op);
+          written = { ...previous, ...next, createdAt: previous?.createdAt ?? undefined, id: fillupId, version: base + 1, writeId: outgoing.writeId as string };
+          return conditionalFillupWrite(db, refFor(path), "update", toFirestoreData(outgoing), op.beforeImage);
+        },
       );
+      return written;
     },
     [uid, activeVehicle, submit, fillupPath, refFor],
   );
@@ -1448,7 +1476,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           payload: null,
           beforeImage: serializeFillup(fillup),
         },
-        () => deleteDoc(refFor(path)),
+        (op) => conditionalFillupWrite(db, refFor(path), "delete", null, op.beforeImage),
       );
     },
     [uid, activeVehicle, submit, fillupPath, refFor],
@@ -1463,8 +1491,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const payload = serializeFillup({ ...fillup, version: (fillup.version ?? 0) + 1 });
       const path = fillupPath(activeVehicle.id, fillup.id);
       await submit(
-        { kind: "fillup.restore", path, vehicleId: activeVehicle.id, payload },
-        (op) => setDoc(refFor(path), toFirestoreData(stamped(payload, op))),
+        { kind: "fillup.restore", path, vehicleId: activeVehicle.id, payload, beforeImage: serializeFillup(fillup) },
+        (op) => conditionalFillupWrite(db, refFor(path), "set", toFirestoreData(stamped(payload, op)), op.beforeImage, true),
       );
     },
     [uid, activeVehicle, submit, fillupPath, refFor],
@@ -1480,9 +1508,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * content the entry is simply acknowledged; if it holds something newer the
    * entry becomes a conflict for the user to resolve; only a document in the
    * expected state (absent for a create, the same base for an update) is
-   * written — and for fill-ups the rules re-check the version on the server,
-   * so even a write that races another device is refused rather than
-   * silently winning.
+   * written. Fill-up mutations compare the base inside a transaction whose
+   * read-version precondition the server checks atomically, including legacy edits.
    *
    * A pending entry cannot be retried: the SDK already owns that write, and a
    * second competing write for the same input is exactly what this avoids.
@@ -1519,6 +1546,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (collectionOf(claimed.path).endsWith("/fillups")) {
+        const payload = claimed.payload;
+        const current = await getDocFromServer(refFor(claimed.path)).catch(() => null);
+        if (!current) {
+          await outbox.fail(opId, version, unverified());
+          return;
+        }
+        // Replays already acknowledged before a crash are idempotent. This
+        // read only settles equal content; all mutations use a transaction.
+        if (payload && current.exists() && fillupPayloadMatches(payload, current.data())) {
+          await outbox.acknowledge(opId, version);
+          return;
+        }
+        const mutation = conditionalFillupWrite(db, refFor(claimed.path), claimed.opType,
+          payload ? toFirestoreData(stamped(payload, claimed)) : null,
+          claimed.beforeImage, claimed.kind === "fillup.restore");
+        track(claimed.kind, mutation);
+        await mutation.then(
+          () => outbox.acknowledge(opId, version),
+          error => error instanceof FillupConflictError
+            ? outbox.markConflict(opId, version, error.serverImage)
+            : outbox.fail(opId, version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
+        );
+        return;
+      }
+
       const current = await getDocFromServer(refFor(claimed.path)).catch(() => null);
       if (!current) {
         await outbox.fail(opId, version, unverified());
@@ -1533,6 +1586,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // whose whitelist has no writeId — stamping it makes its retry fail.
       const stampable = collectionOf(claimed.path).endsWith("/fillups");
       const outgoing = (body: OutboxPayload) => toFirestoreData(stampable ? stamped(body, claimed) : body);
+
+      if (claimed.kind === "adminPrice.update") {
+        const payload = claimed.payload ?? {};
+        if (server && same(payload, server)) await outbox.acknowledge(opId, version);
+        else await settle(updateDoc(refFor(claimed.path), outgoing(payload)));
+        return;
+      }
 
       if (claimed.opType === "delete") {
         if (!server) {
@@ -1562,7 +1622,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const base = claimed.beforeImage;
         const baseMatches = base
           ? isFillup
-            ? (server.version ?? 0) === (base.version ?? 0)
+            ? fillupBaseMatches(base, server)
             : genericPayloadMatches(base, server)
           : false;
         if (!baseMatches) {
@@ -1885,10 +1945,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         const commits: Promise<unknown>[] = [];
         for (let i = 0; i < snapshot.docs.length; i += 400) {
-          const writeChunk = writeBatch(db);
           const chunkOps = rowOps.slice(i, i + 400);
-          snapshot.docs.slice(i, i + 400).forEach((entry) => writeChunk.delete(entry.ref));
-          const commit = writeChunk.commit();
+          const entries = snapshot.docs.slice(i, i + 400);
+          const commit = runTransaction(db, async transaction => {
+            const current = await Promise.all(entries.map(entry => transaction.get(entry.ref)));
+            current.forEach((entry, index) => {
+              if (!entry.exists()) return;
+              const before = chunkOps[index].beforeImage;
+              if (!before || !fillupBaseMatches(before, entry.data())) throw new FillupConflictError(entry.data());
+            });
+            current.forEach(entry => { if (entry.exists()) transaction.delete(entry.ref); });
+          });
           commits.push(commit);
           void commit.then(
             () => Promise.all(chunkOps.map((op) => outbox.acknowledge(op.opId, op.version))),
@@ -1910,8 +1977,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         const receipt = track("import.rollback", allCommits(commits));
 
-        // The local cache has already applied the deletions; whether the
-        // SERVER has is a separate question, and the caller is told which.
+        // Transactions delete only after server confirmation; pending means
+        // the conditional check or commit has not answered yet.
         const acknowledged = await Promise.race([
           receipt.settled,
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 6_000)),
@@ -2026,6 +2093,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       activeVehicle,
       fillups,
       prices,
+      updateAdminPrices,
       loadingFillups,
       fromCache,
       offline,
@@ -2057,6 +2125,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       priceRules,
       savePriceRule,
       deletePriceRule,
+      tankInputScope,
+      observationsStatus,
+      plansStatus,
       observations,
       addObservation,
       deleteObservation,
@@ -2075,6 +2146,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       activeVehicle,
       fillups,
       prices,
+      updateAdminPrices,
       loadingFillups,
       fromCache,
       offline,
@@ -2106,6 +2178,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       priceRules,
       savePriceRule,
       deletePriceRule,
+      tankInputScope,
+      observationsStatus,
+      plansStatus,
       observations,
       addObservation,
       deleteObservation,

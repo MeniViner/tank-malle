@@ -8,6 +8,7 @@ import {
   type TankEstimate,
 } from "../lib/tank";
 import { DEFAULT_TIME_ZONE } from "../lib/tank/config";
+import { previousTankLevel, type TankModelCarryover } from "../lib/tank/inputScope";
 import type { NextUpdateKind } from "../lib/tank/types";
 
 /**
@@ -53,7 +54,7 @@ export interface TankEstimateHandle {
 
 export function useTankEstimate(): TankEstimateHandle {
   const { user } = useAuth();
-  const { activeVehicle, fillups, observations, plans, tankPreferences } = useData();
+  const { activeVehicle, fillups, observations, plans, tankPreferences, tankInputScope } = useData();
   const uid = user?.uid ?? null;
 
   const [now, setNow] = useState(() => Date.now());
@@ -118,7 +119,7 @@ export function useTankEstimate(): TankEstimateHandle {
   );
 
   // Stabilised so a small model change does not make the headline oscillate.
-  const previousLevel = useRef<number | null>(null);
+  const previousLevel = useRef<TankModelCarryover | null>(null);
 
   const fitNow = Math.floor(now / FIT_GRANULARITY_MS) * FIT_GRANULARITY_MS;
 
@@ -131,9 +132,9 @@ export function useTankEstimate(): TankEstimateHandle {
         preferences: tankPreferences,
         now: fitNow,
         timeZone: DEFAULT_TIME_ZONE,
-        previousDisplayLevel: previousLevel.current,
+        previousDisplayLevel: previousTankLevel(previousLevel.current, tankInputScope),
       });
-      previousLevel.current = result.habit.displayLevel;
+      previousLevel.current = { scope: tankInputScope, level: result.habit.displayLevel };
       return result;
     },
     // Keyed on the SIGNATURE rather than on the arrays themselves: it covers
@@ -141,7 +142,7 @@ export function useTankEstimate(): TankEstimateHandle {
     // capacity change or an account switch all invalidate the fit, while a
     // fresh array with identical contents does not.
     // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberate: the signature IS the dependency
-    [signature, fitNow],
+    [signature, fitNow, tankInputScope],
   );
 
   const estimate = useMemo(

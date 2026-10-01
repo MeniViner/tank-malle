@@ -34,7 +34,7 @@ export function Field({
     .join(" ");
 
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
       <label
         htmlFor={id}
         className="truncate text-[13px] font-semibold tracking-[0.02em] text-muted"

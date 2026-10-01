@@ -123,7 +123,7 @@ export function draftFromFields(fields: FillupTankFields): TankStateDraft {
   const endChoice: TankEndChoice | null = confirmedFull
     ? "full"
     : fields.fillEndState === "unknown" && fields.fillEndStateSource === "unknown"
-      ? null
+      ? "unknown"
       : fields.fillEndState === "partial" && fields.fillEndStateSource === "user-confirmed"
         ? "partial"
         : null;
@@ -361,7 +361,7 @@ export function resolveTankOutcome(input: TankOutcomeInput): TankOutcome {
       beforeIsDerived: false,
       state: choice === "unknown" ? "ok" : "unknownBefore",
       toleranceSd,
-      fields: { ...base, fillEndState: "unknown", fillEndStateSource: "unknown" },
+      fields: { ...base, ...statedBefore, fillEndState: "unknown", fillEndStateSource: "unknown" },
       message:
         choice === "unknown"
           ? null

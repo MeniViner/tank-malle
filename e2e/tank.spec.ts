@@ -363,3 +363,53 @@ test("§16.15.12 sharing uses the native sheet when the platform offers one", as
   // The native sheet already gave feedback; the app must not add a toast.
   await expect(page.getByText("הקישור הועתק")).toHaveCount(0);
 });
+
+test("unknown endpoint preserves before evidence through server read and reopening", async ({ page }) => {
+  const { uid, vehicleId } = await freshVehicle(page);
+  await page.goto("/fillup/new");
+  await page.getByLabel(/^קילומטראז׳/).fill("100000");
+  await page.getByLabel("ליטרים", { exact: true }).fill("12");
+  await page.getByLabel("מחיר לליטר").fill("7");
+  await page.getByRole("button", { name: "לא יודע", exact: true }).click();
+  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
+  await before.press("Home");
+  await before.press("PageUp");
+  await before.press("ArrowUp");
+  await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
+  const [record] = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
+  expect(record.data).toMatchObject({ fillEndState: "unknown", preFillLevel: 0.25, preFillLevelSource: "direct-gauge", postFillLevel: null });
+  await page.goto(`/fillup/${record.id}`);
+  await expect(page.getByRole("button", { name: "לא יודע", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveAttribute("aria-valuenow", "25");
+});
+
+test("after-only entry without capacity survives editor close and server reload", async ({ page }) => {
+  const { uid, vehicleId } = await freshVehicle(page);
+  await page.goto("/fillup/new");
+  await page.getByLabel(/^קילומטראז׳/).fill("100000");
+  await page.getByLabel("ליטרים", { exact: true }).fill("12");
+  await page.getByLabel("מחיר לליטר").fill("7");
+  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await page.getByRole("button", { name: "הזנת המצב אחרי", exact: true }).click();
+  const after = page.getByRole("slider", { name: "מצב המיכל אחרי התדלוק" });
+  await after.press("Home");
+  await after.press("PageUp");
+  await after.press("PageUp");
+  await after.press("PageUp");
+  await expect(after).toHaveAttribute("aria-valuenow", "60");
+  await page.getByRole("button", { name: "סגירה", exact: true }).last().click();
+  await page.getByRole("button", { name: "תיקון המד אחרי", exact: true }).click();
+  await page.getByRole("button", { name: "סגירה", exact: true }).last().click();
+  await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
+  const [record] = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
+  expect(record.data).toMatchObject({ fillEndState: "partial", preFillLevel: null, postFillLevelSource: "user-correction" });
+  expect(record.data.postFillLevel).toBeCloseTo(0.6, 10);
+  await page.goto(`/fillup/${record.id}`);
+  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await expect(page.getByText("לפני", { exact: true })).toBeVisible();
+  await expect(page.getByText("כ־60%", { exact: true })).toBeVisible();
+});

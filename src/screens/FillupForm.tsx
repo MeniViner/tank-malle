@@ -31,9 +31,8 @@ import {
 } from "../lib/receipt";
 import {
   fillupFromPayload,
-  serializeFillup,
   serializeFillupPatch,
-  validateFillupPayload,
+  validateFillupInput,
   type FieldError,
   type FillupWrite,
 } from "../lib/fillupSerializer";
@@ -768,8 +767,8 @@ function FillupEditor({
   ]);
 
   const fieldErrors = useMemo<FieldError[]>(
-    () => (nextRecord ? validateFillupPayload(serializeFillup(nextRecord)) : []),
-    [nextRecord],
+    () => (nextRecord ? validateFillupInput({ ...nextRecord, notes }) : []),
+    [nextRecord, notes],
   );
   const errorFor = (field: FieldError["field"]) =>
     fieldErrors.find((entry) => entry.field === field)?.message ?? null;
@@ -809,12 +808,11 @@ function FillupEditor({
     try {
       if (editing && (!operation || operation.kind === "fillup.update")) {
         const previous: Fillup = { ...(editBase ?? editing) };
-        await updateFillup(editing.id, nextRecord, previous, {
+        const written = await updateFillup(editing.id, nextRecord, previous, {
           replaceOpId: operation?.opId ?? null,
           vehicleId: operation?.vehicleId ?? undefined,
         });
         // What the server will hold once this edit lands: the base plus one.
-        const written: Fillup = { ...(nextRecord as Fillup), id: editing.id, version: (previous.version ?? 0) + 1 };
         showToast({
           tone: "success",
           title: operation ? "התדלוק נשלח מחדש" : "התדלוק עודכן",
@@ -823,10 +821,12 @@ function FillupEditor({
           // The Undo sends the previous record through the same serializer —
           // never the UI object with its `id` — based on the version this
           // edit produced, so the server accepts exactly one of the two.
-          onUndo: operation ? undefined : () => updateFillup(previous.id, previous, written),
+          onUndo: operation || !written ? undefined : async () => { await updateFillup(previous.id, previous, written); },
         });
       } else {
-        const newId = await addFillup(nextRecord, {
+        let submitted: Fillup | null = null;
+        await addFillup(nextRecord, {
+          onWritten: snapshot => { submitted = snapshot; },
           replaceOpId: operation?.opId ?? null,
           vehicleId: operation?.vehicleId ?? undefined,
         });
@@ -851,8 +851,7 @@ function FillupEditor({
           undoLabel: "ביטול",
           duration: 5000,
           onUndo: () => {
-            const created = { ...(nextRecord as Fillup), id: newId };
-            void deleteFillup(created);
+            if (submitted) void deleteFillup(submitted);
           },
         });
       }
@@ -923,9 +922,9 @@ function FillupEditor({
 
   return (
     <main className="flex min-h-dvh flex-1 flex-col bg-bg pt-safe">
-      <header className="flex flex-none items-start justify-between gap-3 px-5 pb-3 pt-2.5">
+      <header className="flex flex-none items-start justify-between gap-2 px-3 pb-3 pt-2.5 min-[400px]:px-5">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <h1 className="truncate text-[24px] font-bold leading-tight text-ink">
+          <h1 className="truncate text-[22px] min-[400px]:text-[24px] font-bold leading-tight text-ink">
             {operation ? "תיקון תדלוק שלא סונכרן" : isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
           </h1>
           <span className="flex w-fit max-w-full items-center gap-1.5 truncate rounded-pill border border-line bg-surface px-2.5 py-1 text-[12px] font-semibold text-muted">
@@ -956,7 +955,7 @@ function FillupEditor({
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-5 pb-40">
+      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-40 min-[400px]:px-5">
         {operation ? (
           <div className="flex flex-col gap-1 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
             <span className="text-[13.5px] font-bold">
@@ -981,13 +980,13 @@ function FillupEditor({
         {deletedElsewhere ? (
           <SoftWarningBanner
             message="הרשומה נמחקה במכשיר אחר"
-            detail="שמירה תיצור אותה מחדש עם אותו מזהה."
+            detail="שמירה לא תשחזר אותה אוטומטית. הקלט יישמר במכשיר לבדיקה."
           />
         ) : changedElsewhere ? (
           <div className="flex flex-col gap-2 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
             <span className="text-[13.5px] font-bold">הרשומה השתנתה במכשיר אחר</span>
             <span className="text-[12.5px] leading-relaxed">
-              מה שהקלדתם כאן נשמר. שמירה תדרוס את הגרסה החדשה; טעינה מחדש תציג אותה ותוותר על השינויים שכאן.
+              מה שהקלדתם כאן נשמר. שמירה תיבדק מול השרת ותיעצר אם הגרסה השתנתה; טעינה מחדש תציג אותה ותוותר על השינויים שכאן.
             </span>
             {onReload ? (
               <button
@@ -1044,7 +1043,7 @@ function FillupEditor({
             <IconTile>
               <CalendarIcon size={18} />
             </IconTile>
-            <span className="flex flex-1 flex-col gap-0.5">
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <Label className="text-[12.5px]">תאריך ושעה</Label>
               <span className="text-[15px] font-semibold text-ink">
                 {dateConfirmed ? (
@@ -1089,7 +1088,7 @@ function FillupEditor({
             <IconTile>
               <span className="text-[17px] font-bold">₪</span>
             </IconTile>
-            <span className="flex flex-1 flex-col gap-0.5">
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
               <Label className="text-[12.5px]">מחיר לליטר</Label>
               <span className="text-[12px] text-muted">
                 {receipt.authored.includes("pricePerLiter")
@@ -1304,7 +1303,6 @@ function FillupEditor({
             aria-label="הערה"
             dir="rtl"
             value={notes}
-            maxLength={500}
             onChange={(event) => setNotes(event.target.value)}
             placeholder="לא חובה"
             className="min-h-[52px] w-full rounded-[14px] border border-line bg-bg px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"

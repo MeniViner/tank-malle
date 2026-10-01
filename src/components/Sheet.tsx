@@ -71,7 +71,7 @@ export function Sheet({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        className="tm-sheet-in relative w-full max-w-[430px] rounded-t-sheet border-t border-line bg-surface pb-safe shadow-sheet"
+        className="tm-sheet-in relative max-h-[90dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-sheet border-t border-line bg-surface pb-safe shadow-sheet"
       >
         <div className="flex justify-center pt-2.5">
           <span className="h-1 w-9 rounded-pill bg-line" />

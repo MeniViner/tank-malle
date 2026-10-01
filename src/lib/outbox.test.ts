@@ -12,6 +12,7 @@ import {
   type KeyValueStorage,
   type OutboxOperation,
 } from "./outbox";
+import { genericPayloadMatches } from "./writesPayload";
 import { fillupPayloadMatches, serializeFillup } from "./fillupSerializer";
 
 /** In-memory Web Storage for the legacy-migration paths. */
@@ -81,6 +82,28 @@ describe("durability", () => {
     expect(stored.revision).toBe(1);
     expect(stored.version).toBe(1);
     expect(stored.clientVersion).toBe("1.1.0");
+  });
+
+  it("keeps an admin price draft account-scoped through offline reload, rejection and safe retry", async () => {
+    const env = fresh();
+    const outbox = await Outbox.open("alice", "1.1.0", env);
+    const draft = { "gasoline95.pricePerLiter": 7.31, "gasoline95.effectiveFrom": 1000, "gasoline95.updatedAt": "__serverTimestamp__" };
+    const op = await outbox.enqueue({ kind: "adminPrice.update", path: "appConfig/fuelPrices", vehicleId: null, opType: "update", payload: draft });
+    outbox.close();
+    const again = await Outbox.open("alice", "1.1.0", env);
+    expect((await again.get(op.opId))?.payload).toEqual(draft);
+    await again.fail(op.opId, op.version, { code: "permission-denied", message: "denied", at: 1 });
+    expect((await again.get(op.opId))?.payload).toEqual(draft);
+    const bob = await Outbox.open("bob", "1.1.0", env);
+    expect(await bob.list()).toEqual([]);
+    const retry = (await again.claimRetry(op.opId))!;
+    expect(retry.payload).toEqual(draft);
+    expect(retry.version).toBe(op.version + 1);
+    const server = { gasoline95: { pricePerLiter: 7.31, effectiveFrom: { toMillis: () => 1000 }, updatedAt: { toMillis: () => 2000 } } };
+    expect(genericPayloadMatches(draft, server)).toBe(true);
+    expect(genericPayloadMatches(draft, { gasoline95: { ...server.gasoline95, pricePerLiter: 7.32 } })).toBe(false);
+    await again.acknowledge(retry.opId, retry.version);
+    expect(await again.list()).toEqual([]);
   });
 
   it("keeps three offline records through reload and a rejection of all of them", async () => {
@@ -491,6 +514,18 @@ describe("reconciling pending operations with a server snapshot", () => {
         fillupPayloadMatches,
       )[0].verdict,
     ).toBe("conflict");
+  });
+
+  it("detects a legacy content edit even when version 5 and writeId are unchanged", () => {
+    const op = pending({ kind: "fillup.update", opType: "update", payload: payload({ liters: 35, version: 6, writeId: "c1" }), beforeImage: payload({ liters: 40, version: 5, writeId: "c0" }) });
+    expect(reconcileWithServer([op], COLLECTION, [{ id: "f1", data: payload({ liters: 42, version: 5, writeId: "c0" }), hasPendingWrites: false }], fillupPayloadMatches)[0].verdict).toBe("conflict");
+  });
+
+  it("detects changed records for deletion retries and restores, even after a rejection", () => {
+    for (const kind of ["fillup.delete", "fillup.restore"] as const) {
+      const op = pending({ kind, opType: kind === "fillup.delete" ? "delete" : "set", status: "failed", payload: kind === "fillup.delete" ? null : payload({ liters: 40, version: 6 }), beforeImage: payload({ liters: 40, version: 5, writeId: "base" }) });
+      expect(reconcileWithServer([op], COLLECTION, [{ id: "f1", data: payload({ liters: 42, version: 5, writeId: "base" }), hasPendingWrites: false }], fillupPayloadMatches)[0]?.verdict).toBe("conflict");
+    }
   });
 
   it("an update whose base the server still holds is a rejection to retry, not a conflict", () => {

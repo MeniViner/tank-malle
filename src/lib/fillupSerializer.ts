@@ -97,8 +97,8 @@ const LEVEL_SOURCES = new Set([
 const REASONS = new Set(["routine", "low-fuel", "before-trip", "good-price", "unsure"]);
 
 /**
- * A station reference with only the keys the rules accept, trimmed to their
- * limits. A record imported with an extra key on its station used to be
+ * A station reference with only the keys the rules accept. User text is never
+ * truncated; validation reports lengths before a write. A record imported with an extra key on its station used to be
  * rejected the moment it was re-saved from the form.
  */
 export function sanitizeStation(station: unknown): StationRef | null {
@@ -107,14 +107,14 @@ export function sanitizeStation(station: unknown): StationRef | null {
   const name = typeof raw.name === "string" ? raw.name.trim() : "";
   if (!name) return null;
 
-  const out: StationRef = { name: name.slice(0, FILLUP_LIMITS.stationNameMax) };
+  const out: StationRef = { name };
   if (typeof raw.lat === "number" && Number.isFinite(raw.lat)) out.lat = raw.lat;
   if (typeof raw.lng === "number" && Number.isFinite(raw.lng)) out.lng = raw.lng;
   if (typeof raw.stationId === "string" && raw.stationId.trim()) {
-    out.stationId = raw.stationId.trim().slice(0, FILLUP_LIMITS.stationIdMax);
+    out.stationId = raw.stationId.trim();
   }
   if (typeof raw.brand === "string" && raw.brand.trim()) {
-    out.brand = raw.brand.trim().slice(0, FILLUP_LIMITS.brandMax);
+    out.brand = raw.brand.trim();
   }
   return out;
 }
@@ -146,7 +146,7 @@ export function serializeFillup(
     }
     if (key === "notes") {
       const text = typeof value === "string" ? value.trim() : "";
-      out.notes = text ? text.slice(0, FILLUP_LIMITS.notesMax) : null;
+      out.notes = text || null;
       continue;
     }
     out[key] = value;
@@ -396,7 +396,9 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
       unknown.length > 0 ||
       typeof record.name !== "string" ||
       record.name.length === 0 ||
-      record.name.length > FILLUP_LIMITS.stationNameMax
+      record.name.length > FILLUP_LIMITS.stationNameMax ||
+      (record.stationId != null && (typeof record.stationId !== "string" || record.stationId.length > FILLUP_LIMITS.stationIdMax)) ||
+      (record.brand != null && (typeof record.brand !== "string" || record.brand.length > FILLUP_LIMITS.brandMax))
     ) {
       errors.push({ field: "station", message: "פרטי התחנה אינם תקינים" });
     }
@@ -437,6 +439,35 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
     }
   }
 
+  return errors;
+}
+
+/**
+ * Validate the original form input as well as its writable representation.
+ * Whitelist sanitization still removes historical UI metadata; it must never
+ * hide oversized user text by trimming or shortening it first.
+ */
+export function validateFillupInput(fillup: FillupWrite): FieldError[] {
+  const errors = validateFillupPayload(serializeFillup(fillup));
+  const add = (field: FillupField, message: string) => {
+    if (!errors.some((error) => error.field === field)) errors.push({ field, message });
+  };
+  if (typeof fillup.notes === "string" && fillup.notes.length > FILLUP_LIMITS.notesMax) {
+    add("notes", `ההערה ארוכה מדי (עד ${FILLUP_LIMITS.notesMax} תווים)`);
+  }
+  const station = fillup.station;
+  if (station && typeof station === "object") {
+    for (const [key, maximum] of [
+      ["name", FILLUP_LIMITS.stationNameMax],
+      ["stationId", FILLUP_LIMITS.stationIdMax],
+      ["brand", FILLUP_LIMITS.brandMax],
+    ] as const) {
+      const value = station[key];
+      if (typeof value === "string" && value.length > maximum) {
+        add("station", `פרטי התחנה ארוכים מדי (עד ${maximum} תווים בשדה)`);
+      }
+    }
+  }
   return errors;
 }
 

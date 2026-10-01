@@ -6,15 +6,20 @@ import {
   doc,
   getDoc,
   getDocFromServer,
+  getDocFromCache,
+  onSnapshot,
   getDocs,
   limit,
   orderBy,
   query,
-  serverTimestamp,
-  setDoc,
+
   startAfter,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
+import { useData } from "../context/DataContext";
+import { SERVER_TIMESTAMP } from "../lib/fillupSerializer";
+import { fetchBrowserPrice, type BrowserPriceReading } from "../lib/prices/browserFetch";
+import type { OutboxOperation } from "../lib/outbox";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -284,14 +289,14 @@ export function Admin() {
       />
 
       {/* Four sections, one at a time. */}
-      <nav aria-label="מדורי ניהול" className="grid flex-none grid-cols-4 gap-1.5 px-5 pb-3">
+      <nav aria-label="מדורי ניהול" className="grid flex-none grid-cols-4 gap-1.5 px-3 pb-3 min-[400px]:px-5">
         {ADMIN_TABS.map((entry) => (
           <button
             key={entry.value}
             type="button"
             aria-current={tab === entry.value ? "page" : undefined}
             onClick={() => setTab(entry.value)}
-            className={`min-h-[34px] rounded-pill px-1 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[44px] rounded-pill px-1 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
               tab === entry.value
                 ? "bg-accent text-accent-contrast"
                 : "bg-surface-2 text-muted"
@@ -302,7 +307,7 @@ export function Admin() {
         ))}
       </nav>
 
-      <div className="flex flex-col gap-4 px-5">
+      <div className="flex min-w-0 flex-col gap-4 px-3 min-[400px]:px-5">
         {error ? (
           <Card className="flex items-start gap-3 p-4">
             <IconTile tone="danger">
@@ -502,7 +507,7 @@ export function Admin() {
 
             {tab === "data" ? (
               <>
-                <FuelPriceEditor />
+                <FuelPriceEditor key={user?.uid} />
                 <StationDataPanel />
               </>
             ) : null}
@@ -540,7 +545,7 @@ function Panel({
 }) {
   return (
     <section className="flex flex-col gap-2">
-      <div className="flex min-h-[26px] items-center justify-between gap-2">
+      <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-2">
         <Label>{title}</Label>
         {trailing}
       </div>
@@ -680,22 +685,7 @@ function FeedbackInbox() {
   );
 }
 
-/**
- * In-app control for the official prices — every fuel type, not just 95.
- *
- * The old editor wrote one number into the legacy top-level field, which the
- * adapter files under 95/self. A driver on diesel or 98 therefore had no
- * official figure at all and nothing an admin could do about it. Each fuel
- * type is now its own series, written where `regulatedMaxPrice` reads it.
- *
- * The 95 figure arrives on its own: a daily GitHub Actions job reads the
- * ministry's monthly announcement and writes it here (scripts/updateFuelPrices
- * .mjs). A browser cannot do that itself — the page is Cloudflare-protected
- * and sends no CORS headers — so the refresh below re-reads the stored
- * document from the SERVER, which is how an admin sees whether the job landed.
- * 98 and diesel are not regulated in Israel at all; there is no published
- * figure to fetch, so they stay manual and say so.
- */
+/** Admin prices: durable manual saves, stored refresh and independent browser reading. */
 const EDITABLE_FUELS: { fuelType: FuelType; label: string }[] = [
   { fuelType: "95", label: "בנזין 95" },
   { fuelType: "98", label: "בנזין 98" },
@@ -706,12 +696,6 @@ const EDITABLE_FUELS: { fuelType: FuelType; label: string }[] = [
 /** Which copy answered the last read — shown beside the panel title. */
 type ReadSource = "server" | "cache" | null;
 
-/** Firestore's error shape, duck-typed so this file needs no SDK error class. */
-function firestoreCode(error: unknown): string {
-  const code = (error as { code?: unknown })?.code;
-  return typeof code === "string" ? code : "unknown";
-}
-
 function daysAgoText(at: number, now: number): string {
   const days = Math.floor((now - at) / 86_400_000);
   if (days <= 0) return "רץ היום";
@@ -721,7 +705,12 @@ function daysAgoText(at: number, now: number): string {
 
 function FuelPriceEditor() {
   const { showToast } = useToast();
-  const { isAdmin, claimsLoaded } = useAuth();
+  const { user, isAdmin, claimsLoaded } = useAuth();
+  const { updateAdminPrices, outbox: outboxOps, retryOperation, outboxReady } = useData();
+  const priceOps = outboxOps.filter(op => op.uid === user?.uid && op.kind === "adminPrice.update");
+  const [pulling, setPulling] = useState(false);
+  const [reading, setReading] = useState<BrowserPriceReading | null>(null);
+  const [pullError, setPullError] = useState<string | null>(null);
   const [config, setConfig] = useState<RegulatedPriceConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [readSource, setReadSource] = useState<ReadSource>(null);
@@ -737,10 +726,10 @@ function FuelPriceEditor() {
       let snapshot;
       if (fromServer) {
         try {
-          snapshot = await getDocFromServer(ref);
+          snapshot = await Promise.race([getDocFromServer(ref), new Promise<never>((_, reject) => setTimeout(() => reject(new Error("read-timeout")), 8000))]);
           source = "server";
         } catch {
-          snapshot = await getDoc(ref);
+          snapshot = await getDocFromCache(ref);
         }
       } else {
         snapshot = await getDoc(ref);
@@ -760,139 +749,49 @@ function FuelPriceEditor() {
     }
   }, []);
 
-  useEffect(() => {
-    void load().catch(() => setLoading(false));
-  }, [load]);
+  useEffect(() => onSnapshot(doc(db, "appConfig", "fuelPrices"), { includeMetadataChanges: true }, snapshot => {
+    setConfig(snapshot.exists() ? adaptLegacyConfig(normalizePriceDocument(snapshot.data())) : { byFuelType: {} });
+    setReadSource(snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites ? "cache" : "server");
+    setLoading(false);
+  }, () => setLoading(false)), []);
 
-  /** The Hebrew reason a write was refused, precise enough to act on. */
-  function writeErrorTitle(error: unknown): string {
-    const code = firestoreCode(error);
-    if (code === "permission-denied") {
-      return "אין הרשאת מנהל (custom claim admin) — ראו scripts/grantAdmin.mjs";
-    }
-    if (code === "unavailable") return "השרת לא זמין — נסו שוב";
-    return `השמירה נכשלה (${code})`;
+  async function pull() {
+    if (pulling) return;
+    setPulling(true);
+    setReading(null);
+    setPullError(null);
+    try { setReading(await fetchBrowserPrice()); }
+    catch (error) { setPullError(error instanceof Error ? error.message : "הקריאה נכשלה — נסו שוב"); }
+    finally { setPulling(false); }
   }
 
-  /** Apply a merged write locally, so the row reflects it before any ack. */
-  function applyLocal(
-    fuelType: FuelType,
-    update: (series: RegulatedSeries | undefined) => RegulatedSeries,
-  ) {
-    setConfig((previous) => {
-      const base = previous ?? { byFuelType: {} };
-      const series = base.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
-      return {
-        ...base,
-        byFuelType: {
-          ...base.byFuelType,
-          [fuelType]: {
-            ...base.byFuelType?.[fuelType],
-            [REGULATED_SERVICE_MODE]: update(series),
-          },
-        },
-      };
-    });
-  }
-
-  /**
-   * Commit a merged write. Online, the server's answer is awaited so a refused
-   * write is reported and the draft kept. Offline, a Firestore promise never
-   * settles until the connection returns, so it is NOT awaited: the local
-   * cache holds the change and the toast says exactly that — never
-   * "עודכן לכל המשתמשים" before an ack.
-   */
-  async function commit(payload: Record<string, unknown>, successTitle: string) {
-    const ref = doc(db, "appConfig", "fuelPrices");
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      setDoc(ref, payload, { merge: true }).catch((error: unknown) =>
-        showToast({ tone: "error", title: writeErrorTitle(error) }),
-      );
-      showToast({ tone: "info", title: "נשמר במכשיר — יישלח כשיחזור החיבור" });
-      return;
-    }
-    await setDoc(ref, payload, { merge: true });
-    showToast({ tone: "success", title: successTitle });
-  }
-
-  /** A manual entry for the current month. Never labelled "מפוקח". */
+  /** Returns after durable journal acceptance; acknowledgement remains visible below. */
   async function save(fuelType: FuelType, value: number) {
     const now = new Date();
     const month = monthKey(now.getTime());
-    const effectiveFrom = new Date(now.getFullYear(), now.getMonth(), 1);
-    await commit(
-      {
-        byFuelType: {
-          [fuelType]: {
-            [REGULATED_SERVICE_MODE]: {
-              current: {
-                pricePerLiter: value,
-                effectiveFrom,
-                updatedAt: serverTimestamp(),
-              },
-              history: { [month]: value },
-              source: "manual",
-              manualOverride: {
-                pricePerLiter: value,
-                month,
-                setAt: serverTimestamp(),
-                note: null,
-              },
-            },
-          },
-        },
-      },
-      "המחיר עודכן לכל המשתמשים",
-    );
-    // serverTimestamp() resolves only after the server acks, so reflect the
-    // new value locally rather than re-reading a null timestamp.
-    applyLocal(fuelType, (series) => ({
-      ...series,
-      history: { ...(series?.history ?? {}), [month]: value },
-      current: {
-        pricePerLiter: value,
-        effectiveFrom: effectiveFrom.getTime(),
-        updatedAt: Date.now(),
-      },
-      source: "manual" as const,
-      manualOverride: { pricePerLiter: value, month, setAt: Date.now(), note: null },
-    }));
+    const prefix = `byFuelType.${fuelType}.${REGULATED_SERVICE_MODE}`;
+    await updateAdminPrices({
+      [`${prefix}.current.pricePerLiter`]: value,
+      [`${prefix}.current.effectiveFrom`]: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
+      [`${prefix}.current.updatedAt`]: SERVER_TIMESTAMP,
+      [`${prefix}.history.${month}`]: value,
+      [`${prefix}.source`]: "manual",
+      [`${prefix}.manualOverride`]: { pricePerLiter: value, month, setAt: Date.now(), note: null },
+    });
+    showToast({ tone: "info", title: "הקלט נשמר במכשיר — ממתין לאישור השרת" });
   }
 
-  /** Clear the override and put the job's figure for that month back in force. */
   async function restoreScheduled(fuelType: FuelType, month: string, scheduled: number) {
     const [year, monthNumber] = month.split("-").map(Number);
-    const effectiveFrom = new Date(year, monthNumber - 1, 1);
-    await commit(
-      {
-        byFuelType: {
-          [fuelType]: {
-            [REGULATED_SERVICE_MODE]: {
-              manualOverride: null,
-              history: { [month]: scheduled },
-              current: {
-                pricePerLiter: scheduled,
-                effectiveFrom,
-                updatedAt: serverTimestamp(),
-              },
-              source: "scheduled",
-            },
-          },
-        },
-      },
-      "הערך האוטומטי הוחזר",
-    );
-    applyLocal(fuelType, (series) => ({
-      ...series,
-      history: { ...(series?.history ?? {}), [month]: scheduled },
-      current: {
-        pricePerLiter: scheduled,
-        effectiveFrom: effectiveFrom.getTime(),
-        updatedAt: Date.now(),
-      },
-      source: "scheduled" as const,
-      manualOverride: null,
-    }));
+    const prefix = `byFuelType.${fuelType}.${REGULATED_SERVICE_MODE}`;
+    await updateAdminPrices({
+      [`${prefix}.manualOverride`]: null,
+      [`${prefix}.history.${month}`]: scheduled,
+      [`${prefix}.current.pricePerLiter`]: scheduled,
+      [`${prefix}.current.effectiveFrom`]: new Date(year, monthNumber - 1, 1).getTime(),
+      [`${prefix}.current.updatedAt`]: SERVER_TIMESTAMP,
+      [`${prefix}.source`]: "scheduled",
+    });
   }
 
   /**
@@ -952,7 +851,7 @@ function FuelPriceEditor() {
       trailing={
         <RefreshButton
           busy={loading}
-          label="בדיקת עדכון"
+          label="רענון מהשרת"
           onClick={() =>
             void load(true)
               .then((source) =>
@@ -966,7 +865,28 @@ function FuelPriceEditor() {
       }
       bare
     >
-      <Card className="flex flex-col gap-3 p-4">
+      <Card className="flex min-w-0 flex-col gap-4 p-3 min-[400px]:p-4">
+        <div className="flex min-w-0 flex-col gap-2 rounded-[16px] bg-accent-soft p-3">
+          <span className="text-[15px] font-bold text-ink">משיכה עצמאית</span>
+          <p className="text-[13px] leading-relaxed text-muted">קריאה חדשה מהדפדפן למחיר בנזין 95 של החודש. התוצאה תוצג כאן לבדיקה לפני שמירה.</p>
+          <Button full loading={pulling} onClick={() => void pull()} aria-label="משיכת מחיר מהדפדפן">
+            <RefreshIcon size={17} /> משיכת מחיר עכשיו
+          </Button>
+          <span className="text-[11.5px] leading-relaxed text-muted">אם המקור חוסם קריאה ישירה, ננסה קורא ציבורי. נשלחת רק כתובת הודעת המחיר הציבורית.</span>
+          <div aria-live="polite" className="min-w-0">
+            {pulling ? <p className="text-[13px] text-muted">מנסה לקרוא את המקור…</p> : null}
+            {pullError ? <p role="alert" className="text-[13px] leading-relaxed text-danger-ink">{pullError}</p> : null}
+            {reading ? <div className="flex flex-col gap-2">
+              <span className="text-[20px] font-bold text-ink"><Num>{price(reading.price)}</Num> לליטר · בנזין 95</span>
+              <span className="text-[12px] text-muted">{priceMonthLabel(reading.month, now)} · {reading.via === "direct" ? "קריאה ישירה" : "דרך קורא ציבורי"}</span>
+              <a href={reading.url} target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center text-[13px] font-semibold text-accent">פתיחת ההודעה המקורית</a>
+              <Button variant="secondary" full disabled={!isAdmin || !outboxReady || priceOps.some(op => op.status === "pending")} onClick={() => void save("95", reading.price).then(() => setReading(null)).catch(() => showToast({tone:"error",title:"השמירה נכשלה — התוצאה נשמרה כאן"}))}>שמירת התוצאה כמחיר ידני</Button>
+            </div> : null}
+          </div>
+        </div>
+        <details className="min-w-0 rounded-[14px] bg-surface-2 px-3">
+          <summary className="min-h-[44px] cursor-pointer py-3 text-[13px] font-semibold text-ink">מצב העדכון האוטומטי · {automatic.value}</summary>
+          <div className="flex flex-col gap-3 pb-3">
         {/* Whether the nightly job is alive, stated before the numbers it
             writes — the question an admin opens this panel to answer. */}
         <DiagnosticRow
@@ -979,20 +899,27 @@ function FuelPriceEditor() {
         <DiagnosticRow
           title="הרשאת כתיבה"
           ok={isAdmin}
-          value={!claimsLoaded ? "בודק…" : isAdmin ? "custom claim admin קיים" : "חסר"}
+          value={!claimsLoaded ? "בודק…" : isAdmin ? "מותרת" : "חסרה"}
           detail={
             isAdmin
-              ? "האסימון של החשבון הזה נושא claim admin; שמירה כאן תתקבל בשרת."
-              : "ללא claim admin כל שמירה תידחה (permission-denied). מוענק רק מהמחשב של המפתח: scripts/grantAdmin.mjs."
+              ? "אפשר לשמור מחירים. אישור השמירה מהשרת יוצג ליד המחיר."
+              : "שמירה זמינה למנהלי מערכת בלבד."
           }
         />
 
+          </div>
+        </details>
         {EDITABLE_FUELS.map(({ fuelType, label }) => {
           const series = config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
           return (
             <FuelPriceRow
               key={fuelType}
               label={label}
+              draftKey={`tm.adminPriceDraft.${user?.uid}.${fuelType}`}
+              writable={isAdmin && outboxReady}
+              serverConfirmed={readSource === "server"}
+              operation={priceOps.filter(op => Object.keys(op.payload ?? {}).some(key => key.startsWith(`byFuelType.${fuelType}.`))).at(-1)}
+              onRetry={(opId) => retryOperation(opId)}
               lookup={regulatedMaxPrice(config, fuelType, now)}
               series={series}
               onSave={(value) => save(fuelType, value)}
@@ -1027,7 +954,7 @@ function RefreshButton({
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="flex min-h-[32px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97] disabled:opacity-50"
+      className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.96] disabled:opacity-50"
     >
       <RefreshIcon size={14} />
       {busy ? "בודק…" : label}
@@ -1042,7 +969,17 @@ function FuelPriceRow({
   series,
   onSave,
   onRestore,
+  draftKey,
+  writable,
+  serverConfirmed,
+  operation,
+  onRetry,
 }: {
+  draftKey: string;
+  writable: boolean;
+  serverConfirmed: boolean;
+  operation?: OutboxOperation;
+  onRetry: (opId: string) => Promise<void>;
   label: string;
   lookup: RegulatedLookup;
   series: RegulatedSeries | undefined;
@@ -1050,7 +987,9 @@ function FuelPriceRow({
   onRestore: (month: string, scheduled: number) => Promise<void>;
 }) {
   const { showToast } = useToast();
-  const [draft, setDraft] = useState("");
+  const [draft, setDraft] = useState(() => { try { return localStorage.getItem(draftKey) ?? ""; } catch { return ""; } });
+  const [draftError, setDraftError] = useState(false);
+
   const [saving, setSaving] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
@@ -1096,42 +1035,43 @@ function FuelPriceRow({
   return (
     <div className="flex flex-col gap-2 border-b border-line pb-3 last:border-b-0 last:pb-0">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[14px] font-semibold text-ink">{label}</span>
-        <span className="flex items-baseline gap-2">
-          <span
-            className={`text-[11.5px] ${currentMonth ? "text-muted" : "text-warning-ink"}`}
-          >
-            {sourceText}
-          </span>
-          <Num className="text-[17px] font-bold text-ink">
+        <span className="flex-none text-[14px] font-semibold text-ink">{label}</span>
+        <span className="flex min-w-0 items-baseline gap-2">
+          <Num className="text-[20px] font-bold text-ink">
             {lookup.price !== null ? price(lookup.price) : "—"}
           </Num>
         </span>
       </div>
 
-      <div className="flex items-center gap-2">
+      <p className={`text-[12px] leading-relaxed ${currentMonth ? "text-muted" : "text-warning-ink"}`}>{sourceText}</p>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
         {/* A compact inline input rather than a full Field: four labelled
             fields stacked would say the fuel name twice per row. */}
-        <label className="flex min-h-[44px] flex-1 items-center gap-2 rounded-[12px] border border-line bg-surface px-3 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
+        <label className="flex min-h-[52px] min-w-0 items-center gap-2 rounded-[12px] border border-line bg-surface px-3 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
           <span className="text-[13px] text-muted">₪</span>
           <input
             inputMode="decimal"
             aria-label={`מחיר חדש לליטר · ${label}`}
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              const value = event.target.value;
+              setDraft(value);
+              try { localStorage.setItem(draftKey, value); setDraftError(false); }
+              catch { setDraftError(true); }
+            }}
             placeholder={lookup.price !== null ? String(lookup.price) : "8.10"}
-            className="num min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
+            dir="ltr"
+            className="num min-w-0 w-full flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted"
           />
         </label>
         <Button
-          disabled={!changed}
+          className="px-4"
+          disabled={!changed || !writable || operation?.status === "pending"}
           loading={saving}
           onClick={() => {
             setSaving(true);
-            // The draft is cleared only on success: a refused write keeps
-            // what was typed so it can be retried once the claim exists.
+            // Retain the input until server acknowledgement, rejection and reload.
             void onSave(parsed)
-              .then(() => setDraft(""))
               .catch((error: unknown) =>
                 showToast({ tone: "error", title: failureTitle(error) }),
               )
@@ -1142,10 +1082,19 @@ function FuelPriceRow({
         </Button>
       </div>
 
+      {draftError ? <p role="alert" className="text-[12px] text-danger-ink">הטיוטה לא נשמרה באחסון המקומי. השאירו את המסך פתוח עד לשמירה.</p> : null}
+      {draft && !valid ? <p role="alert" className="text-[12px] text-danger-ink">הזינו מחיר מלא בין 0 ל־20 ₪.</p> : null}
+      <div aria-live="polite" className="text-[12px] leading-relaxed">
+        {operation ? <div className="flex flex-col gap-1">
+          <span className={operation.status === "pending" ? "text-muted" : "text-danger-ink"}>{operation.status === "pending" ? "נשמר במכשיר · ממתין לאישור השרת" : "לא סונכרן · הקלט נשמר במכשיר"}</span>
+          {operation.error ? <span className="text-danger-ink">{operation.error.message}</span> : null}
+          {operation.status !== "pending" ? <button type="button" disabled={!writable || saving} className="min-h-[44px] self-start rounded-pill bg-surface-2 px-3 font-semibold text-accent" onClick={() => { setSaving(true); void onRetry(operation.opId).catch(error => showToast({tone:"error",title:failureTitle(error)})).finally(() => setSaving(false)); }}>ניסיון שמירה נוסף</button> : null}
+        </div> : serverConfirmed && lookup.price !== null ? <span className="text-success">המחיר מאושר בשרת</span> : null}
+      </div>
       {overrideActive && scheduledForMonth !== null && override ? (
         <button
           type="button"
-          disabled={restoring}
+          disabled={restoring || !writable || operation?.status === "pending"}
           onClick={() => {
             setRestoring(true);
             void onRestore(override.month, scheduledForMonth)
@@ -1154,7 +1103,7 @@ function FuelPriceRow({
               )
               .finally(() => setRestoring(false));
           }}
-          className="self-start text-[12.5px] font-semibold text-accent disabled:opacity-50"
+          className="min-h-[44px] self-start text-start text-[12.5px] font-semibold text-accent disabled:opacity-50"
         >
           {restoring ? "מחזיר…" : `החזרת הערך האוטומטי (${price(scheduledForMonth)})`}
         </button>
@@ -1388,8 +1337,8 @@ function DiagnosticRow({
 }) {
   return (
     <div className="flex flex-col gap-0.5 border-b border-line pb-3 last:border-b-0 last:pb-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex items-center gap-2 text-[14px] font-semibold text-ink">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="flex min-w-0 items-center gap-2 text-[14px] font-semibold text-ink">
           <span
             aria-hidden="true"
             className={`size-[7px] flex-none rounded-full ${ok ? "bg-success" : "bg-warning"}`}
@@ -1398,7 +1347,7 @@ function DiagnosticRow({
         </span>
         <span className="flex-none text-[12.5px] font-semibold text-ink">{value}</span>
       </div>
-      <span className="text-[11.5px] leading-relaxed text-muted">{detail}</span>
+      <span className="break-words text-[11.5px] leading-relaxed text-muted">{detail}</span>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   serializeFillup,
   serializeFillupPatch,
   validateFillupPayload,
+  validateFillupInput,
 } from "./fillupSerializer";
 import type { Fillup } from "./stats";
 
@@ -60,11 +61,12 @@ describe("serialising a fill-up", () => {
     expect(sanitizeStation("פז")).toBeNull();
   });
 
-  it("trims and bounds the note", () => {
+  it("trims whitespace without truncating the note", () => {
     const payload = serializeFillup({ ...stored, notes: "  " });
     expect(payload.notes).toBeNull();
     const long = serializeFillup({ ...stored, notes: "א".repeat(600) });
-    expect((long.notes as string).length).toBe(500);
+    expect((long.notes as string).length).toBe(600);
+    expect(validateFillupPayload(long).map((e) => e.field)).toContain("notes");
   });
 });
 
@@ -138,5 +140,36 @@ describe("matching a payload against a server read", () => {
       fillupPayloadMatches(payload, { ...payload, date: { seconds: stored.date / 1000 }, createdAt: { seconds: 1 } }),
     ).toBe(true);
     expect(fillupPayloadMatches(payload, { ...payload, liters: 40 })).toBe(false);
+  });
+});
+
+
+describe("raw user input is validated before normalization", () => {
+  it("rejects oversized notes including whitespace that normalization would conceal", () => {
+    const notes = " ".repeat(501);
+    expect(validateFillupInput({ ...stored, notes }).map((error) => error.field)).toContain("notes");
+  });
+  for (const [field, maximum] of [["name", 120], ["stationId", 64], ["brand", 60]] as const) {
+    it(`retains and rejects oversized station ${field} instead of shortening it`, () => {
+      const station = { name: "פז", [field]: "א".repeat(maximum + 1), tracking: "legacy-extra" };
+      const payload = serializeFillup({ ...stored, station });
+      expect((payload.station as Record<string, unknown>)[field]).toBe(station[field]);
+      expect(payload.station).not.toHaveProperty("tracking");
+      expect(validateFillupInput({ ...stored, station }).map((error) => error.field)).toContain("station");
+      expect(validateFillupPayload(payload).map((error) => error.field)).toContain("station");
+    });
+    it(`accepts station ${field} at the exact limit`, () => {
+      expect(validateFillupInput({ ...stored, station: { name: "פז", [field]: "א".repeat(maximum) } })).toEqual([]);
+    });
+  }
+  it("retains oversize historical station evidence when reading an existing document", () => {
+    const station = { name: "א".repeat(121), stationId: "b".repeat(65), brand: "c".repeat(61) };
+    const read = parseFillupDocument("history", { ...stored, station });
+    expect(read.ok).toBe(true);
+    if (read.ok) expect(read.fillup.station).toEqual(station);
+  });
+  it("preserves whitelist compatibility for valid legacy records with unknown UI fields", () => {
+    const legacyStation = { ...stored.station!, tracking: "legacy" };
+    expect(validateFillupInput({ ...stored, station: legacyStation })).toEqual([]);
   });
 });
