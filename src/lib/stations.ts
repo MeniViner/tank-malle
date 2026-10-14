@@ -169,12 +169,12 @@ export function searchStations(
   query: string,
   limit = 30,
 ): CatalogStation[] {
-  const term = query.trim();
+  const term = normaliseStationText(query);
   if (!catalog || term.length < 2) return [];
 
   const results: CatalogStation[] = [];
   const consider = (station: CatalogStation): boolean => {
-    if (station.n.includes(term) || station.a?.includes(term)) {
+    if (matchesStationText([station.n, station.c, station.a], term)) {
       results.push(station);
     }
     return results.length < limit;
@@ -185,6 +185,61 @@ export function searchStations(
   }
   for (const station of catalog.registryOnly ?? []) {
     if (!consider(station)) return results;
+  }
+  return results;
+}
+
+/** Match Hebrew names despite bidi marks, niqqud, punctuation or word order. */
+export function normaliseStationText(value: string): string {
+  return value.normalize("NFKC").toLowerCase()
+    .replace(/[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/g, " ");
+}
+
+function matchesStationText(values: (string | null | undefined)[], term: string): boolean {
+  const text = normaliseStationText(values.filter(Boolean).join(" "));
+  return term.split(" ").every((word) => text.includes(word));
+}
+
+export interface StationSearchResult {
+  station: Station;
+  address?: string;
+  source: "history" | "catalog";
+}
+
+/** A label is not an identity: keep unresolved snapshots separate from IDs. */
+export function stationKey(station: Station): string {
+  return station.stationId ? `id:${station.stationId}` : JSON.stringify([
+    normaliseStationText(station.name), normaliseStationText(station.brand ?? ""),
+    station.lat ?? null, station.lng ?? null,
+  ]);
+}
+
+/** Personal stations stay searchable even offline or absent from the registry. */
+export function searchStationOptions(
+  catalog: Catalog | null,
+  history: readonly Station[],
+  query: string,
+  limit = 30,
+): StationSearchResult[] {
+  const term = normaliseStationText(query);
+  if (term.length < 2 || limit <= 0) return [];
+  const results: StationSearchResult[] = [];
+  const add = (result: StationSearchResult) => {
+    if (results.some(({ station }) => stationKey(station) === stationKey(result.station))) return;
+    results.push(result);
+  };
+  for (const station of history) {
+    if (matchesStationText([station.name, station.brand], term)) {
+      add({ station, source: "history" });
+      if (results.length >= limit) return results;
+    }
+  }
+  // Apply the limit after deduplication; matching historical aliases must not
+  // crowd out distinct registry stations.
+  for (const entry of searchStations(catalog, query, Number.MAX_SAFE_INTEGER)) {
+    add({ station: toStation(entry), address: entry.a ?? undefined, source: "catalog" });
+    if (results.length >= limit) break;
   }
   return results;
 }
