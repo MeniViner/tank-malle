@@ -67,7 +67,7 @@ export function MyTankCard() {
   );
 
   const habitCopy = habitSentence(habit, estimate.expectedRefuel);
-  const recommended = passageText(estimate.recommendedRefuel);
+  const recommended = estimate.tripPullsForward ? 'כדאי לתדלק לפני הנסיעה' : passageText(estimate.recommendedRefuel);
 
   // The level shown when litres are unavailable: the last thing the user
   // actually reported, clearly labelled as a report rather than an estimate.
@@ -190,12 +190,6 @@ export function MyTankCard() {
         {!estimate.capacity.liters && !enriching ? <button type="button" onClick={() => navigate('/settings/vehicles')} className="min-h-[44px] text-start text-[14px] font-semibold text-accent">השלמת נפח המיכל</button> : null}
         {current.level !== null && recommended ? <p className="text-[15px] font-semibold text-accent">{recommended}</p> : null}
         <button type="button" onClick={() => setTripOpen(true)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border border-line text-[15px] font-semibold text-ink"><CalendarIcon size={17} /> תכנון נסיעה</button>
-
-        {estimate.tripPullsForward ? (
-          <p className="text-[13px] font-semibold text-warning-ink">
-            הפעם כדאי להקדים — צפויה נסיעה ארוכה.
-          </p>
-        ) : null}
 
         {/* With nothing measured yet the column above already carries a single
             primary invitation; repeating it here as one of two equal-weight

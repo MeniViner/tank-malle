@@ -4,13 +4,22 @@ import { authDomainFor, authErrorMessage } from './authFlow';
 import { publicationDate, publicationLinks } from './prices/publicSource';
 import { regulatedMaxPrice, withPublicPrice } from './prices/regulated';
 import { manufacturerTank } from './manufacturerSpecs';
-import { fetchVehicleSpecs } from './vehicleSpecs';
+import { fetchVehicleSpecs, storedDeclaredSource } from './vehicleSpecs';
+import { passageText } from './tank/copy';
 import { usageInsights } from './tank/usageInsights';
 import type { Fillup } from './stats';
 const first = Date.parse('2026-09-30T21:00:00Z');
 const fifth = Date.parse('2026-10-04T21:00:00Z');
 afterEach(() => vi.unstubAllGlobals());
 describe('mobile fuel release regressions', () => {
+  it('labels legacy CO2 conversions honestly without changing entered values', () => {
+    expect(storedDeclaredSource('exact-year', null)).toBe('co2-estimate');
+    expect(storedDeclaredSource('exact-year', 'https://www.data.gouv.fr/datasets/emissions')).toBe('exact-year');
+    expect(storedDeclaredSource('user', null)).toBe('user');
+  });
+  it('does not call an upcoming threshold tomorrow solely by rounding fractional days', () => {
+    expect(passageText({status:'withinHorizon',days:0.8,daysLow:0.7,daysHigh:0.9,km:400,targetLevel:0.25})).toBe('ביממה הקרובה');
+  });
   it('does not invent an OAuth redirect not registered at Google', () => {
     expect(authDomainFor('tank-malle.web.app', 'tank-malle', 'tank-malle.firebaseapp.com')).toBe('tank-malle.firebaseapp.com');
     expect(authErrorMessage('auth/popup-blocked')).toContain('חלון');

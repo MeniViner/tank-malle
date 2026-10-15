@@ -11,7 +11,7 @@ import { Num } from "../components/Num";
 import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
-import { describeOfficialPrice, officialPriceFor } from "../lib/prices/regulated";
+import { officialPriceFor } from "../lib/prices/regulated";
 import { HeroSpark } from "../components/HeroSpark";
 import {
   FUEL_TYPE_SHORT,
@@ -334,7 +334,7 @@ function FuelPriceCard() {
       <span className="truncate text-[14px] text-muted">
         {lookup.price === null
           ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
-          : `${FUEL_TYPE_SHORT[fuelType]} · ${describeOfficialPrice(lookup)}`}
+          : lookup.isRegulated ? '95 · שירות עצמי' : `${FUEL_TYPE_SHORT[fuelType]} · ידני`}
       </span>
     </Card>
   );

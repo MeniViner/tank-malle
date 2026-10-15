@@ -43,6 +43,12 @@ export type DeclaredSource =
   | "other-year"
   | null;
 
+/** Older releases labelled CO₂ conversions as exact-year without a lab source. */
+export function storedDeclaredSource(source: unknown, sourceUrl: unknown): 'user' | 'exact-year' | 'other-year' | 'co2-estimate' | null {
+  if (source === 'exact-year') return sourceUrl ? 'exact-year' : 'co2-estimate';
+  return source === 'user' || source === 'other-year' || source === 'co2-estimate' ? source : null;
+}
+
 /** Provenance of a stored tank capacity. */
 export type TankCapacitySource =
   /** Typed or confirmed by the user. Authoritative. */

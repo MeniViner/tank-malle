@@ -1930,12 +1930,8 @@ function DraftExplanation({
   }
 
   if (evaluation.outcome === "unknownRetained") {
-    return (
-      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
-        הצריכה לא תחושב מהתדלוק הזה — לא צוין אם המיכל התמלא. סימון{" "}
-        <b className="text-ink">מילאתי מיכל מלא</b> במצב המיכל מספיק כדי לחשב אותה.
-      </span>
-    );
+    // The tank-choice field already explains this state beside its control.
+    return null;
   }
 
   return (

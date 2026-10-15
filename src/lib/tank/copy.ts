@@ -80,8 +80,8 @@ export function passageText(passage: PassageResult): string | null {
     return `בעוד ${round(low)}–${round(high)} ימים`;
   }
   const days = round(passage.days);
-  if (days === 0) return "היום";
-  if (days === 1) return "מחר";
+  if (passage.days < 1) return "ביממה הקרובה";
+  if (days === 1) return "בעוד כיממה";
   return `בעוד כ־${days} ימים`;
 }
 
