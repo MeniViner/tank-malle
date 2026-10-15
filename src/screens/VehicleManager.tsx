@@ -24,7 +24,7 @@ import {
   vehicleLabel,
 } from "../lib/format";
 import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
-import { fetchVehicleSpecs } from "../lib/vehicleSpecs";
+import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
 import type { FuelType, Vehicle } from "../lib/types";
 
 /** Vehicle management & archive (design 20). */
@@ -96,7 +96,7 @@ export function VehicleManager() {
           <PlusIcon size={19} />
           הוספת רכב
         </Button>
-        <p className="pb-2 text-center text-[12.5px] text-muted">
+        <p className="pb-2 text-center text-[14px] text-muted">
           איתור אוטומטי לפי מספר רישוי
         </p>
       </div>
@@ -161,7 +161,7 @@ function VehicleCard({
           <span className="truncate text-[15.5px] font-bold text-ink">
             {vehicleLabel(vehicle)}
           </span>
-          <span className="truncate text-[12.5px] text-muted">
+          <span className="truncate text-[14px] text-muted">
             {[
               vehicle.nickname ? `${vehicle.make} ${vehicle.model}` : null,
               FUEL_TYPE_SHORT[vehicle.fuelType],
@@ -240,7 +240,7 @@ function CardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-pill text-[13.5px] font-semibold transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
+      className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-pill text-[14px] font-semibold transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
         tone === "danger" ? "bg-danger-soft text-danger-ink" : "bg-surface-2 text-ink"
       }`}
     >
@@ -275,6 +275,7 @@ function EditVehicleSheet({
   const [declared, setDeclared] = useState("");
   /** Our class-based tank approximation, shown as a hint. Never auto-saved. */
   const [tankHint, setTankHint] = useState<number | null>(null);
+  const [enrichedSpecs, setEnrichedSpecs] = useState<VehicleSpecs | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNote, setRefreshNote] = useState<string | null>(null);
 
@@ -292,6 +293,7 @@ function EditVehicleSheet({
     setDeclared(vehicle.declaredKmPerLiter ? String(vehicle.declaredKmPerLiter) : "");
     setRefreshNote(null);
     setTankHint(null);
+    setEnrichedSpecs(null);
   }
 
   const yearError = year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > 2100) ? "שנה בין 1900 ל־2100" : null;
@@ -299,11 +301,23 @@ function EditVehicleSheet({
   const declaredError = declared.trim() && !(parseDecimal(declared) > 0) ? "הצריכה חייבת להיות מספר חיובי" : null;
   const valid = make.trim().length > 0 && make.length <= 60 && model.length <= 80 && nickname.length <= 60 && !yearError && !tankError && !declaredError;
 
+  function applySpecs(specs: VehicleSpecs) {
+    setEnrichedSpecs(specs);
+    if (!tankLiters && specs.trustedTankLiters) setTankLiters(String(specs.trustedTankLiters));
+    if (!declared && specs.declaredKmPerLiter && specs.declaredSource === 'exact-year') setDeclared(String(specs.declaredKmPerLiter));
+    setTankHint(specs.suggestedTankLiters);
+    setRefreshNote(specs.trustedTankLiters || specs.declaredKmPerLiter ? 'נמצאו נתוני מפרט. הפרטים שהזנת נשמרו.' : 'אין מפרט תואם במאגר. אפשר להזין את הנתונים ידנית.');
+  }
+
   /** Re-run the plate lookup and refresh every registry-derived field. */
   async function refreshFromRegistry() {
     const digits = plate.replace(/\D/g, "");
     if (digits.length < 5) {
-      setRefreshNote("יש להזין מספר רכב תקין לפני האיתור");
+      setRefreshing(true);
+      try {
+        const specs = await fetchVehicleSpecs({ make, model, year: Number(year), fuelType, tozeretCd: vehicle?.tozeretCd, degemCd: vehicle?.degemCd });
+        applySpecs(specs);
+      } finally { setRefreshing(false); }
       return;
     }
     setRefreshing(true);
@@ -331,21 +345,13 @@ function EditVehicleSheet({
       if (found.fuelType) setFuelType(found.fuelType);
 
       const specs = await fetchVehicleSpecs({
+        make: found.make, model: found.model, engineCc: found.engineVolume,
         tozeretCd: found.tozeretCd,
         degemCd: found.degemCd,
         year: found.year,
         fuelType: found.fuelType,
       });
-      // Exact-year certified figures only. Tank capacity is never written
-      // from our body-type approximation — it is offered as a hint below and
-      // stays the user's to confirm.
-      if (specs.declaredKmPerLiter && specs.consumptionIsOfficial) {
-        setDeclared(String(specs.declaredKmPerLiter));
-      }
-      setTankHint(specs.suggestedTankLiters);
-      if (outcome.status === "found") {
-        setRefreshNote("הפרטים עודכנו ממאגר משרד התחבורה");
-      }
+      applySpecs(specs);
     } catch {
       setRefreshNote(LOOKUP_MESSAGES.unavailable);
     } finally {
@@ -357,7 +363,7 @@ function EditVehicleSheet({
     <Sheet
       open={vehicle !== null}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">עריכת רכב</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">עריכת רכב</h2>}
     >
       <div className="no-scrollbar flex max-h-[68vh] flex-col gap-3.5 overflow-y-auto">
         <Field
@@ -380,7 +386,7 @@ function EditVehicleSheet({
         </button>
 
         {refreshNote ? (
-          <p className="text-[12.5px] text-muted">{refreshNote}</p>
+          <p className="text-[14px] text-muted">{refreshNote}</p>
         ) : null}
 
         <Field
@@ -406,7 +412,7 @@ function EditVehicleSheet({
         />
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-semibold tracking-[0.02em] text-muted">
+          <span className="text-[13px] font-semibold  text-muted">
             סוג דלק
           </span>
           <div className="grid grid-cols-2 gap-2">
@@ -444,7 +450,7 @@ function EditVehicleSheet({
           onChange={(event) => setTankLiters(event.target.value)}
           placeholder={tankHint ? String(tankHint) : "51"}
           hint={
-            tankHint
+            enrichedSpecs?.trustedTankLiters ? `מפרט יצרן · ${enrichedSpecs.trustedTankLiters} ליטר` : tankHint
               ? `הערכה לפי סוג הרכב: ${tankHint} ל׳ — אשרו או תקנו לפי המדריך למשתמש`
               : vehicle?.tankLiters && !vehicle.tankLitersSource
                 ? "הערך הקיים נשמר בלי מקור ידוע — אשרו אותו כדי שנציג טווח נסיעה"
@@ -453,12 +459,13 @@ function EditVehicleSheet({
         />
         <Field
           error={declaredError}
-          label="צריכה מוצהרת"
+          label={vehicle?.declaredSource === "co2-estimate" || (!enrichedSpecs?.consumptionIsOfficial && enrichedSpecs?.declaredKmPerLiter === parseDecimal(declared)) ? "צריכת ייחוס משוערת" : "צריכה מוצהרת"}
           inputMode="decimal"
           suffix="קמ״ל"
           value={declared}
           onChange={(event) => setDeclared(event.target.value)}
           placeholder="16.2"
+          hint={vehicle?.declaredSource === "co2-estimate" || (!enrichedSpecs?.consumptionIsOfficial && enrichedSpecs?.declaredKmPerLiter === parseDecimal(declared)) ? "קירוב מנתוני CO₂. לתצרוכת מדויקת אפשר להזין נתון יצרן." : undefined}
         />
 
         {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
@@ -479,8 +486,11 @@ function EditVehicleSheet({
               // A blank field with a suggestion available keeps the suggestion
               // as an ESTIMATE — usable, labelled, and there to be confirmed.
               tankLiters: tankLiters ? parseDecimal(tankLiters) : (tankHint ?? null),
-              tankLitersSource: tankLiters ? "user" : tankHint ? "estimate" : null,
+              tankLitersSource: tankLiters ? (enrichedSpecs?.trustedTankLiters === parseDecimal(tankLiters) ? "trusted" : vehicle?.tankLiters === parseDecimal(tankLiters) ? vehicle.tankLitersSource ?? "user" : "user") : tankHint ? "estimate" : null,
+              tankSourceUrl: enrichedSpecs?.tankSourceUrl ?? vehicle?.tankSourceUrl ?? null,
+              declaredSource: declared ? (enrichedSpecs?.declaredKmPerLiter === parseDecimal(declared) ? (enrichedSpecs.consumptionIsOfficial ? "exact-year" : "co2-estimate") : vehicle?.declaredKmPerLiter === parseDecimal(declared) ? vehicle.declaredSource ?? "user" : "user") : null,
               declaredKmPerLiter: declared ? parseDecimal(declared) : null,
+              specSourceUrl: enrichedSpecs?.sourceUrl ?? vehicle?.specSourceUrl ?? null,
             })
           }
         >

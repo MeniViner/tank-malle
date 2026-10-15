@@ -153,11 +153,11 @@ export function Feedback() {
             className="min-h-[150px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted/70"
           />
           <div className="flex items-center justify-between">
-            <span className="text-[11.5px] text-muted">
+            <span className="text-[13px] text-muted">
               {user?.email ? `יישלח מהחשבון ${""}` : ""}
               <span dir="ltr">{user?.email ?? ""}</span>
             </span>
-            <span className="num text-[11.5px] text-muted/80">
+            <span className="num text-[13px] text-muted/80">
               {trimmed.length}/{MAX}
             </span>
           </div>
@@ -175,7 +175,7 @@ export function Feedback() {
           </Button>
         </div>
 
-        <p className="text-pretty px-1 text-center text-[11.5px] leading-relaxed text-muted/80">
+        <p className="text-pretty px-1 text-center text-[13px] leading-relaxed text-muted/80">
           המשוב נשמר יחד עם השם והמייל שבחשבון, כדי שנוכל להבין הקשר ולחזור אליכם.
         </p>
       </div>

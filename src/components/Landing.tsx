@@ -42,13 +42,13 @@ export function LandingStatsPreview() {
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-[13.5px] font-semibold tracking-[0.2px] text-[rgb(18_33_29/0.55)]">
+        <span className="text-[14px] font-semibold tracking-[0.2px] text-[rgb(18_33_29/0.55)]">
           צריכה ממוצעת
         </span>
         {/* SignedPercent keeps the leading "+" glued to the digits — writing
             the sign by hand inside RTL text is what produced "5%+". */}
         <span
-          className="flex items-center gap-1 rounded-[8px] bg-[#E4F1EB] px-[9px] py-1 text-[12.5px] font-bold"
+          className="flex items-center gap-1 rounded-[8px] bg-[#E4F1EB] px-[9px] py-1 text-[14px] font-bold"
           style={{ color: GREEN }}
         >
           <SignedPercent value={5} />
@@ -59,7 +59,7 @@ export function LandingStatsPreview() {
       <ConsumptionValue
         kmPerLiter={12.4}
         units="kmPerLiter"
-        className="mt-2 flex items-baseline gap-1.5 text-[40px] font-extrabold leading-none tracking-[-1.2px] text-[#12211D]"
+        className="mt-2 flex items-baseline gap-1.5 text-[40px] font-bold leading-none tracking-[-1.2px] text-[#12211D]"
         unitClassName="text-[14px] font-semibold tracking-normal text-[rgb(18_33_29/0.45)]"
       />
 
@@ -110,7 +110,7 @@ function LandingMetric({ label, children }: { label: string; children: ReactNode
   return (
     <div className="flex-1">
       <div className="text-[12px] font-semibold text-[rgb(18_33_29/0.5)]">{label}</div>
-      <div className="mt-[3px] text-[17px] font-bold text-[#12211D]">{children}</div>
+      <div className="mt-[3px] text-[18px] font-semibold text-[#12211D]">{children}</div>
     </div>
   );
 }
@@ -118,7 +118,7 @@ function LandingMetric({ label, children }: { label: string; children: ReactNode
 /** One of the three compact capability tiles under the statistics card. */
 export function LandingBenefitTile({ children }: { children: ReactNode }) {
   return (
-    <span className="flex-1 rounded-[14px] bg-[#F5F7F6] px-1.5 py-3 text-center text-[12.5px] font-bold leading-[1.3] text-[#2A3B36]">
+    <span className="flex-1 rounded-[14px] bg-[#F5F7F6] px-1.5 py-3 text-center text-[14px] font-bold leading-[1.3] text-[#2A3B36]">
       {children}
     </span>
   );

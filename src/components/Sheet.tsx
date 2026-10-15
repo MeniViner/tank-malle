@@ -74,7 +74,7 @@ export function ConfirmDialog({ open, title, body, confirmLabel, cancelLabel = "
   return (
     <Modal open={open} close={onCancel} labelId={titleId} bodyId={bodyId} alert>
       <div className="tm-pop relative max-h-[90dvh] w-full max-w-[340px] overflow-y-auto rounded-[26px] border border-line bg-surface p-5 text-center shadow-raised">
-        <h2 id={titleId} className="text-[17px] font-bold text-ink">{title}</h2>
+        <h2 id={titleId} className="text-[18px] font-semibold text-ink">{title}</h2>
         <div id={bodyId} className="mt-2 text-[14px] leading-relaxed text-muted">{body}</div>
         <div className="mt-5 flex flex-col gap-2">
           <button type="button" onClick={onConfirm}

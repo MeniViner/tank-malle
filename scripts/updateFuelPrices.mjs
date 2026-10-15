@@ -12,7 +12,7 @@
  *   GOOGLE_APPLICATION_CREDENTIALS=key.json node scripts/updateFuelPrices.mjs
  *   FIREBASE_SERVICE_ACCOUNT='{"type":"service_account",…}' node scripts/…
  *
- * WHAT IT READS. The Ministry of Energy publishes one page per month at
+ * WHAT IT READS. The Ministry of Energy publishes monthly and mid-month announcements at
  * gov.il/he/pages/fuel-<month>-<year>, and that page states the maximum
  * consumer price for 95-octane self-service including VAT, plus the
  * full-service surcharge in agorot. That is the only figure Israel regulates:
@@ -27,7 +27,7 @@
  *     `byFuelType.95.self.scheduledHistory[<month>]`, and always reports the
  *     run in `automation` (attempt / success / failure / error / month / price
  *     / route / project). Every run leaves a trace, including a failed one.
- *   • If an admin has set `byFuelType.95.self.manualOverride` for the SAME
+ *   • If an admin has set `byFuelType.95.self.manualOverride` AFTER the latest publication in the SAME
  *     month the job read, the job does NOT touch `current`, `history[month]`
  *     or `source`: the admin's figure keeps winning for that month. The run
  *     logs "manual override for <month> kept".
@@ -53,151 +53,15 @@ import { pathToFileURL } from "node:url";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
-/** Israeli pump prices have lived in this band for over a decade. */
-const MIN_PLAUSIBLE = 4;
-const MAX_PLAUSIBLE = 12;
-
-const MONTHS = [
-  "january",
-  "february",
-  "march",
-  "april",
-  "may",
-  "june",
-  "july",
-  "august",
-  "september",
-  "october",
-  "november",
-  "december",
-];
-
-/**
- * Two identities on purpose. gov.il's edge wants something browser-shaped;
- * the proxy's edge serves a Cloudflare challenge to a browser UA that arrives
- * without any of the other browser headers, and answers a plain bot UA fine.
- */
-const BROWSER_UA =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
-  "(KHTML, like Gecko) Chrome/128.0 Safari/537.36";
-const BOT_UA = "TankMaleBot/1.0 (+https://tank-malle.web.app)";
-
-function monthKey(date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
-
-function pageUrl(date) {
-  return `https://www.gov.il/he/pages/fuel-${MONTHS[date.getMonth()]}-${date.getFullYear()}`;
-}
-
-/** Markup or markdown in, plain text out. */
-function toText(raw) {
-  return raw
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ");
-}
-
-/**
- * The two numbers the announcement states, in the order it states them.
- *
- * Mainland comes before Eilat on every edition of this page, and the Eilat
- * figure is quoted WITHOUT VAT — so it is matched explicitly and skipped
- * rather than left to be picked up by a looser pattern.
- */
+import { readPublicPrice, parsePublicAnnouncement, priceTimeline } from '../src/lib/prices/publicSource.ts';
+function monthKey(date) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).format(date).slice(0, 7); }
 export function parseAnnouncement(raw) {
-  const text = toText(raw);
-
-  const sentences = text.split(/(?<=\.)\s+/);
-  const mainland = sentences.find(
-    (sentence) =>
-      sentence.includes("שירות עצמי") &&
-      sentence.includes("לא יעלה על") &&
-      !sentence.includes("אילת"),
-  );
-  if (!mainland) return null;
-
-  const price = mainland.match(/לא יעלה על\s+([\d]+[.,][\d]+)\s*ש/);
-  if (!price) return null;
-
-  const selfService = Number.parseFloat(price[1].replace(",", "."));
-  if (!Number.isFinite(selfService)) return null;
-  if (selfService < MIN_PLAUSIBLE || selfService > MAX_PLAUSIBLE) return null;
-
-  // "תוספת בעד שירות מלא תעמוד על 26 אגורות" — the mainland one comes first.
-  const surcharge = text.match(/תוספת בעד שירות מלא תעמוד על\s+(\d+)\s*אגורות/);
-  const fullService = surcharge
-    ? Math.round((selfService + Number(surcharge[1]) / 100) * 100) / 100
-    : null;
-
-  return { selfService, fullService };
+  const p = parsePublicAnnouncement(raw);
+  return p ? { selfService: p.price, fullService: p.fullService } : null;
 }
-
-async function fetchText(url) {
-  const attempts = [
-    { label: "direct", target: url, ua: BROWSER_UA },
-    // Free, no key, and it renders the page server-side — the fallback for
-    // the runs where Cloudflare refuses the runner's IP.
-    { label: "proxy", target: `https://r.jina.ai/${url}`, ua: BOT_UA },
-  ];
-
-  const failures = [];
-  for (const { label, target, ua } of attempts) {
-    try {
-      const response = await fetch(target, {
-        headers: { "User-Agent": ua, "Accept-Language": "he-IL,he;q=0.9" },
-        signal: AbortSignal.timeout(45_000),
-      });
-      const body = await response.text();
-      if (!response.ok) {
-        failures.push(`${label}: HTTP ${response.status}`);
-        continue;
-      }
-      if (/Target URL returned error 404|לא נמצא/.test(body.slice(0, 400))) {
-        failures.push(`${label}: page not published`);
-        continue;
-      }
-      return { body, via: label };
-    } catch (error) {
-      failures.push(`${label}: ${error.message}`);
-    }
-  }
-  throw new Error(failures.join(" · "));
-}
-
-/**
- * The announcement in force right now.
- *
- * The page for a month is published in the middle of the month before it, so
- * the current month is tried first and the previous one is the fallback for a
- * run on the first days of a month whose page has not been indexed yet.
- */
-async function readCurrentPrice(now = new Date()) {
-  const candidates = [
-    now,
-    new Date(now.getFullYear(), now.getMonth() - 1, 1),
-  ];
-
-  const failures = [];
-  for (const date of candidates) {
-    const url = pageUrl(date);
-    try {
-      const { body, via } = await fetchText(url);
-      const parsed = parseAnnouncement(body);
-      if (!parsed) {
-        failures.push(`${url}: no price in page`);
-        continue;
-      }
-      return { ...parsed, url, via, month: monthKey(date) };
-    } catch (error) {
-      failures.push(`${url}: ${error.message}`);
-    }
-  }
-  throw new Error(`no price could be read.\n  ${failures.join("\n  ")}`);
+export async function readCurrentPrice(now = new Date()) {
+  const p = await readPublicPrice(now.getTime());
+  return { ...p, selfService: p.price };
 }
 
 async function credentials() {
@@ -254,7 +118,12 @@ export function planWrite(existing, reading, now, projectId = null) {
   }
 
   const { selfService, fullService, month, via } = reading;
-  const effectiveFrom = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1);
+  const effectiveFrom = reading.effectiveFrom != null ? new Date(reading.effectiveFrom) : new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1);
+
+  const previousAt = toMillis(existing?.byFuelType?.['95']?.self?.current?.effectiveFrom);
+  if (previousAt && previousAt > effectiveFrom.getTime()) {
+    return planWrite(existing, { ok: false, error: 'Source returned an older publication; previous price retained' }, now, projectId);
+  }
 
   const automation = {
     lastAttemptAt: attemptAt,
@@ -273,6 +142,10 @@ export function planWrite(existing, reading, now, projectId = null) {
     scheduledHistory: { [month]: price },
     source: "scheduled",
     retrievedAt: attemptAt,
+    sourceUrl: reading.url ?? null,
+    timeline: priceTimeline(
+      { ...existing?.byFuelType?.['95']?.[price === selfService ? 'self' : 'full'], current: { effectiveFrom: price === selfService ? previousAt : toMillis(existing?.byFuelType?.['95']?.full?.current?.effectiveFrom) } },
+      { month, effectiveFrom: effectiveFrom.getTime(), price }),
   });
 
   const override = existing?.byFuelType?.["95"]?.self?.manualOverride;
@@ -283,7 +156,7 @@ export function planWrite(existing, reading, now, projectId = null) {
         ? monthKey(new Date(toMillis(override.setAt)))
         : null;
 
-  if (override && overrideMonth === month) {
+  if (override && overrideMonth === month && (!reading.effectiveFrom || toMillis(override.setAt) >= reading.effectiveFrom)) {
     // The admin's figure keeps winning for this month. Record what the
     // ministry says, so it can be restored and compared, but do not replace
     // the effective price or the source tag.
@@ -308,7 +181,7 @@ export function planWrite(existing, reading, now, projectId = null) {
     payload: {
       byFuelType: {
         95: {
-          self: scheduledSeries(selfService),
+          self: { ...scheduledSeries(selfService), ...(overrideMonth === month ? { manualOverride: null } : {}) },
           ...(fullService ? { full: scheduledSeries(fullService) } : {}),
         },
       },

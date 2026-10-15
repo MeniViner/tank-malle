@@ -50,7 +50,7 @@ export function TankPreferencesSection() {
           title="רזרבה — מתי להתריע"
           subtitle={`המלצה לתדלק כשנשאר ${levelLabel(tankPreferences.reserveFraction)}`}
           trailing={
-            <span className="text-[13.5px] font-semibold text-accent">שינוי</span>
+            <span className="text-[14px] font-semibold text-accent">שינוי</span>
           }
           onClick={() => setReserveOpen(true)}
         />
@@ -60,7 +60,7 @@ export function TankPreferencesSection() {
             <span className="text-[15px] font-semibold text-ink">
               התאמה אישית אוטומטית
             </span>
-            <span className="text-[12.5px] leading-relaxed text-muted">
+            <span className="text-[14px] leading-relaxed text-muted">
               {overridden
                 ? `כרגע מוגדר ידנית: ${levelLabel(tankPreferences.refuelLevelOverride ?? 0)}`
                 : habit.canClaim
@@ -158,7 +158,7 @@ function LevelSheet({
     <Sheet
       open
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">{title}</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">{title}</h2>}
     >
       <div className="flex flex-col items-center gap-4 px-1">
         <p className="text-[13px] leading-relaxed text-muted">{description}</p>

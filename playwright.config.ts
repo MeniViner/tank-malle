@@ -73,6 +73,10 @@ export default defineConfig({
         baseURL: PWA_BASE_URL,
       },
     },
+    ...(process.env.LOCAL_WEBKIT === '1' ? [{
+      name: 'webkit-mobile', testMatch: '**/mobile-fuel-release.spec.ts',
+      use: { ...devices['iPhone 13'], baseURL: PWA_BASE_URL },
+    }] : []),
   ],
 
   webServer: [

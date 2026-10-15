@@ -234,12 +234,12 @@ function declaredPrior(
 ): ConsumptionEstimate | null {
   const declared = vehicle?.declaredKmPerLiter;
   if (!declared || declared <= 0) return null;
-  if (vehicle?.declaredSource !== "exact-year") return null;
+  if (!["exact-year", "user", "co2-estimate"].includes(vehicle?.declaredSource ?? "")) return null;
 
   const litersPerKm = 1 / declared;
   return {
     litersPerKm,
-    sd: litersPerKm * DECLARED_PRIOR_RELATIVE_SD,
+    sd: litersPerKm * (vehicle?.declaredSource === "co2-estimate" ? 0.4 : DECLARED_PRIOR_RELATIVE_SD),
     source: "declared-prior",
     qualityMass: 0,
     segmentCount: 0,

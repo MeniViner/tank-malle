@@ -15,6 +15,7 @@ async function admin(page: import('@playwright/test').Page) {
   await page.goto('/admin');
   await page.getByRole('button', {name:'נתונים',exact:true}).click();
   await expect(page.getByRole('button', {name:'משיכת מחיר מהדפדפן'})).toBeVisible();
+  await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
   return account;
 }
 
@@ -29,12 +30,14 @@ for (const width of [320, 360, 393]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole('button', {name:'משיכת מחיר מהדפדפן'}).click();
     await expect(page.getByText('₪8.27', {exact:false}).first()).toBeVisible();
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(4);
     if (width === 360) await page.screenshot({path:testInfo.outputPath("admin-mobile-360.png"),fullPage:true});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    // Pulling is read-only: the stored current value remains intact.
-    const config = await getDocument('appConfig/fuelPrices');
-    expect(config?.current && (config.current as Record<string,unknown>).pricePerLiter).toBe(7.31);
+    // The verified reading is stored as automatic, without a manual override.
+    await expect.poll(async () => {
+      const config = await getDocument('appConfig/fuelPrices');
+      return ((((config?.byFuelType as Record<string,Record<string,Record<string,unknown>>>)?.['95']?.self?.current) as Record<string,unknown>)?.pricePerLiter);
+    }).toBe(8.27);
   });
 }
 
@@ -47,6 +50,7 @@ test('admin save survives backend-only outage and reload, then syncs to the fill
   await expect(page.getByText('נשמר במכשיר · ממתין לאישור השרת').first()).toBeVisible();
   await page.reload();
   await page.getByRole('button',{name:'נתונים',exact:true}).click();
+  await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
   await expect(input).toHaveValue('8.19');
   await expect(page.getByText('נשמר במכשיר · ממתין לאישור השרת').first()).toBeVisible();
   await page.unroute('**/127.0.0.1:8080/**');
@@ -71,6 +75,7 @@ test('rejected admin save retains draft through reload and can be retried safely
     await expect(page.getByText('לא סונכרן · הקלט נשמר במכשיר')).toBeVisible();
     await page.reload();
     await page.getByRole('button',{name:'נתונים',exact:true}).click();
+    await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
     await expect(input).toHaveValue('8.11');
     await expect(page.getByText('לא סונכרן · הקלט נשמר במכשיר')).toBeVisible();
     await restoreRules();

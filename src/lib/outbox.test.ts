@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   Outbox,
   OutboxStorageError,
@@ -327,8 +327,7 @@ describe("concurrency (two clients on one database)", () => {
     tabB.subscribe((snapshot) => seen.push(snapshot.operations.length));
     await new Promise((resolve) => setTimeout(resolve, 20));
     await tabA.enqueue(add());
-    await new Promise((resolve) => setTimeout(resolve, 50));
-    expect(seen.at(-1)).toBe(1);
+    await vi.waitFor(() => expect(seen.at(-1)).toBe(1), { timeout: 1000 });
     tabA.close();
     tabB.close();
   });

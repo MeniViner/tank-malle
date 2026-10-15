@@ -19,6 +19,7 @@ import {
 import { useData } from "../context/DataContext";
 import { SERVER_TIMESTAMP } from "../lib/fillupSerializer";
 import { fetchBrowserPrice, type BrowserPriceReading } from "../lib/prices/browserFetch";
+import { priceTimeline } from '../lib/prices/publicSource';
 import type { OutboxOperation } from "../lib/outbox";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
@@ -265,8 +266,8 @@ export function Admin() {
             <IconTile tone="danger">
               <ShieldIcon size={18} />
             </IconTile>
-            <span className="text-[17px] font-bold text-ink">אין גישה</span>
-            <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
+            <span className="text-[18px] font-semibold text-ink">אין גישה</span>
+            <span className="max-w-[260px] text-[14px] leading-relaxed text-muted">
               האזור הזה פתוח למנהלי מערכת בלבד.
               {user ? " אם קיבלתם הרשאה זה עתה, התנתקו והתחברו מחדש." : ""}
             </span>
@@ -282,21 +283,21 @@ export function Admin() {
         title="ניהול"
         onBack={() => navigate("/settings")}
         trailing={
-          <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-[11.5px] font-bold text-accent">
+          <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-[13px] font-bold text-accent">
             אדמין
           </span>
         }
       />
 
       {/* Four sections, one at a time. */}
-      <nav aria-label="מדורי ניהול" className="grid flex-none grid-cols-4 gap-1.5 px-3 pb-3 min-[400px]:px-5">
+      <nav aria-label="מדורי ניהול" className="sticky top-0 z-10 grid flex-none grid-cols-4 gap-1 border-b border-line bg-bg/95 px-3 py-2 backdrop-blur min-[400px]:px-5">
         {ADMIN_TABS.map((entry) => (
           <button
             key={entry.value}
             type="button"
             aria-current={tab === entry.value ? "page" : undefined}
             onClick={() => setTab(entry.value)}
-            className={`min-h-[44px] rounded-pill px-1 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[48px] rounded-[10px] px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
               tab === entry.value
                 ? "bg-accent text-accent-contrast"
                 : "bg-surface-2 text-muted"
@@ -313,7 +314,7 @@ export function Admin() {
             <IconTile tone="danger">
               <WarningIcon size={17} />
             </IconTile>
-            <span className="flex-1 text-[13.5px] leading-relaxed text-danger-ink">
+            <span className="flex-1 text-[14px] leading-relaxed text-danger-ink">
               {error}
             </span>
           </Card>
@@ -382,7 +383,7 @@ export function Admin() {
                         סך ההוצאה שתועדה
                       </span>
                       {totals && totals.withoutSummary > 0 ? (
-                        <span className="text-[11.5px] text-muted">
+                        <span className="text-[13px] text-muted">
                           <Num>{totals.withoutSummary}</Num> משתמשים עדיין ללא סיכום
                         </span>
                       ) : null}
@@ -395,7 +396,7 @@ export function Admin() {
 
                 <BenchmarkPool />
 
-                <p className="px-1 pb-2 text-[11.5px] leading-relaxed text-muted">
+                <p className="px-1 pb-2 text-[13px] leading-relaxed text-muted">
                   המספרים מגיעים מסיכום שכל חשבון מפרסם בעצמו. לוח הניהול אינו קורא
                   אף רשומת תדלוק, וגם אין לו הרשאה לעשות זאת.
                 </p>
@@ -454,7 +455,7 @@ export function Admin() {
                                 {entry.email ?? "—"}
                               </span>
                             </div>
-                            <span className="flex-none text-[11.5px] text-muted">
+                            <span className="flex-none text-[13px] text-muted">
                               {entry.lastFillup ? timeAgo(entry.lastFillup) : "לא תדלק"}
                             </span>
                           </div>
@@ -481,7 +482,7 @@ export function Admin() {
                                 />
                               </>
                             ) : (
-                              <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted">
+                              <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[13px] font-semibold text-muted">
                                 עדיין ללא סיכום
                               </span>
                             )}
@@ -496,7 +497,7 @@ export function Admin() {
                       type="button"
                       disabled={loadingMore}
                       onClick={() => void load(pageCursor)}
-                      className="min-h-[44px] rounded-[12px] bg-surface-2 text-[13.5px] font-semibold text-accent disabled:opacity-50"
+                      className="min-h-[44px] rounded-[12px] bg-surface-2 text-[14px] font-semibold text-accent disabled:opacity-50"
                     >
                       {loadingMore ? "טוען…" : `טעינת ${PAGE_SIZE} משתמשים נוספים`}
                     </button>
@@ -514,7 +515,7 @@ export function Admin() {
 
             {tab === "feedback" ? <FeedbackInbox /> : null}
 
-            <p className="pb-2 text-center text-[11.5px] leading-relaxed text-muted/80">
+            <p className="pb-2 text-center text-[13px] leading-relaxed text-muted/80">
               נתוני משתמשים הם לקריאה בלבד. חוקי האבטחה מעניקים לאדמין הרשאת קריאה —
               אין אפשרות לשנות נתונים של משתמש אחר.
             </p>
@@ -549,7 +550,7 @@ function Panel({
         <Label>{title}</Label>
         {trailing}
       </div>
-      {note ? <p className="-mt-1 text-[11.5px] text-muted">{note}</p> : null}
+      {note ? <p className="-mt-1 text-[13px] text-muted">{note}</p> : null}
       {bare ? children : <Card className="overflow-hidden">{children}</Card>}
     </section>
   );
@@ -654,7 +655,7 @@ function FeedbackInbox() {
                     <span className="truncate text-[14px] font-semibold text-ink">
                       {entry.displayName ?? "משתמש"}
                     </span>
-                    <span dir="ltr" className="truncate text-[11.5px] text-muted">
+                    <span dir="ltr" className="truncate text-[13px] text-muted">
                       {entry.email ?? "—"}
                     </span>
                   </span>
@@ -664,7 +665,7 @@ function FeedbackInbox() {
                 </div>
 
                 <p
-                  className={`whitespace-pre-wrap text-[13.5px] leading-relaxed text-ink/85 ${
+                  className={`whitespace-pre-wrap text-[14px] leading-relaxed text-ink/85 ${
                     isOpen ? "" : "line-clamp-3"
                   }`}
                 >
@@ -672,7 +673,7 @@ function FeedbackInbox() {
                 </p>
 
                 {isLong ? (
-                  <span className="text-[11.5px] font-semibold text-accent">
+                  <span className="text-[13px] font-semibold text-accent">
                     {isOpen ? "הצג פחות" : "הצג הכול"}
                   </span>
                 ) : null}
@@ -708,6 +709,7 @@ function FuelPriceEditor() {
   const { user, isAdmin, claimsLoaded } = useAuth();
   const { updateAdminPrices, outbox: outboxOps, retryOperation, outboxReady } = useData();
   const priceOps = outboxOps.filter(op => op.uid === user?.uid && op.kind === "adminPrice.update");
+  const latest95Op = priceOps.filter(op => Object.keys(op.payload ?? {}).some(key => key.startsWith('byFuelType.95.'))).at(-1);
   const [pulling, setPulling] = useState(false);
   const [reading, setReading] = useState<BrowserPriceReading | null>(null);
   const [pullError, setPullError] = useState<string | null>(null);
@@ -755,12 +757,27 @@ function FuelPriceEditor() {
     setLoading(false);
   }, () => setLoading(false)), []);
 
+  async function applyOfficial(read: BrowserPriceReading) {
+    const prefix = 'byFuelType.95.self';
+    const old = config?.byFuelType?.['95']?.self;
+    if ((old?.current?.effectiveFrom ?? 0) > read.effectiveFrom) throw new Error('נמצא פרסום ישן יותר. המחיר הקיים נשמר.');
+    await updateAdminPrices({
+      [`${prefix}.current`]: { pricePerLiter: read.price, effectiveFrom: read.effectiveFrom, updatedAt: read.readAt },
+      [`${prefix}.history.${read.month}`]: read.price,
+      [`${prefix}.scheduledHistory.${read.month}`]: read.price,
+      ...Object.fromEntries(Object.entries(priceTimeline(old, read)).map(([at, value]) => [`${prefix}.timeline.${at}`, value])),
+      [`${prefix}.source`]: 'scheduled', [`${prefix}.sourceUrl`]: read.url,
+      [`${prefix}.retrievedAt`]: read.readAt, [`${prefix}.manualOverride`]: null,
+    });
+    showToast({ tone: 'info', title: 'המחיר אומת ונשלח לשמירה' });
+  }
+
   async function pull() {
     if (pulling) return;
     setPulling(true);
     setReading(null);
     setPullError(null);
-    try { setReading(await fetchBrowserPrice()); }
+    try { const read = await fetchBrowserPrice(); setReading(read); await applyOfficial(read); }
     catch (error) { setPullError(error instanceof Error ? error.message : "הקריאה נכשלה — נסו שוב"); }
     finally { setPulling(false); }
   }
@@ -867,21 +884,22 @@ function FuelPriceEditor() {
     >
       <Card className="flex min-w-0 flex-col gap-4 p-3 min-[400px]:p-4">
         <div className="flex min-w-0 flex-col gap-2 rounded-[16px] bg-accent-soft p-3">
-          <span className="text-[15px] font-bold text-ink">משיכה עצמאית</span>
-          <p className="text-[13px] leading-relaxed text-muted">קריאה חדשה מהדפדפן למחיר בנזין 95 של החודש. התוצאה תוצג כאן לבדיקה לפני שמירה.</p>
-          <Button full loading={pulling} onClick={() => void pull()} aria-label="משיכת מחיר מהדפדפן">
+          <span className="text-[18px] font-semibold text-ink">בנזין 95 · שירות עצמי</span>
+          <Num className="text-[42px] font-semibold leading-tight text-ink">{regulatedMaxPrice(config, '95', now).price != null ? price(regulatedMaxPrice(config, '95', now).price!) : '—'}</Num>
+          <span className="text-[14px] text-muted">{config?.byFuelType?.['95']?.self?.current?.effectiveFrom ? `בתוקף מ־${dayMonthShort(config.byFuelType['95'].self.current.effectiveFrom)}` : 'המחיר האחרון שנשמר'} · לליטר</span>
+          <p className="text-[13px] leading-relaxed text-muted">המחיר מתעדכן ממשרד האנרגיה, כולל שינויים במהלך החודש.</p>
+          <Button full loading={pulling} disabled={!isAdmin || !outboxReady || priceOps.some(op => op.status === "pending")} onClick={() => void pull()} aria-label="משיכת מחיר מהדפדפן">
             <RefreshIcon size={17} /> משיכת מחיר עכשיו
           </Button>
-          <span className="text-[11.5px] leading-relaxed text-muted">אם המקור חוסם קריאה ישירה, ננסה קורא ציבורי. נשלחת רק כתובת הודעת המחיר הציבורית.</span>
+
           <div aria-live="polite" className="min-w-0">
+            {latest95Op ? <div className="text-[13px] leading-relaxed text-warning-ink">
+              {latest95Op.status === 'pending' ? 'המחיר נשמר במכשיר · ממתין לשרת' : 'המחיר טרם סונכרן לשרת'}
+              {latest95Op.status !== 'pending' ? <button type="button" className="block min-h-[44px] font-semibold text-accent" onClick={() => void retryOperation(latest95Op.opId).catch(() => showToast({tone:'error',title:'השמירה נכשלה. נסו שוב.'}))}>סנכרון המחיר הרשמי מחדש</button> : null}
+            </div> : readSource === 'server' && config?.byFuelType?.['95']?.self?.current ? <p className="text-[13px] text-success">המחיר מאושר בשרת</p> : null}
             {pulling ? <p className="text-[13px] text-muted">מנסה לקרוא את המקור…</p> : null}
             {pullError ? <p role="alert" className="text-[13px] leading-relaxed text-danger-ink">{pullError}</p> : null}
-            {reading ? <div className="flex flex-col gap-2">
-              <span className="text-[20px] font-bold text-ink"><Num>{price(reading.price)}</Num> לליטר · בנזין 95</span>
-              <span className="text-[12px] text-muted">{priceMonthLabel(reading.month, now)} · {reading.via === "direct" ? "קריאה ישירה" : "דרך קורא ציבורי"}</span>
-              <a href={reading.url} target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center text-[13px] font-semibold text-accent">פתיחת ההודעה המקורית</a>
-              <Button variant="secondary" full disabled={!isAdmin || !outboxReady || priceOps.some(op => op.status === "pending")} onClick={() => void save("95", reading.price).then(() => setReading(null)).catch(() => showToast({tone:"error",title:"השמירה נכשלה — התוצאה נשמרה כאן"}))}>שמירת התוצאה כמחיר ידני</Button>
-            </div> : null}
+            {reading?.url || config?.byFuelType?.['95']?.self?.sourceUrl ? <a href={reading?.url ?? config?.byFuelType?.['95']?.self?.sourceUrl ?? undefined} target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center text-[14px] font-semibold text-accent">מקור: משרד האנרגיה</a> : null}
           </div>
         </div>
         <details className="min-w-0 rounded-[14px] bg-surface-2 px-3">
@@ -909,6 +927,9 @@ function FuelPriceEditor() {
 
           </div>
         </details>
+        <details className="rounded-[14px] border border-line px-3">
+        <summary className="min-h-[48px] cursor-pointer py-3 text-[15px] font-semibold">עריכת מחירים ידנית</summary>
+        <div className="flex flex-col gap-4 pb-4">
         {EDITABLE_FUELS.map(({ fuelType, label }) => {
           const series = config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
           return (
@@ -927,13 +948,9 @@ function FuelPriceEditor() {
             />
           );
         })}
+        </div></details>
 
-        <p className="text-[11.5px] leading-relaxed text-muted">
-          בנזין 95 מתעדכן אוטומטית: משימה יומית ב־GitHub Actions קוראת את הודעת
-          משרד האנרגיה לאותו חודש וכותבת אותה לכאן, בחינם. מחיר שהוזן כאן ידנית
-          גובר על הערך האוטומטי רק בחודש שבו הוזן, ולעולם אינו מוצג כ״מחיר מרבי
-          מפוקח״. 98 וסולר אינם בפיקוח ואין להם מחיר מפורסם — הם נשארים ידניים.
-        </p>
+
       </Card>
     </Panel>
   );
@@ -954,7 +971,7 @@ function RefreshButton({
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.96] disabled:opacity-50"
+      className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.96] disabled:opacity-50"
     >
       <RefreshIcon size={14} />
       {busy ? "בודק…" : label}
@@ -1103,7 +1120,7 @@ function FuelPriceRow({
               )
               .finally(() => setRestoring(false));
           }}
-          className="min-h-[44px] self-start text-start text-[12.5px] font-semibold text-accent disabled:opacity-50"
+          className="min-h-[44px] self-start text-start text-[14px] font-semibold text-accent disabled:opacity-50"
         >
           {restoring ? "מחזיר…" : `החזרת הערך האוטומטי (${price(scheduledForMonth)})`}
         </button>
@@ -1273,7 +1290,7 @@ function StationDataPanel() {
                 {data.catalog.brands.map(([brand, count]) => (
                   <span
                     key={brand}
-                    className="flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px] font-semibold text-muted"
+                    className="flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-[13px] font-semibold text-muted"
                   >
                     <StationBrandMark brand={brand} size={18} />
                     {brand} <Num>{count}</Num>
@@ -1312,7 +1329,7 @@ function StationDataPanel() {
               }
             />
 
-            <p className="text-[11.5px] leading-relaxed text-muted">
+            <p className="text-[13px] leading-relaxed text-muted">
               כל עוד אין מחיר ספציפי לתחנה, שורת תחנה מציגה את המחיר הארצי בסימון
               „מחיר ארצי”. מחיר שדווח או נמשך באמת מוצג בירוק עם מקורו וגילו.
             </p>
@@ -1345,9 +1362,9 @@ function DiagnosticRow({
           />
           {title}
         </span>
-        <span className="flex-none text-[12.5px] font-semibold text-ink">{value}</span>
+        <span className="flex-none text-[14px] font-semibold text-ink">{value}</span>
       </div>
-      <span className="break-words text-[11.5px] leading-relaxed text-muted">{detail}</span>
+      <span className="break-words text-[13px] leading-relaxed text-muted">{detail}</span>
     </div>
   );
 }
@@ -1398,7 +1415,7 @@ function StatTile({
     <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
       <span className="flex items-center gap-2 text-muted">
         {icon}
-        <Label className="text-[12.5px]">{label}</Label>
+        <Label className="text-[14px]">{label}</Label>
       </span>
       <Num className={`text-[22px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
         {value}
@@ -1410,7 +1427,7 @@ function StatTile({
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <span className="flex items-center gap-1 rounded-pill bg-surface-2 px-2.5 py-1 text-[11.5px]">
+    <span className="flex items-center gap-1 rounded-pill bg-surface-2 px-2.5 py-1 text-[13px]">
       <span className="text-muted">{label}</span>
       <Num className="font-bold text-ink">{value}</Num>
     </span>

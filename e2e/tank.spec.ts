@@ -265,7 +265,7 @@ test("Home carries the tank card alongside the two summary tiles", async ({ page
 
   // Nothing measured yet, so the card leads with a single invitation rather
   // than two equal-weight actions.
-  await expect(page.getByText("נתחיל למדוד")).toBeVisible();
+  await expect(page.getByText("כמה דלק נשאר?")).toBeVisible();
   await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeVisible();
 });
 

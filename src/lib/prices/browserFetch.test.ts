@@ -11,18 +11,20 @@ describe('independent browser price read', () => {
     expect(parseBrowserAnnouncement('שירות מלא לא יעלה על 8.53 שקלים.')).toBeNull();
     expect(parseBrowserAnnouncement(body.replace('8.27','827'))).toBeNull();
   });
-  it('attempts direct reading first, then the public reader on CORS failure', async () => {
-    const fetcher = vi.fn().mockRejectedValueOnce(new TypeError('CORS')).mockResolvedValueOnce(new Response(body));
-    const result = await fetchBrowserPrice(Date.parse('2026-10-01'), fetcher);
-    expect(result.price).toBe(8.27);
+  it('discovers a mid-month publication and uses the public reader after CORS failure', async () => {
+    const fetcher = vi.fn(async (url: string) => {
+      if (!url.startsWith('https://r.jina.ai/')) throw new TypeError('CORS');
+      if (url.includes('collectors')) return new Response('https://www.gov.il/he/pages/fuel-october-5-2026 https://www.gov.il/he/pages/fuel-october-2026');
+      return new Response(body.replace('8.27', '7.77'));
+    });
+    const result = await fetchBrowserPrice(Date.parse('2026-10-16'), fetcher as typeof fetch);
+    expect(result.price).toBe(7.77);
+    expect(result.effectiveFrom).toBe(Date.parse('2026-10-04T21:00:00Z'));
     expect(result.via).toBe('public-reader');
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(fetcher.mock.calls[0][0]).toContain('https://www.gov.il/');
-    expect(fetcher.mock.calls[1][1].credentials).toBe('omit');
+    expect(fetcher).toHaveBeenCalledTimes(4);
   });
-  it('never falls back to a previous month or mistakes a failed reader for success', async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response(`Target URL returned error 403 ${body}`));
-    await expect(fetchBrowserPrice(Date.parse('2026-10-01'), fetcher)).rejects.toThrow('לא הצלחנו');
-    expect(fetcher.mock.calls.every(call => call[0].includes('october-2026'))).toBe(true);
+  it('rejects challenge pages instead of presenting them as a successful update', async () => {
+    const fetcher = vi.fn(async () => new Response(`Target URL returned error 403 ${body}`));
+    await expect(fetchBrowserPrice(Date.parse('2026-10-01'), fetcher)).rejects.toThrow('המקור אינו זמין');
   });
 });

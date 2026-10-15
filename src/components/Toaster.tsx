@@ -55,7 +55,7 @@ export function Toaster() {
                 {toast.title}
               </span>
               {toast.detail ? (
-                <span data-toast-detail className="truncate text-[12.5px] text-muted">
+                <span data-toast-detail className="truncate text-[14px] text-muted">
                   {toast.detail}
                 </span>
               ) : null}

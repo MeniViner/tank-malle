@@ -218,7 +218,7 @@ export function TankStateSection({
             ) : null}
 
             {capacityLiters === null ? (
-              <p className="text-[12.5px] leading-relaxed text-muted">
+              <p className="text-[14px] leading-relaxed text-muted">
                 בלי נפח מיכל אפשר לשמור את המצב באחוזים, אבל לא להציג ליטרים או טווח.
                 אפשר להוסיף את הנפח בהגדרות הרכב מתי שנוח.
               </p>
@@ -233,7 +233,7 @@ export function TankStateSection({
             ) : null}
 
             <details className="group">
-              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between text-[13.5px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
+              <summary className="flex min-h-[44px] cursor-pointer list-none items-center justify-between text-[14px] font-semibold text-ink [&::-webkit-details-marker]:hidden">
                 למה תדלקת עכשיו? (לא חובה)
                 <ChevronDown size={17} className="text-muted group-open:rotate-180" />
               </summary>
@@ -279,9 +279,9 @@ export function TankStateSection({
       <Sheet
         open={infoOpen}
         onClose={() => setInfoOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">מצב המיכל</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">מצב המיכל</h2>}
       >
-        <div className="flex flex-col gap-3 px-1 text-[13.5px] leading-relaxed text-ink/85">
+        <div className="flex flex-col gap-3 px-1 text-[14px] leading-relaxed text-ink/85">
           <span>
             עדכון קצר עוזר להעריך כמה דלק נשאר וללמוד מתי בדרך כלל תרצו לתדלק. אפשר לדלג
             ולעדכן בהמשך.
@@ -343,9 +343,9 @@ function Reconciliation({
           ? "נראה שנפח המיכל גדול מההערכה"
           : "הנתונים לא לגמרי מסתדרים עם נפח המיכל"}
       </span>
-      {message ? <span className="text-[12.5px] text-warning-ink/85">{message}</span> : null}
+      {message ? <span className="text-[14px] text-warning-ink/85">{message}</span> : null}
       {impliedLevel !== null && state !== "capacitySuspect" ? (
-        <span className="text-[12.5px] text-warning-ink/85">
+        <span className="text-[14px] text-warning-ink/85">
           לפי המצב שסימנת והכמות שמילאת יוצא <Num>{Math.round(impliedLevel * 100)}%</Num> —
           יותר ממיכל מלא.
         </span>
@@ -367,7 +367,7 @@ function ReconcileAction({ label, onClick }: { label: string; onClick: () => voi
     <button
       type="button"
       onClick={onClick}
-      className="min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[12.5px] font-semibold text-warning-ink"
+      className="min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[14px] font-semibold text-warning-ink"
     >
       {label}
     </button>

@@ -1,3 +1,5 @@
+import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
+import { withPublicPrice } from "../lib/prices/regulated";
 import type { TankImportRecord } from "../lib/import/tankUpdates";
 import {
   createContext,
@@ -928,6 +930,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             // Absent on every pre-provenance document, and absence is treated
             // as "unknown", not "confirmed".
             tankLitersSource: (data.tankLitersSource ?? null) as Vehicle["tankLitersSource"],
+            tankSourceUrl: data.tankSourceUrl ?? null,
+            specSourceUrl: data.specSourceUrl ?? null,
             declaredKmPerLiter: toNumberOrNull(data.declaredKmPerLiter),
             declaredSource: (data.declaredSource ?? null) as Vehicle["declaredSource"],
             priceAdjustment: typeof data.priceAdjustment === "number" ? data.priceAdjustment : 0,
@@ -1188,16 +1192,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // the legacy top-level fields — which is what this did — meant an
         // admin could set a diesel or 98 price that no client ever saw.
         const next = normalizePriceDocument(snapshot.data());
-        setPrices(next);
+        setPrices(withPublicPrice(next, cachedPublicPrice()));
         writeCache(uid, "prices", next);
       },
       {
         isCurrent: isCurrent(generation),
         label: "fuel prices",
-        onError: () => setPrices(null),
+        onError: () => { /* Keep the last usable price while offline. */ },
       },
     );
   }, [uid, isCurrent]);
+
+  useEffect(() => {
+    if (!uid || import.meta.env.VITE_USE_EMULATORS === '1') return;
+    let active = true;
+    let lastAttempt = 0;
+    const refresh = () => {
+      if (document.visibilityState === 'hidden' || Date.now() - lastAttempt < 15 * 60_000) return;
+      lastAttempt = Date.now();
+      void refreshPublicPrice().then(reading => {
+        if (active) setPrices(current => withPublicPrice(current, reading));
+      }).catch(() => { /* Cached/server prices remain visible. */ });
+    };
+    refresh();
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('online', refresh);
+    return () => { active = false; document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); };
+  }, [uid]);
 
   /* ---------- mutations ----------
      Firestore write promises only settle on SERVER acknowledgement, so they

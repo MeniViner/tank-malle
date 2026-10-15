@@ -1,6 +1,7 @@
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
   browserPopupRedirectResolver,
+  browserLocalPersistence,
   connectAuthEmulator,
   GoogleAuthProvider,
   indexedDBLocalPersistence,
@@ -14,10 +15,12 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from "firebase/firestore";
+import { authDomainFor } from "./authFlow";
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  authDomain: authDomainFor(window.location.hostname, import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
@@ -30,7 +33,7 @@ export const app: FirebaseApp = initializeApp(config);
 
 /** Explicit persistence order keeps Safari/iOS PWA sessions alive. */
 export const auth: Auth = initializeAuth(app, {
-  persistence: [indexedDBLocalPersistence],
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
   popupRedirectResolver: browserPopupRedirectResolver,
 });
 

@@ -138,6 +138,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         setLoadingSpecs(true);
         fetchVehicleSpecs(
           {
+            make: result.make, model: result.model, engineCc: result.engineVolume,
             tozeretCd: result.tozeretCd,
             degemCd: result.degemCd,
             year: result.year,
@@ -147,10 +148,11 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         )
           .then((found) => {
             setSpecs(found);
+            if (found.trustedTankLiters) setTankLiters(String(found.trustedTankLiters));
             // Only an exact-year certified figure is pre-filled. A hit on
             // another year of the same model is offered as a suggestion, not
             // typed into the field as though it were this car's.
-            if (found.declaredKmPerLiter && found.consumptionIsOfficial) {
+            if (found.declaredKmPerLiter && found.declaredSource === "exact-year") {
               setDeclaredKmPerLiter(String(found.declaredKmPerLiter));
             }
             // Tank capacity is deliberately NOT pre-filled. Our figure is a
@@ -196,17 +198,19 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           ? parseDecimal(tankLiters)
           : (specs?.suggestedTankLiters ?? null),
         tankLitersSource: tankLiters
-          ? ("user" as const)
+          ? (specs?.trustedTankLiters === parseDecimal(tankLiters) ? "trusted" as const : "user" as const)
           : specs?.suggestedTankLiters
             ? ("estimate" as const)
             : null,
         declaredKmPerLiter: declaredKmPerLiter ? parseDecimal(declaredKmPerLiter) : null,
         declaredSource: declaredKmPerLiter
-          ? specs?.consumptionIsOfficial &&
+          ? specs?.declaredSource === "exact-year" &&
             declaredKmPerLiter === String(specs.declaredKmPerLiter)
-            ? ("exact-year" as const)
+            ? (specs.consumptionIsOfficial ? "exact-year" as const : "co2-estimate" as const)
             : ("user" as const)
           : null,
+        tankSourceUrl: specs?.tankSourceUrl ?? null,
+        specSourceUrl: specs?.sourceUrl ?? null,
         priceAdjustment: 0,
         manualPricePerLiter: null,
         nickname: nickname.trim() || null,
@@ -243,7 +247,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           <ChevronStart size={18} />
         </button>
 
-        <Num className="rounded-pill bg-surface-2 px-3 py-1 text-[12.5px] font-semibold text-muted">
+        <Num className="rounded-pill bg-surface-2 px-3 py-1 text-[14px] font-semibold text-muted">
           {stepIndex} / 3
         </Num>
       </header>
@@ -261,8 +265,30 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
       ) : step === "confirm" ? (
         <ConfirmStep
           draft={draft}
-          setDraft={setDraft}
-          onNext={() => setStep("extras")}
+          setDraft={(next) => {
+            if (next.make !== draft.make || next.model !== draft.model || next.year !== draft.year || next.fuelType !== draft.fuelType) {
+              abortRef.current?.abort();
+              setSpecs(null);
+              if (specs?.trustedTankLiters === parseDecimal(tankLiters)) setTankLiters('');
+              if (specs?.declaredKmPerLiter === parseDecimal(declaredKmPerLiter)) setDeclaredKmPerLiter('');
+              setDraft({ ...next, tozeretCd: null, degemCd: null, fromRegistry: false });
+            } else setDraft(next);
+          }}
+          onNext={() => {
+            setStep("extras");
+            if (!specs) {
+              abortRef.current?.abort();
+              const controller = new AbortController();
+              abortRef.current = controller;
+              setLoadingSpecs(true);
+              void fetchVehicleSpecs({ ...draft, year: Number(draft.year) }, controller.signal).then(found => {
+                if (controller.signal.aborted) return;
+                setSpecs(found);
+                if (found.trustedTankLiters) setTankLiters(current => current || String(found.trustedTankLiters));
+                if (found.declaredKmPerLiter && found.declaredSource === 'exact-year') setDeclaredKmPerLiter(current => current || String(found.declaredKmPerLiter));
+              }).catch(() => undefined).finally(() => { if (!controller.signal.aborted) setLoadingSpecs(false); });
+            }
+          }}
           notice={lookupNotice}
         />
       ) : (
@@ -335,7 +361,7 @@ function PlateStep({
         </div>
       </div>
 
-      <p className="mt-3 text-center text-[12.5px] text-muted">
+      <p className="mt-3 text-center text-[14px] text-muted">
         המספר משמש לאיתור בלבד ונשמר רק בחשבון שלכם
       </p>
 
@@ -464,7 +490,7 @@ function ConfirmStep({
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
         {draft.fromRegistry && !notice ? (
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1 text-[12.5px] font-semibold text-success-ink">
+          <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1 text-[14px] font-semibold text-success-ink">
             <CheckIcon size={14} />
             נמצא במאגר משרד התחבורה
           </span>
@@ -488,7 +514,7 @@ function ConfirmStep({
           </span>
           <Num className="text-[16px] font-bold text-ink">{formatPlate(draft.plateNumber)}</Num>
           {draft.category ? (
-            <span className="ms-auto truncate text-[12.5px] text-muted">{draft.category}</span>
+            <span className="ms-auto truncate text-[14px] text-muted">{draft.category}</span>
           ) : null}
         </Card>
       ) : null}
@@ -547,7 +573,7 @@ function ConfirmStep({
       >
         <span className="flex flex-col">
           <span className="text-[14px] font-semibold text-ink">הרכב לא נמצא? חיפוש ידני</span>
-          <span className="text-[12.5px] text-muted">בחירת יצרן ← דגם ← שנה</span>
+          <span className="text-[14px] text-muted">בחירת יצרן ← דגם ← שנה</span>
         </span>
         <ChevronStart size={18} className="rotate-180 text-muted" />
       </button>
@@ -647,12 +673,12 @@ function CatalogPicker({
       onClose={onClose}
       title={
         <div className="flex items-center justify-between">
-          <h2 className="text-[17px] font-bold text-ink">{title}</h2>
+          <h2 className="text-[18px] font-semibold text-ink">{title}</h2>
           {make ? (
             <button
               type="button"
               onClick={() => (model ? setModel(null) : setMake(null))}
-              className="text-[13.5px] font-semibold text-accent"
+              className="text-[14px] font-semibold text-accent"
             >
               חזרה
             </button>
@@ -741,7 +767,7 @@ function PickerRow({
       className="flex min-h-[50px] items-center justify-between gap-3 border-b border-line px-2 text-start last:border-b-0 active:bg-surface-2"
     >
       <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
-      {meta ? <Num className="flex-none text-[12.5px] text-muted">{meta}</Num> : null}
+      {meta ? <Num className="flex-none text-[14px] text-muted">{meta}</Num> : null}
     </button>
   );
 }
@@ -807,24 +833,24 @@ function ExtrasStep({
           onChange={(event) => setTankLiters(event.target.value)}
           placeholder={specs?.suggestedTankLiters ? String(specs.suggestedTankLiters) : "51"}
           hint={
-            specs?.suggestedTankLiters
+            specs?.trustedTankLiters ? `מפרט יצרן · ${specs.trustedTankLiters} ליטר` : specs?.suggestedTankLiters
               ? `הערכה לפי סוג הרכב: ${specs.suggestedTankLiters} ל׳ — מלאו את הערך מהמדריך למשתמש`
               : "מופיע במדריך למשתמש. משמש לחישוב טווח נסיעה"
           }
         />
         <Field
-          label="צריכה מוצהרת"
+          label={!specs?.consumptionIsOfficial && specs?.declaredKmPerLiter === parseDecimal(declaredKmPerLiter) ? "צריכת ייחוס משוערת" : "צריכה מוצהרת"}
           inputMode="decimal"
           suffix="קמ״ל"
           value={declaredKmPerLiter}
           onChange={(event) => setDeclaredKmPerLiter(event.target.value)}
           placeholder="16.2"
           hint={
-            specs?.consumptionIsOfficial &&
+            specs?.declaredSource === "exact-year" &&
             declaredKmPerLiter === String(specs.declaredKmPerLiter)
-              ? `נתון יצרן מאושר לשנתון (${specs.co2WltpGramsPerKm} גר׳ CO₂ לק״מ)`
+              ? `נתון תקינה אירופאי · ${specs.matchedYear}`
               : specs?.declaredKmPerLiter
-                ? `הערכה לפי שנתון אחר של אותו דגם: ${specs.declaredKmPerLiter} קמ״ל`
+                ? `קירוב מנתוני CO₂ במשרד התחבורה · ${specs.matchedYear}. ניתן לתקן לפי מפרט היצרן.`
                 : "לפי נתוני היצרן — נשווה אליה את הצריכה בפועל"
           }
         />

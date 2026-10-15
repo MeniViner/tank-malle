@@ -8,12 +8,12 @@
    --------------------------------------------------------------- */
 
 :root {
-  --bg: #f3f6f4;
+  --bg: #f6f6f3;
   --surface: #ffffff;
-  --surface-2: #e9efea;
-  --ink: #16211c;
-  --muted: #63756d;
-  --line: #e3eae5;
+  --surface-2: #efefeb;
+  --ink: #202a26;
+  --muted: #5e6b65;
+  --line: #e4e6e1;
 
   /* The accent is user-selectable. `--accent-l` / `--accent-d` are the two
      theme variants; ThemeProvider sets them on <html> and each theme block
@@ -162,10 +162,10 @@
   --color-hero-good: var(--hero-good);
   --color-hero-bad: var(--hero-bad);
 
-  --font-sans: "Heebo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Assistant", system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  --radius-card: 18px;
-  --radius-hero: 24px;
+  --radius-card: 16px;
+  --radius-hero: 20px;
   --radius-tile: 11px;
   --radius-sheet: 28px;
   --radius-pill: 99px;

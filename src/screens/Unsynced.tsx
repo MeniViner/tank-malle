@@ -88,7 +88,7 @@ export function Unsynced() {
             <button
               type="button"
               onClick={exportAll}
-              className="min-h-[36px] rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-accent"
+              className="min-h-[36px] rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-accent"
             >
               ייצוא
             </button>
@@ -104,7 +104,7 @@ export function Unsynced() {
         </InfoStrip>
 
         {outboxReady && outboxHealth.state !== "ok" ? (
-          <Card className="flex items-start gap-2.5 p-4 text-[13.5px] text-danger-ink" data-outbox-health={outboxHealth.state}>
+          <Card className="flex items-start gap-2.5 p-4 text-[14px] text-danger-ink" data-outbox-health={outboxHealth.state}>
             <WarningIcon size={17} className="mt-px flex-none" />
             <span className="flex flex-col gap-0.5">
               <span className="font-bold">
@@ -112,7 +112,7 @@ export function Unsynced() {
                   ? "אחסון הפעולות המקומי אינו זמין"
                   : "חלק מהרשומות המקומיות לא ניתנות לקריאה"}
               </span>
-              <span className="text-[12.5px] text-muted">
+              <span className="text-[14px] text-muted">
                 {outboxHealth.message ?? ""} הרשימה למטה עשויה להיות חלקית; אין לראות בה אישור
                 שהכול סונכרן.
               </span>
@@ -236,15 +236,15 @@ function OperationCard({
       <div className="flex items-start justify-between gap-2">
         <span className="flex min-w-0 flex-col gap-0.5">
           <span className="text-[15px] font-bold text-ink">{KIND_LABEL[op.kind]}</span>
-          {vehicleName ? <span className="text-[12.5px] text-muted">{vehicleName}</span> : null}
+          {vehicleName ? <span className="text-[14px] text-muted">{vehicleName}</span> : null}
         </span>
-        <span className={`flex-none rounded-pill px-2.5 py-1 text-[11.5px] font-semibold ${tone}`}>
+        <span className={`flex-none rounded-pill px-2.5 py-1 text-[13px] font-semibold ${tone}`}>
           {outboxStatusText(op.status)}
         </span>
       </div>
 
       {shown ? (
-        <div className="flex flex-col gap-1 rounded-[12px] bg-surface-2 px-3 py-2.5 text-[13.5px] text-ink">
+        <div className="flex flex-col gap-1 rounded-[12px] bg-surface-2 px-3 py-2.5 text-[14px] text-ink">
           <span>
             {Number.isFinite(shown.date) ? (
               <>
@@ -256,7 +256,7 @@ function OperationCard({
           </span>
           <span>
             <Num>{num(shown.odometer, 0)}</Num> ק״מ · <Num>{num(shown.liters, 2)}</Num> ל׳ ·{" "}
-            <Num>{shekel(shown.totalCost, 2)}</Num>
+            <Num>{shekel(shown.totalCost)}</Num>
           </span>
           {shown.station?.name ? <span className="text-muted">{shown.station.name}</span> : null}
           {shown.notes ? <span className="text-muted">{shown.notes}</span> : null}
@@ -264,7 +264,7 @@ function OperationCard({
       ) : null}
 
       {op.error ? (
-        <div className="flex items-start gap-2 text-[12.5px] leading-relaxed text-danger-ink">
+        <div className="flex items-start gap-2 text-[14px] leading-relaxed text-danger-ink">
           <WarningIcon size={15} className="mt-px flex-none" />
           <span className="flex min-w-0 flex-col">
             <span className="font-semibold">
@@ -285,7 +285,7 @@ function OperationCard({
         </div>
       ) : null}
 
-      <span className="text-[11.5px] text-muted">
+      <span className="text-[13px] text-muted">
         ניסיונות: <Num>{op.attempts}</Num> · עודכן {fullDate(op.updatedAt)} <Num>{time(op.updatedAt)}</Num> ·
         גרסה <Num>{op.clientVersion}</Num>
       </span>
@@ -304,7 +304,7 @@ function OperationCard({
           // The SDK owns this write; a second competing send is exactly what
           // the outbox exists to avoid. Its fate is settled from the next
           // server-sourced snapshot.
-          <span className="self-center text-[12.5px] text-muted">
+          <span className="self-center text-[14px] text-muted">
             ממתין — יישלח אוטומטית כשהשרת זמין
           </span>
         ) : (
@@ -316,7 +316,7 @@ function OperationCard({
           <button
             type="button"
             onClick={onEdit}
-            className="min-h-[44px] rounded-pill border border-line bg-surface px-4 text-[13.5px] font-semibold text-ink"
+            className="min-h-[44px] rounded-pill border border-line bg-surface px-4 text-[14px] font-semibold text-ink"
           >
             עריכה
           </button>
