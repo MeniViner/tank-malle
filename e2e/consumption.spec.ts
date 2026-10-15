@@ -119,6 +119,10 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
   ]);
   await setActiveVehicle(uid, vehicleId);
   await page.reload();
+  // The fixture was written outside this browser. Wait for its listener to
+  // receive it before navigating away and evaluating a new draft.
+  await expect(page.getByText(/במקטע הפתוח נשמרו/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /20\.0 ל׳/ })).toBeVisible();
 
   const toast = await addFillup(page, { odometer: 100_600, liters: 25, pricePerLiter: 7 });
 

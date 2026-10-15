@@ -138,6 +138,9 @@ test("F07: a rejected archive preserves the active preference and can be retried
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   await installRules(rules.replace('allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);', 'allow create, update: if false;'));
   await page.goto("/settings/vehicles");
+  // The second vehicle is seeded outside the client. Its appearance proves
+  // the full vehicle snapshot (and retry before-images) has been delivered.
+  await expect(page.getByText("טויוטה יאריס", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "העברה לארכיון", exact: true }).first().click();
   await expect(page.getByText("העברה לארכיון נכשלה", { exact: true })).toBeVisible();
   expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({ activeVehicleId: "v1" });
@@ -158,13 +161,23 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   await seedVehicle(uid, "v2", { make: "טויוטה", model: "יאריס" });
   await setDocument(`users/${uid}/vehicles/v2`, { ...vehicle("v2"), make: "טויוטה", archived: true });
   await seedFillups(uid, "v2", [{ id: "b", date: new Date(row.date), odometer: 200000, liters: 20, pricePerLiter: 7 }]);
+  await setDocument(`users/${uid}/vehicles/v2/observations/o1`, { observedAt: new Date(row.date), recordedAt: new Date(row.date), kind: "both", odometer: 200100, level: 0.5, confirmed: true });
   await page.goto("/settings/profile");
   await expect(page.getByText("60 ליטר בסך הכול", { exact: true })).toBeVisible();
   const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: /ייצוא הנתונים שלי/ }).click();
+  await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
   const file = await download;
   const content = readFileSync((await file.path())!, "utf8");
   expect(content).toContain(",v1,"); expect(content).toContain(",v2,");
+  const tankDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: /^ייצוא עדכוני מיכל ונסיעות/ }).click();
+  const tankContent = readFileSync((await (await tankDownload).path())!, "utf8");
+  expect(tankContent).toContain("observation,o1,v2,");
+  expect(tankContent).toContain("200100,0.5");
+  // The active-vehicle settings use the same explicit, separate gestures.
+  await page.goto("/settings");
+  await expect(page.getByRole("button", { name: /^ייצוא תדלוקים/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^ייצוא עדכוני מיכל ונסיעות/ })).toBeVisible();
 });
 
 test("F07: a rejected tank-capacity confirmation never claims success and retries", async ({ page }) => {
