@@ -226,12 +226,14 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
   await expect(toast).toBeVisible({ timeout: 20_000 });
   const title = (await toast.innerText()).trim();
 
-  // The form navigates home on save, but the record is only in the app's list
-  // once the Firestore listener has delivered it. Adding another fill-up
-  // before that happens makes the engine evaluate the new draft against a
-  // history that is missing the previous one — a test artefact, not a bug,
-  // but one that produces a confusingly wrong message.
+  // This helper drives online consumption tests. The toast acknowledges the
+  // local journal, not the server. A matching liters row can also belong to
+  // an earlier record (the continuity test adds several 40-liter fill-ups).
+  // Wait for the pending-write indicator to clear before a caller's goto()
+  // tears down the page. Offline/rejected-write tests use their own helpers.
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "פעולות שלא סונכרנו", exact: true }))
+    .toHaveCount(0, { timeout: 20_000 });
   await expect(
     page.getByText(new RegExp(`${input.liters.toFixed(1).replace(".", "\\.")}\\s*ל׳`)).first(),
   ).toBeVisible({ timeout: 20_000 });

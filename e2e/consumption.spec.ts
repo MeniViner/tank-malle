@@ -150,6 +150,7 @@ test("a continuity break stops every calculation from crossing the gap", async (
   await page.reload();
 
   // The break record opens a new period.
+  await expect(page.getByText(/1 מקטע · 2 תדלוקים/)).toBeVisible();
   const toast = await addFillup(page, {
     odometer: 103_000,
     liters: 40,
