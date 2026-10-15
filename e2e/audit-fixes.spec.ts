@@ -167,6 +167,21 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   expect(content).toContain(",v1,"); expect(content).toContain(",v2,");
 });
 
+test("F07: a rejected tank-capacity confirmation never claims success and retries", async ({ page }) => {
+  const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "estimate" }, fillups: [{ id: "base", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
+  const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
+  await installRules(rules.replace('allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);', 'allow create, update: if false;'));
+  await page.getByRole("button", { name: "מאשר", exact: true }).click();
+  await expect(page.getByText("נפח המיכל לא אושר בשרת", { exact: true })).toBeVisible();
+  await expect(page.getByText("נפח המיכל אושר", { exact: true })).toHaveCount(0);
+  expect((await getDocument(`users/${uid}/vehicles/v1`))?.tankLitersSource).toBe("estimate");
+  await restoreRules();
+  await page.goto("/settings/unsynced");
+  await page.getByRole("button", { name: "ניסיון חוזר", exact: true }).click();
+  await expect(page.locator("[data-outbox-op]")).toHaveCount(0);
+  expect((await getDocument(`users/${uid}/vehicles/v1`))?.tankLitersSource).toBe("user");
+});
+
 test("F09/F12: unknown stays unknown and a draft survives navigation and reload", async ({ page }) => {
   const { uid } = await signedInWithData(page);
   await setDocument(`${ownRows(uid)}/unknown`, { ...row, date: new Date(row.date) });
@@ -202,11 +217,14 @@ test("F13/F14: modal focus and segmented keyboard navigation", async ({ page }) 
 });
 
 test("F15/F16: narrow header contains long names, pushed screens start at the heading", async ({ page }) => {
-  const { uid } = await signedInWithData(page, { regulatedPrice: 7.31, fillups: [{ id: "known", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
+  const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "user" }, regulatedPrice: 7.31, fillups: [{ id: "known", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   const data = await getDocument(`users/${uid}/vehicles/v1`);
   await setDocument(`users/${uid}/vehicles/v1`, { ...data, nickname: "שם רכב ארוך במיוחד לבדיקת הרוחב במסך צר מאוד מאוד" });
+  await setDocument(`users/${uid}/vehicles/v1/observations/current`, { observedAt: new Date(), recordedAt: new Date(), kind: "level", level: 0.5, confirmed: true, levelSource: "direct-gauge" });
   await page.setViewportSize({ width: 320, height: 700 });
   await page.reload();
+  await expect(page.getByText("כדאי לתדלק", { exact: true })).toBeVisible();
+  expect(await page.getByText("כדאי לתדלק", { exact: true }).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.goto("/settings");
   await page.getByRole("button", { name: "מדיניות פרטיות", exact: true }).scrollIntoViewIfNeeded();

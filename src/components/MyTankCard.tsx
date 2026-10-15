@@ -97,7 +97,7 @@ export function MyTankCard() {
           ) : null}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col items-center gap-3 min-[380px]:flex-row">
           <TankDial
             level={current.level ?? reportedLevel?.level ?? null}
             reserveLevel={estimate.reserveLevel}
@@ -114,7 +114,7 @@ export function MyTankCard() {
 
           {/* The legend is what turns two coloured ticks into the feature: the
               level you should act at, and the level you actually act at. */}
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex w-full min-w-0 flex-1 flex-col gap-2 min-[380px]:w-auto">
             {current.level !== null || reportedLevel ? (
               <>
                 <LegendRow
@@ -278,8 +278,22 @@ function CapacityConfirm({ liters, note }: { liters: number; note: string }) {
   const { activeVehicle, updateVehicle } = useData();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [saving, setSaving] = useState(false);
 
   if (!activeVehicle) return null;
+
+  async function confirmCapacity() {
+    if (!activeVehicle || saving) return;
+    setSaving(true);
+    try {
+      const receipt = await updateVehicle(activeVehicle.id, { tankLiters: liters, tankLitersSource: "user" });
+      const saved = await Promise.race([receipt.settled, new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))]);
+      if (saved === false) throw new Error("capacity-update-rejected");
+      showToast({ tone: saved ? "success" : "info", title: saved ? "נפח המיכל אושר" : "האישור נשמר במכשיר", detail: saved ? undefined : "ממתין לאישור מהשרת. אפשר לבדוק במסך פעולות שלא סונכרנו." });
+    } catch {
+      showToast({ tone: "error", title: "נפח המיכל לא אושר בשרת", detail: "אפשר לנסות שוב במסך פעולות שלא סונכרנו." });
+    } finally { setSaving(false); }
+  }
 
   return (
     <div className="flex items-center gap-2 rounded-[12px] bg-surface-2 p-2.5">
@@ -288,16 +302,11 @@ function CapacityConfirm({ liters, note }: { liters: number; note: string }) {
       </span>
       <button
         type="button"
-        onClick={() => {
-          void updateVehicle(activeVehicle.id, {
-            tankLiters: liters,
-            tankLitersSource: "user",
-          });
-          showToast({ tone: "success", title: "נפח המיכל אושר" });
-        }}
+        onClick={() => void confirmCapacity()}
+        disabled={saving}
         className="min-h-[36px] flex-none rounded-pill px-2.5 text-[12.5px] font-bold text-accent"
       >
-        מאשר
+        {saving ? "מאשר…" : "מאשר"}
       </button>
       <button
         type="button"
