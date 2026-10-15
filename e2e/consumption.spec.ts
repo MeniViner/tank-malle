@@ -34,9 +34,9 @@ async function freshVehicle(page: import("@playwright/test").Page): Promise<{
 test("the first filled-to-full record creates a baseline and shows no consumption", async ({
   page,
 }) => {
-  await freshVehicle(page);
+  const scope = await freshVehicle(page);
 
-  const toast = await addFillup(page, { odometer: 100_000, liters: 40, pricePerLiter: 7 });
+  const toast = await addFillup(page, { odometer: 100_000, liters: 40, pricePerLiter: 7 }, scope);
   expect(toast).toContain("נקודת התחלה נוצרה");
   expect(toast).not.toMatch(/קמ״ל|ל׳\/100/);
 
@@ -124,7 +124,7 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
   await expect(page.getByText(/במקטע הפתוח נשמרו/)).toBeVisible();
   await expect(page.getByRole("link", { name: /20\.0 ל׳/ })).toBeVisible();
 
-  const toast = await addFillup(page, { odometer: 100_600, liters: 25, pricePerLiter: 7 });
+  const toast = await addFillup(page, { odometer: 100_600, liters: 25, pricePerLiter: 7 }, { uid, vehicleId });
 
   // 600 km / (20 + 25) L = 13.33 km/L — NOT 300 / 25 = 12, which is what the
   // pre-upgrade toast computed.
@@ -156,12 +156,12 @@ test("a continuity break stops every calculation from crossing the gap", async (
     liters: 40,
     pricePerLiter: 7,
     continuityBreak: true,
-  });
+  }, { uid, vehicleId });
   expect(toast).toContain("התחילה תקופת חישוב חדשה");
   // The 100,400 → 103,000 stretch must not be attributed to anyone.
   expect(toast).not.toMatch(/קמ״ל/);
 
-  await addFillup(page, { odometer: 103_400, liters: 40, pricePerLiter: 7 });
+  await addFillup(page, { odometer: 103_400, liters: 40, pricePerLiter: 7 }, { uid, vehicleId });
 
   await page.goto("/");
   // Tracked distance is 400 + 400, never 3,400.

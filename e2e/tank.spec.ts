@@ -97,7 +97,7 @@ test("§16.16 the tank section is optional and a fill-up saves without it", asyn
     liters: 40,
     pricePerLiter: 7,
     fillEndState: "unknown",
-  });
+  }, { uid, vehicleId });
 
   // Saved, and honest about what it can and cannot compute.
   expect(toast).toContain("התדלוק נשמר");

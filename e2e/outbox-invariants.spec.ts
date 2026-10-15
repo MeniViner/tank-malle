@@ -282,6 +282,11 @@ service cloud.firestore {
     match /{document=**} { allow read: if false; allow write: if request.auth != null; }
   }
 }`);
+  // Start fresh listeners under the new rules. An already-authorized absent
+  // document target can otherwise satisfy the preflight, leaving the later
+  // transaction read to reject instead of the verification this test targets.
+  await page.reload();
+  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
   await page.getByRole("button", { name: "ניסיון חוזר" }).click();
   await expect(page.getByText(/לא ניתן היה לאמת/)).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);

@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import {
+  listDocuments,
   resetEmulators,
   seedFillups,
   seedRegulatedPrice,
@@ -179,7 +180,9 @@ export interface FillupInput {
 }
 
 /** Add a fill-up through the real form. Returns the toast title it produced. */
-export async function addFillup(page: Page, input: FillupInput): Promise<string> {
+export async function addFillup(page: Page, input: FillupInput, scope: ReadyAccount): Promise<string> {
+  const collectionPath = `users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`;
+  const existingIds = new Set((await listDocuments(collectionPath)).map((record) => record.id));
   await page.goto("/fillup/new");
 
   if (input.date || input.time) {
@@ -226,17 +229,23 @@ export async function addFillup(page: Page, input: FillupInput): Promise<string>
   await expect(toast).toBeVisible({ timeout: 20_000 });
   const title = (await toast.innerText()).trim();
 
-  // This helper drives online consumption tests. The toast acknowledges the
-  // local journal, not the server. A matching liters row can also belong to
-  // an earlier record (the continuity test adds several 40-liter fill-ups).
-  // Wait for the pending-write indicator to clear before a caller's goto()
-  // tears down the page. Offline/rejected-write tests use their own helpers.
+  // The toast acknowledges the local journal. Neither an old row with the
+  // same liters nor a temporarily absent pending badge proves this new write
+  // reached the server. Before a caller's goto() tears down the page, require
+  // the new document in a server read AND its exact link in the live list.
+  // Offline/rejected-write tests use their own helpers.
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
-  await expect(page.getByRole("button", { name: "פעולות שלא סונכרנו", exact: true }))
-    .toHaveCount(0, { timeout: 20_000 });
-  await expect(
-    page.getByText(new RegExp(`${input.liters.toFixed(1).replace(".", "\\.")}\\s*ל׳`)).first(),
-  ).toBeVisible({ timeout: 20_000 });
+  let saved: { id: string; data: Record<string, unknown> } | undefined;
+  await expect(async () => {
+    saved = (await listDocuments(collectionPath)).find((record) =>
+      !existingIds.has(record.id) && record.data.odometer === input.odometer);
+    expect(saved?.data).toMatchObject({
+      odometer: input.odometer,
+      liters: input.liters,
+      continuityBreakBefore: input.continuityBreak ?? false,
+    });
+  }).toPass({ timeout: 20_000 });
+  await expect(page.locator(`a[href="/fillup/${saved!.id}"]`)).toBeVisible({ timeout: 20_000 });
 
   return title;
 }
