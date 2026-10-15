@@ -39,7 +39,7 @@ for (const width of [360, 430]) {
     await page.keyboard.press("Backspace");
     await expect(input).toHaveValue("סונול שפיה");
     expect(await input.evaluate((field: HTMLInputElement) => field.selectionStart)).toBe(6);
-    const station = dialog.getByRole("button", { name: /סונול שפיה/ });
+    const station = dialog.getByRole("button", { name: /סונול שפיה.*תחנה מהיסטוריית התדלוקים/ });
     await expect(station).toBeVisible();
     await expect(dialog.getByText("לא נמצאה תחנה בשם הזה")).toHaveCount(0);
     await station.click();
@@ -71,7 +71,7 @@ for (const identified of [false, true]) {
     await page.getByRole("button", { name: /^תחנה / }).click();
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("חיפוש תחנה…").fill("שפיה סונול");
-    await dialog.getByRole("button", { name: /סונול שפיה/ }).click();
+    await dialog.getByRole("button", { name: /סונול שפיה.*תחנה מהיסטוריית התדלוקים/ }).click();
     await page.getByLabel(/^קילומטראז׳/).fill("101400");
     await page.getByLabel("ליטרים", { exact: true }).fill("40");
     await page.getByLabel("מחיר לליטר").fill("7");
@@ -86,6 +86,43 @@ for (const identified of [false, true]) {
     await page.reload();
     await page.goto("/history");
     await expect(page.getByText("סונול שפיה", { exact: true }).first()).toBeVisible();
+  });
+}
+
+for (const oldCache of [false, true]) {
+  test(`Sonol Shfeya is available without history with ${oldCache ? "an old cached registry" : "no registry network"}`, async ({ page }, testInfo) => {
+    const { uid, vehicleId } = await signedInWithData(page);
+    if (oldCache) {
+      await page.evaluate(() => localStorage.setItem("tm.stations.v1", JSON.stringify({
+        count: 1, companies: ["פז"],
+        stations: [{ i: "1234", n: "פז בדיקה", c: "פז", a: "בדיקה", lat: 32, lng: 34.9 }],
+      })));
+    }
+    await page.route("**/fuel-stations.json", (route) => route.abort());
+    await page.goto("/fillup/new");
+    const trigger = page.getByRole("button", { name: /^תחנה / });
+    await trigger.click();
+    const dialog = page.getByRole("dialog");
+    const search = dialog.getByPlaceholder("חיפוש תחנה…");
+    await search.click();
+    for (const character of "סונול שפיה") {
+      await page.keyboard.insertText(character);
+      await expect(search).toBeFocused();
+    }
+    const station = dialog.getByRole("button", { name: /סונול שפיה.*מאיר שפיה/ });
+    await expect(station).toBeVisible();
+    if (oldCache) await testInfo.attach("sonol-shfeya-global-cached", { body: await dialog.screenshot(), contentType: "image/png" });
+    await station.click();
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toContainText("סונול שפיה");
+    await page.getByLabel(/^קילומטראז׳/).fill("100000");
+    await page.getByLabel("ליטרים", { exact: true }).fill("40");
+    await page.getByLabel("מחיר לליטר").fill("7");
+    await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+    const saved = await waitForDocument(`users/${uid}/vehicles/${vehicleId}/fillups`, (record) => record.odometer === 100000);
+    // The serializer omits unresolved IDs and coordinates, as for legacy stations.
+    expect(saved.station).toEqual({ name: "סונול שפיה", brand: "סונול" });
+    expect(saved.pricePerLiter).toBe(7);
   });
 }
 

@@ -68,6 +68,18 @@ let inMemory: Catalog | null = null;
 let inFlight: Promise<Catalog | null> | null = null;
 
 /**
+ * Verified places missing from the Ministry's 1 December 2025 snapshot.
+ * Bundled separately so an older cached catalog or an unavailable registry
+ * cannot hide them. These are search-only additions, not government records:
+ * never invent a registry ID or location, or change an existing fill-up.
+ * Sources checked 2026-10-15: https://easy.co.il/page/27559559 and
+ * https://evdrive.co.il/%D7%A2%D7%9E%D7%93%D7%95%D7%AA-%D7%98%D7%A2%D7%99%D7%A0%D7%94/
+ */
+const VERIFIED_SEARCH_STATIONS: readonly CatalogStation[] = [
+  { i: null, n: "סונול שפיה", c: "סונול", a: "מאיר שפיה · כביש 67", lat: null, lng: null },
+];
+
+/**
  * Load the catalog, preferring localStorage so a repeat visit (or an offline
  * one) resolves instantly instead of waiting on the network.
  */
@@ -155,14 +167,14 @@ export function findNearby(
   return results.slice(0, limit);
 }
 
-/** Free-text search over the catalog, for the manual station picker. */
 /**
- * Search the AUTHORITATIVE registry by name or address.
+ * Search the registry and verified additions by name or address.
  *
  * Both the geo-enabled subset and the stations with no usable coordinate are
  * searched. A broken coordinate in a government dataset is not a reason to
  * pretend a petrol station does not exist — the driver may well be standing at
- * it. It simply will not turn up in nearby detection.
+ * it. It simply will not turn up in nearby detection. Search-only additions
+ * remain available even when the registry has not loaded.
  */
 export function searchStations(
   catalog: Catalog | null,
@@ -170,7 +182,7 @@ export function searchStations(
   limit = 30,
 ): CatalogStation[] {
   const term = normaliseStationText(query);
-  if (!catalog || term.length < 2) return [];
+  if (term.length < 2 || limit <= 0) return [];
 
   const results: CatalogStation[] = [];
   const consider = (station: CatalogStation): boolean => {
@@ -180,10 +192,13 @@ export function searchStations(
     return results.length < limit;
   };
 
-  for (const station of catalog.stations ?? []) {
+  for (const station of catalog?.stations ?? []) {
     if (!consider(station)) return results;
   }
-  for (const station of catalog.registryOnly ?? []) {
+  for (const station of catalog?.registryOnly ?? []) {
+    if (!consider(station)) return results;
+  }
+  for (const station of VERIFIED_SEARCH_STATIONS) {
     if (!consider(station)) return results;
   }
   return results;
