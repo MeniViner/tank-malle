@@ -1,6 +1,7 @@
 import type { FuelType, FuelPrices, Vehicle } from "../stats";
 import { monthKey } from "../stats";
 import { heMonthName } from "../format";
+import { priceTimeline } from './publicSource';
 import type { ServiceMode } from "./types";
 
 /**
@@ -38,6 +39,9 @@ export interface RegulatedSeries {
    * month: inside its own month a manual override wins here.
    */
   history: Record<string, number>;
+  /** Effective timestamp → price, including changes inside a month. */
+  timeline?: Record<string, number>;
+  sourceUrl?: string | null;
   current?: {
     pricePerLiter: number;
     effectiveFrom?: number;
@@ -209,6 +213,8 @@ function normalizeSeries(raw: unknown): RegulatedSeries | undefined {
 
   const normalized: RegulatedSeries = {
     history: numberMap(series.history),
+    timeline: numberMap(series.timeline),
+    sourceUrl: series.sourceUrl,
     current: Number.isFinite(price)
       ? {
           pricePerLiter: price,
@@ -351,6 +357,15 @@ export function regulatedMaxPrice(
       isManual: true,
       isRegulated: false,
     };
+  }
+
+  const dated = Object.entries(series.timeline ?? {})
+    .map(([at, price]) => ({ at: Number(at), price }))
+    .filter(p => Number.isFinite(p.at) && p.at <= date && Number.isFinite(p.price) && p.price > 0)
+    .sort((a, b) => b.at - a.at)[0];
+  if (dated && monthKey(dated.at) === key) {
+    return { price: dated.price, fromHistory: true, effectiveMonth: key,
+      updatedAt: series.retrievedAt ?? null, source: 'scheduled', isManual: false, isRegulated: regulable };
   }
 
   const historic = series.history?.[key];
@@ -620,4 +635,20 @@ export function officialPriceFor(
     effectiveMonth: lookup.effectiveMonth,
     updatedAt: lookup.updatedAt,
   };
+}
+
+/** Overlay a verified public reading locally; ordinary users never write global config. */
+export function withPublicPrice(config: RegulatedPriceConfig | null, reading: { price: number; month: string; effectiveFrom: number; readAt: number; url: string } | null): RegulatedPriceConfig | null {
+  if (!reading) return config;
+  const base = adaptLegacyConfig(config);
+  const old = base.byFuelType?.['95']?.self;
+  if ((old?.current?.effectiveFrom ?? 0) > reading.effectiveFrom) return base;
+  const override = old?.manualOverride;
+  if (override && override.month === reading.month && override.setAt >= reading.effectiveFrom) return base;
+  const series: RegulatedSeries = { ...old, history: { ...old?.history, [reading.month]: reading.price },
+    scheduledHistory: { ...old?.scheduledHistory, [reading.month]: reading.price },
+    timeline: priceTimeline(old, reading),
+    current: { pricePerLiter: reading.price, effectiveFrom: reading.effectiveFrom, updatedAt: reading.readAt },
+    source: 'scheduled', sourceUrl: reading.url, retrievedAt: reading.readAt, manualOverride: null };
+  return { ...base, byFuelType: { ...base.byFuelType, '95': { ...base.byFuelType?.['95'], self: series } } };
 }

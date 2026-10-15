@@ -29,7 +29,7 @@ export function Legal() {
 
       <div className="flex flex-col gap-4 px-5">
         <Card className="px-4 py-3">
-          <p className="text-[12.5px] text-muted">
+          <p className="text-[14px] text-muted">
             עודכן לאחרונה: {LAST_UPDATED} · גרסה <Num>1.0</Num>
           </p>
         </Card>
@@ -39,7 +39,7 @@ export function Legal() {
 
           <Card className="flex flex-col gap-1.5 p-4">
             <span className="text-[14px] font-bold text-ink">יצירת קשר</span>
-            <span className="text-[13.5px] leading-relaxed text-muted">
+            <span className="text-[14px] leading-relaxed text-muted">
               לשאלות, בקשות למחיקת מידע או מימוש זכויות לפי חוק הגנת הפרטיות:{" "}
               <span dir="ltr" className="font-semibold text-accent">
                 {CONTACT}

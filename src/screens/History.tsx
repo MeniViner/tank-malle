@@ -147,7 +147,7 @@ export function History() {
                 type="button"
                 aria-pressed={flaggedActive}
                 onClick={() => setOnlyFlagged((value) => !value)}
-                className={`flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill px-3 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+                className={`flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill px-3 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
                   flaggedActive
                     ? "bg-warning-soft text-warning-ink"
                     : "border border-line bg-surface text-muted"
@@ -165,11 +165,11 @@ export function History() {
 
       <div className="flex flex-col gap-4 px-5">
         {fillupsError ? (
-          <Card className="flex items-start gap-2.5 p-4 text-[13.5px] text-danger-ink">
+          <Card className="flex items-start gap-2.5 p-4 text-[14px] text-danger-ink">
             <WarningIcon size={17} className="mt-px flex-none" />
             <span className="flex flex-col gap-0.5">
               <span className="font-bold">ההיסטוריה לא נטענה מהשרת</span>
-              <span className="text-[12.5px] text-muted">
+              <span className="text-[14px] text-muted">
                 {fillupsError}. מוצג העותק האחרון שנשמר במכשיר, אם יש כזה.
               </span>
             </span>
@@ -183,7 +183,7 @@ export function History() {
               <button
                 type="button"
                 onClick={() => navigate("/settings/unsynced")}
-                className="text-[12.5px] font-semibold text-accent"
+                className="text-[14px] font-semibold text-accent"
               >
                 לכל הפעולות
               </button>
@@ -205,11 +205,11 @@ export function History() {
                     <span className="truncate text-[15px] font-semibold text-ink">
                       {record!.station?.name || "ללא מיקום"}
                     </span>
-                    <span className="truncate text-[12.5px] text-muted">
+                    <span className="truncate text-[14px] text-muted">
                       <Num>{num(record!.liters, 1)}</Num> ל׳ · <Num>{shekel(record!.totalCost)}</Num> ·{" "}
                       <Num>{num(record!.odometer, 0)}</Num> ק״מ
                     </span>
-                    <span className="truncate text-[11.5px] text-danger-ink">
+                    <span className="truncate text-[13px] text-danger-ink">
                       {outboxStatusText(op.status)}
                     </span>
                   </span>
@@ -270,7 +270,7 @@ export function History() {
               <section key={key} className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between px-1">
                   <h2 className="text-[15px] font-bold text-ink">{monthYear(key)}</h2>
-                  <span className="text-[12.5px] text-muted">
+                  <span className="text-[14px] text-muted">
                     <Num>{shekel(monthCost)}</Num> · <Num>{num(monthLiters, 1)}</Num> ל׳
                   </span>
                 </div>
@@ -293,7 +293,7 @@ export function History() {
                             }`}
                           >
                             <span className="h-px flex-1 bg-line" />
-                            <span className="flex-none text-[11.5px] font-semibold text-muted">
+                            <span className="flex-none text-[13px] font-semibold text-muted">
                               התחלת תקופה חדשה
                             </span>
                             <span className="h-px flex-1 bg-line" />
@@ -313,10 +313,10 @@ export function History() {
                         }`}
                       >
                         <span className="flex w-[38px] flex-none flex-col items-center">
-                          <Num className="text-[17px] font-bold leading-none text-ink">
+                          <Num className="text-[18px] font-semibold leading-none text-ink">
                             {date.getDate()}
                           </Num>
-                          <span className="text-[11.5px] text-muted">
+                          <span className="text-[13px] text-muted">
                             {heMonthShort(date.getMonth() + 1)}
                           </span>
                         </span>
@@ -340,14 +340,14 @@ export function History() {
                               </span>
                             ) : null}
                           </span>
-                          <span className="truncate text-[12.5px] text-muted">
+                          <span className="truncate text-[14px] text-muted">
                             <Num>{num(fillup.liters, 1)}</Num> ל׳ ·{" "}
                             <Num>{shekel(fillup.totalCost)}</Num>
                           </span>
                           {/* Mileage as its own small metric, distinct from
                               fuel economy — they are different numbers and
                               used to share a line. */}
-                          <span className="truncate text-[11.5px] text-muted/80">
+                          <span className="truncate text-[13px] text-muted/80">
                             <Num>{num(fillup.odometer, 0)}</Num> ק״מ
                           </span>
                         </span>
@@ -398,8 +398,8 @@ function EmptyState() {
       <span className="flex size-[64px] items-center justify-center rounded-[22px] bg-accent-soft text-accent">
         <PumpIcon size={30} />
       </span>
-      <span className="text-[17px] font-bold text-ink">אין עדיין תדלוקים</span>
-      <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
+      <span className="text-[18px] font-semibold text-ink">אין עדיין תדלוקים</span>
+      <span className="max-w-[260px] text-[14px] leading-relaxed text-muted">
         הוסיפו תדלוק ראשון כדי להתחיל.
       </span>
     </Card>

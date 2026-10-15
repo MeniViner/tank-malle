@@ -65,9 +65,9 @@ export function int(value: number): string {
   return Math.round(value).toLocaleString("he-IL");
 }
 
-/** 279.24 → "₪279.24"; whole amounts drop the decimals. */
+/** Display totals in whole shekels; the stored amount retains its precision. */
 export function shekel(value: number, digits?: number): string {
-  const d = digits ?? (Math.abs(value % 1) < 0.005 ? 0 : 2);
+  const d = digits ?? 0;
   return `₪${Math.abs(value).toLocaleString("he-IL", {
     minimumFractionDigits: d,
     maximumFractionDigits: d,

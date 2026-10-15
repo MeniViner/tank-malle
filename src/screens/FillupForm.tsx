@@ -274,7 +274,7 @@ function EditState({
       ) : (
         <Card className="flex flex-col gap-2 p-5">
           <span className="text-[16px] font-bold text-ink">{title}</span>
-          <span className="text-[13.5px] leading-relaxed text-muted">{body}</span>
+          <span className="text-[14px] leading-relaxed text-muted">{body}</span>
           {action ? (
             <Button onClick={action.onClick}>{action.label}</Button>
           ) : null}
@@ -1003,16 +1003,16 @@ function FillupEditor({
         </div> : null}
         {operation ? (
           <div className="flex flex-col gap-1 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
-            <span className="text-[13.5px] font-bold">
+            <span className="text-[14px] font-bold">
               הרשומה הזו נדחתה על ידי השרת ונשמרה במכשיר
             </span>
             {operation.error ? (
-              <span className="text-[12.5px] leading-relaxed">
+              <span className="text-[14px] leading-relaxed">
                 {operation.error.message}
                 {operation.error.code ? ` (${operation.error.code})` : ""}
               </span>
             ) : null}
-            <span className="text-[12.5px] leading-relaxed">
+            <span className="text-[14px] leading-relaxed">
               שמירה מכאן שולחת אותה מחדש עם אותו מזהה — בלי כפילות.
             </span>
           </div>
@@ -1029,15 +1029,15 @@ function FillupEditor({
           />
         ) : changedElsewhere ? (
           <div className="flex flex-col gap-2 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
-            <span className="text-[13.5px] font-bold">הרשומה השתנתה במכשיר אחר</span>
-            <span className="text-[12.5px] leading-relaxed">
+            <span className="text-[14px] font-bold">הרשומה השתנתה במכשיר אחר</span>
+            <span className="text-[14px] leading-relaxed">
               מה שהקלדתם כאן נשמר. שמירה תיבדק מול השרת ותיעצר אם הגרסה השתנתה; טעינה מחדש תציג אותה ותוותר על השינויים שכאן.
             </span>
             {onReload ? (
               <button
                 type="button"
                 onClick={() => { draftCleared.current = true; removeFillupDraft(draftKey); onReload(); }}
-                className="w-fit min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[12.5px] font-semibold text-warning-ink"
+                className="w-fit min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[14px] font-semibold text-warning-ink"
               >
                 טעינת הגרסה החדשה
               </button>
@@ -1047,10 +1047,10 @@ function FillupEditor({
 
         {/* A live receipt, on the same dark card the home screen uses. */}
         <div className="mt-1 flex flex-col rounded-hero bg-hero p-[18px_20px_15px] text-hero-ink shadow-raised">
-          <span className="text-[12.5px] text-hero-muted">סה״כ לתשלום</span>
+          <span className="text-[14px] text-hero-muted">סה״כ לתשלום</span>
           <span className={`mt-0.5 flex items-baseline gap-1.5 ${totalDue > 0 ? "" : "text-hero-muted"}`}>
             <Num className="text-[40px] font-bold leading-none tracking-[-0.02em]">
-              {shekel(totalDue, 2)}
+              {shekel(totalDue)}
             </Num>
           </span>
 
@@ -1089,7 +1089,7 @@ function FillupEditor({
               <CalendarIcon size={18} />
             </IconTile>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <Label className="text-[12.5px]">תאריך ושעה</Label>
+              <Label className="text-[14px]">תאריך ושעה</Label>
               <span className="text-[15px] font-semibold text-ink">
                 {dateConfirmed ? (
                   <>
@@ -1118,7 +1118,7 @@ function FillupEditor({
               <PinIcon size={18} />
             </IconTile>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <Label className="text-[12.5px]">תחנה</Label>
+              <Label className="text-[14px]">תחנה</Label>
               <span className="truncate text-[15px] font-semibold text-ink">
                 {station?.name ?? "ללא מיקום"}
               </span>
@@ -1126,15 +1126,15 @@ function FillupEditor({
                 <span className="text-[12px] text-accent">זוהה אוטומטית לפי מיקום</span>
               ) : null}
             </span>
-            <span className="flex-none text-[13.5px] font-semibold text-accent">שינוי</span>
+            <span className="flex-none text-[14px] font-semibold text-accent">שינוי</span>
           </button>
 
           <div className="flex min-h-[58px] items-center gap-3 px-4 py-2.5">
             <IconTile>
-              <span className="text-[17px] font-bold">₪</span>
+              <span className="text-[18px] font-semibold">₪</span>
             </IconTile>
             <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <Label className="text-[12.5px]">מחיר לליטר</Label>
+              <Label className="text-[14px]">מחיר לליטר</Label>
               <span className="text-[12px] text-muted">
                 {receipt.authored.includes("pricePerLiter")
                   ? "מחיר שהוזן ידנית לתדלוק הזה"
@@ -1157,7 +1157,7 @@ function FillupEditor({
             />
           </div>
           {showErrors && errorFor("pricePerLiter") ? (
-            <span className="block px-4 pb-3 text-[12.5px] font-semibold text-danger">
+            <span className="block px-4 pb-3 text-[14px] font-semibold text-danger">
               {errorFor("pricePerLiter")}
             </span>
           ) : null}
@@ -1248,7 +1248,7 @@ function FillupEditor({
             </div>
           </div>
 
-          <span className="text-[12.5px] text-muted">
+          <span className="text-[14px] text-muted">
             {receipt.authored.length >= 3
               ? "שלושת השדות הוזנו ידנית — אף אחד מהם לא ישתנה אוטומטית"
               : "שדה שלא הוזן ידנית מחושב מהשניים האחרים"}
@@ -1284,7 +1284,7 @@ function FillupEditor({
                     withEndChoice(current, endChoice === choice.value ? null : choice.value),
                   )
                 }
-                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-pill px-4 text-[13.5px] font-bold transition-[background-color,scale] duration-200 active:scale-[0.97] ${
+                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-pill px-4 text-[14px] font-bold transition-[background-color,scale] duration-200 active:scale-[0.97] ${
                   endChoice === choice.value
                     ? "bg-accent text-accent-contrast"
                     : "border border-line bg-surface text-ink"
@@ -1295,7 +1295,7 @@ function FillupEditor({
               </button>
             ))}
           </div>
-          <span className="text-[12.5px] leading-relaxed text-muted">
+          <span className="text-[14px] leading-relaxed text-muted">
             {endChoice === null
               ? isEdit && !tankTouched && editing?.isFullTank
                 ? "ברשומה הישנה הזו סומן מיכל מלא בלי שנשאלתם. בחירה כאן תהפוך את זה להצהרה שלכם."
@@ -1335,7 +1335,7 @@ function FillupEditor({
             />
           </div>
           {continuityBreak ? (
-            <p className="pt-2.5 text-[12.5px] leading-relaxed text-muted">
+            <p className="pt-2.5 text-[14px] leading-relaxed text-muted">
               מתחיל תקופת חישוב חדשה. הרשומות הישנות נשמרות — פשוט לא יחושב שום נתון
               שחוצה את הנקודה הזו.
             </p>
@@ -1353,7 +1353,7 @@ function FillupEditor({
             className="min-h-[52px] w-full rounded-[14px] border border-line bg-bg px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
           />
           {showErrors && errorFor("notes") ? (
-            <span className="block pt-2 text-[12.5px] font-semibold text-danger">{errorFor("notes")}</span>
+            <span className="block pt-2 text-[14px] font-semibold text-danger">{errorFor("notes")}</span>
           ) : null}
         </Card>
 
@@ -1386,7 +1386,7 @@ function FillupEditor({
           {operation ? "שמירה ושליחה מחדש" : isEdit ? "שמירת שינויים" : "שמירת תדלוק"}
         </Button>
         <p
-          className={`flex items-center justify-center gap-1.5 pt-2 text-center text-[12.5px] ${
+          className={`flex items-center justify-center gap-1.5 pt-2 text-center text-[14px] ${
             blockMessage || (fieldErrors.length > 0 && showErrors) ? "text-danger-ink" : "text-muted"
           }`}
         >
@@ -1571,7 +1571,7 @@ function StationSheet({
     <Sheet
       open={open}
       onClose={close}
-      title={<h2 className="text-[17px] font-bold text-ink">תחנת דלק</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">תחנת דלק</h2>}
     >
       <div className="flex max-h-[64vh] flex-col gap-3">
         <div className="flex min-h-[48px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5">
@@ -1600,7 +1600,7 @@ function StationSheet({
               ))
             ) : (
               <div className="flex flex-col gap-2 py-5">
-                <p className="text-center text-[13.5px] text-muted">
+                <p className="text-center text-[14px] text-muted">
                   {catalogLoading
                     ? "טוען תחנות…"
                     : catalog
@@ -1628,7 +1628,7 @@ function StationSheet({
                 <button
                   type="button"
                   onClick={onLocate}
-                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[13.5px] font-semibold text-accent"
+                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-accent"
                 >
                   {geoStatus === "denied"
                     ? "הרשאת מיקום נדחתה — נסו שוב"
@@ -1642,7 +1642,7 @@ function StationSheet({
                 <button
                   type="button"
                   onClick={onLocate}
-                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[13.5px] font-semibold text-accent"
+                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-accent"
                 >
                   איתור תחנות בקרבת מקום
                 </button>
@@ -1709,7 +1709,7 @@ function StationSheet({
 
 function SheetGroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="px-1 pb-1 pt-2 text-[12px] font-semibold tracking-[0.02em] text-muted">
+    <span className="px-1 pb-1 pt-2 text-[12px] font-semibold  text-muted">
       {children}
     </span>
   );
@@ -1737,7 +1737,7 @@ function SortControl({
         type="button"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex min-h-[34px] w-fit items-center gap-1 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-ink"
+        className="flex min-h-[34px] w-fit items-center gap-1 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-ink"
       >
         מיון: {SORT_LABELS[value]}
         <ChevronDown size={14} className="text-muted" />
@@ -1759,7 +1759,7 @@ function SortControl({
                 onChange(option);
                 setOpen(false);
               }}
-              className={`flex min-h-[42px] items-center justify-between px-3.5 text-[13.5px] transition-[background-color] duration-150 active:bg-surface-2 ${
+              className={`flex min-h-[42px] items-center justify-between px-3.5 text-[14px] transition-[background-color] duration-150 active:bg-surface-2 ${
                 value === option ? "font-bold text-accent" : "text-ink"
               }`}
             >
@@ -1854,7 +1854,7 @@ function DateSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">תאריך ושעה</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">תאריך ושעה</h2>}
     >
       <div className="flex flex-col gap-3">
         <DateTimePicker value={value} onChange={onChange} maxDate={maxDate} />
@@ -1900,7 +1900,7 @@ function DraftExplanation({
 
   if (evaluation.outcome === "closedSegment" && evaluation.segment) {
     return (
-      <span className="rounded-[11px] bg-success-soft px-3 py-2 text-[12.5px] leading-relaxed text-success-ink">
+      <span className="rounded-[11px] bg-success-soft px-3 py-2 text-[14px] leading-relaxed text-success-ink">
         סוגר מקטע צריכה:{" "}
         <ConsumptionValue
           kmPerLiter={evaluation.segment.kmPerLiter}
@@ -1913,7 +1913,7 @@ function DraftExplanation({
 
   if (evaluation.outcome === "baseline") {
     return (
-      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
         {evaluation.startsNewPeriod
           ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב בתדלוק הבא."
           : "יוצר נקודת התחלה. הצריכה תחושב בתדלוק הבא."}
@@ -1923,7 +1923,7 @@ function DraftExplanation({
 
   if (evaluation.outcome === "partialNoBaseline") {
     return (
-      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
         עדיין אין נקודת התחלה, אז התדלוק הזה לא ייכנס לחישוב.
       </span>
     );
@@ -1931,7 +1931,7 @@ function DraftExplanation({
 
   if (evaluation.outcome === "unknownRetained") {
     return (
-      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
         הצריכה לא תחושב מהתדלוק הזה — לא צוין אם המיכל התמלא. סימון{" "}
         <b className="text-ink">מילאתי מיכל מלא</b> במצב המיכל מספיק כדי לחשב אותה.
       </span>
@@ -1939,7 +1939,7 @@ function DraftExplanation({
   }
 
   return (
-    <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[12.5px] leading-relaxed text-muted">
+    <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
       הליטרים ייכללו בחישוב בתדלוק הבא · במקטע הפתוח יהיו{" "}
       <Quantity value={evaluation.openSegment.liters} digits={1} className="font-semibold" />
     </span>
@@ -2050,7 +2050,7 @@ function PumpPriceQuestion({
         <span className="text-[15px] font-semibold text-ink">
           האם זה גם המחיר שהופיע במשאבה?
         </span>
-        <span className="text-[12.5px] leading-relaxed text-muted">
+        <span className="text-[14px] leading-relaxed text-muted">
           שילמתם <Num>{price(paid)}</Num> לליטר. התשובה עוזרת לנו לדעת מה המחיר
           הציבורי בתחנה — המחיר שלכם לא מתפרסם בלי אישור.
         </span>
@@ -2076,7 +2076,7 @@ function PumpPriceQuestion({
 
       {answer === "different" ? (
         <label className="flex items-center justify-between gap-3">
-          <span className="text-[13.5px] text-ink">מה היה המחיר במשאבה?</span>
+          <span className="text-[14px] text-ink">מה היה המחיר במשאבה?</span>
           <input
             dir="ltr"
             inputMode="decimal"
@@ -2089,7 +2089,7 @@ function PumpPriceQuestion({
       ) : null}
 
       {answer === "discount" ? (
-        <span className="text-[12.5px] leading-relaxed text-muted">
+        <span className="text-[14px] leading-relaxed text-muted">
           נשמר כמחיר ששילמתם בלבד. הוא לא ידווח כמחיר התחנה.
         </span>
       ) : null}
@@ -2100,7 +2100,7 @@ function PumpPriceQuestion({
 /** Small section label above each group, as in the form's design. */
 function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <p className="px-1 pb-0.5 pt-3 text-[11.5px] font-bold tracking-[0.01em] text-muted">
+    <p className="px-1 pb-0.5 pt-3 text-[13px] font-bold tracking-[0.01em] text-muted">
       {children}
     </p>
   );

@@ -202,7 +202,7 @@ export function DateTimePicker({
       </EntryRow>
 
       {dateError || timeError ? (
-        <span className="text-[12.5px] text-danger-ink">{dateError ?? timeError}</span>
+        <span className="text-[14px] text-danger-ink">{dateError ?? timeError}</span>
       ) : null}
     </div>
   );

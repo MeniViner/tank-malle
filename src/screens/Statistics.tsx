@@ -234,7 +234,7 @@ export function Statistics() {
           <button
             type="button"
             onClick={() => setVehicleSheetOpen(true)}
-            className="flex min-h-[32px] max-w-[52%] items-center gap-1 rounded-pill bg-surface-2 px-3 text-[12.5px] font-semibold text-ink"
+            className="flex min-h-[32px] max-w-[52%] items-center gap-1 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-ink"
           >
             <span className="truncate">{vehicleShort(activeVehicle)}</span>
             <ChevronDown size={14} className="flex-none text-muted" />
@@ -254,7 +254,7 @@ export function Statistics() {
             type="button"
             aria-current={section === entry.value ? "page" : undefined}
             onClick={() => setSection(entry.value)}
-            className={`min-h-[34px] rounded-pill px-1 text-[12.5px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[34px] rounded-pill px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
               section === entry.value
                 ? "bg-accent text-accent-contrast"
                 : "bg-surface-2 text-muted"
@@ -294,8 +294,8 @@ export function Statistics() {
             <span className="flex size-[64px] items-center justify-center rounded-[22px] bg-accent-soft text-accent">
               <ChartIcon size={30} />
             </span>
-            <span className="text-[17px] font-bold text-ink">אין עדיין מספיק נתונים</span>
-            <span className="max-w-[260px] text-[13.5px] leading-relaxed text-muted">
+            <span className="text-[18px] font-semibold text-ink">אין עדיין מספיק נתונים</span>
+            <span className="max-w-[260px] text-[14px] leading-relaxed text-muted">
               אחרי שני תדלוקים נתחיל להציג מגמות, עלויות והשוואות.
             </span>
           </Card>
@@ -324,8 +324,8 @@ export function Statistics() {
                 <div className="flex gap-3">
                   <SummaryCard label="מתחילת השנה" value={shekel(spend.yearToDate)} />
                   <SummaryCard
-                    label="עלות לק״מ"
-                    value={rangeCostPerKm !== null ? shekel(rangeCostPerKm, 2) : "—"}
+                    label="עלות ל־100 ק״מ"
+                    value={rangeCostPerKm !== null ? shekel(rangeCostPerKm * 100) : "—"}
                   />
                 </div>
 
@@ -424,7 +424,7 @@ export function Statistics() {
                       <span className="text-[14.5px] font-semibold text-ink">
                         מול נתוני היצרן
                       </span>
-                      <span className="text-[12.5px] text-muted">
+                      <span className="text-[14px] text-muted">
                         מוצהר:{" "}
                         <ConsumptionValue
                           kmPerLiter={activeVehicle?.declaredKmPerLiter ?? null}
@@ -537,13 +537,13 @@ export function Statistics() {
 
                 {stats.avgPriceVsOfficial !== null && hasOfficialLine ? (
                   <Card className="flex flex-col gap-1.5 p-[14px_16px]">
-                    <Label className="text-[12.5px]">
+                    <Label className="text-[14px]">
                       מול המחיר הרשמי בתאריכי התדלוקים
                     </Label>
                     <Num className="text-[22px] font-bold leading-tight text-ink">
                       {shekelSigned(stats.avgPriceVsOfficial)}
                     </Num>
-                    <span className="text-[12.5px] text-muted">
+                    <span className="text-[14px] text-muted">
                       {stats.avgPriceVsOfficial <= 0 ? "לליטר פחות" : "לליטר יותר"} מ
                       {officialToday.isRegulated ? "המחיר המרבי המפוקח" : "המחיר שהוזן ידנית"}{" "}
                       שהיה בתוקף בכל תדלוק
@@ -580,7 +580,7 @@ export function Statistics() {
                         </div>
                       ))}
                     </div>
-                    <span className="text-[11.5px] leading-relaxed text-muted">
+                    <span className="text-[13px] leading-relaxed text-muted">
                       אלה המחירים ש<b>אתם</b> שילמתם, כולל הנחות אישיות — לא מחירי המשאבה
                       הפומביים של התחנות.
                     </span>
@@ -589,13 +589,13 @@ export function Statistics() {
 
                 <div className="flex gap-3">
                   <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-                    <Label className="text-[12.5px]">התדלוק היקר ביותר</Label>
+                    <Label className="text-[14px]">התדלוק היקר ביותר</Label>
                     <Num className="text-[22px] font-bold leading-tight text-ink">
                       {stats.records.mostExpensive
                         ? shekel(stats.records.mostExpensive.totalCost)
                         : "—"}
                     </Num>
-                    <span className="truncate text-[12.5px] text-muted">
+                    <span className="truncate text-[14px] text-muted">
                       {stats.records.mostExpensive
                         ? `${stats.records.mostExpensive.station?.name ?? "ללא מיקום"} · ${dayMonthShort(
                             stats.records.mostExpensive.date,
@@ -605,7 +605,7 @@ export function Statistics() {
                   </Card>
 
                   <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-                    <Label className="text-[12.5px]">החודש החסכוני</Label>
+                    <Label className="text-[14px]">החודש החסכוני</Label>
                     <span className="flex items-baseline gap-1.5">
                       <Num className="text-[22px] font-bold leading-tight text-accent">
                         {stats.records.mostEconomicalMonth?.kmPerLiter != null
@@ -614,7 +614,7 @@ export function Statistics() {
                       </Num>
                       <span className="text-[12px] text-muted">{unitLabel}</span>
                     </span>
-                    <span className="truncate text-[12.5px] text-muted">
+                    <span className="truncate text-[14px] text-muted">
                       {stats.records.mostEconomicalMonth
                         ? monthYear(stats.records.mostEconomicalMonth.key)
                         : "—"}
@@ -643,7 +643,7 @@ export function Statistics() {
       <Sheet
         open={vehicleSheetOpen}
         onClose={() => setVehicleSheetOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">רכב</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">רכב</h2>}
       >
         <div className="flex flex-col gap-1.5">
           {activeVehicles.map((vehicle) => (
@@ -695,7 +695,7 @@ function RangePicker({
   return (
     <>
       <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-2 ps-3.5 shadow-card">
-        <span className="truncate text-[12.5px] text-muted">{summary}</span>
+        <span className="truncate text-[14px] text-muted">{summary}</span>
         <button
           type="button"
           aria-haspopup="dialog"
@@ -712,7 +712,7 @@ function RangePicker({
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">טווח תאריכים</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">טווח תאריכים</h2>}
       >
         <div className="flex flex-col gap-1.5">
           {RANGE_OPTIONS.map((option) => (
@@ -790,8 +790,8 @@ function OpenSegmentCard({ stats }: { stats: ReturnType<typeof computeStats> }) 
     if (stats.records.fillupCount === 0) return null;
     return (
       <Card className="flex flex-col gap-1 p-4">
-        <Label className="text-[12.5px]">מקטע פתוח</Label>
-        <span className="text-[13.5px] leading-relaxed text-ink">
+        <Label className="text-[14px]">מקטע פתוח</Label>
+        <span className="text-[14px] leading-relaxed text-ink">
           עדיין אין נקודת התחלה. התדלוק הבא יפתח את החישוב.
         </span>
       </Card>
@@ -802,8 +802,8 @@ function OpenSegmentCard({ stats }: { stats: ReturnType<typeof computeStats> }) 
 
   return (
     <Card className="flex flex-col gap-1 p-4">
-      <Label className="text-[12.5px]">מקטע פתוח</Label>
-      <span className="text-[13.5px] leading-relaxed text-ink">
+      <Label className="text-[14px]">מקטע פתוח</Label>
+      <span className="text-[14px] leading-relaxed text-ink">
         <Quantity value={open.liters} digits={1} /> מ־<Num>{open.pendingFillups}</Num>{" "}
         {open.pendingFillups === 1 ? "תדלוק" : "תדלוקים"} ·{" "}
         <Distance value={open.km} /> מאז התדלוק האחרון
@@ -839,7 +839,7 @@ function CommunitySection({
     return (
       <Card className="flex flex-col gap-2 p-5">
         <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
-        <span className="text-[13.5px] leading-relaxed text-muted">
+        <span className="text-[14px] leading-relaxed text-muted">
           ההשתתפות בהשוואה כבויה בהגדרות. כשמפעילים אותה, מפורסם סיכום צריכה אחד לכל רכב
           — בלי שם, אימייל, מספר רכב, קילומטראז׳, תחנה או תאריכים.
         </span>
@@ -851,7 +851,7 @@ function CommunitySection({
     return (
       <Card className="flex flex-col gap-2 p-5">
         <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
-        <span className="text-[13.5px] leading-relaxed text-muted">
+        <span className="text-[14px] leading-relaxed text-muted">
           צריך לפחות שני מקטעי צריכה סגורים כדי שיהיה מה להשוות.
         </span>
       </Card>
@@ -866,7 +866,7 @@ function CommunitySection({
     return (
       <Card className="flex flex-col gap-3 p-5">
         <span className="text-[16px] font-bold text-ink">השוואה לנהגים דומים</span>
-        <span className="text-[13.5px] leading-relaxed text-muted">
+        <span className="text-[14px] leading-relaxed text-muted">
           עדיין אין מספיק נהגים להשוואה.
         </span>
         <span className="flex flex-col gap-1.5">
@@ -947,7 +947,7 @@ function PeerSection({
             </span>
           </InfoTip>
         </div>
-        <span className="flex items-center gap-1 text-[11.5px] text-muted">
+        <span className="flex items-center gap-1 text-[13px] text-muted">
           <UserIcon size={13} />
           <Num>{comparison.peers}</Num> נהגים
         </span>
@@ -959,7 +959,7 @@ function PeerSection({
           <Num className="text-[30px] font-bold leading-none text-accent">
             {comparison.percentile}%
           </Num>
-          <span className="text-[13.5px] leading-snug text-ink/80">
+          <span className="text-[14px] leading-snug text-ink/80">
             {ahead ? "מהנהגים צורכים יותר מכם" : "מהנהגים צורכים פחות מכם"}
           </span>
         </div>
@@ -971,7 +971,7 @@ function PeerSection({
           />
         </div>
 
-        <div className="flex items-center justify-between text-[12.5px] text-muted">
+        <div className="flex items-center justify-between text-[14px] text-muted">
           <span>
             שלכם:{" "}
             <ConsumptionValue
@@ -1052,7 +1052,7 @@ function PeerSection({
               max={Math.max(comparison.yourAvgPrice, comparison.peerAvgPrice)}
             />
           </div>
-          <span className="text-[11.5px] leading-relaxed text-muted">
+          <span className="text-[13px] leading-relaxed text-muted">
             {comparison.yourAvgPrice <= comparison.peerAvgPrice
               ? `אתם משלמים ${price(comparison.peerAvgPrice - comparison.yourAvgPrice)} פחות לליטר מהממוצע`
               : `אתם משלמים ${price(comparison.yourAvgPrice - comparison.peerAvgPrice)} יותר לליטר מהממוצע`}
@@ -1090,7 +1090,7 @@ function PriceBar({
         }`}
         style={{ height }}
       />
-      <span className="text-[11.5px] text-muted">{label}</span>
+      <span className="text-[13px] text-muted">{label}</span>
     </span>
   );
 }
@@ -1157,7 +1157,7 @@ function LegendDot({
   swatch?: "line" | "block";
 }) {
   return (
-    <span className="flex items-center gap-1.5 text-[11.5px] text-muted">
+    <span className="flex items-center gap-1.5 text-[13px] text-muted">
       <span
         className={swatch === "block" ? "size-2.5 rounded-[3px]" : "h-0.5 w-3.5 rounded-full"}
         style={
@@ -1195,13 +1195,13 @@ function ChartTooltip({
       dir="rtl"
       className="rounded-[12px] border border-line bg-surface px-3 py-2 shadow-[0_10px_24px_-12px_rgb(13_35_28/0.4)]"
     >
-      <div className="text-[11.5px] text-muted">{label}</div>
+      <div className="text-[13px] text-muted">{label}</div>
       {payload.map((entry, index) => {
         const value = typeof entry.value === "number" ? entry.value : Number(entry.value);
         if (!Number.isFinite(value)) return null;
         return (
-          <div key={index} className="text-[13.5px] font-bold text-ink">
-            <Num>{currency ? shekel(value, 2) : `${num(value, digits)}${suffix}`}</Num>
+          <div key={index} className="text-[14px] font-bold text-ink">
+            <Num>{currency ? shekel(value) : `${num(value, digits)}${suffix}`}</Num>
           </div>
         );
       })}
@@ -1222,7 +1222,7 @@ function SummaryCard({
 }) {
   return (
     <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <Label className="text-[12.5px]">{label}</Label>
+      <Label className="text-[14px]">{label}</Label>
       <span className="flex items-baseline gap-1.5">
         <Num
           className={`text-[22px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}

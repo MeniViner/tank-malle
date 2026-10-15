@@ -1,3 +1,5 @@
+import { lookupDeclared } from "./declaredCatalog";
+import { manufacturerTank } from "./manufacturerSpecs";
 import type { FuelType } from "./types";
 
 /**
@@ -7,22 +9,20 @@ import type { FuelType } from "./types";
  * thirsty it is. The Ministry of Transport's WLTP model register does carry
  * the certified CO₂ figure, and CO₂ per km is a direct function of fuel burnt
  * per km — so the manufacturer's declared consumption can be recovered from it
- * exactly, rather than guessed, WHEN the exact model year is on file and the
+ * approximately WHEN the exact model year is on file and the
  * fuel is one we have a conversion constant for.
  *
- * Tank capacity is not published in any Israeli open dataset. What this module
- * offers is a class-based approximation, returned as a clearly labelled
- * SUGGESTION. It is never written into the vehicle's real capacity on its own:
- * a guessed 50 L feeding a "633 km range" headline is a fabrication, and this
- * is the boundary that keeps it from becoming one.
+ * Tank capacity comes from a bounded, sourced manufacturer supplement when
+ * available. Otherwise a class-based approximation is only a suggestion.
+ * Exact lab consumption is joined conservatively to the local ADEME catalog;
+ * CO₂ conversion remains explicitly labelled as an estimate.
  */
 
 const ENDPOINT = "https://data.gov.il/api/3/action/datastore_search";
 const WLTP_RESOURCE = "142afde2-6228-49f9-8a29-9b6c3a0cbe40";
 
 /**
- * Grams of CO₂ released per litre burnt. These are stoichiometric constants,
- * not estimates: petrol ≈ 2,392 g/L, diesel ≈ 2,640 g/L.
+ * Grams of CO₂ released per litre burnt. Approximate fuel factors: petrol ≈ 2,392 g/L, diesel ≈ 2,640 g/L.
  *
  * Deliberately sparse. "other" covers electric, hybrid-plug-in, LPG and
  * anything the registry could not classify — there is no single correct
@@ -71,10 +71,13 @@ export interface VehicleSpecs {
   engineCc: number | null;
   co2WltpGramsPerKm: number | null;
   /**
-   * True only for an exact manufacturer/model/year match on a fuel type we
-   * have a conversion constant for. Anything else is an estimate.
+   * True only for an unambiguous matching lab consumption record. A CO₂
+   * conversion is an estimate even when the registry model/year match.
    */
   consumptionIsOfficial: boolean;
+  trustedTankLiters?: number | null;
+  sourceUrl?: string | null;
+  tankSourceUrl?: string | null;
 }
 
 const EMPTY: VehicleSpecs = {
@@ -178,6 +181,9 @@ function toNumber(value: unknown): number | null {
  */
 export async function fetchVehicleSpecs(
   params: {
+    make?: string;
+    model?: string;
+    engineCc?: number | null;
     tozeretCd?: number | null;
     degemCd?: number | null;
     year?: number | null;
@@ -186,10 +192,12 @@ export async function fetchVehicleSpecs(
   signal?: AbortSignal,
 ): Promise<VehicleSpecs> {
   const { tozeretCd, degemCd, year, fuelType = "95" } = params;
-  if (!tozeretCd || !degemCd) return EMPTY;
+  const trustedTank = manufacturerTank(params.make, params.model, year, fuelType);
+  const fallback: VehicleSpecs = { ...EMPTY, trustedTankLiters: trustedTank?.liters ?? null, tankSourceUrl: trustedTank?.url ?? null };
+  if ((!tozeretCd || !degemCd) && (!params.model || !year)) return fallback;
 
   const attempts: { filters: Record<string, string>; source: DeclaredSource }[] = [];
-  if (year) {
+  if (year && tozeretCd && degemCd) {
     attempts.push({
       filters: {
         tozeret_cd: String(tozeretCd),
@@ -199,25 +207,35 @@ export async function fetchVehicleSpecs(
       source: "exact-year",
     });
   }
-  attempts.push({
+  if (tozeretCd && degemCd) attempts.push({
     filters: { tozeret_cd: String(tozeretCd), degem_cd: String(degemCd) },
     source: "other-year",
   });
+
+  if (params.model && year) attempts.push({ filters: { shnat_yitzur: String(year), kinuy_mishari: params.model.trim().split(/\s+/)[0].toUpperCase() }, source: 'exact-year' });
 
   for (const attempt of attempts) {
     try {
       const url = new URL(ENDPOINT);
       url.searchParams.set("resource_id", WLTP_RESOURCE);
-      url.searchParams.set("limit", "1");
+      url.searchParams.set("limit", "100");
       url.searchParams.set("filters", JSON.stringify(attempt.filters));
 
-      const response = await fetch(url.toString(), { signal });
+      const response = await fetch(url.toString(), { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(7000)]) : AbortSignal.timeout(7000) });
       if (!response.ok) continue;
 
       const payload = (await response.json()) as {
         result?: { records?: Record<string, unknown>[] };
       };
-      const row = payload.result?.records?.[0];
+      const records = payload.result?.records ?? [];
+      const candidates = records.filter(row => {
+        if (tozeretCd && Number(row.tozeret_cd) !== tozeretCd) return false;
+        if (!tozeretCd && params.make && !String(row.tozeret_nm || row.tozar).includes(params.make.split(' ')[0]) && !String(row.tozar).toLowerCase().includes(params.make.toLowerCase())) return false;
+        if (params.engineCc && Math.abs(Number(row.nefah_manoa) - params.engineCc) > 30) return false;
+        return true;
+      });
+      // A name can identify several transmissions. Do not silently choose one.
+      const row = candidates.length === 1 || (tozeretCd && degemCd) ? candidates[0] : undefined;
       if (!row) continue;
 
       const co2 = toNumber(row.CO2_WLTP) ?? toNumber(row.kamut_CO2);
@@ -225,12 +243,15 @@ export async function fetchVehicleSpecs(
       const bodyType = typeof row.merkav === "string" ? row.merkav.trim() || null : null;
       const rowYear = toNumber(row.shnat_yitzur);
 
-      const declaredKmPerLiter = declaredFromCo2(co2, fuelType);
+      const certified = await lookupDeclared(row, signal);
+      const declaredKmPerLiter = certified?.kmPerLiter ?? declaredFromCo2(co2, fuelType);
       // A looser-year hit is an estimate even when the row is otherwise exact.
       const matchedExactYear =
         attempt.source === "exact-year" || (year !== null && rowYear === year);
 
       return {
+        ...fallback,
+        sourceUrl: certified?.url ?? "https://data.gov.il/dataset/degamim-rechev-wltp",
         declaredKmPerLiter,
         declaredSource: declaredKmPerLiter === null
           ? null
@@ -242,7 +263,7 @@ export async function fetchVehicleSpecs(
         bodyType,
         engineCc,
         co2WltpGramsPerKm: co2,
-        consumptionIsOfficial: declaredKmPerLiter !== null && matchedExactYear,
+        consumptionIsOfficial: Boolean(certified) && matchedExactYear,
       };
     } catch (error) {
       if ((error as Error).name === "AbortError") throw error;
@@ -250,5 +271,5 @@ export async function fetchVehicleSpecs(
     }
   }
 
-  return EMPTY;
+  return fallback;
 }

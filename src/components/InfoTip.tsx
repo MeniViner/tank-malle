@@ -43,9 +43,9 @@ export function InfoTip({
       <Sheet
         open={open}
         onClose={() => setOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">{label}</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">{label}</h2>}
       >
-        <div className="flex flex-col gap-2 px-1 text-[13.5px] leading-relaxed text-ink/85">
+        <div className="flex flex-col gap-2 px-1 text-[14px] leading-relaxed text-ink/85">
           {children}
         </div>
       </Sheet>

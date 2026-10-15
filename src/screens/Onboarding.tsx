@@ -19,7 +19,7 @@ const SLIDES = [
   {
     kicker: "אוטומטי",
     title: "מזהים את הרכב לפי הלוחית",
-    body: "מספר רישוי אחד מספיק — יצרן, דגם, שנה וצריכה מוצהרת נמשכים ממאגרי משרד התחבורה.",
+    body: "מזינים מספר רכב, והפרטים הזמינים מתמלאים ממאגרי משרד התחבורה.",
     Preview: VehiclePreview,
   },
 ];
@@ -62,7 +62,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
           <div className="flex flex-col items-center gap-2.5">
             <span
-              className="tm-rise rounded-pill bg-accent-soft px-3 py-1 text-[11.5px] font-bold tracking-[0.04em] text-accent"
+              className="tm-rise rounded-pill bg-accent-soft px-3 py-1 text-[13px] font-bold tracking-[0.04em] text-accent"
               style={{ animationDelay: "80ms" }}
             >
               {slide.kicker}
@@ -99,7 +99,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           {isLast ? "מתחילים" : "הבא"}
         </Button>
 
-        <p className="text-center text-[11.5px] leading-relaxed text-muted/80">
+        <p className="text-center text-[13px] leading-relaxed text-muted/80">
           בהמשך תתבקשו להתחבר. קראו את{" "}
           <Link to="/legal/terms" className="font-semibold text-accent">
             תנאי השימוש

@@ -31,7 +31,7 @@ export function Label({
 }) {
   return (
     <span
-      className={`text-[13px] font-semibold tracking-[0.02em] text-muted ${className}`}
+      className={`text-[14px] font-medium text-muted ${className}`}
     >
       {children}
     </span>
@@ -47,7 +47,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="flex items-center justify-between pt-1">
-      <h2 className="text-[17px] font-bold text-ink">{children}</h2>
+      <h2 className="text-[18px] font-semibold text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -97,7 +97,7 @@ export function Chip({
   };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill px-[11px] py-1 text-[12.5px] font-semibold ${tones[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-pill px-[11px] py-1 text-[14px] font-semibold ${tones[tone]} ${className}`}
     >
       {children}
     </span>

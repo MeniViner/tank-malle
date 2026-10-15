@@ -33,7 +33,8 @@ describe("RTL-safe numeric formatting", () => {
   });
 
   it("puts the currency symbol in front of the amount", () => {
-    expect(shekel(216.77)).toBe("₪216.77");
+    expect(shekel(216.77)).toBe("₪217")
+    expect(shekel(11680.89)).toBe("₪11,681");
     expect(shekel(216)).toBe("₪216");
     expect(price(8.25)).toBe("₪8.25");
   });

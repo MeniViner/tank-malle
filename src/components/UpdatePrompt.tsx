@@ -30,7 +30,7 @@ export function UpdatePrompt() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-[14.5px] font-bold text-ink">גרסה חדשה זמינה</span>
-          <span className="truncate text-[12.5px] text-muted">רעננו כדי לעבור אליה</span>
+          <span className="truncate text-[14px] text-muted">רעננו כדי לעבור אליה</span>
         </div>
 
         <button

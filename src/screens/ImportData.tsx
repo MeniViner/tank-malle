@@ -282,10 +282,10 @@ export function ImportData() {
         {stage === "choose" || stage === "parsing" ? (
           <>
             <Card className="flex flex-col gap-1 p-4">
-              <span className="text-[13.5px] leading-relaxed text-ink">
+              <span className="text-[14px] leading-relaxed text-ink">
                 בחרו קובץ CSV או Excel. נראה לכם בדיוק מה ייובא לפני שנשמר משהו.
               </span>
-              <span className="text-[12.5px] text-muted">
+              <span className="text-[14px] text-muted">
                 הקובץ נקרא במכשיר שלכם בלבד.
               </span>
             </Card>
@@ -483,14 +483,14 @@ function PreviewStep({
       <Card className="flex flex-col gap-1 p-4">
         <Label>הקובץ שנבחר</Label>
         <span className="truncate text-[14.5px] font-semibold text-ink">{fileName}</span>
-        <span className="text-[12.5px] text-muted">
+        <span className="text-[14px] text-muted">
           זוהה כ{FORMAT_NAMES[plan.format] ?? FORMAT_NAMES.unknown} · ייובא אל{" "}
           {vehicleName}
         </span>
         {/* A file exported from a DIFFERENT vehicle is worth saying out loud —
             by its human name. The machine id that identifies it stays internal. */}
         {!plan.sameVehicle && plan.sourceVehicleIds.length > 0 && plan.vehicleLabels[0] ? (
-          <span className="text-[12.5px] text-warning-ink">
+          <span className="text-[14px] text-warning-ink">
             הקובץ יוצא מ{plan.vehicleLabels[0]}
           </span>
         ) : null}
@@ -509,12 +509,12 @@ function PreviewStep({
         <Card className="flex flex-col gap-2 p-4">
           <Label>שורות שלא ייובאו</Label>
           {plan.rejected.slice(0, 8).map((entry) => (
-            <span key={entry.rowNumber} className="text-[12.5px] text-muted">
+            <span key={entry.rowNumber} className="text-[14px] text-muted">
               שורה <Num>{entry.rowNumber}</Num>: {entry.reason}
             </span>
           ))}
           {plan.rejected.length > 8 ? (
-            <span className="text-[12.5px] text-muted">
+            <span className="text-[14px] text-muted">
               ועוד <Num>{plan.rejected.length - 8}</Num> שורות.
             </span>
           ) : null}
@@ -557,24 +557,24 @@ function PreviewStep({
               ) : null}
 
               {plan.assumptions.map((text) => (
-                <span key={text} className="text-[12.5px] leading-relaxed text-muted">
+                <span key={text} className="text-[14px] leading-relaxed text-muted">
                   • {text}
                 </span>
               ))}
 
               {plan.warnings.slice(0, 6).map((text) => (
-                <span key={text} className="text-[12.5px] leading-relaxed text-muted">
+                <span key={text} className="text-[14px] leading-relaxed text-muted">
                   • {text}
                 </span>
               ))}
 
               {plan.toImport.slice(0, 3).map((row) => (
                 <div key={row.rowHash} className="flex items-center justify-between gap-3">
-                  <span className="text-[12.5px] text-muted">
+                  <span className="text-[14px] text-muted">
                     {dayMonthShort(row.date)} ·{" "}
                     <Num>{row.odometer.toLocaleString("he-IL")}</Num> ק״מ
                   </span>
-                  <span className="text-[12.5px] text-ink">
+                  <span className="text-[14px] text-ink">
                     <Quantity value={row.liters} digits={2} /> ·{" "}
                     <Money value={row.totalCost} />
                   </span>
@@ -637,20 +637,20 @@ function ReportStep({
         </div>
 
         {report.queued > 0 ? (
-          <span className="text-[12.5px] leading-relaxed text-muted">
+          <span className="text-[14px] leading-relaxed text-muted">
             הרשומות כבר מופיעות באפליקציה. הסנכרון לשרת יושלם כשיהיה חיבור — אפשר לעקוב
             אחרי מצב הסנכרון בראש המסך.
           </span>
         ) : null}
 
         {report.failures.length > 0 ? (
-          <span className="text-[12.5px] leading-relaxed text-danger-ink">
+          <span className="text-[14px] leading-relaxed text-danger-ink">
             {report.failures.map((entry) => entry.reason).join(" · ")}
           </span>
         ) : null}
 
         {plan && plan.rejected.length > 0 ? (
-          <span className="text-[12.5px] leading-relaxed text-muted">
+          <span className="text-[14px] leading-relaxed text-muted">
             אפשר לתקן את השורות בקובץ ולייבא שוב — ייבוא חוזר לא ייצור כפילויות.
           </span>
         ) : null}
@@ -673,7 +673,7 @@ function StatRow({
   tone?: "accent" | "danger";
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 text-[13.5px]">
+    <div className="flex items-center justify-between gap-3 text-[14px]">
       <span className="text-muted">{label}</span>
       <Num
         className={`font-bold ${
@@ -783,7 +783,7 @@ function ImportHistory({
     return (
       <Card className="flex flex-col gap-1 p-4">
         <Label>ייבואים קודמים</Label>
-        <span className="text-[12.5px] leading-relaxed text-muted">
+        <span className="text-[14px] leading-relaxed text-muted">
           אחרי ייבוא הוא יופיע כאן, ואפשר יהיה לבטל אותו כולו.
         </span>
       </Card>
@@ -804,7 +804,7 @@ function ImportHistory({
                 <span className="text-[12px] text-muted">
                   <Num>{batch.recordCount}</Num> רשומות · {batch.vehicleLabel || "רכב"}
                 </span>
-                <span className="text-[11.5px] text-muted/80">
+                <span className="text-[13px] text-muted/80">
                   {fullDate(batch.importedAt)}
                 </span>
               </span>
@@ -812,14 +812,14 @@ function ImportHistory({
                 type="button"
                 disabled={busy}
                 onClick={() => setConfirming(batch)}
-                className="min-h-[36px] flex-none rounded-pill bg-danger-soft px-3 text-[12.5px] font-semibold text-danger-ink disabled:opacity-50"
+                className="min-h-[36px] flex-none rounded-pill bg-danger-soft px-3 text-[14px] font-semibold text-danger-ink disabled:opacity-50"
               >
                 ביטול הייבוא
               </button>
             </div>
           </div>
         ))}
-        <span className="text-[11.5px] leading-relaxed text-muted">
+        <span className="text-[13px] leading-relaxed text-muted">
           ביטול מוחק רק את הרשומות שהגיעו מאותו ייבוא.
         </span>
       </Card>

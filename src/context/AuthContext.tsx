@@ -26,6 +26,7 @@ import {
 } from "firebase/firestore";
 import { auth, db, googleProvider } from "../lib/firebase";
 import { unacknowledgedState } from "../lib/outbox";
+import { authErrorMessage, REDIRECT_MARKER } from "../lib/authFlow";
 
 interface AuthContextValue {
   user: User | null;
@@ -72,15 +73,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** iOS standalone PWAs cannot keep a popup's opener, so they need redirect. */
-function needsRedirect(): boolean {
-  const standalone =
-    window.matchMedia("(display-mode: standalone)").matches ||
-    (window.navigator as { standalone?: boolean }).standalone === true;
-  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  return standalone || (iOS && /Safari/.test(navigator.userAgent) && standalone);
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,12 +86,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
-    // Pick up a completed redirect sign-in before settling the auth state.
-    getRedirectResult(auth).catch(() => {
-      /* no pending redirect */
-    });
-
-    return onAuthStateChanged(
+    let alive = true;
+    let unsubscribe = () => {};
+    // Redirect recovery must finish before showing the signed-out screen.
+    // Recover pending redirects from older builds before rendering the login screen.
+    void (async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        await auth.authStateReady();
+        if (alive && sessionStorage.getItem(REDIRECT_MARKER) && !result && !auth.currentUser) {
+          setError("ההתחברות לא נשמרה. נסו שוב מתוך האפליקציה.");
+        }
+      } catch (caught) {
+        if (alive) setError(authErrorMessage((caught as { code?: string }).code ?? ""));
+      } finally {
+        try { sessionStorage.removeItem(REDIRECT_MARKER); } catch { /* unavailable storage */ }
+      }
+      if (!alive) return;
+      unsubscribe = onAuthStateChanged(
       auth,
       (nextUser) => {
         setUser(nextUser);
@@ -130,7 +134,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         setClaimsLoaded(true);
       },
-    );
+      );
+    })();
+    return () => { alive = false; unsubscribe(); };
   }, []);
 
   /** Force a token refresh — used right after a claim is granted. */
@@ -144,29 +150,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setSigningIn(true);
     try {
-      if (needsRedirect()) {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
+      // Firebase recommends popup auth when third-party redirect storage is blocked.
+      // The user gesture opens it synchronously, including installed Safari apps.
       await signInWithPopup(auth, googleProvider);
     } catch (caught) {
       const code = (caught as { code?: string }).code ?? "";
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
         setError(null);
       } else if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
-        // Popup unavailable in this context — fall back to the redirect flow.
-        try {
-          await signInWithRedirect(auth, googleProvider);
-          return;
-        } catch {
-          setError("ההתחברות נכשלה. נסו שוב.");
-        }
-      } else if (code === "auth/network-request-failed") {
-        setError("אין חיבור לאינטרנט. בדקו את החיבור ונסו שוב.");
-      } else if (code === "auth/unauthorized-domain") {
-        setError("הדומיין אינו מורשה להתחברות. פנו למנהל המערכת.");
+        // Redirect is safe only when its helper shares the app origin. A blind
+        // fallback on web.app repeats the Safari sign-in loop indefinitely.
+        if (auth.config.authDomain === window.location.hostname) {
+          try { sessionStorage.setItem(REDIRECT_MARKER, "1"); } catch { /* optional marker */ }
+          try { await signInWithRedirect(auth, googleProvider); }
+          catch (redirectError) { setError(authErrorMessage((redirectError as { code?: string }).code ?? "")); }
+        } else setError(authErrorMessage(code));
       } else {
-        setError("ההתחברות נכשלה. נסו שוב.");
+        setError(authErrorMessage(code));
       }
     } finally {
       setSigningIn(false);

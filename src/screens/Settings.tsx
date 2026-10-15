@@ -129,7 +129,7 @@ export function Settings() {
                   <span className="truncate text-[15px] font-semibold text-ink">
                     {vehicleLabel(vehicle)}
                   </span>
-                  <span className="text-[12.5px] text-muted">
+                  <span className="text-[14px] text-muted">
                     {FUEL_TYPE_SHORT[vehicle.fuelType]}
                   </span>
                 </span>
@@ -186,7 +186,7 @@ export function Settings() {
             <div className="flex min-h-[58px] items-center gap-3 px-4 py-3">
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-[15px] font-semibold text-ink">מחיר רשמי נוכחי</span>
-                <span className="truncate text-[12.5px] text-muted">
+                <span className="truncate text-[14px] text-muted">
                   {FUEL_TYPE_SHORT[activeVehicle?.fuelType ?? "95"]} ·{" "}
                   {officialToday.price === null
                     ? "אין מחיר רשמי לסוג דלק זה"
@@ -197,7 +197,7 @@ export function Settings() {
                       }`}
                 </span>
               </span>
-              <Num className="flex-none text-[17px] font-bold text-ink">
+              <Num className="flex-none text-[18px] font-semibold text-ink">
                 {officialToday.price !== null ? price(officialToday.price) : "—"}
               </Num>
             </div>
@@ -257,7 +257,7 @@ export function Settings() {
               </IconTile>
               <span className="flex flex-1 flex-col gap-0.5">
                 <span className="text-[14px] font-semibold text-ink">צבע הדגשה</span>
-                <span className="text-[12.5px] text-muted">{accent.label}</span>
+                <span className="text-[14px] text-muted">{accent.label}</span>
               </span>
               <span
                 className="size-7 flex-none rounded-full border border-line"
@@ -350,7 +350,7 @@ export function Settings() {
                   </span>
                 </InfoTip>
               </span>
-              <span className="text-[12.5px] leading-relaxed text-muted">
+              <span className="text-[14px] leading-relaxed text-muted">
                 מציג לכם איפה אתם עומדים מול נהגים עם רכב דומה.
               </span>
             </span>
@@ -430,7 +430,7 @@ export function Settings() {
       <Sheet
         open={accentSheetOpen}
         onClose={() => setAccentSheetOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">צבע הדגשה</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">צבע הדגשה</h2>}
       >
         <div className="flex flex-col gap-4">
           <div className="grid grid-cols-4 gap-3">
@@ -552,7 +552,7 @@ function NumberSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">{title}</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">{title}</h2>}
     >
       <div className="flex flex-col gap-3">
         <p className="text-[13px] leading-relaxed text-muted">{description}</p>
@@ -639,10 +639,10 @@ function ShareSection() {
       <Sheet
         open={manualOpen}
         onClose={() => setManualOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">שיתוף האפליקציה</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">שיתוף האפליקציה</h2>}
       >
         <div className="flex flex-col gap-3 px-1">
-          <p className="text-[13.5px] leading-relaxed text-ink/85">
+          <p className="text-[14px] leading-relaxed text-ink/85">
             {buildSharePayload().text}
           </p>
           <div className="flex items-center gap-2 rounded-[14px] border border-line bg-bg px-3.5 py-3">

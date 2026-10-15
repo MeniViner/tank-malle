@@ -37,7 +37,7 @@ export function Field({
     <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
       <label
         htmlFor={id}
-        className="truncate text-[13px] font-semibold tracking-[0.02em] text-muted"
+        className="truncate text-[13px] font-semibold  text-muted"
       >
         {label}
       </label>
@@ -70,11 +70,11 @@ export function Field({
       </div>
 
       {error ? (
-        <span id={`${id}-error`} className="text-[12.5px] font-semibold text-danger">
+        <span id={`${id}-error`} className="text-[14px] font-semibold text-danger">
           {error}
         </span>
       ) : hint ? (
-        <span id={`${id}-hint`} className="text-[12.5px] text-muted">
+        <span id={`${id}-hint`} className="text-[14px] text-muted">
           {hint}
         </span>
       ) : null}
@@ -94,8 +94,8 @@ export function SoftWarningBanner({
     <div className="flex items-start gap-2.5 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
       <WarningIcon size={17} className="mt-px flex-none" />
       <div className="flex flex-col gap-1">
-        <span className="text-[13.5px] font-bold">{message}</span>
-        {detail ? <span className="text-[12.5px] leading-relaxed">{detail}</span> : null}
+        <span className="text-[14px] font-bold">{message}</span>
+        {detail ? <span className="text-[14px] leading-relaxed">{detail}</span> : null}
       </div>
     </div>
   );

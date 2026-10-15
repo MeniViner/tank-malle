@@ -145,7 +145,7 @@ export function Profile() {
                 {user?.email}
               </span>
               {isAdmin ? (
-                <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-pill bg-hero-soft px-2.5 py-1 text-[11.5px] font-bold">
+                <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-pill bg-hero-soft px-2.5 py-1 text-[13px] font-bold">
                   <ShieldIcon size={13} />
                   מנהל מערכת
                 </span>
@@ -264,7 +264,7 @@ export function Profile() {
           />
         </Card>
 
-        <p className="px-1 pb-2 text-[12.5px] leading-relaxed text-muted">
+        <p className="px-1 pb-2 text-[14px] leading-relaxed text-muted">
           מחיקת חשבון היא פעולה בלתי הפיכה — כל הרכבים, התדלוקים והנתונים יימחקו לצמיתות.
         </p>
       </div>
@@ -374,7 +374,7 @@ function MetricCard({
 }) {
   return (
     <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <Label className="text-[12.5px]">{label}</Label>
+      <Label className="text-[14px]">{label}</Label>
       <span className="flex items-baseline gap-1.5">
         <Num className="text-[24px] font-bold leading-tight text-ink">{value}</Num>
         {unit ? <span className="text-[12px] text-muted">{unit}</span> : null}

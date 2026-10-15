@@ -130,7 +130,7 @@ export function VehiclePreview() {
 
       <div className="flex items-center gap-2 rounded-[10px] bg-surface-2 px-2.5 py-2">
         <CarIcon size={14} className="flex-none text-accent" />
-        <span className="flex-1 truncate text-[11.5px] font-semibold text-ink">
+        <span className="flex-1 truncate text-[13px] font-semibold text-ink">
           מאזדה 3 · <Num>2018</Num>
         </span>
         <CheckIcon size={13} className="flex-none text-success" />
@@ -176,7 +176,7 @@ function MiniRow({
       </span>
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="text-[9px] font-semibold text-muted">{label}</span>
-        <span className="truncate text-[11.5px] font-semibold text-ink">{value}</span>
+        <span className="truncate text-[13px] font-semibold text-ink">{value}</span>
       </span>
       {badge ? (
         <span className="flex-none text-[9px] font-semibold text-accent">{badge}</span>
@@ -208,7 +208,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <span className="flex flex-1 flex-col gap-0.5 rounded-[10px] bg-surface-2 px-2.5 py-1.5">
       <span className="text-[9px] font-semibold text-muted">{label}</span>
-      <Num className="text-[12.5px] font-bold text-ink">{value}</Num>
+      <Num className="text-[14px] font-bold text-ink">{value}</Num>
     </span>
   );
 }

@@ -110,7 +110,9 @@ export interface Vehicle {
   tankLitersSource?: "user" | "trusted" | "estimate" | "legacy" | null;
   declaredKmPerLiter?: number | null;
   /** Whether `declaredKmPerLiter` is an exact-year certified figure. */
-  declaredSource?: "user" | "exact-year" | "other-year" | null;
+  declaredSource?: "user" | "exact-year" | "other-year" | "co2-estimate" | null;
+  tankSourceUrl?: string | null;
+  specSourceUrl?: string | null;
   /** ₪/liter delta applied on top of the official price. */
   priceAdjustment: number;
   /** Overrides the official price + adjustment entirely. */

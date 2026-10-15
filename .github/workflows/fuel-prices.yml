@@ -44,12 +44,17 @@ jobs:
         with:
           node-version: 22
 
-      # Only the Admin SDK. A full `npm ci` would pull Playwright and the
-      # Firebase CLI for a script that needs neither.
+      # Install outside the app package, so npm does not also install the
+      # browser tests, Firebase CLI and frontend toolchain.
       - name: Install the Admin SDK
-        run: npm install --no-save --no-audit --no-fund firebase-admin@14
+        run: |
+          runtime_dir="$RUNNER_TEMP/tank-fuel"
+          mkdir -p "$runtime_dir/scripts" "$runtime_dir/src/lib/prices"
+          cp scripts/updateFuelPrices.mjs "$runtime_dir/scripts/"
+          cp src/lib/prices/publicSource.ts "$runtime_dir/src/lib/prices/"
+          npm install --prefix "$runtime_dir" --no-save --no-audit --no-fund firebase-admin@14
 
       - name: Update the regulated price
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node scripts/updateFuelPrices.mjs
+        run: node "$RUNNER_TEMP/tank-fuel/scripts/updateFuelPrices.mjs"

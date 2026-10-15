@@ -70,6 +70,7 @@ export function Home() {
           <HomeSkeleton />
         ) : (
           <>
+            <MyTankCard />
             {/* Hero: the last measured consumption, the personal average, and
                 which of the two is the more economical result. */}
             <section className="tm-rise flex flex-col gap-3 rounded-hero bg-hero p-[16px_18px_17px] text-hero-ink shadow-raised">
@@ -109,7 +110,7 @@ export function Home() {
               </div>
 
               <span className="flex items-baseline gap-2">
-                <Num className="text-[52px] font-bold leading-[0.92] tracking-[-0.01em]">
+                <Num className="text-[44px] font-semibold leading-none tracking-[-0.01em]">
                   {hero.value}
                 </Num>
                 <span className="text-[15px] font-semibold text-hero-muted">{hero.unit}</span>
@@ -118,7 +119,7 @@ export function Home() {
               <HeroSpark segments={stats.segments} />
 
               {stats.avgKmPerLiter !== null ? (
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-hero-line pt-3 text-[12.5px]">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-hero-line pt-3 text-[14px]">
                   <span>
                     ממוצע כולל <Num className="font-semibold">{average.value}</Num>{" "}
                     {average.unit}
@@ -130,7 +131,7 @@ export function Home() {
                   </span>
                 </div>
               ) : (
-                <div className="border-t border-hero-line pt-3 text-[12.5px] text-hero-muted">
+                <div className="border-t border-hero-line pt-3 text-[14px] text-hero-muted">
                   הצריכה תחושב אחרי שני תדלוקים
                 </div>
               )}
@@ -148,12 +149,12 @@ export function Home() {
                 full-tank range strip is gone — this card carries the range that
                 matters, which is the one to the refuelling threshold rather
                 than to an empty tank. */}
-            <MyTankCard />
+
 
             <SectionTitle
               action={
                 fillups.length > 0 ? (
-                  <Link to="/history" className="text-[13.5px] font-semibold text-accent">
+                  <Link to="/history" className="text-[14px] font-semibold text-accent">
                     לכל ההיסטוריה
                   </Link>
                 ) : null
@@ -168,7 +169,7 @@ export function Home() {
                   <PumpIcon size={28} />
                 </span>
                 <span className="text-[16px] font-bold text-ink">אין עדיין תדלוקים</span>
-                <span className="max-w-[250px] text-[13.5px] leading-relaxed text-muted">
+                <span className="max-w-[250px] text-[14px] leading-relaxed text-muted">
                   הוסיפו תדלוק ראשון כדי להתחיל.
                 </span>
               </Card>
@@ -203,7 +204,7 @@ export function Home() {
                       </span>
 
                       {resolveEndState(fillup).state !== "full" ? (
-                        <span className="flex-none text-[12.5px] font-semibold text-muted">
+                        <span className="flex-none text-[14px] font-semibold text-muted">
                           {resolveEndState(fillup).state === "partial" ? "חלקי" : "לא צוין"}
                         </span>
                       ) : kmPerLiter !== null ? (
@@ -211,7 +212,7 @@ export function Home() {
                           kmPerLiter={kmPerLiter}
                           units={units}
                           className="flex-none text-[15px] font-bold text-ink"
-                          unitClassName="text-[11.5px] font-semibold text-muted"
+                          unitClassName="text-[13px] font-semibold text-muted"
                         />
                       ) : null}
 
@@ -239,9 +240,9 @@ export function Home() {
       <Sheet
         open={explainerOpen}
         onClose={() => setExplainerOpen(false)}
-        title={<h2 className="text-[17px] font-bold text-ink">איך זה מחושב</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">איך זה מחושב</h2>}
       >
-        <div className="flex flex-col gap-3 px-1 text-[13.5px] leading-relaxed text-ink/85">
+        <div className="flex flex-col gap-3 px-1 text-[14px] leading-relaxed text-ink/85">
           <span>
             <b className="text-ink">צריכה אחרונה</b> — צריכת הדלק שנמדדה מאז התדלוק המלא הקודם.
           </span>
@@ -276,7 +277,7 @@ function MonthSpendCard({
 
   return (
     <Card className="flex min-w-0 flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <Label className="text-[12.5px]">הוצאה החודש</Label>
+      <Label className="text-[14px]">הוצאה החודש</Label>
 
       {month ? (
         <>
@@ -285,7 +286,7 @@ function MonthSpendCard({
           <Num className="text-end text-[24px] font-bold leading-tight text-ink">
             {shekel(month.cost)}
           </Num>
-          <span className="text-[12.5px] text-muted">
+          <span className="text-[14px] text-muted">
             <Num>{month.count}</Num> {month.count === 1 ? "תדלוק" : "תדלוקים"} ·{" "}
             {heMonthName(new Date().getMonth() + 1)}
           </span>
@@ -293,7 +294,7 @@ function MonthSpendCard({
       ) : (
         <>
           <span className="text-[19px] font-bold leading-tight text-ink">טרם תודלק</span>
-          <span className="text-[12.5px] text-muted">
+          <span className="text-[14px] text-muted">
             {lastFillupDate !== null ? `אחרון: ${dayMonthShort(lastFillupDate)}` : "עדיין אין תדלוקים"}
           </span>
         </>
@@ -321,7 +322,7 @@ function FuelPriceCard() {
 
   return (
     <Card className="flex min-w-0 flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <Label className="text-[12.5px]">מחיר דלק נוכחי</Label>
+      <Label className="text-[14px]">מחיר דלק נוכחי</Label>
       <span className="flex flex-wrap items-baseline gap-x-1.5">
         <Num className="text-[24px] font-bold leading-tight text-ink">
           {lookup.price !== null ? price(lookup.price) : "—"}
@@ -330,7 +331,7 @@ function FuelPriceCard() {
           <span className="text-[12px] text-muted">לליטר</span>
         ) : null}
       </span>
-      <span className="truncate text-[12.5px] text-muted">
+      <span className="truncate text-[14px] text-muted">
         {lookup.price === null
           ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
           : `${FUEL_TYPE_SHORT[fuelType]} · ${describeOfficialPrice(lookup)}`}
@@ -352,7 +353,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
   if (!open.hasBaseline) {
     if (stats.records.fillupCount === 0) return null;
     return (
-      <span className="text-[12.5px] text-hero-muted">
+      <span className="text-[14px] text-hero-muted">
         עדיין אין נקודת התחלה. התדלוק הבא יפתח את החישוב.
       </span>
     );
@@ -361,7 +362,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
   if (open.pendingFillups === 0) return null;
 
   return (
-    <span className="text-[12.5px] text-hero-muted">
+    <span className="text-[14px] text-hero-muted">
       במקטע הפתוח נשמרו <Quantity value={open.liters} digits={1} /> מ־
       <Num>{open.pendingFillups}</Num>{" "}
       {open.pendingFillups === 1 ? "תדלוק" : "תדלוקים"} — הם ייכללו בחישוב

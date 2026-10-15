@@ -1,3 +1,5 @@
+import { useVehicleEnrichment } from "../hooks/useVehicleEnrichment";
+import { usageInsights } from "../lib/tank/usageInsights";
 import { parseNumber } from "../lib/numeric";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -36,7 +38,10 @@ import type { TankEstimate } from "../lib/tank";
  */
 export function MyTankCard() {
   const navigate = useNavigate();
-  const { loadingFillups, activeVehicle } = useData();
+  const { loadingFillups, activeVehicle, fillups } = useData();
+  const enriching = useVehicleEnrichment();
+  const [usageNow] = useState(() => Date.now());
+  const usage = usageInsights(fillups, usageNow);
   const { estimate, dismissPrompt } = useTankEstimate();
 
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -79,7 +84,7 @@ export function MyTankCard() {
               aria-label="איך המיכל מחושב"
               aria-haspopup="dialog"
               onClick={() => setDetailsOpen(true)}
-              className="flex size-9 items-center justify-center rounded-full text-muted/70 transition-[color,scale] duration-200 active:scale-[0.96]"
+              className="flex size-11 items-center justify-center rounded-full text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
             >
               <InfoIcon size={15} />
             </button>
@@ -129,20 +134,13 @@ export function MyTankCard() {
                     label={habit.overridden ? "ההעדפה שלך" : "ההרגל שלך"}
                     value={levelLabel(habit.typicalLevel)}
                   />
-                ) : (
-                  <LegendRow
-                    color="var(--line)"
-                    dashed
-                    label="ההרגל שלך"
-                    value="עוד נלמד"
-                  />
-                )}
+                ) : null}
                 {estimate.rangeToReserveKm !== null && estimate.rangeToReserveKm > 0 ? (
-                  <span className="text-[12.5px] text-muted">
+                  <span className="text-[14px] text-muted">
                     נותרו כ־<Num>{num(estimate.rangeToReserveKm, 0)}</Num> ק״מ עד שם
                   </span>
                 ) : reportedLevel ? (
-                  <span className="text-[12.5px] text-muted">
+                  <span className="text-[14px] text-muted">
                     עודכן {timeAgo(reportedLevel.at)}
                   </span>
                 ) : null}
@@ -151,9 +149,9 @@ export function MyTankCard() {
               /* Unknown has to LOOK unknown. An empty dial with a real
                  invitation, not a zero reading dressed up as a measurement. */
               <>
-                <span className="text-[15px] font-bold text-ink">נתחיל למדוד</span>
-                <span className="text-[12.5px] leading-relaxed text-muted">
-                  עדכון קצר של מד הדלק, ומכאן טנק מלא ילמד מתי בדרך כלל מתדלקים.
+                <span className="text-[15px] font-bold text-ink">כמה דלק נשאר?</span>
+                <span className="text-[14px] leading-relaxed text-muted">
+                  מעדכנים את המחוג פעם אחת. התדלוקים והנסיעות יעדכנו את ההערכה בהמשך.
                 </span>
                 <button
                   type="button"
@@ -179,7 +177,19 @@ export function MyTankCard() {
         ) : null}
 
         {/* Exactly one personalised sentence. Everything else is in the sheet. */}
-        <p className="text-[13px] leading-relaxed text-ink/85">{habitCopy.text}</p>
+        {habit.canClaim || habit.overridden ? <p className="text-[15px] leading-relaxed text-ink">{habitCopy.text}</p> : null}
+        {usage.count >= 3 || estimate.consumption.segmentCount > 0 ? (
+          <div className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[14px]" aria-label="מה למדנו מהשימוש שלך">
+            {estimate.mobility.kmPerDay !== null ? <div><span className="block text-muted">נסיעה ביום</span><span className="text-[21px] font-semibold"><Num>{num(estimate.mobility.kmPerDay, 0)}</Num> ק״מ</span></div> : null}
+            {usage.cadenceDays !== null ? <div><span className="block text-muted">בדרך כלל מתדלקים כל</span><span className="text-[21px] font-semibold"><Num>{num(usage.cadenceDays, 0)}</Num> ימים</span></div> : null}
+            {usage.typicalLiters !== null ? <div><span className="block text-muted">תדלוק טיפוסי</span><Num className="font-semibold">{num(usage.typicalLiters, 0)}</Num> ליטר</div> : null}
+            {estimate.consumption.source === 'history' && estimate.consumption.kmPerLiter !== null ? <div><span className="block text-muted">הצריכה שנלמדה</span><Num className="font-semibold">{num(estimate.consumption.kmPerLiter, 1)}</Num> קמ״ל</div> : null}
+          </div>
+        ) : null}
+        {enriching ? <p role="status" className="text-[14px] text-muted">משלים מפרט רכב…</p> : null}
+        {!estimate.capacity.liters && !enriching ? <button type="button" onClick={() => navigate('/settings/vehicles')} className="min-h-[44px] text-start text-[14px] font-semibold text-accent">השלמת נפח המיכל</button> : null}
+        {current.level !== null && recommended ? <p className="text-[15px] font-semibold text-accent">{recommended}</p> : null}
+        <button type="button" onClick={() => setTripOpen(true)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border border-line text-[15px] font-semibold text-ink"><CalendarIcon size={17} /> תכנון נסיעה</button>
 
         {estimate.tripPullsForward ? (
           <p className="text-[13px] font-semibold text-warning-ink">
@@ -202,7 +212,7 @@ export function MyTankCard() {
         ) : null}
 
         {/* At most one request, and only after its cooldown has expired. */}
-        {estimate.nextUpdate.kind !== "none" ? (
+        {estimate.nextUpdate.kind !== "none" && estimate.nextUpdate.kind !== "updateGauge" && !(estimate.nextUpdate.kind === "confirmCapacity" && estimate.capacity.suggestion !== null) ? (
           <NextUpdatePrompt
             kind={estimate.nextUpdate.kind}
             onAct={() => {
@@ -250,7 +260,7 @@ function LegendRow({
   dashed?: boolean;
 }) {
   return (
-    <span className="flex items-center gap-2 text-[12.5px]">
+    <span className="flex items-center gap-2 text-[14px]">
       <span
         aria-hidden="true"
         className="h-[3px] w-3.5 flex-none rounded-pill"
@@ -304,14 +314,14 @@ function CapacityConfirm({ liters, note }: { liters: number; note: string }) {
         type="button"
         onClick={() => void confirmCapacity()}
         disabled={saving}
-        className="min-h-[36px] flex-none rounded-pill px-2.5 text-[12.5px] font-bold text-accent"
+        className="min-h-[36px] flex-none rounded-pill px-2.5 text-[14px] font-bold text-accent"
       >
         {saving ? "מאשר…" : "מאשר"}
       </button>
       <button
         type="button"
         onClick={() => navigate("/settings/vehicles")}
-        className="min-h-[36px] flex-none rounded-pill px-2 text-[12.5px] font-semibold text-muted"
+        className="min-h-[36px] flex-none rounded-pill px-2 text-[14px] font-semibold text-muted"
       >
         תיקון
       </button>
@@ -352,11 +362,11 @@ function NextUpdatePrompt({
   const copy = NEXT_UPDATE_TEXT[kind];
   return (
     <div className="flex items-center gap-2 rounded-[12px] bg-surface-2 p-2.5">
-      <span className="flex-1 text-[12.5px] leading-relaxed text-ink/85">{copy.title}</span>
+      <span className="flex-1 text-[14px] leading-relaxed text-ink/85">{copy.title}</span>
       <button
         type="button"
         onClick={onAct}
-        className="min-h-[36px] flex-none rounded-pill px-2.5 text-[12.5px] font-bold text-accent"
+        className="min-h-[36px] flex-none rounded-pill px-2.5 text-[14px] font-bold text-accent"
       >
         {copy.action}
       </button>
@@ -364,7 +374,7 @@ function NextUpdatePrompt({
         type="button"
         onClick={onDismiss}
         aria-label="לא עכשיו"
-        className="min-h-[36px] flex-none rounded-pill px-2 text-[12.5px] font-semibold text-muted"
+        className="min-h-[36px] flex-none rounded-pill px-2 text-[14px] font-semibold text-muted"
       >
         לא עכשיו
       </button>
@@ -408,11 +418,11 @@ function DetailsSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">המיכל שלי</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">המיכל שלי</h2>}
     >
       <div
         ref={scroller}
-        className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto px-1 pb-1 text-[13.5px] text-ink/85"
+        className="flex max-h-[62vh] flex-col gap-3 overflow-y-auto px-1 pb-1 text-[14px] text-ink/85"
       >
         <DetailRow
           label="אחרי התדלוק האחרון"
@@ -447,9 +457,9 @@ function DetailsSheet({
         />
 
         <div className="flex flex-col gap-1.5 border-t border-line pt-3">
-          <span className="text-[12.5px] font-semibold text-muted">על מה זה מבוסס</span>
+          <span className="text-[14px] font-semibold text-muted">על מה זה מבוסס</span>
           {estimate.reasons.map((reason) => (
-            <span key={reason} className="text-[12.5px] leading-relaxed text-muted">
+            <span key={reason} className="text-[14px] leading-relaxed text-muted">
               · {REASON_TEXT[reason]}
             </span>
           ))}
@@ -460,20 +470,20 @@ function DetailsSheet({
         </div>
 
         <div className="flex flex-col gap-2 border-t border-line pt-3">
-          <span className="text-[12.5px] font-semibold text-muted">נסיעות מתוכננות</span>
+          <span className="text-[14px] font-semibold text-muted">נסיעות מתוכננות</span>
           {plans.length === 0 ? (
-            <span className="text-[12.5px] text-muted">אין נסיעות מתוכננות.</span>
+            <span className="text-[14px] text-muted">אין נסיעות מתוכננות.</span>
           ) : (
             plans.map((plan) => (
               <div key={plan.id} className="flex items-center gap-2">
-                <span className="flex-1 text-[12.5px]">
+                <span className="flex-1 text-[14px]">
                   {dayMonthShort(plan.date)} · <Num>{num(plan.distanceKm, 0)}</Num> ק״מ
                   {plan.mode === "replaces" ? " (במקום הנסיעה הרגילה)" : ""}
                 </span>
                 <button
                   type="button"
                   onClick={() => void deletePlan(plan.id)}
-                  className="min-h-[36px] px-2 text-[12.5px] font-semibold text-danger"
+                  className="min-h-[36px] px-2 text-[14px] font-semibold text-danger"
                 >
                   מחיקה
                 </button>
@@ -505,7 +515,7 @@ function DetailRow({
 }) {
   return (
     <div className={`flex gap-2 ${wrap ? "flex-col" : "items-baseline justify-between"}`}>
-      <span className="flex-none text-[12.5px] font-semibold text-muted">{label}</span>
+      <span className="flex-none text-[14px] font-semibold text-muted">{label}</span>
       <span className={wrap ? "text-[13px] leading-relaxed" : "text-[13px] font-semibold"}>
         {value}
       </span>
@@ -559,7 +569,7 @@ function OdometerSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">עדכון קילומטראז׳</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">עדכון קילומטראז׳</h2>}
     >
       <div className="flex flex-col gap-3 px-1">
         <Field
@@ -641,7 +651,7 @@ function GaugeSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">עדכון מד הדלק</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">עדכון מד הדלק</h2>}
     >
       <div className="flex flex-col items-center gap-4 px-1">
         <TankGauge
@@ -719,7 +729,7 @@ function TripSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
     <Sheet
       open={open}
       onClose={onClose}
-      title={<h2 className="text-[17px] font-bold text-ink">נסיעה מתוכננת</h2>}
+      title={<h2 className="text-[18px] font-semibold text-ink">נסיעה מתוכננת</h2>}
     >
       <div className="flex flex-col gap-3 px-1">
         <Field
@@ -741,7 +751,7 @@ function TripSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
         />
 
         <div className="flex flex-col gap-1.5">
-          <span className="text-[12.5px] font-semibold text-muted">מתי</span>
+          <span className="text-[14px] font-semibold text-muted">מתי</span>
           <div className="flex gap-2">
             {[
               { value: 0, label: "היום" },
@@ -754,7 +764,7 @@ function TripSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
                 type="button"
                 aria-pressed={days === option.value}
                 onClick={() => setDays(option.value)}
-                className={`min-h-[40px] flex-1 rounded-pill px-2 text-[12.5px] font-semibold ${
+                className={`min-h-[40px] flex-1 rounded-pill px-2 text-[14px] font-semibold ${
                   days === option.value
                     ? "bg-accent-soft text-accent"
                     : "border border-line text-muted"
@@ -769,7 +779,7 @@ function TripSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
         {/* Additional or instead-of: without this the commute the trip replaces
             would be counted twice. */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-[12.5px] font-semibold text-muted">הנסיעה היא</span>
+          <span className="text-[14px] font-semibold text-muted">הנסיעה היא</span>
           <div className="flex gap-2">
             <ModeButton
               active={mode === "additional"}
@@ -810,7 +820,7 @@ function ModeButton({
       type="button"
       aria-pressed={active}
       onClick={onClick}
-      className={`min-h-[44px] flex-1 rounded-[12px] px-3 text-[12.5px] font-semibold ${
+      className={`min-h-[44px] flex-1 rounded-[12px] px-3 text-[14px] font-semibold ${
         active ? "bg-accent-soft text-accent" : "border border-line text-muted"
       }`}
     >

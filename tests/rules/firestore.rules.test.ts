@@ -439,6 +439,13 @@ describe("vehicles", () => {
     await assertSucceeds(setDoc(ref(alice()), vehicle()));
   });
 
+  it("accepts labelled CO2 estimates and sourced capacities without broadening ownership", async () => {
+    const enriched = vehicle({ declaredKmPerLiter: 16.4, declaredSource: 'co2-estimate', tankLiters: 45, tankLitersSource: 'trusted' });
+    await assertSucceeds(setDoc(ref(alice()), enriched));
+    await assertFails(setDoc(ref(bob(), ALICE), enriched));
+    await assertFails(setDoc(ref(alice()), vehicle({ declaredSource: 'invented' })));
+  });
+
   it("preserves the legacy price fields during migration", async () => {
     await assertSucceeds(
       setDoc(ref(alice()), vehicle({ priceAdjustment: -0.05, manualPricePerLiter: 6.8 })),

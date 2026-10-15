@@ -313,7 +313,7 @@ service cloud.firestore {
         && (!('declaredKmPerLiter' in data) || data.declaredKmPerLiter == null
             || (isNumber(data.declaredKmPerLiter) && data.declaredKmPerLiter > 0))
         && (!('declaredSource' in data) || data.declaredSource == null
-            || data.declaredSource in ['user', 'exact-year', 'other-year'])
+            || data.declaredSource in ['user', 'exact-year', 'other-year', 'co2-estimate'])
         && (!('manualPricePerLiter' in data) || data.manualPricePerLiter == null
             || (isNumber(data.manualPricePerLiter) && data.manualPricePerLiter >= 0))
         && (!('year' in data) || data.year == null
