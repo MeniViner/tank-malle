@@ -48,18 +48,21 @@ export function Profile() {
     return () => { current = false; };
   }, [uid, accountDeletionPending, loadAttempt]);
   const records = useMemo(() => accountData ? accountTotals(accountData) : null, [accountData]);
-  async function exportAll() {
+  async function exportAll(kind: "fillups" | "tank") {
     if (!user || exporting) return;
     setExporting(true); setExportError(null);
     try {
       const data = await loadAccountExport(db, user.uid);
       setAccountData(data);
-      if (!data.rows.length && !data.observations.length && !data.plans.length) {
-        showToast({ tone: "info", title: "אין עדיין נתונים לייצוא" }); return;
+      const hasData = kind === "fillups" ? data.rows.length : data.observations.length + data.plans.length;
+      if (!hasData) {
+        showToast({ tone: "info", title: "אין עדיין נתונים מהסוג הזה לייצוא" }); return;
       }
-      if (data.rows.length) downloadAllVehiclesCsv(data.rows);
-      if (data.observations.length || data.plans.length) downloadTankUpdatesCsv(data.observations, data.plans);
-      showToast({ tone: "success", title: "נתוני כל הרכבים יוצאו", detail: "כולל רכבים בארכיון; עדכוני מיכל ונסיעות בקובץ נפרד" });
+      // One file per explicit gesture: browsers can block a second automatic
+      // download even though both CSV files were generated successfully.
+      if (kind === "fillups") downloadAllVehiclesCsv(data.rows);
+      else downloadTankUpdatesCsv(data.observations, data.plans);
+      showToast({ tone: "success", title: "הקובץ הוכן להורדה", detail: "כולל רכבים בארכיון. בדקו שהקובץ נשמר בהורדות הדפדפן." });
     } catch { setExportError("הייצוא לא הושלם. בדקו את החיבור ונסו שוב."); }
     finally { setExporting(false); }
   }
@@ -217,9 +220,15 @@ export function Profile() {
                   <DownloadIcon size={18} />
                 </IconTile>
               }
-              title="ייצוא הנתונים שלי"
-              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : "כל הרכבים, כולל הארכיון, עדכוני מיכל ונסיעות"}
-              onClick={() => void exportAll()}
+              title="ייצוא תדלוקים"
+              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : "CSV · כל הרכבים, כולל הארכיון"}
+              onClick={() => void exportAll("fillups")}
+            />
+            <RowButton
+              icon={<IconTile tone="muted"><DownloadIcon size={18} /></IconTile>}
+              title="ייצוא עדכוני מיכל ונסיעות"
+              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : "CSV נפרד · כל הרכבים, כולל הארכיון"}
+              onClick={() => void exportAll("tank")}
             />
           </Card>
         </section>

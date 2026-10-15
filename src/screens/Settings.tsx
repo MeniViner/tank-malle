@@ -293,25 +293,22 @@ export function Settings() {
                   <DownloadIcon size={18} />
                 </IconTile>
               }
-              title="ייצוא הנתונים שלי"
-              subtitle="תדלוקים ועדכוני מיכל של הרכב הפעיל · לכל הרכבים: פרופיל"
+              title="ייצוא תדלוקים"
+              subtitle="CSV של הרכב הפעיל · לכל הרכבים: פרופיל"
               onClick={() => {
-                if (fillups.length === 0 && observations.length === 0 && plans.length === 0) {
-                  showToast({ tone: "info", title: "אין עדיין תדלוקים לייצוא" });
-                  return;
-                }
-                if (fillups.length > 0) downloadFillupsCsv(fillups, activeVehicle);
-                // Gauge and odometer updates have no cost, no litres and no
-                // station, so they get their own versioned file rather than
-                // being squeezed into the fill-up columns — but an export
-                // described as complete cannot silently omit them.
-                const extra = observations.length > 0 || plans.length > 0;
-                if (extra) downloadTankUpdatesCsv(observations, plans);
-                showToast({
-                  tone: "success",
-                  title: extra && fillups.length > 0 ? "שני קבצים הורדו" : "הקובץ הורד",
-                  detail: extra ? "תדלוקים ועדכוני מיכל" : undefined,
-                });
+                if (!fillups.length) { showToast({ tone: "info", title: "אין עדיין תדלוקים לייצוא" }); return; }
+                downloadFillupsCsv(fillups, activeVehicle);
+                showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
+              }}
+            />
+            <RowButton
+              icon={<IconTile tone="muted"><DownloadIcon size={18} /></IconTile>}
+              title="ייצוא עדכוני מיכל ונסיעות"
+              subtitle="CSV נפרד של הרכב הפעיל · לכל הרכבים: פרופיל"
+              onClick={() => {
+                if (!observations.length && !plans.length) { showToast({ tone: "info", title: "אין עדיין עדכוני מיכל או נסיעות לייצוא" }); return; }
+                downloadTankUpdatesCsv(observations, plans);
+                showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
               }}
             />
             <RowButton
