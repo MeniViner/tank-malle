@@ -1,5 +1,6 @@
 import { expect, type Page } from "@playwright/test";
 import {
+  getDocument,
   listDocuments,
   resetEmulators,
   seedFillups,
@@ -288,6 +289,11 @@ export async function signedInWithData(
   await resetEmulators();
   await signIn(page, account);
   const uid = await uidOf(account);
+
+  // Auth completion precedes the first profile write. Seed preferences only
+  // after that write reaches the server, or its defaults can overwrite them.
+  await expect.poll(async () => (await getDocument(`users/${uid}`))?.settings,
+    { timeout: 15_000 }).toBeTruthy();
 
   if (options.regulatedPrice !== undefined) {
     await seedRegulatedPrice(options.regulatedPrice);
