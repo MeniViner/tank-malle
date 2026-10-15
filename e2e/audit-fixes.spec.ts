@@ -138,6 +138,9 @@ test("F07: a rejected archive preserves the active preference and can be retried
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   await installRules(rules.replace('allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);', 'allow create, update: if false;'));
   await page.goto("/settings/vehicles");
+  // The second vehicle is seeded outside the client. Its appearance proves
+  // the full vehicle snapshot (and retry before-images) has been delivered.
+  await expect(page.getByText("טויוטה יאריס", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "העברה לארכיון", exact: true }).first().click();
   await expect(page.getByText("העברה לארכיון נכשלה", { exact: true })).toBeVisible();
   expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({ activeVehicleId: "v1" });
