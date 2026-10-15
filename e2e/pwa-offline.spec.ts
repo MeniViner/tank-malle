@@ -87,6 +87,31 @@ test.afterEach(async () => {
   await restoreRules();
 });
 
+test("Sonol Shfeya remains searchable without history after a fully offline PWA restart", async ({ page, context }) => {
+  const { uid, fillups } = await primed(page);
+  await context.setOffline(true);
+  try {
+    await offlineRestart(page);
+    await page.goto("/fillup/new");
+    const trigger = page.getByRole("button", { name: /^תחנה / });
+    await trigger.click();
+    const dialog = page.getByRole("dialog");
+    const search = dialog.getByPlaceholder("חיפוש תחנה…");
+    await search.click();
+    for (const character of "סונול שפיה") {
+      await page.keyboard.insertText(character);
+      await expect(search).toBeFocused();
+    }
+    await dialog.getByRole("button", { name: /סונול שפיה.*מאיר שפיה/ }).click();
+    await expect(trigger).toBeFocused();
+    await expect(trigger).toContainText("סונול שפיה");
+    expect(await outboxCount(page, uid)).toBe(0);
+    expect(await listDocuments(fillups)).toHaveLength(0);
+  } finally {
+    await context.setOffline(false);
+  }
+});
+
 /* ------------------------------------------------------------------ *
  * Offline restart, two records, another restart, rejection, retry
  * ------------------------------------------------------------------ */

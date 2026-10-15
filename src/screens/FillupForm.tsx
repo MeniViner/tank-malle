@@ -44,7 +44,8 @@ import {
   formatDistance,
   loadStationCatalog,
   locateStations,
-  searchStations,
+  searchStationOptions,
+  stationKey,
   toStation,
   type GeoResult,
 } from "../lib/stations";
@@ -562,7 +563,9 @@ function FillupEditor({
     const map = new Map<string, Station>();
     for (const fillup of [...fillups].sort((a, b) => b.date - a.date)) {
       const name = fillup.station?.name?.trim();
-      if (name && !map.has(name)) map.set(name, fillup.station as Station);
+      if (!name || !fillup.station) continue;
+      const key = stationKey(fillup.station);
+      if (!map.has(key)) map.set(key, fillup.station);
     }
     return [...map.values()];
   }, [fillups]);
@@ -1533,10 +1536,17 @@ function StationSheet({
   );
   const [query, setQuery] = useState("");
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
+  const [catalogLoading, setCatalogLoading] = useState(true);
 
   useEffect(() => {
     if (!open) return;
-    void loadStationCatalog().then(setCatalog);
+    let active = true;
+    void loadStationCatalog().then((next) => {
+      if (!active) return;
+      setCatalog(next);
+      setCatalogLoading(false);
+    });
+    return () => { active = false; };
   }, [open]);
 
   // The query is cleared by the events that close the sheet, not by an
@@ -1551,8 +1561,8 @@ function StationSheet({
   };
 
   const matches = useMemo(
-    () => searchStations(catalog, query),
-    [catalog, query],
+    () => searchStationOptions(catalog, stations, query),
+    [catalog, stations, query],
   );
 
   const trimmed = query.trim();
@@ -1579,19 +1589,23 @@ function StationSheet({
             matches.length > 0 ? (
               matches.map((entry) => (
                 <StationRow
-                  key={`${entry.n}-${entry.lat}`}
-                  label={entry.n}
-                  meta={entry.a ?? undefined}
-                  brand={entry.c}
-                  view={viewFor(entry.i ?? null, entry.n)}
-                  selected={current?.name === entry.n}
-                  onClick={() => pick(toStation(entry))}
+                  key={stationKey(entry.station)}
+                  label={entry.station.name}
+                  meta={entry.source === "history" ? "תחנה מהיסטוריית התדלוקים" : entry.address}
+                  brand={entry.station.brand}
+                  view={viewFor(entry.station.stationId ?? null, entry.station.name)}
+                  selected={current !== null && stationKey(current) === stationKey(entry.station)}
+                  onClick={() => pick(entry.station)}
                 />
               ))
             ) : (
               <div className="flex flex-col gap-2 py-5">
                 <p className="text-center text-[13.5px] text-muted">
-                  לא נמצאה תחנה בשם הזה
+                  {catalogLoading
+                    ? "טוען תחנות…"
+                    : catalog
+                      ? "לא נמצאה תחנה בשם הזה"
+                      : "קטלוג התחנות אינו זמין כרגע — החיפוש כולל את התחנות מההיסטוריה"}
                 </p>
                 <button
                   type="button"
@@ -1655,7 +1669,7 @@ function StationSheet({
                       }
                       brand={entry.station.c}
                       view={viewFor(entry.station.i ?? null, entry.station.n)}
-                      selected={current?.name === entry.station.n}
+                      selected={current !== null && stationKey(current) === stationKey(toStation(entry.station))}
                       onClick={() => pick(toStation(entry.station))}
                     />
                   ))}
@@ -1667,11 +1681,11 @@ function StationSheet({
                   <SheetGroupLabel>תחנות שתדלקתי בהן</SheetGroupLabel>
                   {stations.map((entry) => (
                     <StationRow
-                      key={`past-${entry.name}`}
+                      key={stationKey(entry)}
                       label={entry.name}
                       brand={entry.brand}
                       view={viewFor(entry.stationId ?? null, entry.name)}
-                      selected={current?.name === entry.name}
+                      selected={current !== null && stationKey(current) === stationKey(entry)}
                       onClick={() => pick(entry)}
                     />
                   ))}
