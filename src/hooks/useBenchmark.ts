@@ -5,7 +5,6 @@ import {
   fetchComparison,
   hasComparison,
   publishBenchmark,
-  withdrawBenchmark,
   type BenchmarkComparison,
   type InsufficientPeers,
 } from "../lib/benchmarks";
@@ -30,7 +29,7 @@ export function useBenchmark(stats: Stats): {
   loading: boolean;
 } {
   const { user } = useAuth();
-  const { activeVehicle, activeVehicles, settings } = useData();
+  const { activeVehicle, settings, accountDeletionPending } = useData();
   const [comparison, setComparison] = useState<
     BenchmarkComparison | InsufficientPeers | null
   >(null);
@@ -42,27 +41,16 @@ export function useBenchmark(stats: Stats): {
   useEffect(() => {
     if (!user || !activeVehicle) return;
 
-    if (!sharing) {
-      // Opting out withdraws the row immediately rather than at next login.
-      if (lastPublished.current !== "withdrawn") {
-        lastPublished.current = "withdrawn";
-        // Every vehicle's contribution, plus the pre-upgrade uid-only document.
-        void withdrawBenchmark(
-          user.uid,
-          activeVehicles.map((entry) => entry.id),
-        );
-      }
-      return;
-    }
+    if (!sharing || accountDeletionPending) { lastPublished.current = null; return; }
 
     if (stats.avgKmPerLiter === null || stats.segments.length < 2) return;
 
-    const signature = `${activeVehicle.id}:${stats.avgKmPerLiter}:${stats.segments.length}`;
+    const signature = JSON.stringify([user.uid, activeVehicle.id, activeVehicle.make, activeVehicle.model, activeVehicle.year, activeVehicle.fuelType, stats.avgKmPerLiter, stats.segments.length, stats.avgPricePaid]);
     if (lastPublished.current === signature) return;
     lastPublished.current = signature;
 
-    void publishBenchmark(user.uid, activeVehicle, stats).catch(() => undefined);
-  }, [user, activeVehicle, activeVehicles, stats, sharing]);
+    void publishBenchmark(user.uid, activeVehicle, stats).catch(() => { if (lastPublished.current === signature) lastPublished.current = null; });
+  }, [user, activeVehicle, stats, sharing, accountDeletionPending]);
 
   useEffect(() => {
     if (!user || !activeVehicle || stats.avgKmPerLiter === null) {

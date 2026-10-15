@@ -36,6 +36,7 @@ export function VehicleManager() {
 
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Vehicle | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const active = useMemo(() => vehicles.filter((v) => !v.archived), [vehicles]);
@@ -71,8 +72,8 @@ export function VehicleManager() {
             key={vehicle.id}
             vehicle={vehicle}
             isActive={vehicle.id === activeVehicle?.id}
-            onEdit={() => setEditing(vehicle)}
-            onArchive={() => void setVehicleArchived(vehicle.id, true)}
+            onEdit={() => { setSaveError(null); setEditing(vehicle); }}
+            onArchive={() => void setVehicleArchived(vehicle.id, true).catch(() => showToast({ tone: "error", title: "העברה לארכיון נכשלה" }))}
           />
         ))}
 
@@ -84,7 +85,7 @@ export function VehicleManager() {
                 key={vehicle.id}
                 vehicle={vehicle}
                 archived
-                onRestore={() => void setVehicleArchived(vehicle.id, false)}
+                onRestore={() => void setVehicleArchived(vehicle.id, false).catch(() => showToast({ tone: "error", title: "שחזור הרכב נכשל" }))}
                 onDelete={() => setConfirmDelete(vehicle)}
               />
             ))}
@@ -101,12 +102,22 @@ export function VehicleManager() {
       </div>
 
       <EditVehicleSheet
+        key={editing?.id ?? "closed"}
         vehicle={editing}
-        onClose={() => setEditing(null)}
-        onSave={(patch) => {
-          if (editing) void updateVehicle(editing.id, patch);
-          setEditing(null);
-          showToast({ tone: "success", title: "פרטי הרכב עודכנו" });
+        onClose={() => { if (!busy) setEditing(null); }}
+        saving={busy}
+        error={saveError}
+        onSave={async (patch) => {
+          if (!editing || busy) return;
+          setBusy(true); setSaveError(null);
+          try {
+            const receipt = await updateVehicle(editing.id, patch);
+            const saved = await Promise.race([receipt.settled, new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))]);
+            if (saved === false) throw new Error("server rejected");
+            setEditing(null);
+            showToast({ tone: saved ? "success" : "info", title: saved ? "פרטי הרכב עודכנו" : "השינוי נשמר במכשיר", detail: saved ? undefined : "ממתין לאישור מהשרת. אפשר לבדוק במסך פעולות שלא סונכרנו." });
+          } catch { setSaveError("השינוי לא אושר בשרת. הפרטים נשארו בטופס; תקנו או נסו שוב."); }
+          finally { setBusy(false); }
         }}
       />
 
@@ -244,10 +255,14 @@ function EditVehicleSheet({
   vehicle,
   onClose,
   onSave,
+  saving,
+  error,
 }: {
+  saving: boolean;
+  error: string | null;
   vehicle: Vehicle | null;
   onClose: () => void;
-  onSave: (patch: Partial<Vehicle>) => void;
+  onSave: (patch: Partial<Vehicle>) => Promise<void>;
 }) {
   const { user } = useAuth();
   const [make, setMake] = useState("");
@@ -278,6 +293,11 @@ function EditVehicleSheet({
     setRefreshNote(null);
     setTankHint(null);
   }
+
+  const yearError = year && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > 2100) ? "שנה בין 1900 ל־2100" : null;
+  const tankError = tankLiters.trim() && (!(parseDecimal(tankLiters) > 0) || parseDecimal(tankLiters) > 500) ? "נפח מיכל בין 0 ל־500 ליטר (ללא אפס)" : null;
+  const declaredError = declared.trim() && !(parseDecimal(declared) > 0) ? "הצריכה חייבת להיות מספר חיובי" : null;
+  const valid = make.trim().length > 0 && make.length <= 60 && model.length <= 80 && nickname.length <= 60 && !yearError && !tankError && !declaredError;
 
   /** Re-run the plate lookup and refresh every registry-derived field. */
   async function refreshFromRegistry() {
@@ -364,18 +384,21 @@ function EditVehicleSheet({
         ) : null}
 
         <Field
+          maxLength={60}
           label="יצרן"
           dir="rtl"
           value={make}
           onChange={(event) => setMake(event.target.value)}
         />
         <Field
+          maxLength={80}
           label="דגם"
           dir="rtl"
           value={model}
           onChange={(event) => setModel(event.target.value)}
         />
         <Field
+          error={yearError}
           label="שנת ייצור"
           inputMode="numeric"
           value={year}
@@ -405,6 +428,7 @@ function EditVehicleSheet({
         </div>
 
         <Field
+          maxLength={60}
           label="כינוי לרכב"
           dir="rtl"
           value={nickname}
@@ -412,6 +436,7 @@ function EditVehicleSheet({
           placeholder="המאזדה של יעל"
         />
         <Field
+          error={tankError}
           label="נפח מיכל"
           inputMode="decimal"
           suffix="ליטר"
@@ -427,6 +452,7 @@ function EditVehicleSheet({
           }
         />
         <Field
+          error={declaredError}
           label="צריכה מוצהרת"
           inputMode="decimal"
           suffix="קמ״ל"
@@ -435,9 +461,11 @@ function EditVehicleSheet({
           placeholder="16.2"
         />
 
+        {error ? <p role="alert" className="text-sm text-danger">{error}</p> : null}
         <Button
           full
-          disabled={!make.trim()}
+          loading={saving}
+          disabled={!valid || saving}
           onClick={() =>
             onSave({
               make: make.trim(),

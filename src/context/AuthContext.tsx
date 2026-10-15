@@ -1,3 +1,4 @@
+import { isAccountDeleting } from "../lib/accountDeletion";
 import {
   createContext,
   useCallback,
@@ -116,7 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .getIdTokenResult()
           .then((result) => {
             setIsAdmin(result.claims.admin === true);
-            return rotateLoginStamps(nextUser.uid, result.claims.auth_time);
+            if (!isAccountDeleting(nextUser.uid)) return rotateLoginStamps(nextUser.uid, result.claims.auth_time);
           })
           .then((previous) => setPreviousLoginAt(previous))
           .catch(() => {

@@ -1,8 +1,8 @@
+import { resolveEndState } from "../lib/tank/observations";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
-import { usePublishSummary } from "../hooks/usePublishSummary";
 import { AppHeader } from "../components/AppHeader";
 import { Card, Label, SectionTitle, Skeleton } from "../components/Card";
 import { MyTankCard } from "../components/MyTankCard";
@@ -40,7 +40,6 @@ export function Home() {
   const stats = useStats();
   // Operational telemetry for the admin dashboard, so it never has to read
   // anyone's fill-up records to count them.
-  usePublishSummary(stats);
 
   const [explainerOpen, setExplainerOpen] = useState(false);
 
@@ -207,9 +206,9 @@ export function Home() {
                         </span>
                       </span>
 
-                      {!fillup.isFullTank ? (
+                      {resolveEndState(fillup).state !== "full" ? (
                         <span className="flex-none text-[12.5px] font-semibold text-muted">
-                          חלקי
+                          {resolveEndState(fillup).state === "partial" ? "חלקי" : "לא צוין"}
                         </span>
                       ) : kmPerLiter !== null ? (
                         <ConsumptionValue
@@ -375,7 +374,7 @@ function MonthSpendCard({
   const month = stats.currentMonth;
 
   return (
-    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+    <Card className="flex min-w-0 flex-1 flex-col gap-1.5 p-[14px_16px]">
       <Label className="text-[12.5px]">הוצאה החודש</Label>
 
       {month ? (
@@ -420,9 +419,9 @@ function FuelPriceCard() {
   const lookup = useMemo(() => officialPriceFor(prices, fuelType, today), [prices, fuelType, today]);
 
   return (
-    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+    <Card className="flex min-w-0 flex-1 flex-col gap-1.5 p-[14px_16px]">
       <Label className="text-[12.5px]">מחיר דלק נוכחי</Label>
-      <span className="flex items-baseline gap-1.5">
+      <span className="flex flex-wrap items-baseline gap-x-1.5">
         <Num className="text-[24px] font-bold leading-tight text-ink">
           {lookup.price !== null ? price(lookup.price) : "—"}
         </Num>
@@ -464,7 +463,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
     <span className="text-[12.5px] text-hero-muted">
       במקטע הפתוח נשמרו <Quantity value={open.liters} digits={1} /> מ־
       <Num>{open.pendingFillups}</Num>{" "}
-      {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} — הם ייכללו בחישוב
+      {open.pendingFillups === 1 ? "תדלוק" : "תדלוקים"} — הם ייכללו בחישוב
       בתדלוק הבא.
     </span>
   );

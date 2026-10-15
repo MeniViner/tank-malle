@@ -213,6 +213,9 @@ test("a stale edit is refused by the server, kept as a conflict, and never overw
   // Another device edits first, the way a versioned client writes: the whole
   // document, stamped version 1. (The REST patch replaces the document, so
   // every field is given.)
+  // The loading state has the same heading; the actual input proves the
+  // editor has captured the base before the competing write is injected.
+  await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("40");
   const { setDocument } = await import("./helpers/emulator");
   await setDocument(`users/${uid}/vehicles/${vehicleId}/fillups/f1`, {
     date: new Date(Date.UTC(2026, 0, 5, 8, 0)),
@@ -300,13 +303,12 @@ test("an import interrupted by a reload settles every journal entry — rows and
   const { uid, vehicleId } = await signedInWithData(page);
   const { fileURLToPath } = await import("node:url");
   const fixture = fileURLToPath(new URL("../src/lib/import/__fixtures__/legacy-fuel-tracker.csv", import.meta.url));
-  const FIRESTORE = /127\.0\.0\.1:8080\//;
+  const FIRESTORE_WRITES = /127\.0\.0\.1:8080\/.*Firestore\/Write\/channel/;
 
-  // The server is unreachable while the import runs, so all eight writes
-  // (seven rows and the batch record) are journaled and queued, none
-  // answered. Then the page reloads: every write promise dies with it, and
-  // the entries are orphans the new page must settle on its own.
-  await context.route(FIRESTORE, (route) => route.abort("connectionfailed"));
+  // Destination and duplicate checks need authoritative reads. Interrupt
+  // only the write connection after those reads, keeping all eight writes
+  // pending. Reload then makes them orphans the new page must settle.
+  await context.route(FIRESTORE_WRITES, (route) => route.abort("connectionfailed"));
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
@@ -321,7 +323,7 @@ test("an import interrupted by a reload settles every journal entry — rows and
   // only the per-document reconciliation can turn "pending" into "failed".
   // The batch record lives in a collection with no query listener at all.
   await installRules(DENY_ALL_RULES);
-  await context.unroute(FIRESTORE);
+  await context.unroute(FIRESTORE_WRITES);
   await page.reload();
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(8, { timeout: 40_000 });
@@ -357,7 +359,11 @@ test("an import rejected by the server keeps every row with its error, and retri
   const { fileURLToPath } = await import("node:url");
   const fixture = fileURLToPath(new URL("../src/lib/import/__fixtures__/legacy-fuel-tracker.csv", import.meta.url));
 
-  await installRules(DENY_ALL_RULES);
+  await installRules(`rules_version = '2'; service cloud.firestore {
+    match /databases/{database}/documents { match /{document=**} {
+      allow read: if request.auth != null; allow write: if false;
+    } }
+  }`);
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();

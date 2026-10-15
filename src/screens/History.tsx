@@ -1,3 +1,4 @@
+import { buildRange, inRange, rangeDates } from "../lib/periods";
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -36,15 +37,6 @@ const PERIODS: { value: Period; label: string }[] = [
   { value: "year", label: "השנה" },
 ];
 
-/** Inclusive lower bound of a period, or null for "everything". */
-function periodStart(period: Period, now: number): number | null {
-  const date = new Date(now);
-  if (period === "month") return new Date(date.getFullYear(), date.getMonth(), 1).getTime();
-  if (period === "3m") return new Date(date.getFullYear(), date.getMonth() - 2, 1).getTime();
-  if (period === "year") return new Date(date.getFullYear(), 0, 1).getTime();
-  return null;
-}
-
 /** History grouped by month (designs 14–16). */
 export function History() {
   const navigate = useNavigate();
@@ -78,6 +70,7 @@ export function History() {
     setPeriodState(next);
   };
   const [onlyFlagged, setOnlyFlagged] = useState(false);
+  const range = useMemo(() => buildRange(period === "month" ? "thisMonth" : period === "year" ? "ytd" : period, periodNow), [period, periodNow]);
   // A filter whose subject vanished (the flagged records were fixed while
   // this screen stayed mounted) would empty the list with no control left to
   // clear it. It is reset the moment it stops meaning anything.
@@ -94,11 +87,10 @@ export function History() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const from = periodStart(period, periodNow);
     return [...stats.fillups]
       .sort((a, b) => b.date - a.date)
       .filter((fillup) => {
-        if (from !== null && fillup.date < from) return false;
+        if (!inRange(fillup.date, range)) return false;
         if (flaggedActive && !anomalyIds.has(fillup.id)) return false;
         if (!term) return true;
         return (
@@ -106,7 +98,7 @@ export function History() {
           (fillup.notes ?? "").toLowerCase().includes(term)
         );
       });
-  }, [stats.fillups, query, period, periodNow, flaggedActive, anomalyIds]);
+  }, [stats.fillups, query, range, flaggedActive, anomalyIds]);
 
   // Group into months, preserving the newest-first order.
   const groups = useMemo(() => {
@@ -167,6 +159,7 @@ export function History() {
               </button>
             ) : null}
           </div>
+          <span className="text-[12px] text-muted">{rangeDates(range)} · <Num>{filtered.length}</Num> תדלוקים מוצגים</span>
         </div>
       ) : null}
 

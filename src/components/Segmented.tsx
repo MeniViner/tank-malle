@@ -32,7 +32,7 @@ export function Segmented<T extends string>({
       aria-label={ariaLabel}
       className={`flex w-full gap-1 rounded-pill bg-surface-2 ${size === "sm" ? "p-[3px]" : "p-1"}`}
     >
-      {options.map((option) => {
+      {options.map((option, index) => {
         const selected = option.value === value;
         return (
           <button
@@ -40,10 +40,22 @@ export function Segmented<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected || (!options.some((entry) => entry.value === value) && index === 0) ? 0 : -1}
+            onKeyDown={(event) => {
+              const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+              const step = event.key === "ArrowDown" ? 1 : event.key === "ArrowUp" ? -1
+                : event.key === "ArrowLeft" ? (rtl ? 1 : -1) : event.key === "ArrowRight" ? (rtl ? -1 : 1) : 0;
+              const next = event.key === "Home" ? 0 : event.key === "End" ? options.length - 1
+                : step ? (index + step + options.length) % options.length : null;
+              if (next === null) return;
+              event.preventDefault();
+              onChange(options[next].value);
+              document.getElementById(`${groupId}-${options[next].value}`)?.focus();
+            }}
             id={`${groupId}-${option.value}`}
             onClick={() => onChange(option.value)}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-pill font-semibold transition-[background-color,color,box-shadow,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] ${
-              size === "sm" ? "min-h-[36px] text-[13px]" : "min-h-[42px] text-[14px]"
+              size === "sm" ? "min-h-[40px] text-[13px]" : "min-h-[42px] text-[14px]"
             } ${
               selected
                 ? "bg-surface text-ink shadow-[0_1px_1px_rgb(13_35_28/0.04),0_2px_6px_-2px_rgb(13_35_28/0.10)]"
@@ -75,7 +87,7 @@ export function Toggle({
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
-      className={`relative h-[31px] w-[51px] flex-none rounded-pill transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
+      className={`relative h-[31px] w-[51px] before:absolute before:-inset-y-[5px] before:inset-x-0 before:content-[''] flex-none rounded-pill transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
         checked ? "bg-accent" : "border border-line bg-surface-2"
       }`}
     >

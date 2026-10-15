@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
@@ -29,28 +29,29 @@ import type { Stats } from "../lib/stats";
  */
 export function usePublishSummary(stats: Stats): void {
   const { user } = useAuth();
-  const { activeVehicle, activeVehicles, ready } = useData();
+  const { activeVehicle, activeVehicles, ready, loadingFillups, accountDeletionPending, loadVehicleCatalog } = useData();
   const lastWritten = useRef<Record<string, VehicleSummary>>({});
+  const lastScope = useRef("");
 
   useEffect(() => {
-    if (!ready || !user || !activeVehicle) return;
-
-    const next = summariseVehicle(activeVehicle, stats);
-    if (!summaryChanged(lastWritten.current[activeVehicle.id], next)) return;
-    lastWritten.current[activeVehicle.id] = next;
-
-    void setDoc(
-      doc(db, "userSummaries", user.uid),
-      {
-        version: SUMMARY_VERSION,
-        vehicleCount: activeVehicles.length,
-        vehicles: { [activeVehicle.id]: next },
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    ).catch(() => {
-      // A summary is telemetry. Failing to write one must never surface to the
-      // user or block anything they were doing.
+    if (!ready || !user || loadingFillups || accountDeletionPending) return;
+    const next = activeVehicle ? summariseVehicle(activeVehicle, stats) : null;
+    const scope = JSON.stringify([user.uid, activeVehicles.map((v) => v.id).sort()]);
+    const key = `${user.uid}/${activeVehicle?.id ?? "none"}`;
+    if (scope === lastScope.current && (!next || !summaryChanged(lastWritten.current[key], next))) return;
+    lastScope.current = scope;
+    if (next) lastWritten.current[key] = next;
+    // A cached vehicle list must never erase another car's server summary.
+    void loadVehicleCatalog().then((catalog) => runTransaction(db, async (transaction) => {
+      const ref = doc(db, "userSummaries", user.uid);
+      const current = await transaction.get(ref);
+      const activeIds = new Set(catalog.filter((v) => !v.archived).map((v) => v.id));
+      const vehicles = Object.fromEntries(Object.entries(current.data()?.vehicles ?? {}).filter(([id]) => activeIds.has(id)));
+      if (activeVehicle && next && activeIds.has(activeVehicle.id)) vehicles[activeVehicle.id] = next;
+      transaction.set(ref, { version: SUMMARY_VERSION, vehicleCount: activeIds.size, vehicles, updatedAt: serverTimestamp() });
+    })).catch(() => {
+      delete lastWritten.current[key];
+      if (lastScope.current === scope) lastScope.current = "";
     });
-  }, [ready, user, activeVehicle, activeVehicles.length, stats]);
+  }, [ready, user, activeVehicle, activeVehicles, stats, loadingFillups, accountDeletionPending, loadVehicleCatalog]);
 }

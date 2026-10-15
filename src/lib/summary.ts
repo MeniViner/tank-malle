@@ -85,6 +85,8 @@ export function summaryChanged(
     previous.segments !== next.segments ||
     previous.kmPerLiter !== next.kmPerLiter ||
     previous.cost !== next.cost ||
+    previous.liters !== next.liters ||
+    previous.lastFillupAt !== next.lastFillupAt ||
     previous.fuelType !== next.fuelType
   );
 }

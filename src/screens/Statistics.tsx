@@ -23,6 +23,7 @@ import {
   bucketSpend,
   buildRange,
   inRange,
+  rangeDates,
   resolveGrouping,
   summariseSpend,
   type DateRange,
@@ -268,6 +269,7 @@ export function Statistics() {
         {/* One range control, not six pills on two lines. Grouping stays with
             the charts that actually bucket. */}
         {section !== "community" ? (
+          <div className="flex flex-col gap-1.5">
           <RangePicker
             value={rangeKey}
             onChange={setRangeKey}
@@ -278,6 +280,8 @@ export function Statistics() {
               </>
             }
           />
+          <span className="text-[12px] text-muted">{rangeDates(range)}</span>
+          </div>
         ) : null}
 
         {loadingFillups ? (
@@ -801,7 +805,7 @@ function OpenSegmentCard({ stats }: { stats: ReturnType<typeof computeStats> }) 
       <Label className="text-[12.5px]">מקטע פתוח</Label>
       <span className="text-[13.5px] leading-relaxed text-ink">
         <Quantity value={open.liters} digits={1} /> מ־<Num>{open.pendingFillups}</Num>{" "}
-        {open.pendingFillups === 1 ? "תדלוק חלקי" : "תדלוקים חלקיים"} ·{" "}
+        {open.pendingFillups === 1 ? "תדלוק" : "תדלוקים"} ·{" "}
         <Distance value={open.km} /> מאז התדלוק האחרון
       </span>
       <span className="text-[12px] leading-relaxed text-muted">

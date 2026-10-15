@@ -80,6 +80,8 @@ export function Settings() {
     plans,
     ready,
     outbox,
+    benchmarkWithdrawal,
+    retryBenchmarkWithdrawal,
   } = useData();
 
   // The official figure for THIS vehicle's fuel type, today — the same
@@ -292,9 +294,9 @@ export function Settings() {
                 </IconTile>
               }
               title="ייצוא הנתונים שלי"
-              subtitle="קובץ CSV שאפשר גם לייבא בחזרה"
+              subtitle="תדלוקים ועדכוני מיכל של הרכב הפעיל · לכל הרכבים: פרופיל"
               onClick={() => {
-                if (fillups.length === 0 && observations.length === 0) {
+                if (fillups.length === 0 && observations.length === 0 && plans.length === 0) {
                   showToast({ tone: "info", title: "אין עדיין תדלוקים לייצוא" });
                   return;
                 }
@@ -357,10 +359,18 @@ export function Settings() {
             </span>
             <Toggle
               checked={settings.shareBenchmarks !== false}
-              onChange={(next) => void updateSettings({ shareBenchmarks: next })}
+              onChange={(next) => void updateSettings({ shareBenchmarks: next }).catch(() => showToast({ tone: "error", title: "שינוי השיתוף לא נשמר", detail: "בדקו את החיבור ונסו שוב" }))}
               ariaLabel="השוואה אנונימית"
             />
           </Card>
+          {settings.shareBenchmarks === false ? (
+            <p role="status" className="px-2 text-[13px] leading-relaxed text-muted">
+              {benchmarkWithdrawal === "done" ? "השיתוף כבוי. נתוני ההשוואה שלכם הוסרו מהשרת."
+                : benchmarkWithdrawal === "error" ? "הסרת נתוני ההשוואה עדיין לא אושרה. נדרש חיבור לשרת."
+                : "ממתינים לאישור הסרת נתוני ההשוואה מהשרת…"}
+              {benchmarkWithdrawal === "error" ? <button type="button" className="min-h-10 px-2 font-bold text-primary underline" onClick={retryBenchmarkWithdrawal}>ניסיון חוזר</button> : null}
+            </p>
+          ) : null}
         </section>
 
         {isAdmin ? (

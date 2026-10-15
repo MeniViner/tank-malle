@@ -35,7 +35,7 @@ export async function waitForServiceWorkerControl(page: Page): Promise<void> {
 
 /** What the navigation timing entry says about how the current document arrived. */
 export interface NavigationDelivery {
-  /** > 0 when a service worker handled the navigation request. */
+  /** Worker timing diagnostic; use Response.fromServiceWorker() to prove delivery. */
   workerStart: number;
   /** 0 when nothing came over the network for the document itself. */
   transferSize: number;

@@ -1,3 +1,4 @@
+import { isTankUpdates, parseTankUpdates, type TankImport } from "../lib/import/tankUpdates";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -11,7 +12,7 @@ import { CarIcon, CheckIcon, ChevronDown, WarningIcon } from "../components/icon
 import { dayMonthShort, fullDate, vehicleLabel } from "../lib/format";
 import { ConfirmDialog } from "../components/Sheet";
 import type { ImportBatch } from "../context/DataContext";
-import type { Fillup } from "../lib/types";
+import type { Fillup, Vehicle } from "../lib/types";
 import type { ImportPlan, ImportReport } from "../lib/import/plan";
 
 /**
@@ -36,7 +37,9 @@ export function ImportData() {
   const {
     activeVehicles,
     activeVehicle,
-    fillups,
+    loadVehicleFillups,
+    loadVehicleCatalog,
+    importTankUpdates,
     addFillupBatch,
     listImportBatches,
     deleteImportBatch,
@@ -45,21 +48,30 @@ export function ImportData() {
   const [stage, setStage] = useState<Stage>("choose");
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState("");
+  const [tankImport, setTankImport] = useState<TankImport | null>(null);
   const [plan, setPlan] = useState<ImportPlan | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
+  const [resolvedTarget, setResolvedTarget] = useState<Vehicle | null>(null);
   const [targetVehicleId, setTargetVehicleId] = useState(activeVehicle?.id ?? "");
+  const [backupSources, setBackupSources] = useState<{ id: string; label: string }[]>([]);
+  const [backupSourceId, setBackupSourceId] = useState("");
+  const sourceFile = useRef<File | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   const targetVehicle = useMemo(
-    () => activeVehicles.find((entry) => entry.id === targetVehicleId) ?? null,
-    [activeVehicles, targetVehicleId],
+    () => (resolvedTarget?.id === targetVehicleId ? resolvedTarget : activeVehicles.find((entry) => entry.id === targetVehicleId)) ?? null,
+    [activeVehicles, targetVehicleId, resolvedTarget],
   );
 
   const onFile = useCallback(
-    async (file: File) => {
+    async (file: File, selectedSource?: string) => {
+      sourceFile.current = file;
+      setBackupSources([]);
       setError(null);
       setReport(null);
+      setPlan(null);
+      setTankImport(null);
       setStage("parsing");
       setFileName(file.name);
 
@@ -109,40 +121,92 @@ export function ImportData() {
           table = parseCsv(await file.text());
         }
 
+        const importVehicles = await loadVehicleCatalog();
+        if (isTankUpdates(table)) {
+          const parsedTank = parseTankUpdates(table);
+          const resolvedId = parsedTank.vehicleIds.length === 1 && importVehicles.some((v) => v.id === parsedTank.vehicleIds[0]) ? parsedTank.vehicleIds[0] : vehicleId;
+          setTargetVehicleId(resolvedId);
+          setResolvedTarget(importVehicles.find((v) => v.id === resolvedId) ?? null);
+          if (parsedTank.vehicleIds.length > 1) {
+            const sourceId = selectedSource ?? (parsedTank.vehicleIds.includes(resolvedId) ? resolvedId : parsedTank.vehicleIds[0]);
+            setBackupSourceId(sourceId);
+            setBackupSources(parsedTank.vehicleIds.map((id, index) => {
+              const sourceVehicle = importVehicles.find((v) => v.id === id);
+              return { id, label: sourceVehicle ? vehicleLabel(sourceVehicle) : `רכב ${index + 1} בקובץ` };
+            }));
+            parsedTank.records = parsedTank.records.filter((r) => r.value.vehicleId === sourceId);
+          }
+          setTankImport(parsedTank);
+          setStage("preview");
+          return;
+        }
         const parsed = parseRows(table, formulaCells);
 
         // A Tank Maleh export carries the id of the vehicle it came from. When
         // that vehicle still exists, it IS the target — asking the user to
         // re-pick it (and showing them the raw id to decide with) was noise.
         const matchedId = parsed.vehicleIds.find((id) =>
-          activeVehicles.some((entry) => entry.id === id),
+          importVehicles.some((entry) => entry.id === id),
         );
-        const resolvedVehicleId = matchedId ?? vehicleId;
+        const resolvedVehicleId = parsed.vehicleIds.length > 1 ? vehicleId : matchedId ?? vehicleId;
 
+        if (parsed.vehicleIds.length > 1) {
+          const sourceId = selectedSource ?? (parsed.vehicleIds.includes(resolvedVehicleId) ? resolvedVehicleId : parsed.vehicleIds[0]);
+          setBackupSourceId(sourceId);
+          setBackupSources(parsed.vehicleIds.map((id, index) => ({ id, label: parsed.rows.find((row) => row.sourceVehicleId === id)?.sourceVehicleLabel || `רכב ${index + 1} בקובץ` })));
+          parsed.rows = parsed.rows.filter((row) => row.sourceVehicleId === sourceId);
+          parsed.totalRows = parsed.rows.length + parsed.rejected.length;
+          parsed.assumptions.push("הקובץ מכיל כמה רכבים. ייובאו רק הרשומות של רכב המקור שנבחר, לרכב היעד המוצג. לשאר הרכבים יש לבצע ייבוא נוסף.");
+        }
         const nextPlan = planImport(
           parsed,
           resolvedVehicleId,
-          fillups,
-          activeVehicles.find((entry) => entry.id === resolvedVehicleId)?.fuelType,
+          await loadVehicleFillups(resolvedVehicleId),
+          importVehicles.find((entry) => entry.id === resolvedVehicleId)?.fuelType,
         );
 
         setTargetVehicleId(resolvedVehicleId);
+        setResolvedTarget(importVehicles.find((v) => v.id === resolvedVehicleId) ?? null);
         setPlan(nextPlan);
         setStage("preview");
       } catch {
-        setError("הקובץ לא נקרא. ודאו שזה קובץ CSV או XLSX תקין.");
+        setError("לא ניתן להכין את הייבוא. נדרשים קובץ CSV או Excel תקין וחיבור לשרת כדי לאמת את הרכב ולבדוק כפילויות.");
         setStage("choose");
       }
     },
-    [targetVehicleId, activeVehicle, fillups, activeVehicles],
+    [targetVehicleId, activeVehicle, loadVehicleFillups, loadVehicleCatalog],
   );
 
   async function runImport() {
+    if (tankImport) {
+      setStage("importing");
+      try {
+        const result = await importTankUpdates(targetVehicleId, tankImport.records);
+        const acknowledged = await Promise.race([result.receipt.settled, new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000))]);
+        setReport({ imported: acknowledged === true ? result.written : 0, queued: acknowledged === null ? result.written : 0,
+          failed: acknowledged === false ? result.written : 0, failures: [], skippedDuplicates: result.duplicates, skippedInvalid: tankImport.rejected.length });
+      } catch {
+        setReport({ imported: 0, queued: 0, failed: tankImport.records.length, failures: [{ rowNumber: 0, reason: "הייבוא לא הושלם; בדקו פעולות שלא סונכרנו לפני ניסיון חוזר" }], skippedDuplicates: 0, skippedInvalid: tankImport.rejected.length });
+      }
+      setStage("done"); return;
+    }
     if (!plan || plan.toImport.length === 0) return;
     setStage("importing");
 
     const batchId = `imp_${Date.now().toString(36)}`;
     const records: Omit<Fillup, "id" | "createdAt">[] = plan.toImport.map((row) => ({
+      fillEndState: row.fillEndState,
+      fillEndStateSource: row.fillEndStateSource,
+      preFillLevel: row.preFillLevel,
+      preFillLevelSource: row.preFillLevelSource,
+      preFillLevelUncertainty: row.preFillLevelUncertainty,
+      postFillLevel: row.postFillLevel,
+      postFillLevelSource: row.postFillLevelSource,
+      postFillLevelUncertainty: row.postFillLevelUncertainty,
+      refuelReason: row.refuelReason,
+      capacityLitersAtEntry: row.capacityLitersAtEntry,
+      tankSchemaVersion: row.tankSchemaVersion,
+      postedPricePerLiter: row.postedPricePerLiter,
       date: row.date,
       odometer: row.odometer,
       liters: row.liters,
@@ -162,10 +226,19 @@ export function ImportData() {
     }));
 
     try {
-      const { written, receipt } = await addFillupBatch(plan.vehicleId, records, {
+      const { fillupIdentityHash } = await import("../lib/import/rows");
+      const existing = await loadVehicleFillups(plan.vehicleId);
+      const hashes = new Set(existing.map((f) => fillupIdentityHash(plan.vehicleId, f, targetVehicle?.fuelType)));
+      const freshRecords = records.filter((record) => !hashes.has(record.importRowHash!));
+      const extraDuplicates = records.length - freshRecords.length;
+      if (freshRecords.length === 0) {
+        setReport({ imported: 0, queued: 0, failed: 0, failures: [], skippedDuplicates: plan.duplicates.length + extraDuplicates, skippedInvalid: plan.rejected.length });
+        setStage("done"); return;
+      }
+      const { written, receipt } = await addFillupBatch(plan.vehicleId, freshRecords, {
         format: plan.format,
         fileName,
-        recordCount: records.length,
+        recordCount: freshRecords.length,
         vehicleLabel: targetVehicle ? vehicleLabel(targetVehicle) : "",
       });
 
@@ -178,8 +251,8 @@ export function ImportData() {
 
       setReport({
         imported: acknowledged === true ? written : 0,
-        queued: acknowledged === true ? 0 : written,
-        skippedDuplicates: plan.duplicates.length,
+        queued: acknowledged === null ? written : 0,
+        skippedDuplicates: plan.duplicates.length + extraDuplicates,
         skippedInvalid: plan.rejected.length,
         failed: acknowledged === false ? written : 0,
         failures:
@@ -278,6 +351,26 @@ export function ImportData() {
           </>
         ) : null}
 
+        {stage === "preview" && backupSources.length > 1 ? (
+          <Card className="flex flex-col gap-2 p-4">
+            <label htmlFor="backup-source" className="text-sm font-semibold">רכב המקור בתוך הגיבוי</label>
+            <select id="backup-source" className="min-h-11 rounded-xl border border-line bg-surface p-2 text-ink" value={backupSourceId}
+              onChange={(event) => { if (sourceFile.current) void onFile(sourceFile.current, event.target.value); }}>
+              {backupSources.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}
+            </select>
+            <span className="text-sm text-muted">רכב היעד: {targetVehicle ? vehicleLabel(targetVehicle) : ""}. לבחירת יעד אחר חזרו לבחירת הקובץ.</span>
+          </Card>
+        ) : null}
+        {stage === "preview" && tankImport ? (
+          <Card className="flex flex-col gap-3 p-4">
+            <h2 className="text-lg font-bold">ייבוא עדכוני מיכל ונסיעות</h2>
+            <p>{tankImport.records.length} עדכונים לרכב {targetVehicle ? vehicleLabel(targetVehicle) : ""}. רשומות שכבר קיימות לא יוחלפו.</p>
+            {tankImport.vehicleIds.length > 1 ? <p>הקובץ מכיל כמה רכבים. ייובאו רק עדכוני הרכב שנבחר.</p> : null}
+            {tankImport.rejected.map((row) => <p key={row.rowNumber} className="text-danger">שורה {row.rowNumber}: {row.reason}</p>)}
+            <Button full disabled={!tankImport.records.length} onClick={() => void runImport()}>ייבוא {tankImport.records.length} עדכונים</Button>
+            <Button variant="ghost" onClick={() => { setTankImport(null); setStage("choose"); }}>ביטול</Button>
+          </Card>
+        ) : null}
         {stage === "preview" && plan ? (
           <PreviewStep
             plan={plan}

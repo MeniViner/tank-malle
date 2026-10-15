@@ -101,7 +101,7 @@ test("multiple partials accumulate into the open segment", async ({ page }) => {
   await page.goto("/");
   // 12 + 14.8 = 26.8 L pending across two partial fill-ups.
   await expect(page.getByText(/26\.8/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/2\s*תדלוקים חלקיים|תדלוקים חלקיים/)).toBeVisible();
+  await expect(page.getByText(/מ־\s*2\s*תדלוקים/)).toBeVisible();
 });
 
 test("the closing full fill-up produces the canonical segment result", async ({ page }) => {

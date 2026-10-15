@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
@@ -8,9 +8,10 @@ import { Avatar } from "../components/Avatar";
 import { Card, IconTile, Label } from "../components/Card";
 import { RowButton } from "../components/Button";
 import { ConfirmDialog } from "../components/Sheet";
-import { downloadFillupsCsv } from "../lib/csv";
+import { downloadAllVehiclesCsv, downloadTankUpdatesCsv } from "../lib/csv";
 import { Num } from "../components/Num";
-import { computeStats } from "../lib/stats";
+import { loadAccountExport, accountTotals, type AccountExport } from "../lib/accountExport";
+import { db } from "../lib/firebase";
 import { fullDate, loginMoment, num, price, shekel } from "../lib/format";
 import { DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon } from "../components/icons";
 
@@ -32,11 +33,36 @@ export function Profile() {
   // writes count too, because the Firestore cache is shared.
   const [deviceState, setDeviceState] = useState<"none" | "some" | "unknown" | null>(null);
   const [clearLocal, setClearLocal] = useState(false);
-  const { fillups, activeVehicle, vehicles, deleteAccount } = useData();
-  const stats = useMemo(
-    () => computeStats(fillups, activeVehicle),
-    [fillups, activeVehicle],
-  );
+  const { vehicles, deleteAccount, accountDeletionPending } = useData();
+  const uid = user?.uid;
+  const [accountData, setAccountData] = useState<AccountExport | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  useEffect(() => {
+    if (!uid || accountDeletionPending) return;
+    let current = true;
+    setAccountData(null); setExportError(null);
+    void loadAccountExport(db, uid).then((data) => { if (current) setAccountData(data); },
+      () => { if (current) setExportError("לא ניתן לטעון את נתוני כל הרכבים. נדרש חיבור לשרת."); });
+    return () => { current = false; };
+  }, [uid, accountDeletionPending, loadAttempt]);
+  const records = useMemo(() => accountData ? accountTotals(accountData) : null, [accountData]);
+  async function exportAll() {
+    if (!user || exporting) return;
+    setExporting(true); setExportError(null);
+    try {
+      const data = await loadAccountExport(db, user.uid);
+      setAccountData(data);
+      if (!data.rows.length && !data.observations.length && !data.plans.length) {
+        showToast({ tone: "info", title: "אין עדיין נתונים לייצוא" }); return;
+      }
+      if (data.rows.length) downloadAllVehiclesCsv(data.rows);
+      if (data.observations.length || data.plans.length) downloadTankUpdatesCsv(data.observations, data.plans);
+      showToast({ tone: "success", title: "נתוני כל הרכבים יוצאו", detail: "כולל רכבים בארכיון; עדכוני מיכל ונסיעות בקובץ נפרד" });
+    } catch { setExportError("הייצוא לא הושלם. בדקו את החיבור ונסו שוב."); }
+    finally { setExporting(false); }
+  }
 
   // Firebase records the real account creation time; fall back to the oldest
   // record we hold if the metadata is unavailable.
@@ -55,8 +81,8 @@ export function Profile() {
 
   const active = vehicles.filter((vehicle) => !vehicle.archived);
   const avgPricePaid =
-    stats.records.totalLiters > 0
-      ? stats.records.totalCost / stats.records.totalLiters
+    records && records.totalLiters > 0
+      ? records.totalCost / records.totalLiters
       : null;
 
   async function reallyDelete() {
@@ -81,15 +107,17 @@ export function Profile() {
         // Never report a clean sweep that did not happen.
         showToast({
           tone: "error",
-          title: "המחיקה הושלמה חלקית",
-          detail: `לא נמחקו: ${result.failed.join(", ")}. פנו אלינו כדי להשלים.`,
+          title: result.deleted.length ? "המחיקה נעצרה לפני השלמתה" : "המחיקה לא החלה",
+          detail: result.failed.includes("pending-writes") ? "יש פעולות שלא סונכרנו במכשיר. טפלו בהן לפני המחיקה."
+            : result.failed.includes("local-cache") ? "סגרו לשוניות נוספות של האפליקציה, רעננו ונסו שוב. חשבון ההתחברות נשמר."
+            : "חשבון ההתחברות נשמר כדי שתוכלו לנסות שוב. רעננו ונסו להשלים את המחיקה.",
         });
       }
     } catch {
       showToast({
         tone: "error",
         title: "מחיקת החשבון נכשלה",
-        detail: "לא בוצע שינוי. נסו שוב בעוד רגע.",
+        detail: "לא ניתן לאשר שהמחיקה הושלמה. רעננו ונסו שוב.",
       });
     } finally {
       setDeleting(false);
@@ -102,6 +130,7 @@ export function Profile() {
       <ScreenHeader title="פרופיל" onBack={() => navigate(-1)} />
 
       <div className="flex flex-col gap-4 px-5">
+        {accountDeletionPending ? <p role="alert" className="rounded-card bg-danger/10 p-4 text-sm text-danger">מחיקת החשבון ממתינה להשלמה. הנתונים שכבר נמחקו לא ישוחזרו; ניתן לנסות שוב דרך מחיקת החשבון למטה. אם הפעולה נעצרה, רעננו תחילה.</p> : null}
         <section className="tm-rise flex flex-col gap-3.5 rounded-hero bg-hero p-[16px_18px_15px] text-hero-ink shadow-raised">
           <div className="flex items-center gap-3.5">
             <Avatar name={user?.displayName} photoURL={user?.photoURL} size={62} />
@@ -135,36 +164,37 @@ export function Profile() {
 
         {/* Lifetime totals — the reason to keep a log in the first place. */}
         <section className="flex flex-col gap-2">
-          <Label>הפעילות שלי</Label>
+          <Label>הפעילות שלי · כל הרכבים, כולל הארכיון</Label>
+          {exportError ? <p role="alert" className="text-sm text-danger">{exportError} <button className="min-h-10 px-2 underline" onClick={() => setLoadAttempt((n) => n + 1)}>ניסיון חוזר</button></p> : null}
           <div className="flex gap-3">
             <MetricCard
               label="תדלוקים"
-              value={num(stats.records.fillupCount, 0)}
-              meta={`${num(stats.records.totalLiters, 0)} ליטר בסך הכול`}
+              value={records ? num(records.fillupCount, 0) : "—"}
+              meta={`${records ? num(records.totalLiters, 0) : "—"} ליטר בסך הכול`}
             />
             <MetricCard
               label="סה״כ הוצאה"
-              value={shekel(stats.records.totalCost)}
+              value={records ? shekel(records.totalCost) : "—"}
               meta={avgPricePaid !== null ? `ממוצע ${price(avgPricePaid)} לליטר` : undefined}
             />
           </div>
           <div className="flex gap-3">
             <MetricCard
               label="ק״מ שתועדו"
-              value={num(stats.records.totalKm, 0)}
+              value={records ? num(records.totalKm, 0) : "—"}
               unit="ק״מ"
-              meta={`על פני ${num(stats.records.fillupCount, 0)} תדלוקים`}
+              meta={`על פני ${records ? num(records.fillupCount, 0) : "—"} תדלוקים`}
             />
             <MetricCard
               label="רכבים"
-              value={num(active.length, 0)}
+              value={num(vehicles.length, 0)}
               meta={
-                active.length === 1
+                vehicles.length > active.length
+                  ? `${num(active.length, 0)} פעילים · ${num(vehicles.length - active.length, 0)} בארכיון`
+                  : active.length === 1
                   ? (active[0].nickname?.trim() ||
                     `${active[0].make} ${active[0].model}`.trim())
-                  : vehicles.length > active.length
-                    ? `${num(vehicles.length - active.length, 0)} בארכיון`
-                    : undefined
+                  : undefined
               }
             />
           </div>
@@ -188,15 +218,8 @@ export function Profile() {
                 </IconTile>
               }
               title="ייצוא הנתונים שלי"
-              subtitle="קובץ CSV עם כל התדלוקים"
-              onClick={() => {
-                if (fillups.length === 0) {
-                  showToast({ tone: "info", title: "אין עדיין תדלוקים לייצוא" });
-                  return;
-                }
-                downloadFillupsCsv(fillups, activeVehicle);
-                showToast({ tone: "success", title: "הקובץ הורד" });
-              }}
+              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : "כל הרכבים, כולל הארכיון, עדכוני מיכל ונסיעות"}
+              onClick={() => void exportAll()}
             />
           </Card>
         </section>

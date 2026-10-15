@@ -39,6 +39,18 @@ export type Field =
   | "postedPricePerLiter"
   | "personalDiscountPerLiter"
   /** Legacy derived columns. Never imported; only scanned for the reset marker. */
+  | "fillEndState"
+  | "fillEndStateSource"
+  | "preFillLevel"
+  | "preFillLevelSource"
+  | "preFillLevelUncertainty"
+  | "postFillLevel"
+  | "postFillLevelSource"
+  | "postFillLevelUncertainty"
+  | "refuelReason"
+  | "capacityLitersAtEntry"
+  | "tankSchemaVersion"
+  | "fullTankSource"
   | "legacyDerived";
 
 /**
@@ -73,6 +85,19 @@ alias("continuityBreakBefore", "continuity_break_before", "התחלת תקופה
 alias("vehicleLabel", "הרכב הנבחר", "רכב", "vehicle", "vehicle_label");
 alias("vehicleId", "vehicle_id", "מזהה רכב");
 alias("recordId", "record_id", "id");
+
+alias("fillEndState", "fill_end_state");
+alias("fillEndStateSource", "fill_end_state_source");
+alias("preFillLevel", "pre_fill_level");
+alias("preFillLevelSource", "pre_fill_level_source");
+alias("preFillLevelUncertainty", "pre_fill_level_uncertainty");
+alias("postFillLevel", "post_fill_level");
+alias("postFillLevelSource", "post_fill_level_source");
+alias("postFillLevelUncertainty", "post_fill_level_uncertainty");
+alias("refuelReason", "refuel_reason");
+alias("capacityLitersAtEntry", "capacity_liters_at_entry");
+alias("tankSchemaVersion", "tank_schema_version");
+alias("fullTankSource", "full_tank_source");
 
 // Legacy derived columns. Their VALUES are never imported — the engine
 // recomputes all of this — but they are still read, because the legacy

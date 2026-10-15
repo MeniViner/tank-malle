@@ -1,3 +1,4 @@
+import type { FillupTankFields } from "../tank/types";
 /**
  * Rows → normalised records, and a plan describing exactly what an import
  * would do before it does it.
@@ -19,7 +20,10 @@ import {
 } from "./schema";
 import { cleanText, combineDateTime, isEmptyCell, parseNumber, parsePositive } from "./normalize";
 
-export interface ImportedRow {
+export interface ImportedRow extends FillupTankFields {
+  postedPricePerLiter?: number | null;
+  sourceVehicleId?: string;
+  sourceVehicleLabel?: string;
   /** 1-based row number in the source sheet, for the rejection report. */
   rowNumber: number;
   date: number;
@@ -258,15 +262,52 @@ export function parseRows(
     const notesCell = cell(raw, columns.notes);
     const notes = isEmptyCell(notesCell) ? "" : cleanText(notesCell);
 
+    const tank: FillupTankFields = {};
+    let invalidTank = false;
+    const enums = {
+      fillEndState: ["full", "partial", "unknown"],
+      fillEndStateSource: ["user-confirmed", "gauge-estimate", "inferred", "legacy-assumption", "unknown"],
+      preFillLevelSource: ["direct-gauge", "user-correction", "derived-from-full-and-liters", "derived-after-partial", "imported-legacy", "unknown"],
+      postFillLevelSource: ["direct-gauge", "user-correction", "derived-from-full-and-liters", "derived-after-partial", "imported-legacy", "unknown"],
+      refuelReason: ["routine", "low-fuel", "before-trip", "good-price", "unsure"],
+    } as const;
+    for (const [key, allowed] of Object.entries(enums)) {
+      const value = cleanText(cell(raw, columns[key as Field]));
+      if (!value) continue;
+      if (!(allowed as readonly string[]).includes(value)) invalidTank = true;
+      else Object.assign(tank, { [key]: value });
+    }
+    for (const key of ["preFillLevel", "postFillLevel", "preFillLevelUncertainty", "postFillLevelUncertainty", "capacityLitersAtEntry", "tankSchemaVersion"] as const) {
+      const rawValue = cell(raw, columns[key]);
+      if (isEmptyCell(rawValue)) continue;
+      const value = parseNumber(rawValue);
+      const valid = value !== null && (key === "capacityLitersAtEntry" ? value > 0 && value <= 500
+        : key === "tankSchemaVersion" ? value === 1 || value === 2 : value >= 0 && value <= 1);
+      if (!valid) invalidTank = true;
+      else Object.assign(tank, { [key]: value });
+    }
+    const postedRaw = cell(raw, columns.postedPricePerLiter);
+    const postedPricePerLiter = isEmptyCell(postedRaw) ? null : parsePositive(postedRaw);
+    const fullSource = cleanText(cell(raw, columns.fullTankSource));
+    if (invalidTank || (!isEmptyCell(postedRaw) && postedPricePerLiter === null) ||
+      (fullSource && fullSource !== "user" && fullSource !== "legacy-assumption")) {
+      rejected.push({ rowNumber, reason: "מצב מיכל, מקור מדידה או מחיר תחנה לא תקינים" });
+      continue;
+    }
+
     rows.push({
+      ...tank,
+      postedPricePerLiter,
+      sourceVehicleId,
+      sourceVehicleLabel: label,
       rowNumber,
       date: when.getTime(),
       odometer,
       liters,
       pricePerLiter: round(pricePerLiter, 3),
       totalCost: round(totalCost, 2),
-      isFullTank: declaredFull ?? true,
-      fullTankSource: declaredFull === null ? "legacy-assumption" : "user",
+      isFullTank: tank.fillEndState ? tank.fillEndState === "full" : declaredFull ?? true,
+      fullTankSource: fullSource === "legacy-assumption" ? fullSource : declaredFull === null ? "legacy-assumption" : "user",
       continuityBreakBefore: explicitBreak ?? legacyBreak,
       station:
         stationName || stationId

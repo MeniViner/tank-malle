@@ -1,3 +1,4 @@
+import { parseNumber } from "../lib/numeric";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -518,9 +519,10 @@ function OdometerSheet({
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const parsed = parseDecimal(value);
-  const valid = Number.isFinite(parsed) && parsed > 0;
+  const parsed = parseNumber(value, "odometer");
   const lastOdometer = estimate.lastOdometer;
+  const valid = Number.isInteger(parsed) && parsed > 0 && parsed < 3_000_000 && (!lastOdometer || parsed >= lastOdometer.value);
+  const odometerError = value.trim() && !valid ? "הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה" : undefined;
 
   async function save() {
     if (!valid) return;
@@ -557,6 +559,7 @@ function OdometerSheet({
           inputMode="decimal"
           suffix="ק״מ"
           value={value}
+          error={odometerError}
           onChange={(event) => setValue(event.target.value)}
           placeholder="0"
           hint={
@@ -593,11 +596,13 @@ function GaugeSheet({
   const [odometer, setOdometer] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const parsedOdometer = parseDecimal(odometer);
-  const hasOdometer = Number.isFinite(parsedOdometer) && parsedOdometer > 0;
+  const parsedOdometer = parseNumber(odometer, "odometer");
+  const hasOdometer = odometer.trim().length > 0;
+  const odometerValid = !hasOdometer || (Number.isInteger(parsedOdometer) && parsedOdometer > 0 && parsedOdometer < 3_000_000 &&
+    (!estimate.lastOdometer || parsedOdometer >= estimate.lastOdometer.value));
 
   async function save() {
-    if (level === null) return;
+    if (level === null || !odometerValid) return;
     setSaving(true);
     try {
       await addObservation({
@@ -647,11 +652,12 @@ function GaugeSheet({
             inputMode="decimal"
             suffix="ק״מ"
             value={odometer}
+            error={!odometerValid ? "הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה" : undefined}
             onChange={(event) => setOdometer(event.target.value)}
             placeholder="0"
           />
         </div>
-        <Button full onClick={() => void save()} disabled={level === null} loading={saving}>
+        <Button full onClick={() => void save()} disabled={level === null || !odometerValid} loading={saving}>
           שמירה
         </Button>
       </div>
