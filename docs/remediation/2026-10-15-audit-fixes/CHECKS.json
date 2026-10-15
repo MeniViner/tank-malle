@@ -1,0 +1,237 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-15",
+  "status": "LOCAL_VERIFIED",
+  "sourceSha": "534fe46a926e97e96925f5c60490e1321be1c7ae",
+  "branch": "codex/comprehensive-audit-fixes",
+  "baseSha": "ef9644d04e72d6a858e5d18ae917113cbacd3e61",
+  "scope": {
+    "application": "Tank Maleh",
+    "findings": "F01-F21",
+    "hostedDeployment": false,
+    "realUserDataWritten": false,
+    "environment": "Local macOS arm64; Firebase Auth and Firestore emulators; synthetic data",
+    "canonicalCheckout": "Untouched; unrelated existing changes preserved"
+  },
+  "runtime": {
+    "localNode": "26.7.0",
+    "compatibilityNode": "22.23.3",
+    "npm": "11.19.0",
+    "playwright": "1.64.1",
+    "vitest": "5.0.5",
+    "vite": "8.3.4",
+    "firebaseTools": "15.34.0",
+    "reactRouterDom": "7.18.4",
+    "firebaseBrowser": "11.10.0",
+    "firebaseAdmin": "14.5.0",
+    "firebaseFunctions": "7.4.0",
+    "oxlint": "1.88.0",
+    "typescript": "6.0.3"
+  },
+  "results": {
+    "unit": {
+      "passed": 562,
+      "skipped": 7,
+      "files": 31,
+      "node": "22.23.3",
+      "command": "node node_modules/vitest/vitest.mjs run"
+    },
+    "firestoreRules": {
+      "passed": 193,
+      "failed": 0,
+      "files": 5,
+      "node": "22.23.3",
+      "command": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 node node_modules/vitest/vitest.mjs run --config vitest.rules.config.ts"
+    },
+    "functions": {
+      "passed": 5,
+      "failed": 0,
+      "node": "22.23.3",
+      "upstreamResponses": "gov.il and data.gov.il stubbed; actual local HTTP wrapper and emulator readback",
+      "command": "FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 GCLOUD_PROJECT=demo-tankmaleh-functions-audit npm --prefix functions test"
+    },
+    "e2e": {
+      "status": "passed",
+      "expectedTotal": 116,
+      "command": "npx playwright test --reporter=line,json",
+      "node": "26.7.0",
+      "browser": "Chromium",
+      "projects": {
+        "chromium": {
+          "passed": 112,
+          "skipped": 2
+        },
+        "pwa": {
+          "passed": 2,
+          "skipped": 0
+        }
+      },
+      "passed": 114,
+      "skipped": 2,
+      "failed": 0,
+      "flaky": 0,
+      "durationSeconds": 435.588,
+      "startTime": "2026-10-15T17:10:50.874Z",
+      "skippedTests": [
+        "the attached legacy workbook imports its 25 rows",
+        "re-importing the attached workbook adds nothing"
+      ],
+      "offlineNavigationProof": [
+        {
+          "workerStart": 0.09999996423721313,
+          "transferSize": 0,
+          "fromServiceWorker": true
+        },
+        {
+          "workerStart": 0.10000002384185791,
+          "transferSize": 0,
+          "fromServiceWorker": true
+        },
+        {
+          "workerStart": 0.30000001192092896,
+          "transferSize": 0,
+          "fromServiceWorker": true
+        },
+        {
+          "workerStart": 0.19999998807907104,
+          "transferSize": 0,
+          "fromServiceWorker": true
+        }
+      ]
+    },
+    "typescript": {
+      "status": "passed",
+      "command": "npx tsc -b --noEmit"
+    },
+    "productionBuild": {
+      "status": "passed",
+      "node": "22.23.3",
+      "cleanOutputDirectory": true,
+      "pwaPrecacheEntries": 41,
+      "warning": "Shared Firebase chunk exceeds 500 kB"
+    },
+    "lint": {
+      "errors": 0,
+      "warnings": 17,
+      "ciWarningBudget": 20
+    },
+    "audit": {
+      "root": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "functions": {
+        "info": 0,
+        "low": 0,
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      }
+    }
+  },
+  "bundle": {
+    "initialJsBytes": 895461,
+    "baselineEntryBytes": 974370,
+    "rawReductionPercent": 8.1,
+    "assets": [
+      {
+        "file": "/assets/index-BFNO9bWP.js",
+        "bytes": 328506
+      },
+      {
+        "file": "/assets/rolldown-runtime-XKyaHtl9.js",
+        "bytes": 726
+      },
+      {
+        "file": "/assets/Num-CR6FEpem.js",
+        "bytes": 525714
+      },
+      {
+        "file": "/assets/chunk-OB3PAWPO-BIFVNuP6.js",
+        "bytes": 40515
+      }
+    ],
+    "method": "Entry script and modulepreload JavaScript referenced by clean production index.html; baseline was entry chunk only",
+    "hostedUsableReadinessMeasured": false
+  },
+  "newRegressionTests": {
+    "unit": 15,
+    "rules": 2,
+    "browser": 18,
+    "functions": 5
+  },
+  "manualUi": {
+    "widths": [
+      320,
+      390
+    ],
+    "fixture": "Synthetic emulator account; temporary login bootstrap removed",
+    "narrowDocumentWidth": 305,
+    "viewportWidth": 320,
+    "tankLegendClientWidth": 163,
+    "tankLegendScrollWidth": 163,
+    "checks": [
+      "Sign-in copy and sample label",
+      "Odometer validation and disabled save",
+      "Draft persistence after reload",
+      "Narrow header, price cards and tank legend",
+      "History visible date bounds"
+    ]
+  },
+  "skippedCoverage": "Seven unit and two browser tests need the unavailable external historical XLSX file. Synthetic CSV/XLSX fixtures passed.",
+  "notPerformed": [
+    "Deployment or production mutation",
+    "Real Google sign-in against public host",
+    "Physical iPhone/Safari test",
+    "Full screen-reader audit",
+    "Hosted mobile performance measurement",
+    "Load test"
+  ],
+  "hashes": {
+    "package-lock.json": "0452856e377363d1d9ad2a89e01e5032473497b6d3878a4918a6aa85cc88c0df",
+    "functions/package-lock.json": "649e461886922b3ec5c29e066f878f56becd3922efca0c95de23475630627c40",
+    "firestore.rules": "e37da2b44f3a145f02a354656e1f53aba649b7e47f183a6cc40a97856b58b65b",
+    "src/context/DataContext.tsx": "bbbf80831f0ca18cccb533c2a1ad3dd2bd4872160f0c108355f6e4d894931983",
+    "src/components/MyTankCard.tsx": "19ba6404c35f962f52975d430e0a63ddaae3fc0b6bbc71fba4fe0eadb72f7e2a",
+    "e2e/audit-fixes.spec.ts": "4592382d815f3ec8d9b419a65655e782a75ce9cb1f3ffb7738e996005c960539"
+  },
+  "evidenceBytes": 148562,
+  "verifiedAtUtc": "2026-10-15T17:18:57.141670+00:00",
+  "totals": {
+    "passed": 874,
+    "skipped": 9,
+    "failed": 0
+  },
+  "screenshots": [
+    {
+      "file": "01-sign-in.png",
+      "bytes": 28223,
+      "sha256": "7360e619f4206d548803675ab6e6ce56c9240819c6013a0125aa4bb47b082662"
+    },
+    {
+      "file": "02-odometer-validation.png",
+      "bytes": 18754,
+      "sha256": "1a92751b57836b81d85d9cac81911c2de4508f260fda05569b762ec4866b95ae"
+    },
+    {
+      "file": "03-restored-draft.png",
+      "bytes": 26323,
+      "sha256": "38a37ddfbedc24b1f4c6f45f68465c668ed0676ebe5368d14bbd2803209731fe"
+    },
+    {
+      "file": "04-home-320.png",
+      "bytes": 26674,
+      "sha256": "1bf6f0f6183f51e0e867b79620a90b1fb34f1bcd689f21a3636bfa9247aa1d90"
+    },
+    {
+      "file": "05-history-range.png",
+      "bytes": 24836,
+      "sha256": "6c21db5826b92d52cebac06a2efa9afe256cc6101073bdde1d03a60c01d94307"
+    }
+  ]
+}
