@@ -1,3 +1,4 @@
+import { buildRange, inRange } from "./periods";
 /**
  * Pure derived-metrics engine.
  *
@@ -953,10 +954,8 @@ export function filterByRange(
   now = Date.now(),
 ): Fillup[] {
   if (range === "all") return fillups;
-  const months = range === "3m" ? 3 : range === "6m" ? 6 : 12;
-  const from = new Date(now);
-  from.setMonth(from.getMonth() - months);
-  return fillups.filter((f) => f.date >= from.getTime());
+  const window = buildRange(range, now);
+  return fillups.filter((fillup) => inRange(fillup.date, window));
 }
 
 

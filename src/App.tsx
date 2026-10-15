@@ -1,4 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useStats } from "./hooks/useStats";
+import { usePublishSummary } from "./hooks/usePublishSummary";
+import { RouteScroll } from "./components/RouteScroll";
+import { lazy, Suspense, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useData } from "./context/DataContext";
@@ -9,17 +12,17 @@ import { Skeleton } from "./components/Card";
 import { Splash } from "./screens/Splash";
 import { Onboarding } from "./screens/Onboarding";
 import { SignIn } from "./screens/SignIn";
-import { VehicleWizard } from "./screens/VehicleWizard";
+const VehicleWizard = lazy(() => import("./screens/VehicleWizard").then((m) => ({ default: m.VehicleWizard })));
 import { Home } from "./screens/Home";
 import { FillupForm } from "./screens/FillupForm";
 import { History } from "./screens/History";
-import { Settings } from "./screens/Settings";
-import { Profile } from "./screens/Profile";
-import { VehicleManager } from "./screens/VehicleManager";
-import { ImportData } from "./screens/ImportData";
-import { Unsynced } from "./screens/Unsynced";
-import { Legal } from "./screens/Legal";
-import { Feedback } from "./screens/Feedback";
+const Settings = lazy(() => import("./screens/Settings").then((m) => ({ default: m.Settings })));
+const Profile = lazy(() => import("./screens/Profile").then((m) => ({ default: m.Profile })));
+const VehicleManager = lazy(() => import("./screens/VehicleManager").then((m) => ({ default: m.VehicleManager })));
+const ImportData = lazy(() => import("./screens/ImportData").then((m) => ({ default: m.ImportData })));
+const Unsynced = lazy(() => import("./screens/Unsynced").then((m) => ({ default: m.Unsynced })));
+const Legal = lazy(() => import("./screens/Legal").then((m) => ({ default: m.Legal })));
+const Feedback = lazy(() => import("./screens/Feedback").then((m) => ({ default: m.Feedback })));
 
 // Recharts is by far the heaviest dependency and is only needed on one tab,
 // so it is split out of the initial bundle.
@@ -36,7 +39,8 @@ const ONBOARDING_KEY = "tm.onboarded";
 export default function App() {
   return (
     <>
-      <Shell />
+      <RouteScroll />
+      <Suspense fallback={<Splash />}><Shell /></Suspense>
       {/* Mounted unconditionally: this is what registers the service worker,
           so the app is installable and offline-capable before sign-in too. */}
       <UpdatePrompt />
@@ -47,8 +51,10 @@ export default function App() {
 
 function Shell() {
   const { user, loading, signingOut } = useAuth();
-  const { ready, activeVehicles, vehicles } = useData();
+  const { ready, activeVehicles, vehicles, accountDeletionPending } = useData();
   const location = useLocation();
+  const stats = useStats();
+  usePublishSummary(stats);
 
   const [onboarded, setOnboarded] = useState(() => {
     try {
@@ -58,15 +64,7 @@ function Shell() {
     }
   });
 
-  // Hold the splash for a beat so the app never flashes between states on a
-  // fast connection.
-  const [splashDone, setSplashDone] = useState(false);
-  useEffect(() => {
-    const timer = setTimeout(() => setSplashDone(true), 900);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (loading || !splashDone || signingOut) return <Splash />;
+  if (loading || signingOut) return <Splash />;
 
   // The legal pages must be reachable before signing in — that is exactly
   // when someone wants to read them.
@@ -100,6 +98,7 @@ function Shell() {
   }
 
   if (!ready) return <Splash />;
+  if (accountDeletionPending && location.pathname !== "/settings/profile") return <Navigate to="/settings/profile" replace />;
 
   // A signed-in user with no vehicle at all goes straight to the wizard —
   // except on routes that are meaningful without one (admin, legal, profile),

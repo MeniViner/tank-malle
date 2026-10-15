@@ -134,7 +134,11 @@ export function buildRange(
 
 function monthsBack(from: Date, months: number): number {
   const date = new Date(from);
+  const day = date.getDate();
+  date.setDate(1);
   date.setMonth(date.getMonth() - months);
+  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  date.setDate(Math.min(day, lastDay));
   return date.getTime();
 }
 
@@ -151,6 +155,11 @@ function endOfDay(value: number): number {
 function shortDate(value: number): string {
   const d = new Date(value);
   return `${d.getDate()}.${d.getMonth() + 1}.${String(d.getFullYear()).slice(2)}`;
+}
+
+/** Explicit calendar bounds shared by history and statistics. */
+export function rangeDates(range: DateRange): string {
+  return `${range.from === null ? "מהתדלוק הראשון" : shortDate(range.from)} – ${range.to === null ? "היום" : shortDate(range.to)}`;
 }
 
 /** True when a timestamp falls inside the range. */

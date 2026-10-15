@@ -1,3 +1,5 @@
+import { useAuth } from "../context/AuthContext";
+import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -111,7 +113,7 @@ export function FillupForm() {
   const { fillupId } = useParams();
   const [search] = useSearchParams();
   const opId = search.get("op");
-  const { fillups, loadingFillups, fillupsError, malformedFillups, outbox } = useData();
+  const { activeVehicle, fillups, loadingFillups, fillupsError, malformedFillups, outbox } = useData();
   // Bumped when the user chooses to reload a record another device changed.
   const [reloads, setReloads] = useState(0);
 
@@ -132,7 +134,7 @@ export function FillupForm() {
       operation?.payload ? fillupFromPayload(operation.docId, operation.payload) : null;
     return (
       <FillupEditor
-        key={opId ?? "new"}
+        key={`${activeVehicle?.id ?? "none"}:${opId ?? "new"}`}
         mode="new"
         initial={initial}
         operation={operation}
@@ -366,6 +368,12 @@ function FillupEditor({
     vehicles,
   } = useData();
 
+  const { user } = useAuth();
+  const draftKey = fillupDraftKey(user?.uid ?? "none", activeVehicle?.id ?? "none", operation?.opId ?? initial?.id ?? "new");
+  const [restoredDraft] = useState(() => readFillupDraft(draftKey));
+  const draftCleared = useRef(false);
+  const [draftStorageFailed, setDraftStorageFailed] = useState(false);
+
   // An operation belongs to the vehicle it was journaled for. Editing it
   // under another active vehicle would write to the wrong subtree.
   const wrongVehicle =
@@ -388,20 +396,20 @@ function FillupEditor({
    * accept an overwrite nobody reviewed. The live record is compared against
    * this snapshot only to WARN (see `changedElsewhere`).
    */
-  const [openedRecord] = useState(initial);
+  const [openedRecord] = useState(restoredDraft?.base ?? initial);
   const editing = isEdit ? openedRecord : null;
   /** The record an edit is based on: the opened snapshot, or the rejected edit's base. */
   const editBase = baseRecord ?? editing;
   const dateWasInvalid = editing !== null && !Number.isFinite(editing.date);
 
   const [date, setDate] = useState<number>(() =>
-    initial && Number.isFinite(initial.date) ? initial.date : Date.now(),
+    restoredDraft?.date ?? (initial && Number.isFinite(initial.date) ? initial.date : Date.now()),
   );
   // A record whose date could not be read is saved only once the user has
   // deliberately set one.
-  const [dateConfirmed, setDateConfirmed] = useState(!dateWasInvalid);
+  const [dateConfirmed, setDateConfirmed] = useState(restoredDraft?.dateConfirmed ?? !dateWasInvalid);
   const [odometer, setOdometer] = useState(() =>
-    initial && initial.odometer > 0 ? String(initial.odometer) : "",
+    restoredDraft?.odometer ?? (initial && initial.odometer > 0 ? String(initial.odometer) : ""),
   );
 
   /**
@@ -415,6 +423,7 @@ function FillupEditor({
    * suggestion and only ever fills the one field nobody has typed.
    */
   const [receipt, setReceipt] = useState<ReceiptState>(() => {
+    if (restoredDraft) return restoredDraft.receipt;
     if (!initial) return { liters: "", pricePerLiter: "", totalCost: "", authored: [] };
     const expected = initial.liters * initial.pricePerLiter;
     const totalIsOwn =
@@ -436,7 +445,7 @@ function FillupEditor({
    * a legacy document's `isFullTank` is an assumption nobody made.
    */
   const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
-    initial ? draftFromFields(initial) : EMPTY_TANK_DRAFT,
+    restoredDraft?.tankDraft ?? (initial ? draftFromFields(initial) : EMPTY_TANK_DRAFT),
   );
 
   /**
@@ -449,7 +458,7 @@ function FillupEditor({
     hasTankAnswer(tankDraft);
 
   const [continuityBreak, setContinuityBreak] = useState(
-    initial?.continuityBreakBefore === true,
+    restoredDraft?.continuityBreak ?? initial?.continuityBreakBefore === true,
   );
 
   /**
@@ -461,16 +470,17 @@ function FillupEditor({
    * distinct pump price with the paid one on any re-save.
    */
   const [pumpAnswer, setPumpAnswer] = useState<PumpAnswer>(() => {
+    if (restoredDraft) return restoredDraft.pumpAnswer;
     if (initial?.postedPricePerLiter == null) return "unanswered";
     return Math.abs(initial.postedPricePerLiter - initial.pricePerLiter) < 1e-9 ? "same" : "different";
   });
   const [pumpPrice, setPumpPrice] = useState(() =>
-    initial?.postedPricePerLiter != null ? String(initial.postedPricePerLiter) : "",
+    restoredDraft?.pumpPrice ?? (initial?.postedPricePerLiter != null ? String(initial.postedPricePerLiter) : ""),
   );
-  const [pumpTouched, setPumpTouched] = useState(false);
-  const [station, setStation] = useState<Station | null>(initial?.station ?? null);
-  const [stationAuto, setStationAuto] = useState(false);
-  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [pumpTouched, setPumpTouched] = useState(restoredDraft?.pumpTouched ?? false);
+  const [station, setStation] = useState<Station | null>(restoredDraft?.station ?? initial?.station ?? null);
+  const [stationAuto, setStationAuto] = useState(restoredDraft?.stationAuto ?? false);
+  const [notes, setNotes] = useState(restoredDraft?.notes ?? initial?.notes ?? "");
 
   const [stationSheetOpen, setStationSheetOpen] = useState(false);
   const [dateSheetOpen, setDateSheetOpen] = useState(false);
@@ -480,6 +490,30 @@ function FillupEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const draft = useMemo(() => ({ base: editBase, date, dateConfirmed, odometer, receipt, tankDraft,
+    continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes }),
+    [editBase, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes]);
+  const initialDraft = useRef(draft);
+  const humanInput = odometer.trim() || receipt.liters.trim() || receipt.authored.length > 0 ||
+    notes.trim() || hasTankAnswer(tankDraft) || pumpTouched || date !== initialDraft.current.date ||
+    continuityBreak !== initialDraft.current.continuityBreak ||
+    (!stationAuto && JSON.stringify(station) !== JSON.stringify(initialDraft.current.station));
+  const draftDirty = !!restoredDraft || (!!humanInput && JSON.stringify(draft) !== JSON.stringify(initialDraft.current));
+  useEffect(() => {
+    if (draftCleared.current) return;
+    if (!draftDirty) { removeFillupDraft(draftKey); return; }
+    setDraftStorageFailed(!writeFillupDraft(draftKey, draft));
+  }, [draft, draftDirty, draftKey]);
+  useEffect(() => {
+    if (!draftStorageFailed || !draftDirty) return;
+    const preventLoss = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", preventLoss);
+    return () => window.removeEventListener("beforeunload", preventLoss);
+  }, [draftStorageFailed, draftDirty]);
+  function canLeaveDraft() {
+    return !draftStorageFailed || !draftDirty || window.confirm("לא ניתן לשמור טיוטה במכשיר. לצאת ולאבד את הפרטים?");
+  }
 
   // Fill-ups other than the one being edited — the basis for all validation.
   const others = useMemo(
@@ -858,6 +892,7 @@ function FillupEditor({
           },
         });
       }
+      draftCleared.current = true; removeFillupDraft(draftKey);
       navigate(operation ? "/settings/unsynced" : "/", { replace: true });
     } catch (error) {
       // Local storage refused to keep the record. The form stays open with
@@ -896,6 +931,7 @@ function FillupEditor({
       duration: 5000,
       onUndo: () => restoreFillup(snapshot),
     });
+    draftCleared.current = true; removeFillupDraft(draftKey);
     navigate(-1);
   }
 
@@ -949,7 +985,7 @@ function FillupEditor({
           ) : null}
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={() => { if (canLeaveDraft()) navigate(-1); }}
             aria-label="סגירה"
             className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
           >
@@ -959,6 +995,12 @@ function FillupEditor({
       </header>
 
       <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-40 min-[400px]:px-5">
+        {draftDirty ? <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
+          <span>{draftStorageFailed ? "לא ניתן לשמור טיוטה במכשיר. השאירו את הטופס פתוח עד לשמירה." : restoredDraft ? "הטיוטה שלכם שוחזרה מהמכשיר" : "טיוטה נשמרת במכשיר — אפשר לחזור ולהמשיך"}</span>
+          <button type="button" className="min-h-10 flex-none px-2 font-semibold text-danger" onClick={() => {
+            if (window.confirm("למחוק את הטיוטה ולהתחיל מחדש?")) { draftCleared.current = true; removeFillupDraft(draftKey); window.location.reload(); }
+          }}>מחיקת טיוטה</button>
+        </div> : null}
         {operation ? (
           <div className="flex flex-col gap-1 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
             <span className="text-[13.5px] font-bold">
@@ -994,7 +1036,7 @@ function FillupEditor({
             {onReload ? (
               <button
                 type="button"
-                onClick={onReload}
+                onClick={() => { draftCleared.current = true; removeFillupDraft(draftKey); onReload(); }}
                 className="w-fit min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[12.5px] font-semibold text-warning-ink"
               >
                 טעינת הגרסה החדשה
@@ -1275,7 +1317,7 @@ function FillupEditor({
           outcome={tankOutcome}
           capacity={capacity}
           capacityNote={capacityNote(capacity)}
-          onReviewCapacity={() => navigate("/settings/vehicles")}
+          onReviewCapacity={() => { if (canLeaveDraft()) navigate("/settings/vehicles"); }}
         />
 
         {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}

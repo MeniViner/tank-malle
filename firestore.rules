@@ -11,6 +11,11 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    function accountWritable(uid) {
+      return !exists(/databases/$(database)/documents/users/$(uid))
+        || get(/databases/$(database)/documents/users/$(uid)).data.get('deletionPending', false) != true;
+    }
+
     // Granted as a custom claim by scripts/grantAdmin.mjs. Claims are signed
     // by Firebase, so this cannot be spoofed from the client.
     function isAdmin() {
@@ -375,6 +380,8 @@ service cloud.firestore {
       // Vehicles and fill-ups below are owner-only, with no admin exception.
       allow read: if isOwner(uid) || isAdmin();
       allow create, update: if isOwner(uid)
+        && (accountWritable(uid) || (request.resource.data.deletionPending == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletionPending'])))
+        && request.resource.data.get('deletionPending', false) is bool
         && (!('settings' in request.resource.data) || request.resource.data.settings is map)
         // Login stamps, rotated once per authentication event. Numbers only,
         // so a client cannot stash arbitrary structures on the profile.
@@ -392,7 +399,7 @@ service cloud.firestore {
        */
       match /stationPriceReports/{reportId} {
         allow read, delete: if isOwner(uid);
-        allow create: if isOwner(uid) && validPriceReport(request.resource.data);
+        allow create: if isOwner(uid) && accountWritable(uid) && validPriceReport(request.resource.data);
         // A report is an observation, not a document to revise.
         allow update: if false;
       }
@@ -414,7 +421,7 @@ service cloud.firestore {
        */
       match /personalPriceRules/{ruleId} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create, update: if isOwner(uid) && accountWritable(uid)
           && request.resource.data.keys().hasOnly([
                'vehicleId', 'stationId', 'stationName', 'fuelType',
                'discountPerLiter', 'fixedPricePerLiter', 'label',
@@ -442,7 +449,7 @@ service cloud.firestore {
 
       match /importBatches/{batchId} {
         allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
+        allow create, update: if isOwner(uid) && accountWritable(uid)
           && request.resource.data.keys().hasOnly([
                'vehicleId', 'format', 'fileName', 'recordCount',
                'vehicleLabel', 'importedAt'
@@ -467,12 +474,12 @@ service cloud.firestore {
       match /vehicles/{vehicleId} {
         allow read: if isOwner(uid);
         allow delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && validVehicle(request.resource.data);
+        allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);
 
         match /fillups/{fillupId} {
           allow read: if isOwner(uid);
           allow delete: if isOwner(uid);
-          allow create: if isOwner(uid) && validFillup(request.resource.data)
+          allow create: if isOwner(uid) && accountWritable(uid) && validFillup(request.resource.data)
             && versionOk(request.resource.data);
           // Optimistic concurrency: a client that stamps `version` must be
           // writing over the document it read, so the new stamp has to be
@@ -496,7 +503,7 @@ service cloud.firestore {
           // version/writeId alone cannot detect an intervening legacy patch.
           // These compatible rules cannot protect older unconditional clients;
           // preserve their queued inputs and upgrade before editing conflicts.
-          allow update: if isOwner(uid) && validFillup(request.resource.data)
+          allow update: if isOwner(uid) && accountWritable(uid) && validFillup(request.resource.data)
             && ((('writeId' in request.resource.data)
                  && request.resource.data.diff(resource.data).affectedKeys().hasAny(['writeId']))
                   ? request.resource.data.version == resource.data.get('version', 0) + 1
@@ -515,12 +522,12 @@ service cloud.firestore {
          */
         match /observations/{observationId} {
           allow read, delete: if isOwner(uid);
-          allow create, update: if isOwner(uid) && validObservation(request.resource.data);
+          allow create, update: if isOwner(uid) && accountWritable(uid) && validObservation(request.resource.data);
         }
 
         match /tankPlans/{planId} {
           allow read, delete: if isOwner(uid);
-          allow create, update: if isOwner(uid) && validTankPlan(request.resource.data);
+          allow create, update: if isOwner(uid) && accountWritable(uid) && validTankPlan(request.resource.data);
         }
       }
     }
@@ -575,7 +582,7 @@ service cloud.firestore {
 
     match /userSummaries/{uid} {
       allow read: if isOwner(uid) || isAdmin();
-      allow create, update: if isOwner(uid) && validSummary(request.resource.data);
+      allow create, update: if isOwner(uid) && accountWritable(uid) && validSummary(request.resource.data);
       allow delete: if isOwner(uid) || isAdmin();
     }
 
@@ -612,7 +619,10 @@ service cloud.firestore {
 
     match /benchmarks/{docId} {
       allow read: if isSignedIn();
-      allow create, update: if ownsBenchmark(docId) && validBenchmark(request.resource.data);
+      allow create, update: if ownsBenchmark(docId) && accountWritable(request.auth.uid)
+        && (!exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('settings', {}).get('shareBenchmarks', true) != false)
+        && validBenchmark(request.resource.data);
       allow delete: if ownsBenchmark(docId) || isAdmin();
     }
 
@@ -641,9 +651,9 @@ service cloud.firestore {
 
     match /feedback/{entryId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
-      allow create: if isSignedIn() && validFeedback(request.resource.data);
+      allow create: if isSignedIn() && accountWritable(request.auth.uid) && validFeedback(request.resource.data);
       allow update: if false;
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
     }
 
     // Global config: readable by any signed-in user; written by the scheduled

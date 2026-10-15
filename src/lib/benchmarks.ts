@@ -1,6 +1,11 @@
 import {
   collection,
   deleteDoc,
+  documentId,
+  getDocFromServer,
+  getDocsFromServer,
+  writeBatch,
+  type Firestore,
   doc,
   getDocs,
   limit,
@@ -151,21 +156,26 @@ export async function publishBenchmark(
   });
 }
 
-/**
- * Withdraw this user's contributions.
- *
- * The caller passes the vehicle ids because a client cannot list documents by
- * id prefix; the legacy uid-only document is removed too, so a user who opts
- * out does not leave a pre-upgrade row behind.
- */
+/** Withdraw every owned row, including archived/deleted vehicles and legacy ids. */
 export async function withdrawBenchmark(
   uid: string,
-  vehicleIds: string[] = [],
+  _vehicleIds: string[] = [],
+  database: Firestore = db,
 ): Promise<void> {
-  const targets = [uid, ...vehicleIds.map((id) => benchmarkDocId(uid, id))];
-  await Promise.all(
-    targets.map((id) => deleteDoc(doc(db, "benchmarks", id)).catch(() => undefined)),
-  );
+  const prefix = `${uid}${ID_SEPARATOR}`;
+  const owned = query(collection(database, "benchmarks"),
+    where(documentId(), ">=", prefix), where(documentId(), "<", `${prefix}\uf8ff`));
+  const snapshot = await getDocsFromServer(owned);
+  for (let i = 0; i < snapshot.docs.length; i += 400) {
+    const batch = writeBatch(database);
+    snapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
+    await batch.commit();
+  }
+  const legacy = doc(database, "benchmarks", uid);
+  await deleteDoc(legacy);
+  if (!(await getDocsFromServer(owned)).empty || (await getDocFromServer(legacy)).exists()) {
+    throw new Error("לא ניתן לאמת את הסרת נתוני ההשוואה");
+  }
 }
 
 /**

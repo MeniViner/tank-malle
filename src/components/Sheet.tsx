@@ -1,160 +1,88 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useId, useRef, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
-/**
- * Bottom sheet with a scrim. Traps focus, closes on Escape / scrim tap, and
- * locks background scroll while open.
- */
-export function Sheet({
-  open,
-  onClose,
-  title,
-  children,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title?: ReactNode;
-  children: ReactNode;
+/** Native modal focus containment/inertness, also when dialogs are nested. */
+function Modal({ open, close, children, labelId, bodyId, alert = false, sheet = false }: {
+  open: boolean; close: () => void; children: ReactNode; labelId: string; bodyId?: string; alert?: boolean; sheet?: boolean;
 }) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  // A parent's inline close handler changes on every keystroke. Keep the
-  // handler current without tearing down the open sheet's focus session.
-  const onCloseRef = useRef(onClose);
+  const ref = useRef<HTMLDialogElement>(null);
+  const closeRef = useRef(close);
+  useLayoutEffect(() => { closeRef.current = close; }, [close]);
   useEffect(() => {
-    onCloseRef.current = onClose;
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-
+    if (!open || !ref.current) return;
+    const dialog = ref.current;
     const previous = document.activeElement as HTMLElement | null;
-    const { overflow } = document.body.style;
+    const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onCloseRef.current();
-        return;
-      }
-      if (event.key !== "Tab" || !panelRef.current) return;
-
-      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      if (focusable.length === 0) return;
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKeyDown);
-    panelRef.current?.querySelector<HTMLElement>("button")?.focus();
-
+    dialog.showModal();
+    // Focus a non-destructive target. A changing callback or form value never
+    // reopens the dialog or steals focus from an input.
+    (dialog.querySelector<HTMLElement>("[data-modal-initial-focus]") ?? dialog).focus();
     return () => {
-      document.removeEventListener("keydown", onKeyDown);
+      dialog.close();
       document.body.style.overflow = overflow;
-      previous?.focus?.();
+      if (previous?.isConnected) previous.focus();
     };
   }, [open]);
-
   if (!open) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <button
-        type="button"
-        aria-label="סגירה"
-        onClick={onClose}
-        className="tm-fade-in absolute inset-0 bg-[rgb(13_35_28/0.42)] backdrop-blur-[2px]"
-      />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        className="tm-sheet-in relative max-h-[90dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-sheet border-t border-line bg-surface pb-safe shadow-sheet"
-      >
-        <div className="flex justify-center pt-2.5">
-          <span className="h-1 w-9 rounded-pill bg-line" />
-        </div>
-        {title ? <div className="px-5 pt-3">{title}</div> : null}
-        <div className="px-4 pb-4 pt-3">{children}</div>
+  return createPortal(
+    <dialog ref={ref} tabIndex={-1} role={alert ? "alertdialog" : "dialog"} aria-modal="true"
+      aria-labelledby={labelId} aria-describedby={bodyId}
+      onKeyDown={(event) => {
+        if (event.key !== "Tab") return;
+        const items = [...event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]')]
+          .filter((element) => element.tabIndex >= 0 && element.getClientRects().length > 0);
+        const first = items[0]; const last = items[items.length - 1];
+        if (!first) { event.preventDefault(); event.currentTarget.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || document.activeElement === event.currentTarget)) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }}
+      onCancel={(event) => { event.preventDefault(); closeRef.current(); }}
+      className={`fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none border-0 bg-transparent p-0 text-ink outline-none backdrop:bg-transparent`}>
+      <div className={`flex h-full w-full justify-center ${sheet ? "items-end" : "items-center p-6"}`}>
+        <div aria-hidden="true" onClick={() => closeRef.current()} className="tm-fade-in absolute inset-0 bg-[rgb(13_35_28/0.42)] backdrop-blur-[2px]" />
+        {children}
       </div>
-    </div>
+    </dialog>, document.body,
   );
 }
 
-/** Centred confirmation dialog for destructive actions. */
-export function ConfirmDialog({
-  open,
-  title,
-  body,
-  confirmLabel,
-  cancelLabel = "ביטול",
-  tone = "danger",
-  onConfirm,
-  onCancel,
-}: {
-  open: boolean;
-  title: string;
-  body: ReactNode;
-  confirmLabel: string;
-  cancelLabel?: string;
-  tone?: "danger" | "accent";
-  onConfirm: () => void;
-  onCancel: () => void;
+export function Sheet({ open, onClose, title, children }: {
+  open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [open, onCancel]);
-
-  if (!open) return null;
-
+  const titleId = useId();
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
-      <button
-        type="button"
-        aria-label={cancelLabel}
-        onClick={onCancel}
-        className="tm-fade-in absolute inset-0 bg-[rgb(13_35_28/0.5)]"
-      />
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-label={title}
-        className="tm-pop relative w-full max-w-[340px] rounded-[26px] border border-line bg-surface p-5 text-center shadow-raised"
-      >
-        <h2 className="text-[17px] font-bold text-ink">{title}</h2>
-        <div className="mt-2 text-[14px] leading-relaxed text-muted">{body}</div>
+    <Modal open={open} close={onClose} labelId={titleId} sheet>
+      <div className="tm-sheet-in relative max-h-[90dvh] w-full max-w-[430px] overflow-y-auto overscroll-contain rounded-t-sheet border-t border-line bg-surface pb-safe shadow-sheet">
+        <div className="flex justify-center pt-2.5"><span className="h-1 w-9 rounded-pill bg-line" /></div>
+        <div className="flex items-center justify-between gap-2 px-5 pt-2">
+          <div id={titleId}>{title ?? <span className="sr-only">פרטים נוספים</span>}</div>
+          <button type="button" data-modal-initial-focus aria-label="סגירה" onClick={onClose}
+            className="flex size-10 flex-none items-center justify-center rounded-full text-xl text-muted hover:bg-surface-2">×</button>
+        </div>
+        <div className="px-4 pb-4 pt-3">{children}</div>
+      </div>
+    </Modal>
+  );
+}
+
+export function ConfirmDialog({ open, title, body, confirmLabel, cancelLabel = "ביטול", tone = "danger", onConfirm, onCancel }: {
+  open: boolean; title: string; body: ReactNode; confirmLabel: string; cancelLabel?: string;
+  tone?: "danger" | "accent"; onConfirm: () => void; onCancel: () => void;
+}) {
+  const titleId = useId(); const bodyId = useId();
+  return (
+    <Modal open={open} close={onCancel} labelId={titleId} bodyId={bodyId} alert>
+      <div className="tm-pop relative max-h-[90dvh] w-full max-w-[340px] overflow-y-auto rounded-[26px] border border-line bg-surface p-5 text-center shadow-raised">
+        <h2 id={titleId} className="text-[17px] font-bold text-ink">{title}</h2>
+        <div id={bodyId} className="mt-2 text-[14px] leading-relaxed text-muted">{body}</div>
         <div className="mt-5 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onConfirm}
-            className={`min-h-[48px] rounded-pill text-[15px] font-bold transition-[filter,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:brightness-[0.97] ${
-              tone === "danger" ? "bg-danger text-white" : "bg-accent text-accent-contrast"
-            }`}
-          >
-            {confirmLabel}
-          </button>
-          <button
-            type="button"
-            onClick={onCancel}
-            className="min-h-[48px] rounded-pill text-[15px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
-          >
-            {cancelLabel}
-          </button>
+          <button type="button" onClick={onConfirm}
+            className={`min-h-[48px] rounded-pill text-[15px] font-bold transition-[filter,scale] duration-200 active:scale-[0.96] ${tone === "danger" ? "bg-danger text-white" : "bg-accent text-accent-contrast"}`}>{confirmLabel}</button>
+          <button type="button" data-modal-initial-focus onClick={onCancel}
+            className="min-h-[48px] rounded-pill text-[15px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2">{cancelLabel}</button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -56,6 +56,9 @@ const HEADERS = [
   "refuel_reason",
   "capacity_liters_at_entry",
   "tank_schema_version",
+  "pre_fill_level_uncertainty",
+  "post_fill_level_uncertainty",
+  "full_tank_source",
 ] as const;
 
 /**
@@ -129,6 +132,9 @@ export function rowsToCsv(rows: ExportRow[]): string {
         fillup.refuelReason ?? "",
         fillup.capacityLitersAtEntry ?? "",
         fillup.tankSchemaVersion ?? "",
+        fillup.preFillLevelUncertainty ?? "",
+        fillup.postFillLevelUncertainty ?? "",
+        fillup.fullTankSource ?? "",
       ]
         .map(escapeCell)
         .join(",");
@@ -194,6 +200,11 @@ const TANK_HEADERS = [
   "planned_distance_km",
   "planned_mode",
   "planned_buffer_km",
+  "recorded_at",
+  "phase",
+  "fillup_id",
+  "note",
+  "record_schema_version",
 ] as const;
 
 const TANK_EXPORT_VERSION = 1;
@@ -225,9 +236,12 @@ export function tankUpdatesToCsv(
         observation.levelUncertainty ?? "",
         observation.levelSource ?? "",
         observation.confirmed ? "1" : "0",
+        "", "", "",
+        observation.recordedAt ? new Date(observation.recordedAt).toISOString() : "",
+        observation.phase ?? "",
+        observation.fillupId ?? "",
         "",
-        "",
-        "",
+        observation.schemaVersion ?? "",
       ]),
     ...[...plans]
       .sort((a, b) => a.date - b.date)
@@ -246,6 +260,10 @@ export function tankUpdatesToCsv(
         plan.distanceKm,
         plan.mode,
         plan.bufferKm ?? "",
+        plan.createdAt ? new Date(plan.createdAt).toISOString() : "",
+        "", "",
+        plan.note ?? "",
+        "",
       ]),
   ].map((row) => row.map(escapeCell).join(","));
 

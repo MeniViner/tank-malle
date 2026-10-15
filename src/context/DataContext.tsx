@@ -1,3 +1,4 @@
+import type { TankImportRecord } from "../lib/import/tankUpdates";
 import {
   createContext,
   useCallback,
@@ -10,11 +11,14 @@ import {
 } from "react";
 import {
   Timestamp,
+  clearIndexedDbPersistence,
+  terminate,
   collection,
   deleteDoc,
   doc,
   getDocFromServer,
   getDocs,
+  getDocsFromServer,
   limit,
   onSnapshot,
   query,
@@ -28,9 +32,11 @@ import {
   type DocumentSnapshot,
   type QuerySnapshot,
 } from "firebase/firestore";
-import { reauthenticateWithPopup, type User } from "firebase/auth";
+import { reauthenticateWithPopup } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
-import { clearCache, pruneOldCaches, readCache, writeCache } from "../lib/cache";
+import { accountDataDeletionSteps, clearAccountLocalStorage, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
+import { withdrawBenchmark } from "../lib/benchmarks";
+import { pruneOldCaches, readCache, writeCache } from "../lib/cache";
 import {
   EMPTY_WRITE_STATUS,
   WriteTracker,
@@ -89,6 +95,9 @@ import { readScopedTankInput, type ScopedTankInput, type TankInputScope, type Ta
 
 interface DataContextValue {
   ready: boolean;
+  accountDeletionPending: boolean;
+  benchmarkWithdrawal: "idle" | "pending" | "done" | "error";
+  retryBenchmarkWithdrawal: () => void;
   settings: UserSettings;
   vehicles: Vehicle[];
   activeVehicles: Vehicle[];
@@ -98,6 +107,9 @@ interface DataContextValue {
   updateAdminPrices: (payload: OutboxPayload) => Promise<void>;
   /** True while the initial fill-up snapshot is still loading. */
   loadingFillups: boolean;
+  loadVehicleFillups: (vehicleId: string) => Promise<Fillup[]>;
+  loadVehicleCatalog: () => Promise<Vehicle[]>;
+  importTankUpdates: (vehicleId: string, records: TankImportRecord[]) => Promise<{ written: number; duplicates: number; receipt: MutationReceipt }>;
   /** True when the current view came from the local cache, not the server. */
   fromCache: boolean;
   /** Firestore is serving from cache because the network is unavailable. */
@@ -145,7 +157,7 @@ interface DataContextValue {
   setActiveVehicle: (vehicleId: string) => Promise<void>;
 
   addVehicle: (vehicle: Omit<Vehicle, "id" | "createdAt">) => Promise<string>;
-  updateVehicle: (vehicleId: string, patch: Partial<Vehicle>) => Promise<void>;
+  updateVehicle: (vehicleId: string, patch: Partial<Vehicle>) => Promise<MutationReceipt>;
   setVehicleArchived: (vehicleId: string, archived: boolean) => Promise<void>;
   deleteVehicle: (vehicleId: string) => Promise<void>;
 
@@ -377,42 +389,6 @@ export interface ImportRollbackResult {
   reason?: string;
 }
 
-/** Outcome of an account deletion. */
-export interface DeletionResult {
-  ok: boolean;
-  /** Collections successfully removed. */
-  deleted: string[];
-  /** Collections that failed; the user is told, not reassured. */
-  failed: string[];
-  /** True when Firebase Auth wants a fresh sign-in before it will delete. */
-  needsReauth?: boolean;
-}
-
-/**
- * Firebase refuses to delete a user whose sign-in is not recent. Proving that
- * first turns "we deleted your data and then could not delete your account"
- * into a request the user can simply satisfy.
- */
-async function ensureRecentLogin(user: User): Promise<{ ok: boolean }> {
-  try {
-    await reauthenticateWithPopup(user, googleProvider);
-    return { ok: true };
-  } catch (error) {
-    const code = (error as { code?: string }).code ?? "";
-    // Already recent enough, or the user simply closed the popup.
-    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
-      return { ok: false };
-    }
-    // Some providers reject a redundant reauth; a fresh token proves the point.
-    try {
-      await user.getIdToken(true);
-      return { ok: true };
-    } catch {
-      return { ok: false };
-    }
-  }
-}
-
 const DataContext = createContext<DataContextValue | null>(null);
 
 /**
@@ -640,8 +616,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // rebuilds every listener for no reason.
   const uid = user?.uid ?? null;
 
+  const [accountDeletionPending, setAccountDeletionPending] = useState(false);
+  const deletingRef = useRef(false);
+  const [benchmarkWithdrawal, setBenchmarkWithdrawal] = useState<"idle" | "pending" | "done" | "error">("idle");
+  const [withdrawalAttempt, setWithdrawalAttempt] = useState(0);
+  const retryBenchmarkWithdrawal = useCallback(() => setWithdrawalAttempt((n) => n + 1), []);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  // Retry compares stored fields, not the display model's id/default values.
+  const vehicleDocumentsRef = useRef(new Map<string, OutboxPayload>());
   const [fillups, setFillups] = useState<Fillup[]>([]);
   const [prices, setPrices] = useState<RegulatedPriceConfig | null>(null);
   const [ready, setReady] = useState(false);
@@ -682,6 +665,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const fillupVehicleRef = useRef<string | null>(null);
 
   /** Is this still the account the app is showing? */
+  useEffect(() => {
+    deletingRef.current = uid ? isAccountDeleting(uid) : false;
+    setAccountDeletionPending(deletingRef.current);
+  }, [uid]);
+
   const isCurrent = useCallback(
     (generation: number) => () => generation === generationRef.current,
     [],
@@ -747,6 +735,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Reset everything user-scoped, synchronously.
     setSettings(DEFAULT_SETTINGS);
     setVehicles([]);
+    vehicleDocumentsRef.current.clear();
     setFillups([]);
     setPrices(null);
     setReady(false);
@@ -854,6 +843,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return subscribeResilient<DocumentSnapshot<DocumentData>>(
       (onNext, onError) => onSnapshot(userRef, onNext, onError),
       (snapshot) => {
+        if (deletingRef.current || isAccountDeleting(uid) || snapshot.data()?.deletionPending === true) {
+          deletingRef.current = true;
+          setAccountDeletionPending(true);
+          setReady(true);
+          return;
+        }
         if (!snapshot.exists()) {
           // First sign-in: create the profile document.
           // Not routed through the write tracker: this fires during the very
@@ -916,6 +911,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
           onError,
         ),
       (snapshot) => {
+        vehicleDocumentsRef.current = new Map(snapshot.docs.map((entry) => {
+          const data = entry.data();
+          return [entry.id, { ...data, ...("createdAt" in data ? { createdAt: toMillis(data.createdAt) } : {}) }];
+        }));
         const list = snapshot.docs.map((entry) => {
           const data = entry.data();
           return {
@@ -1225,6 +1224,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   /** The outbox for the current account, once it has opened. Throws when it could not. */
   const requireOutbox = useCallback(async (): Promise<Outbox> => {
+    if (deletingRef.current) throw new OutboxStorageError("מחיקת החשבון ממתינה להשלמה בפרופיל");
     const generation = generationRef.current;
     const outbox = await (outboxPromiseRef.current ?? Promise.resolve(null));
     if (generation !== generationRef.current) throw new OutboxStorageError("החשבון התחלף");
@@ -1319,28 +1319,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const updateVehicle = useCallback(
     async (vehicleId: string, patch: Partial<Vehicle>) => {
-      if (!uid) return;
+      if (!uid) throw new Error("not signed in");
       const { id: _ignored, ...rest } = patch as Partial<Vehicle> & { id?: string };
       const payload = stripUndefined(rest as Record<string, unknown>) as OutboxPayload;
-      const previous = vehicles.find((v) => v.id === vehicleId) ?? null;
-      await submit(
+      return submit(
         {
           kind: "vehicle.update",
           path: userPath("vehicles", vehicleId),
           vehicleId,
           payload,
           opType: "update",
-          beforeImage: previous ? (JSON.parse(JSON.stringify(previous)) as OutboxPayload) : null,
+          beforeImage: vehicleDocumentsRef.current.get(vehicleId) ?? null,
         },
         () => updateDoc(doc(db, "users", uid, "vehicles", vehicleId), payload),
       );
     },
-    [uid, vehicles, submit, userPath],
+    [uid, submit, userPath],
   );
 
   const setVehicleArchived = useCallback(
     async (vehicleId: string, archived: boolean) => {
-      await updateVehicle(vehicleId, { archived });
+      const receipt = await updateVehicle(vehicleId, { archived });
+      if (!(await receipt.settled)) throw new Error("vehicle-archive-rejected");
       if (archived && settings.activeVehicleId === vehicleId) {
         const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
         await updateSettings({ activeVehicleId: fallback?.id ?? null });
@@ -1357,7 +1357,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Every subcollection, not just fill-ups: leaving observations or plans
       // behind would keep a deleted vehicle's private tank history alive.
       for (const name of ["fillups", "observations", "tankPlans"]) {
-        const snapshot = await getDocs(collection(vehicleRef, name));
+        const snapshot = await getDocsFromServer(collection(vehicleRef, name));
         for (let i = 0; i < snapshot.docs.length; i += 400) {
           const batch = writeBatch(db);
           snapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
@@ -1383,11 +1383,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         },
         () => deleteVehicleTree(vehicleId),
       );
+      if (!(await receipt.settled)) throw new Error("vehicle-delete-rejected");
       if (settings.activeVehicleId === vehicleId) {
         const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
         await updateSettings({ activeVehicleId: fallback?.id ?? null });
       }
-      await receipt.settled;
+
     },
     [uid, settings.activeVehicleId, vehicles, updateSettings, submit, deleteVehicleTree, userPath],
   );
@@ -1782,6 +1783,60 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [uid, requireOutbox, fillupPath, userPath, refFor, track],
   );
 
+  const loadVehicleCatalog = useCallback(async (): Promise<Vehicle[]> => {
+    if (!uid) throw new Error("not signed in");
+    const generation = generationRef.current;
+    const snapshot = await getDocsFromServer(collection(db, "users", uid, "vehicles"));
+    if (generation !== generationRef.current) throw new Error("account changed");
+    return snapshot.docs.map((entry) => ({ ...entry.data(), id: entry.id, createdAt: toMillis(entry.data().createdAt) } as Vehicle));
+  }, [uid]);
+
+  const loadVehicleFillups = useCallback(async (vehicleId: string): Promise<Fillup[]> => {
+    if (!uid || !vehicleId || vehicleId.includes("/")) throw new Error("unknown vehicle");
+    const generation = generationRef.current;
+    if (!(await getDocFromServer(doc(db, "users", uid, "vehicles", vehicleId))).exists()) throw new Error("unknown vehicle");
+    const snapshot = await getDocsFromServer(collection(db, "users", uid, "vehicles", vehicleId, "fillups"));
+    if (generation !== generationRef.current) throw new Error("account changed");
+    return snapshot.docs.map((entry) => {
+      const parsed = parseFillupDocument(entry.id, entry.data());
+      if (!parsed.ok) throw new Error("unreadable existing record");
+      return parsed.fillup;
+    });
+  }, [uid]);
+
+  const importTankUpdates = useCallback(async (vehicleId: string, records: TankImportRecord[]) => {
+    if (!uid || !vehicleId || vehicleId.includes("/")) throw new Error("unknown vehicle");
+    const outbox = await requireOutbox();
+    if (!(await getDocFromServer(doc(db, "users", uid, "vehicles", vehicleId))).exists()) throw new Error("unknown vehicle");
+    const existing = new Set<string>();
+    for (const name of ["observations", "tankPlans"]) {
+      const snapshot = await getDocsFromServer(collection(db, "users", uid, "vehicles", vehicleId, name));
+      snapshot.docs.forEach((entry) => existing.add(`${name}/${entry.id}`));
+    }
+    const inputs: EnqueueInput[] = [];
+    let duplicates = 0;
+    for (const record of records) {
+      const name = record.type === "observation" ? "observations" : "tankPlans";
+      const { id, vehicleId: _sourceVehicle, ...data } = record.value;
+      if (existing.has(`${name}/${id}`)) { duplicates++; continue; }
+      existing.add(`${name}/${id}`);
+      inputs.push({ kind: record.type === "observation" ? "tank.observation" : "tank.plan",
+        path: userPath("vehicles", vehicleId, name, id), vehicleId, payload: data as unknown as OutboxPayload });
+    }
+    if (!inputs.length) return { written: 0, duplicates, receipt: { id: "empty", settled: Promise.resolve(true) } };
+    const receipts = await submitMany(outbox, inputs, async (ops) => {
+      // Transactions make a repeated/concurrent import incapable of replacing
+      // a reading that was edited after the export.
+      for (const op of ops) await runTransaction(db, async (transaction) => {
+        const ref = doc(db, op.path);
+        const current = await transaction.get(ref);
+        if (current.exists()) throw new Error("הרשומה כבר קיימת. יש לרענן את הייבוא");
+        transaction.set(ref, toFirestoreData(op.payload!));
+      });
+    }, track);
+    return { written: inputs.length, duplicates, receipt: receipts[0] };
+  }, [uid, requireOutbox, userPath, track]);
+
   const addObservation = useCallback(
     async (observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">) => {
       if (!uid || !activeVehicle) throw new Error("no active vehicle");
@@ -2024,69 +2079,67 @@ export function DataProvider({ children }: { children: ReactNode }) {
    */
   const deleteAccount = useCallback(async (): Promise<DeletionResult> => {
     if (!user || !uid) return { ok: false, deleted: [], failed: ["no-session"] };
-
-    // 1. Prove we are allowed to delete the Auth user BEFORE touching data.
-    const reauth = await ensureRecentLogin(user);
-    if (!reauth.ok) {
-      return { ok: false, deleted: [], failed: [], needsReauth: true };
+    const result = await runAccountDeletion({
+      reauthenticate: async () => { await reauthenticateWithPopup(user, googleProvider); return true; },
+      preflight: async () => {
+        if (await unacknowledgedState() !== "none" || writes.pending.length > 0) throw new Error("pending-writes");
+        markAccountDeleting(uid);
+        deletingRef.current = true;
+        setAccountDeletionPending(true);
+      },
+      data: accountDataDeletionSteps(db, uid),
+      profile: async () => {
+        const ref = doc(db, "users", uid);
+        await deleteDoc(ref);
+        if ((await getDocFromServer(ref)).exists()) throw new Error("profile-remains");
+      },
+      local: async () => {
+        // Recheck immediately before clearing the device's shared SDK cache.
+        if (await unacknowledgedState() !== "none") throw new Error("pending-writes");
+        generationRef.current += 1;
+        outboxRef.current?.close();
+        await terminate(db);
+        await clearIndexedDbPersistence(db);
+        clearAccountLocalStorage(uid);
+      },
+      identity: () => user.delete(),
+    });
+    if (result.ok) {
+      finishAccountDeletion(uid);
+      // The shared SDK was terminated for verified erasure. Start a fresh
+      // instance before the next person tries to sign in on this device.
+      setTimeout(() => window.location.replace("/"), 0);
     }
+    return result;
+  }, [user, uid, writes.pending.length]);
 
-    const deleted: string[] = [];
-    const failed: string[] = [];
-
-    const attempt = async (label: string, work: () => Promise<unknown>) => {
-      try {
-        await work();
-        deleted.push(label);
-      } catch {
-        failed.push(label);
-      }
-    };
-
-    // 2. Fill-ups and vehicles. Subcollections are not removed with a parent.
-    await attempt("vehicles", async () => {
-      const vehiclesSnapshot = await getDocs(collection(db, "users", uid, "vehicles"));
-      for (const vehicleDoc of vehiclesSnapshot.docs) {
-        for (const name of ["fillups", "observations", "tankPlans"]) {
-          const subSnapshot = await getDocs(collection(vehicleDoc.ref, name));
-          for (let i = 0; i < subSnapshot.docs.length; i += 400) {
-            const batch = writeBatch(db);
-            subSnapshot.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
-            await batch.commit();
-          }
-        }
-        await deleteDoc(vehicleDoc.ref);
-      }
-    });
-
-    // 3. Private community price reports.
-    await attempt("stationPriceReports", async () => {
-      const reports = await getDocs(collection(db, "users", uid, "stationPriceReports"));
-      for (let i = 0; i < reports.docs.length; i += 400) {
-        const batch = writeBatch(db);
-        reports.docs.slice(i, i + 400).forEach((entry) => batch.delete(entry.ref));
-        await batch.commit();
-      }
-    });
-
-    // 4. The published benchmark contribution — withdrawn, not orphaned.
-    await attempt("benchmark", () => deleteDoc(doc(db, "benchmarks", uid)));
-
-    // 5. The profile document itself.
-    await attempt("profile", () => deleteDoc(doc(db, "users", uid)));
-
-    // 6. Local caches.
-    clearCache(uid);
-
-    // 7. Finally the Auth user.
-    await attempt("auth", () => user.delete());
-
-    return { ok: failed.length === 0, deleted, failed };
-  }, [user, uid]);
+  // Privacy withdrawal must run even when Statistics has never been opened.
+  useEffect(() => {
+    if (!uid || !ready || accountDeletionPending || settings.shareBenchmarks !== false) {
+      setBenchmarkWithdrawal("idle");
+      return;
+    }
+    let cancelled = false;
+    setBenchmarkWithdrawal("pending");
+    void (async () => {
+      // The opt-out must reach the server before deleting: rules then prevent
+      // an older tab or in-flight publisher from recreating a contribution.
+      const profile = await getDocFromServer(doc(db, "users", uid));
+      if (profile.data()?.settings?.shareBenchmarks !== false) throw new Error("opt-out-pending");
+      await withdrawBenchmark(uid);
+    })().then(() => { if (!cancelled) setBenchmarkWithdrawal("done"); },
+      () => { if (!cancelled) setBenchmarkWithdrawal("error"); });
+    const online = () => setWithdrawalAttempt((n) => n + 1);
+    window.addEventListener("online", online);
+    return () => { cancelled = true; window.removeEventListener("online", online); };
+  }, [uid, ready, settings.shareBenchmarks, accountDeletionPending, withdrawalAttempt, writes.pending.length]);
 
   const value = useMemo<DataContextValue>(
     () => ({
       ready,
+      accountDeletionPending,
+      benchmarkWithdrawal,
+      retryBenchmarkWithdrawal,
       settings,
       vehicles,
       activeVehicles,
@@ -2095,6 +2148,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       prices,
       updateAdminPrices,
       loadingFillups,
+      loadVehicleFillups,
+      loadVehicleCatalog,
+      importTankUpdates,
       fromCache,
       offline,
       writes,
@@ -2140,6 +2196,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
+      accountDeletionPending,
+      benchmarkWithdrawal,
+      retryBenchmarkWithdrawal,
       settings,
       vehicles,
       activeVehicles,
@@ -2148,6 +2207,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       prices,
       updateAdminPrices,
       loadingFillups,
+      loadVehicleFillups,
+      loadVehicleCatalog,
+      importTankUpdates,
       fromCache,
       offline,
       writes,

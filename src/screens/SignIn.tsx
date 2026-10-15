@@ -83,7 +83,7 @@ export function SignIn() {
           className="tm-rise relative mt-3.5 max-w-[290px] text-[15.5px] leading-[1.55] text-[rgb(255_255_255/0.62)]"
           style={{ animationDelay: "140ms" }}
         >
-          האפליקציה מחשבת לכם צריכה אמיתית, עלות חודשית ומועדי טיפול.
+          האפליקציה מחשבת לכם צריכת דלק, עלות חודשית והערכת מצב המיכל.
         </p>
       </div>
 
@@ -100,6 +100,7 @@ export function SignIn() {
       >
         <div className="tm-pop -mt-[78px]" style={{ animationDelay: "200ms" }}>
           <LandingStatsPreview />
+          <p className="mt-1 text-center text-xs text-muted">נתונים לדוגמה</p>
         </div>
 
         <div className="tm-rise mt-5 flex gap-2" style={{ animationDelay: "300ms" }}>

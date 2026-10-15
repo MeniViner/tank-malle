@@ -163,7 +163,7 @@ test("three fill-ups saved offline survive a reload and reach the server exactly
   await fillForm(page, { odometer: 100_800, liters: 31, price: 7 });
 
   // Locally saved, honestly labelled, and durably recorded.
-  await expect(page.getByRole("button", { name: /נשמר במכשיר|ממתין לסנכרון/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "פעולות שממתינות לסנכרון" })).toBeVisible();
   expect(await outboxCount(page, uid)).toBe(3);
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 

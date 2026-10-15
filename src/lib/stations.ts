@@ -62,7 +62,9 @@ export interface NearbyStation extends GeoStation {
 }
 
 const CATALOG_URL = "/fuel-stations.json";
-const CACHE_KEY = "tm.stations.v1";
+const CACHE_KEY = "tm.stations.v2";
+const CATALOG_TTL = 24 * 60 * 60 * 1000;
+let fetchedAt = 0;
 
 let inMemory: Catalog | null = null;
 let inFlight: Promise<Catalog | null> | null = null;
@@ -84,39 +86,29 @@ const VERIFIED_SEARCH_STATIONS: readonly CatalogStation[] = [
  * one) resolves instantly instead of waiting on the network.
  */
 export async function loadStationCatalog(): Promise<Catalog | null> {
-  if (inMemory) return inMemory;
+  if (inMemory && Date.now() - fetchedAt < CATALOG_TTL) return inMemory;
   if (inFlight) return inFlight;
-
-  try {
-    const cached = localStorage.getItem(CACHE_KEY);
-    if (cached) {
-      const parsed = JSON.parse(cached) as Catalog;
-      if (parsed?.stations?.length) {
-        inMemory = parsed;
-        return parsed;
-      }
+  if (!inMemory) try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "null") as { at: number; catalog: Catalog } | null;
+    if (cached?.catalog?.stations?.length) { inMemory = cached.catalog; fetchedAt = cached.at; }
+    else {
+      const legacy = JSON.parse(localStorage.getItem("tm.stations.v1") ?? "null") as Catalog | null;
+      if (legacy?.stations?.length) inMemory = legacy;
     }
-  } catch {
-    /* storage unavailable or corrupt — fall through to the network */
-  }
-
-  inFlight = fetch(CATALOG_URL)
-    .then((response) => (response.ok ? response.json() : null))
-    .then((payload: Catalog | null) => {
-      if (!payload?.stations?.length) return null;
-      inMemory = payload;
-      try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(payload));
-      } catch {
-        /* quota exceeded — the in-memory copy still serves this session */
-      }
-      return payload;
+  } catch { /* Retry online; corrupt storage is not a permanent verdict. */ }
+  if (inMemory && Date.now() - fetchedAt < CATALOG_TTL) return inMemory;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+  inFlight = fetch(CATALOG_URL, { cache: "no-cache", signal: controller.signal })
+    .then((response) => { if (!response.ok) throw new Error("catalog unavailable"); return response.json(); })
+    .then((catalog: Catalog) => {
+      if (!Array.isArray(catalog?.stations) || !catalog.stations.length) throw new Error("invalid catalog");
+      inMemory = catalog; fetchedAt = Date.now();
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: fetchedAt, catalog })); localStorage.removeItem("tm.stations.v1"); } catch { /* In-memory cache still works. */ }
+      return catalog;
     })
-    .catch(() => null)
-    .finally(() => {
-      inFlight = null;
-    });
-
+    .catch(() => inMemory)
+    .finally(() => { clearTimeout(timer); inFlight = null; });
   return inFlight;
 }
 

@@ -35,11 +35,11 @@ export function AppHeader() {
         <button
           type="button"
           onClick={() => navigate("/settings/vehicles")}
-          className="flex min-h-[42px] items-center gap-2.5 rounded-pill border border-line bg-surface px-3.5 py-2 shadow-card transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
+          className="flex min-w-0 flex-1 min-h-[42px] items-center gap-2.5 rounded-pill border border-line bg-surface px-3.5 py-2 shadow-card transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
           aria-label="ניהול רכבים"
         >
-          <CarIcon size={18} className="text-accent" />
-          <span className="max-w-[190px] truncate text-[14.5px] font-semibold text-ink">
+          <CarIcon size={18} className="flex-none text-accent" />
+          <span className="min-w-0 truncate text-[14.5px] font-semibold text-ink">
             {activeVehicle.nickname?.trim() ? (
               activeVehicle.nickname
             ) : (
@@ -54,7 +54,7 @@ export function AppHeader() {
               </>
             )}
           </span>
-          <ChevronStart size={15} className="text-muted" />
+          <ChevronStart size={15} className="flex-none text-muted" />
         </button>
       ) : (
         <button
@@ -67,29 +67,30 @@ export function AppHeader() {
         </button>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-none items-center gap-2">
         {/* Four distinct states, never conflated: a permanent rejection is not
             the same thing as a queued write, and neither is "no connection". */}
         {failed > 0 || writes.failed.length > 0 ? (
           <button
             type="button"
             onClick={() => navigate("/settings/unsynced")}
-            className="flex h-9 items-center gap-1.5 rounded-pill bg-danger-soft px-2.5 text-[12px] font-semibold text-danger-ink"
+            className="flex min-h-10 items-center gap-1.5 rounded-pill bg-danger-soft px-2.5 text-[12px] font-semibold text-danger-ink"
             aria-label="פעולות שלא סונכרנו"
           >
             <WarningIcon size={15} />
-            לא סונכרן
+            <span className="hidden min-[400px]:inline">לא סונכרן</span>
             {failed > 0 ? <Num>{failed}</Num> : null}
           </button>
         ) : writes.syncing || pending > 0 ? (
           <button
             type="button"
             onClick={() => navigate("/settings/unsynced")}
-            className="flex h-9 items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 text-[12px] font-semibold text-muted"
+            className="flex min-h-10 items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 text-[12px] font-semibold text-muted"
+            aria-label="פעולות שממתינות לסנכרון"
             title={offline ? "אין חיבור — יסונכרן כשיחזור" : "ממתין לאישור מהשרת"}
           >
             <CloudOffIcon size={15} />
-            {offline ? "נשמר במכשיר" : "ממתין לסנכרון"}
+            <span className="hidden min-[400px]:inline">{offline ? "נשמר במכשיר" : "ממתין לסנכרון"}</span>
           </button>
         ) : offline ? (
           <span
@@ -104,7 +105,7 @@ export function AppHeader() {
           onClick={() => navigate("/settings/profile")}
           aria-label="פרופיל"
         >
-          <Avatar name={user?.displayName} photoURL={user?.photoURL} size={38} />
+          <Avatar name={user?.displayName} photoURL={user?.photoURL} size={40} />
         </button>
       </div>
 
