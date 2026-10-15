@@ -1,4 +1,5 @@
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
+import { storedDeclaredSource } from '../lib/vehicleSpecs';
 import { withPublicPrice } from "../lib/prices/regulated";
 import type { TankImportRecord } from "../lib/import/tankUpdates";
 import {
@@ -933,7 +934,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             tankSourceUrl: data.tankSourceUrl ?? null,
             specSourceUrl: data.specSourceUrl ?? null,
             declaredKmPerLiter: toNumberOrNull(data.declaredKmPerLiter),
-            declaredSource: (data.declaredSource ?? null) as Vehicle["declaredSource"],
+            declaredSource: storedDeclaredSource(data.declaredSource, data.specSourceUrl),
             priceAdjustment: typeof data.priceAdjustment === "number" ? data.priceAdjustment : 0,
             manualPricePerLiter: toNumberOrNull(data.manualPricePerLiter),
             nickname: data.nickname ?? null,

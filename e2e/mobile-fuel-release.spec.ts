@@ -42,6 +42,14 @@ test('history learning and rounded money fit a small mobile screen', async ({pag
   await expect(page.getByLabel('מה למדנו מהשימוש שלך')).toContainText('בדרך כלל מתדלקים כל');
   await expect(page.getByRole('button',{name:'תכנון נסיעה',exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button',{name:'עדכון מד הדלק',exact:true}).click();
+  await page.getByRole('slider').press('End');
+  await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();
+  await page.getByRole('button',{name:'תכנון נסיעה',exact:true}).click();
+  await page.getByLabel('מרחק צפוי',{exact:true}).fill('600');
+  await page.getByRole('button',{name:'היום',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();
+  await expect(page.getByText('כדאי לתדלק לפני הנסיעה',{exact:true})).toBeVisible();
   await page.goto('/history');
   await expect(page.getByText('₪233',{exact:true}).first()).toBeVisible();
   await expect(page.getByText('₪233.10',{exact:true})).toHaveCount(0);
