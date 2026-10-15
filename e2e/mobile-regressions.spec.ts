@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { signedInWithData } from "./helpers/app";
-import type { SeedFillup } from "./helpers/emulator";
+import { getDocument, listDocuments, setDocument, waitForDocument, type SeedFillup } from "./helpers/emulator";
 
 const RECORDS: SeedFillup[] = [
   { id: "a", date: new Date(2026, 9, 1), odometer: 100_000, liters: 40 },
@@ -29,6 +29,16 @@ for (const width of [360, 430]) {
       await expect(input).toBeFocused();
     }
     await expect(input).toHaveValue("סונול שפיה");
+    // Editing in the middle must keep both focus and the caret through the
+    // result-list rerender, not merely leave the final string looking right.
+    await input.evaluate((field: HTMLInputElement) => field.setSelectionRange(6, 6));
+    await page.keyboard.insertText("ו");
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue("סונול ושפיה");
+    expect(await input.evaluate((field: HTMLInputElement) => field.selectionStart)).toBe(7);
+    await page.keyboard.press("Backspace");
+    await expect(input).toHaveValue("סונול שפיה");
+    expect(await input.evaluate((field: HTMLInputElement) => field.selectionStart)).toBe(6);
     const station = dialog.getByRole("button", { name: /סונול שפיה/ });
     await expect(station).toBeVisible();
     await expect(dialog.getByText("לא נמצאה תחנה בשם הזה")).toHaveCount(0);
@@ -45,6 +55,37 @@ for (const width of [360, 430]) {
     await input.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(trigger).toBeFocused();
+  });
+}
+
+for (const identified of [false, true]) {
+  test(`historical selection preserves ${identified ? "the station ID" : "an unresolved station"} on save`, async ({ page }) => {
+    const { uid, vehicleId } = await signedInWithData(page, { fillups: RECORDS });
+    const collection = `users/${uid}/vehicles/${vehicleId}/fillups`;
+    const historical = await getDocument(`${collection}/b`);
+    const station = identified
+      ? { name: "סונול שפיה", stationId: "historical-42", brand: "סונול", lat: 32.5, lng: 34.9 }
+      : { name: "סונול שפיה" };
+    await setDocument(`${collection}/b`, { ...historical, date: RECORDS[1].date, createdAt: RECORDS[1].date, station });
+    await page.goto("/fillup/new");
+    await page.getByRole("button", { name: /^תחנה / }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByPlaceholder("חיפוש תחנה…").fill("שפיה סונול");
+    await dialog.getByRole("button", { name: /סונול שפיה/ }).click();
+    await page.getByLabel(/^קילומטראז׳/).fill("101400");
+    await page.getByLabel("ליטרים", { exact: true }).fill("40");
+    await page.getByLabel("מחיר לליטר").fill("7");
+    await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+    await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+    await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
+    const saved = await waitForDocument(collection, (record) => record.odometer === 101400);
+    expect(saved.station).toEqual(station);
+    expect(saved.pricePerLiter).toBe(7);
+    expect(await getDocument(`${collection}/b`)).toEqual({ ...historical, station });
+    expect(await listDocuments(collection)).toHaveLength(RECORDS.length + 1);
+    await page.reload();
+    await page.goto("/history");
+    await expect(page.getByText("סונול שפיה", { exact: true }).first()).toBeVisible();
   });
 }
 
