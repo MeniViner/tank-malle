@@ -345,7 +345,7 @@ export function Statistics() {
                     <XAxis {...xAxis} />
                     <YAxis {...yAxis} width={44} />
                     <Tooltip content={<ChartTooltip currency />} />
-                    <Bar
+                    <Bar isAnimationActive={false}
                       dataKey="cost"
                       fill="var(--accent)"
                       radius={[6, 6, 0, 0]}
@@ -408,7 +408,7 @@ export function Statistics() {
                         strokeWidth={1.5}
                       />
                     ) : null}
-                    <Line
+                    <Line isAnimationActive={false}
                       type="monotone"
                       dataKey="value"
                       stroke="var(--accent)"
@@ -460,7 +460,7 @@ export function Statistics() {
                     <XAxis {...xAxis} />
                     <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
                     <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
-                    <Area
+                    <Area isAnimationActive={false}
                       type="monotone"
                       dataKey="odometer"
                       stroke="var(--accent)"
@@ -519,7 +519,7 @@ export function Statistics() {
                     <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
                     <Tooltip content={<ChartTooltip currency />} />
                     {hasOfficialLine ? (
-                      <Line
+                      <Line isAnimationActive={false}
                         type="monotone"
                         dataKey="official"
                         stroke="var(--muted)"
@@ -528,7 +528,7 @@ export function Statistics() {
                         dot={false}
                       />
                     ) : null}
-                    <Line
+                    <Line isAnimationActive={false}
                       type="monotone"
                       dataKey="paid"
                       stroke="var(--accent)"
@@ -1004,7 +1004,7 @@ function PeerSection({
           <XAxis {...xAxis} />
           <YAxis {...yAxis} width={28} allowDecimals={false} />
           <Tooltip content={<ChartTooltip suffix=" נהגים" digits={0} />} />
-          <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+          <Bar isAnimationActive={false} dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
             {distribution.map((bucket, index) => (
               <Cell
                 key={index}
@@ -1030,7 +1030,7 @@ function PeerSection({
             width={78}
           />
           <Tooltip content={<ChartTooltip suffix={` ${unitLabel}`} />} />
-          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22}>
+          <Bar isAnimationActive={false} dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22}>
             {versus.map((row, index) => (
               <Cell key={index} fill={row.isYou ? "var(--accent)" : "var(--surface-2)"} />
             ))}

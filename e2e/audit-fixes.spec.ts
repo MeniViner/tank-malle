@@ -178,7 +178,10 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   expect(tankContent).toContain("200100,0.5");
   // Both scopes remain available after moving data tools into Profile.
   await page.getByRole("button", { name: /^היקף הייצוא/ }).click();
-  await page.getByRole("radio", { name: "הרכב הפעיל", exact: true }).click();
+  const accountScope = page.getByRole("radio", { name: "כל הרכבים, כולל הארכיון", exact: true });
+  await accountScope.focus();
+  await accountScope.press("ArrowDown");
+  await expect(page.getByRole("button", { name: /^היקף הייצוא/ })).toContainText("הרכב הפעיל");
   const activeDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
   const activeContent = readFileSync((await (await activeDownload).path())!, "utf8");

@@ -302,9 +302,12 @@ export function Profile() {
 
       <Sheet open={scopeOpen} onClose={() => setScopeOpen(false)} title={<h2 className="text-[18px] font-bold">היקף הייצוא</h2>}>
         <div role="radiogroup" aria-label="היקף הייצוא" className="flex flex-col">
-          {(["account", "active"] as const).map((scope) => <button key={scope} type="button" role="radio" aria-checked={exportScope === scope} className="flex min-h-[52px] items-center justify-between gap-3 px-3 text-start text-[16px]" onClick={() => { setExportScope(scope); setScopeOpen(false); }}>
-            <span>{scope === "account" ? "כל הרכבים, כולל הארכיון" : "הרכב הפעיל"}</span><span className="text-accent">{exportScope === scope ? "✓" : ""}</span>
-          </button>)}
+          {(["account", "active"] as const).map((scope) => (
+            <label key={scope} className="flex min-h-[52px] cursor-pointer items-center justify-between gap-3 px-3 text-[16px]">
+              <span>{scope === "account" ? "כל הרכבים, כולל הארכיון" : "הרכב הפעיל"}</span>
+              <input type="radio" name="export-scope" value={scope} checked={exportScope === scope} className="size-5 accent-accent" onChange={() => { setExportScope(scope); setScopeOpen(false); }} />
+            </label>
+          ))}
         </div>
       </Sheet>
 
