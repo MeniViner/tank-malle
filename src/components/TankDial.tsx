@@ -149,6 +149,7 @@ export function TankDial({
       {/* The reading itself is text, sitting inside the arc. */}
       <div className="-mt-[48px] flex flex-col items-center gap-0.5">
         <span
+          data-testid="current-tank-level"
           className={`font-bold leading-none tracking-[-0.01em] ${
             known ? "text-[27px] text-ink" : "text-[19px] text-muted"
           }`}

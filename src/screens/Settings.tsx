@@ -1,3 +1,5 @@
+import { FuelDiscountSheet } from '../components/FuelDiscountSheet';
+import { vehicleDiscount, discountLabel } from '../lib/prices/discount';
 import { useMemo, useState } from "react";
 import { describeOfficialPrice, officialPriceFor } from "../lib/prices/regulated";
 import { useNavigate } from "react-router-dom";
@@ -31,9 +33,7 @@ import { useInstallPrompt } from "../hooks/useInstallPrompt";
 import {
   FUEL_TYPE_SHORT,
   dayMonthShort,
-  parseDecimal,
   price,
-  shekelSigned,
   vehicleLabel,
 } from "../lib/format";
 import { TankPreferencesSection } from "../components/TankPreferencesSection";
@@ -70,7 +70,6 @@ export function Settings() {
     activeVehicles,
     activeVehicle,
     setActiveVehicle,
-    updateVehicle,
     prices,
     ready,
     benchmarkWithdrawal,
@@ -89,7 +88,6 @@ export function Settings() {
   const [unitsOpen, setUnitsOpen] = useState(false);
   const [accentSheetOpen, setAccentSheetOpen] = useState(false);
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
-  const [manualPriceOpen, setManualPriceOpen] = useState(false);
 
   return (
     <main className="flex flex-1 flex-col gap-5 pb-[104px] pt-safe">
@@ -146,31 +144,12 @@ export function Settings() {
               </Num>
             </div>
 
-            <RowButton
-              title="הנחה קבועה"
-              subtitle="התאמה למחיר המוצע לרכב הזה"
-              trailing={
-                <Num className="text-[15px] font-bold text-ink">
-                  {shekelSigned(activeVehicle?.priceAdjustment ?? 0)}
-                </Num>
-              }
+            {activeVehicle?.fuelType === '95' ? <RowButton
+              title="הנחה מהמחיר הרשמי"
+              subtitle={discountLabel(vehicleDiscount(activeVehicle))}
+              trailing={<ChevronStart size={17} className="text-muted" />}
               onClick={() => setAdjustmentOpen(true)}
-              disabled={!activeVehicle}
-            />
-
-            <RowButton
-              title="עדכון ידני"
-              subtitle="מחיר קבוע שיחליף את המחיר המוצע"
-              trailing={
-                <Num className="text-[15px] font-bold text-ink">
-                  {activeVehicle?.manualPricePerLiter
-                    ? price(activeVehicle.manualPricePerLiter)
-                    : "כבוי"}
-                </Num>
-              }
-              onClick={() => setManualPriceOpen(true)}
-              disabled={!activeVehicle}
-            />
+            /> : <p className="px-4 pb-4 text-[14px] text-muted">לסוג הדלק הזה מזינים את מחיר המשאבה בכל תדלוק.</p>}
           </ListCard>
         </section>
 
@@ -293,121 +272,10 @@ export function Settings() {
         </div>
       </Sheet>
 
-      {/* Per-vehicle price adjustment */}
-      <NumberSheet
-        open={adjustmentOpen}
-        onClose={() => setAdjustmentOpen(false)}
-        title="התאמה אישית למחיר"
-        description="הפרש קבוע בשקלים לליטר מול המחיר הרשמי. הנחה מוזנת כמספר שלילי, למשל 0.05-."
-        suffix="₪ לליטר"
-        initial={String(activeVehicle?.priceAdjustment ?? 0)}
-        allowNegative
-        onSave={(value) => {
-          if (activeVehicle) void updateVehicle(activeVehicle.id, { priceAdjustment: value });
-        }}
-      />
-
-      {/* Per-vehicle manual override */}
-      <NumberSheet
-        open={manualPriceOpen}
-        onClose={() => setManualPriceOpen(false)}
-        title="עדכון מחיר ידני"
-        description="מחיר קבוע לליטר שיעקוף את המחיר הרשמי ואת ההתאמה האישית. נדרש לסולר ולבנזין 98."
-        suffix="₪ לליטר"
-        initial={
-          activeVehicle?.manualPricePerLiter ? String(activeVehicle.manualPricePerLiter) : ""
-        }
-        clearable
-        onSave={(value) => {
-          if (activeVehicle) {
-            void updateVehicle(activeVehicle.id, {
-              manualPricePerLiter: value > 0 ? value : null,
-            });
-          }
-        }}
-      />
+      {adjustmentOpen && activeVehicle ? <FuelDiscountSheet
+        key={activeVehicle.id} vehicle={activeVehicle} official={officialToday.price}
+        onClose={() => setAdjustmentOpen(false)} /> : null}
     </main>
-  );
-}
-
-function NumberSheet({
-  open,
-  onClose,
-  title,
-  description,
-  suffix,
-  initial,
-  allowNegative = false,
-  clearable = false,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
-  description: string;
-  suffix: string;
-  initial: string;
-  allowNegative?: boolean;
-  clearable?: boolean;
-  onSave: (value: number) => void;
-}) {
-  const [value, setValue] = useState(initial);
-
-  // Re-seed the field each time the sheet opens.
-  const [lastOpen, setLastOpen] = useState(open);
-  if (open !== lastOpen) {
-    setLastOpen(open);
-    if (open) setValue(initial);
-  }
-
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title={<h2 className="text-[18px] font-semibold text-ink">{title}</h2>}
-    >
-      <div className="flex flex-col gap-3">
-        <p className="text-[13px] leading-relaxed text-muted">{description}</p>
-
-        <div className="flex items-center gap-2.5 rounded-[14px] border border-line bg-surface px-3.5">
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            value={value}
-            onChange={(event) => setValue(event.target.value)}
-            placeholder="0"
-            className="num min-h-[56px] min-w-0 flex-1 bg-transparent text-[22px] font-bold outline-none"
-          />
-          <span className="flex-none text-[13px] font-semibold text-muted">{suffix}</span>
-        </div>
-
-        <div className="flex gap-2">
-          {clearable ? (
-            <button
-              type="button"
-              onClick={() => {
-                onSave(0);
-                onClose();
-              }}
-              className="min-h-[50px] flex-1 rounded-pill bg-surface-2 text-[15px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.97]"
-            >
-              כיבוי
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              const parsed = parseDecimal(value);
-              if (Number.isFinite(parsed) && (allowNegative || parsed >= 0)) onSave(parsed);
-              onClose();
-            }}
-            className="min-h-[50px] flex-1 rounded-pill bg-accent text-[15px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97] active:brightness-[0.97]"
-          >
-            שמירה
-          </button>
-        </div>
-      </div>
-    </Sheet>
   );
 }
 

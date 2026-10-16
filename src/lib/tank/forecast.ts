@@ -169,21 +169,26 @@ function firstPassageDays(
   litersPerKm: number,
   schedule: DaySchedule,
   routineScale: number,
-  startOffsetDays: number,
+  now: number,
+  timeZone: string,
 ): number | null {
   if (startLiters <= targetLiters) return 0;
   if (!(litersPerKm > 0)) return null;
 
   let liters = startLiters;
   for (let i = 0; i < schedule.starts.length; i += 1) {
+    const start = Math.max(now, schedule.starts[i]);
+    const end = schedule.starts[i + 1] ?? addLocalDays(schedule.starts[i], 1, timeZone);
+    if (end <= start) continue;
+    const share = (end - start) / (end - schedule.starts[i]);
     const km = schedule.routineKm[i] * routineScale + schedule.planKm[i];
-    const burnt = km * litersPerKm;
+    const burnt = km * share * litersPerKm;
     if (burnt <= 0) continue;
 
     if (liters - burnt <= targetLiters) {
       // Interpolate inside the day rather than rounding to whole days.
       const fraction = (liters - targetLiters) / burnt;
-      return Math.max(0, i + clamp(fraction, 0, 1) - startOffsetDays);
+      return elapsedDays(now, start + clamp(fraction, 0, 1) * (end - start));
     }
     liters -= burnt;
   }
@@ -256,7 +261,7 @@ export function forecast(input: ForecastInput): ForecastResult {
   const litersPerKm = consumption.litersPerKm;
 
   const empty: ForecastResult = {
-    current: UNKNOWN_CURRENT,
+    current: { ...UNKNOWN_CURRENT, asOf: now },
     expectedRefuel: UNKNOWN_PASSAGE,
     recommendedRefuel: UNKNOWN_PASSAGE,
     tripPullsForward: false,
@@ -306,7 +311,10 @@ export function forecast(input: ForecastInput): ForecastResult {
           ? Math.max(0.1, (baseKmPerDay + scenario.travelOffset * travelSd) / baseKmPerDay)
           : 1;
 
-      const anchorLiters = anchor.liters + scenario.litersOffset * anchor.sd;
+      // Preserve impossible arithmetic in the replay's notes/raw anchor, but
+      // do not treat excess litres as fuel that keeps tomorrow's gauge full.
+      const usableAnchor = Math.min(capacity, anchor.liters);
+      const anchorLiters = usableAnchor + scenario.litersOffset * Math.max(anchor.sd, anchor.liters - usableAnchor);
       const forecastKm = kmBetween(schedule, forecastFrom, now, routineScale);
       const currentLiters =
         anchorLiters - (measuredKm + forecastKm) * scenarioConsumption;
@@ -327,7 +335,8 @@ export function forecast(input: ForecastInput): ForecastResult {
         scenarioConsumption,
         schedule,
         routineScale,
-        elapsedSinceOdometer,
+        now,
+        timeZone,
       );
       if (value !== null) days.push({ value, weight: scenario.weight });
       if (isCentral) central = value;

@@ -1,3 +1,4 @@
+import { vehicleDiscount, discountedPrice, discountLabel } from './discount';
 import type { FuelType, FuelPrices, Vehicle } from "../stats";
 import { monthKey } from "../stats";
 import { heMonthName } from "../format";
@@ -455,10 +456,8 @@ export function regulatedFreshnessText(
  * ------------------------------------------------------------------ */
 
 export type PriceSuggestionSource =
-  /** The vehicle's legacy fixed price. Replaces everything else. */
-  | "legacyManual"
-  /** The official figure plus the vehicle's legacy fixed adjustment. */
-  | "legacyAdjusted"
+  /** An explicit discount from the dated official price. */
+  | "personalDiscount"
   /** The regulated maximum for 95 self-service, written by the job. */
   | "regulatedMax"
   /** A figure an admin typed in — for any fuel type. Never "מפוקח". */
@@ -515,41 +514,18 @@ export function describeOfficialPrice(
   return month ? `${base} · ${month}` : base;
 }
 
-/**
- * The price the fill-up form (and the settings screen) should propose for a
- * vehicle on a date. Precedence:
- *
- *   1. the vehicle's legacy manual price, replacing everything
- *   2. the stored series for the vehicle's OWN fuel type and that month:
- *      an admin's entry → `manualConfig`; the job's 95 figure → `regulatedMax`
- *   3. + the vehicle's legacy fixed adjustment → `legacyAdjusted`
- *
- * No cross-fuel fallback, ever. A figure that is not the month's own record
- * says so in its label and names the month it does belong to.
+/** The dated official price minus an explicit discount. Historical receipts
+ * and legacy absolute overrides never set the price for a new receipt.
  */
 export function suggestPricePerLiter(
   date: number,
   vehicle:
-    | Pick<Vehicle, "priceAdjustment" | "manualPricePerLiter" | "fuelType">
+    | Pick<Vehicle, "priceAdjustment" | "priceDiscount" | "manualPricePerLiter" | "fuelType">
     | null
     | undefined,
   config: RegulatedPriceConfig | FuelPrices | null | undefined,
 ): PriceSuggestion {
   const fuelType = vehicle?.fuelType ?? REGULATED_FUEL_TYPE;
-
-  if (vehicle?.manualPricePerLiter && vehicle.manualPricePerLiter > 0) {
-    return {
-      price: round(vehicle.manualPricePerLiter, 3),
-      source: "legacyManual",
-      fromHistory: false,
-      effectiveMonth: null,
-      fuelType,
-      updatedAt: null,
-      isRegulated: false,
-      isManual: false,
-      label: "מחיר קבוע שהוגדר ברכב · ניתן לשינוי בהגדרות הרכב",
-    };
-  }
 
   const lookup = regulatedMaxPrice(adaptLegacyConfig(config), fuelType, date);
   const common = {
@@ -590,13 +566,13 @@ export function suggestPricePerLiter(
       ? withMonth(`מחיר מרבי מפוקח ${FUEL_FOR[REGULATED_FUEL_TYPE]}`)
       : withMonth("לפי המחיר המרבי המפוקח האחרון הידוע");
 
-  const adjustment = vehicle?.priceAdjustment ?? 0;
-  if (adjustment !== 0) {
+  const discount = vehicleDiscount(vehicle);
+  if (discount && discount.value > 0) {
     return {
       ...common,
-      price: round(Math.max(0, lookup.price + adjustment), 3),
-      source: "legacyAdjusted",
-      label: `${basis} + התאמה קבועה`,
+      price: discountedPrice(lookup.price, discount),
+      source: "personalDiscount",
+      label: `${basis} · ${discountLabel(discount)}`,
     };
   }
 

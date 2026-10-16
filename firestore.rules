@@ -306,6 +306,13 @@ service cloud.firestore {
         && data.fuelType in ['95', '98', 'diesel', 'other']
         && data.archived is bool
         && isNumber(data.priceAdjustment)
+        && (!('priceDiscount' in data) || data.priceDiscount == null || (
+          data.priceDiscount is map
+          && data.priceDiscount.keys().hasOnly(['kind', 'value'])
+          && data.priceDiscount.kind in ['amount', 'percent']
+          && isNumber(data.priceDiscount.value) && data.priceDiscount.value >= 0
+          && data.priceDiscount.value <= (data.priceDiscount.kind == 'percent' ? 100 : 20)
+        ))
         && (!('tankLiters' in data) || data.tankLiters == null
             || (isNumber(data.tankLiters) && data.tankLiters > 0))
         && (!('tankLitersSource' in data) || data.tankLitersSource == null

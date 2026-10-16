@@ -543,7 +543,7 @@ export function Statistics() {
                     <Label className="text-[14px]">
                       מול המחיר הרשמי בתאריכי התדלוקים
                     </Label>
-                    <Num className="font-display text-[26px] font-semibold leading-tight text-ink">
+                    <Num className="self-start font-display text-[26px] font-semibold leading-tight text-ink">
                       {shekelSigned(stats.avgPriceVsOfficial)}
                     </Num>
                     <span className="text-[14px] text-muted">
@@ -593,7 +593,7 @@ export function Statistics() {
                 <div className="flex gap-3">
                   <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
                     <Label className="text-[14px]">התדלוק היקר ביותר</Label>
-                    <Num className="font-display text-[26px] font-semibold leading-tight text-ink">
+                    <Num className="self-start font-display text-[26px] font-semibold leading-tight text-ink">
                       {stats.records.mostExpensive
                         ? shekel(stats.records.mostExpensive.totalCost)
                         : "—"}
