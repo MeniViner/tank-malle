@@ -446,6 +446,16 @@ describe("vehicles", () => {
     await assertFails(setDoc(ref(alice()), vehicle({ declaredSource: 'invented' })));
   });
 
+  it("validates amount and percent discounts and keeps them owner-only", async () => {
+    for (const priceDiscount of [{ kind: 'amount', value: .2 }, { kind: 'percent', value: 5 }, null]) {
+      await assertSucceeds(setDoc(ref(alice()), vehicle({ priceDiscount })));
+      await assertFails(setDoc(ref(bob(), ALICE), vehicle({ priceDiscount })));
+    }
+    for (const priceDiscount of [{ kind: 'fixed', value: 8.1 }, { kind: 'percent', value: 101 }, { kind: 'amount', value: -1 }, { kind: 'percent', value: 5, extra: true }]) {
+      await assertFails(setDoc(ref(alice()), vehicle({ priceDiscount })));
+    }
+  });
+
   it("preserves the legacy price fields during migration", async () => {
     await assertSucceeds(
       setDoc(ref(alice()), vehicle({ priceAdjustment: -0.05, manualPricePerLiter: 6.8 })),

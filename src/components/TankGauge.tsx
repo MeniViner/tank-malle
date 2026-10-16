@@ -145,6 +145,7 @@ export function TankGauge({
         {/* Fuel column. */}
         <span
           aria-hidden="true"
+          data-testid="tank-gauge-fill"
           className={`absolute inset-x-0 bottom-0 ${
             tone === "warning" ? "bg-warning/70" : "bg-accent"
           } ${animate ? "transition-[height] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]" : ""}`}
@@ -165,12 +166,13 @@ export function TankGauge({
         {interactive && level !== null ? (
           <span
             aria-hidden="true"
-            className={`absolute inset-x-[-2px] flex h-[22px] -translate-y-1/2 items-center justify-center ${
+            data-testid="tank-gauge-handle"
+            className={`absolute inset-x-[-2px] flex h-[22px] translate-y-1/2 items-center justify-center ${
               animate ? "transition-[bottom] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]" : ""
             }`}
             style={{ bottom: `${percent}%` }}
           >
-            <span className="h-[6px] w-full rounded-pill bg-surface shadow-[0_1px_2px_rgb(13_35_28/0.2)]" />
+            <span className="h-[8px] w-9 rounded-pill border-2 border-accent bg-surface shadow-[0_1px_2px_rgb(13_35_28/0.2)]" />
           </span>
         ) : null}
 
@@ -187,6 +189,7 @@ export function TankGauge({
           {confirmedFull ? "מלא" : levelLabel(level)}
         </span>
         {caption ? <span className="text-[12px] text-muted">{caption}</span> : null}
+        {interactive ? <span className="text-[12px] text-muted">גררו את קו המפלס</span> : null}
       </span>
     </div>
   );

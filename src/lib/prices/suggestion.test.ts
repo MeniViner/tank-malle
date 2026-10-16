@@ -190,15 +190,15 @@ describe("legacy documents", () => {
       { ...LEGACY, source: "gov.il" },
     );
     expect(suggestion.price).toBeCloseTo(6.92, 3);
-    expect(suggestion.source).toBe("legacyAdjusted");
-    expect(suggestion.label).toContain("התאמה קבועה");
+    expect(suggestion.source).toBe("personalDiscount");
+    expect(suggestion.label).toContain("הנחה לליטר");
     expect(suggestion.label).toContain("יולי");
   });
 
-  it("a vehicle's legacy manual price replaces everything", () => {
+  it("ignores a stale absolute vehicle price", () => {
     const suggestion = suggestPricePerLiter(JUL, { ...PETROL, manualPricePerLiter: 6.5 }, LEGACY);
-    expect(suggestion.price).toBe(6.5);
-    expect(suggestion.source).toBe("legacyManual");
+    expect(suggestion.price).toBe(7.12);
+    expect(suggestion.source).toBe("manualConfig");
   });
 
   it("falls back to the last known figure and names its month", () => {

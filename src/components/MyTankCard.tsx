@@ -1,3 +1,4 @@
+import { displayTankLevel } from '../lib/tank/display';
 import { useVehicleEnrichment } from "../hooks/useVehicleEnrichment";
 import { usageInsights } from "../lib/tank/usageInsights";
 import { parseNumber } from "../lib/numeric";
@@ -71,7 +72,8 @@ export function MyTankCard() {
 
   // The level shown when litres are unavailable: the last thing the user
   // actually reported, clearly labelled as a report rather than an estimate.
-  const reportedLevel = estimate.lastLevelReport;
+  const displayLevel = displayTankLevel(estimate);
+  const reportedLevel = displayLevel !== null ? estimate.lastLevelReport : null;
 
   return (
     <>
@@ -91,10 +93,10 @@ export function MyTankCard() {
           </span>
 
           {conflict ? (
-            <span className="inline-flex items-center gap-1.5 rounded-pill bg-warning-soft px-[11px] py-1 text-[12px] font-semibold text-warning-ink">
+            <button type="button" onClick={() => setGaugeOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-pill bg-warning-soft px-[11px] py-1 text-[12px] font-semibold text-warning-ink">
               <WarningIcon size={13} />
-              צריך בדיקה
-            </span>
+              עדכון המיכל
+            </button>
           ) : current.stale ? (
             <span className="rounded-pill bg-surface-2 px-[11px] py-1 text-[12px] font-semibold text-muted">
               המידע ישן
@@ -104,7 +106,7 @@ export function MyTankCard() {
 
         <div className="flex flex-col items-center gap-3 min-[380px]:flex-row">
           <TankDial
-            level={current.level ?? reportedLevel?.level ?? null}
+            level={displayLevel}
             reserveLevel={estimate.reserveLevel}
             habitLevel={habit.canClaim || habit.overridden ? habit.typicalLevel : null}
             tone={conflict ? "warning" : "accent"}
@@ -112,7 +114,7 @@ export function MyTankCard() {
               current.liters !== null
                 ? `כ־${num(current.liters, 0)} ליטר`
                 : current.level === null && reportedLevel
-                  ? "לפי העדכון האחרון"
+                  ? `עודכן ${timeAgo(reportedLevel.at)}`
                   : null
             }
           />
@@ -165,6 +167,12 @@ export function MyTankCard() {
             )}
           </div>
         </div>
+
+        {current.level !== null ? <p className="text-[13px] text-muted" aria-label="עדכון הערכת המיכל">
+          {estimate.mobility.kmPerDay !== null
+            ? `מתעדכן לפי השימוש שנלמד · כ־${num(current.forecastKmSinceOdometer ?? 0, 0)} ק״מ משוערים מאז העדכון`
+            : 'לפי העדכון האחרון · עוד נסיעות יאפשרו עדכון אוטומטי'}
+        </p> : null}
 
         {/* An approximate capacity is usable and says so, with the number to
             confirm right there — a blank field in a settings screen is how it

@@ -26,7 +26,7 @@ test('missing specs are filled without Functions, with source labels and preserv
   await expect.poll(async () => (await getDocument(path))?.tankLiters).toBe(45);
   await expect.poll(async () => (await getDocument(path))?.declaredSource).toBe('co2-estimate');
   expect((await getDocument(path))?.tankLitersSource).toBe('trusted');
-  await setDocument(path, { tankLiters:47, tankLitersSource:'user', declaredKmPerLiter:14.8, declaredSource:'user' });
+  await setDocument(path, { ...(await getDocument(path)), tankLiters:47, tankLitersSource:'user', declaredKmPerLiter:14.8, declaredSource:'user' });
   await page.reload();
   await expect(page.getByText('המיכל שלי', {exact:true})).toBeVisible();
   expect((await getDocument(path))?.tankLiters).toBe(47);

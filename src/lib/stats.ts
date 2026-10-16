@@ -115,7 +115,9 @@ export interface Vehicle {
   specSourceUrl?: string | null;
   /** ₪/liter delta applied on top of the official price. */
   priceAdjustment: number;
-  /** Overrides the official price + adjustment entirely. */
+  /** Explicit discount that follows the official price for the fill date. */
+  priceDiscount?: import('./prices/discount').FuelDiscount | null;
+  /** Retained for old exports only; never used as a new fill-up's default. */
   manualPricePerLiter?: number | null;
   nickname?: string | null;
   archived: boolean;
@@ -918,30 +920,13 @@ export function hardBlock(
   return null;
 }
 
-/**
- * Suggest a price per litre for a fill-up form.
- *
- * This is a SUGGESTION for a field the user can overwrite — not a claim about
- * what any station charges. The sources, weakest first:
- *
- *   1. the regulated maximum for the vehicle's OWN fuel type
- *   2. + the vehicle's legacy fixed adjustment
- *   3. the vehicle's legacy manual override, replacing 1 and 2
- *   4. a per-fill-up edit, which always wins (handled by the caller)
- *
- * The fuel type is the change that matters. The regulated maximum in Israel
- * covers 95-octane self-service and nothing else, so a diesel or 98 vehicle now
- * gets `source: "unsupportedFuelType"` and no number, where it previously got
- * the 95 figure presented as its own.
- *
- * `priceAdjustment` and `manualPricePerLiter` are retained exactly as stored,
- * but they are reported as LEGACY sources so the UI can name them rather than
- * letting a forgotten override quietly set every future price.
+/** Suggest the dated official self-service price, minus an explicit discount.
+ * Existing receipt prices stay untouched; a fixed legacy vehicle price is ignored.
  */
 export function resolvePricePerLiter(
   date: number,
   vehicle:
-    | Pick<Vehicle, "priceAdjustment" | "manualPricePerLiter" | "fuelType">
+    | Pick<Vehicle, "priceAdjustment" | "priceDiscount" | "manualPricePerLiter" | "fuelType">
     | null
     | undefined,
   prices: FuelPrices | RegulatedPriceConfig | null | undefined,

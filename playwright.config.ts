@@ -74,7 +74,7 @@ export default defineConfig({
       },
     },
     ...(process.env.LOCAL_WEBKIT === '1' ? [{
-      name: 'webkit-mobile', testMatch: '**/mobile-fuel-release.spec.ts',
+      name: 'webkit-mobile', testMatch: ['**/mobile-fuel-release.spec.ts', '**/tank-pricing-followup.spec.ts'],
       use: { ...devices['iPhone 13'], baseURL: PWA_BASE_URL },
     }] : []),
   ],

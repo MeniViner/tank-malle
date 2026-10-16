@@ -1,3 +1,4 @@
+import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
 import { storedDeclaredSource } from '../lib/vehicleSpecs';
 import { withPublicPrice } from "../lib/prices/regulated";
@@ -937,6 +938,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             declaredSource: storedDeclaredSource(data.declaredSource, data.specSourceUrl),
             priceAdjustment: typeof data.priceAdjustment === "number" ? data.priceAdjustment : 0,
             manualPricePerLiter: toNumberOrNull(data.manualPricePerLiter),
+            priceDiscount: data.priceDiscount === undefined ? undefined : validFuelDiscount(data.priceDiscount) ? data.priceDiscount : null,
             nickname: data.nickname ?? null,
             archived: Boolean(data.archived),
             createdAt: toMillis(data.createdAt),

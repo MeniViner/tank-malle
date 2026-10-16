@@ -245,8 +245,9 @@ export function projectTank(input: ProjectionInput): TankEstimate {
           timeZone: fit.timeZone,
         });
 
+  const noteGroups = splitNotes(fit.balance);
   const qualityInput = {
-    balance: fit.balance,
+    balance: { ...fit.balance, notes: [...noteGroups.activeNotes, ...noteGroups.capacityNotes] },
     consumption: fit.consumption,
     mobility: fit.mobility,
     habit: fit.habit,
@@ -286,7 +287,7 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     primaryReason: primaryReason(reasons),
     nextUpdate: chooseNextUpdate(qualityInput, input.dismissedPrompts),
     notes: fit.balance.notes,
-    ...splitNotes(fit.balance),
+    ...noteGroups,
   };
 }
 
@@ -316,7 +317,14 @@ function splitNotes(balance: BalanceResult): {
     : balance.notes;
 
   return {
-    activeNotes: current.filter((note) => !aboutCapacity(note)),
+    activeNotes: current.filter((note) => {
+      if (aboutCapacity(note)) return false;
+      // A fresh direct reading/full tank already resolved a fuel mismatch.
+      // Odometer ordering errors (no litre residual) still need attention.
+      const resolvedByAnchor = anchor && anchor.quality !== 'derived' &&
+        note.sourceId === anchor.sourceId && note.at === anchor.at && note.residualLiters !== null;
+      return !resolvedByAnchor;
+    }),
     capacityNotes: balance.notes.filter(aboutCapacity),
   };
 }

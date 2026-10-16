@@ -10,7 +10,7 @@
  */
 
 /** Bumped whenever a change would alter a cached estimate. */
-export const TANK_MODEL_VERSION = 1;
+export const TANK_MODEL_VERSION = 2;
 
 /**
  * The provenance boundary.

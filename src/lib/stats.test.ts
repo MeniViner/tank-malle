@@ -547,22 +547,22 @@ describe("resolvePricePerLiter", () => {
     }, prices);
     expect(result).toMatchObject({
       price: 7.07,
-      source: "legacyAdjusted",
+      source: "personalDiscount",
       fromHistory: true,
       fuelType: "95",
     });
   });
 
-  it("lets a vehicle-level manual price override the official chain", () => {
+  it("ignores a fixed legacy price while retaining an explicit relative discount", () => {
     const result = resolvePricePerLiter(new Date("2026-01-15").getTime(), {
       priceAdjustment: -0.05,
       manualPricePerLiter: 6.8,
       fuelType: "95",
     }, prices);
     expect(result).toMatchObject({
-      price: 6.8,
-      source: "legacyManual",
-      fromHistory: false,
+      price: 7.07,
+      source: "personalDiscount",
+      fromHistory: true,
       fuelType: "95",
     });
   });
@@ -607,15 +607,15 @@ describe("resolvePricePerLiter", () => {
     expect(result.source).toBe("unsupportedFuelType");
   });
 
-  it("still honours an explicit manual price for a diesel vehicle", () => {
+  it("does not reuse a stale vehicle price for diesel", () => {
     // The user's own figure is knowledge we have; the 95 ceiling is not.
     const result = resolvePricePerLiter(
       new Date("2026-01-15").getTime(),
       { priceAdjustment: 0, manualPricePerLiter: 6.4, fuelType: "diesel" },
       prices,
     );
-    expect(result.price).toBe(6.4);
-    expect(result.source).toBe("legacyManual");
+    expect(result.price).toBeNull();
+    expect(result.source).toBe("unsupportedFuelType");
   });
 });
 
