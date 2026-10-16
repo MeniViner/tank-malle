@@ -242,7 +242,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           }}
           disabled={step === "plate" && !canExit}
           aria-label="חזרה"
-          className="flex size-[40px] items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2 disabled:opacity-0"
+          className="flex size-[40px] items-center justify-center rounded-full text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2 disabled:opacity-0"
         >
           <ChevronStart size={18} />
         </button>
@@ -334,7 +334,7 @@ function PlateStep({
   return (
     <div className="flex flex-1 flex-col px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
-        <h1 className="text-[24px] font-bold text-ink">מה מספר הרכב?</h1>
+        <h1 className="font-display text-[30px] font-semibold text-ink">מה מספר הרכב?</h1>
         <p className="text-[14.5px] leading-relaxed text-muted">
           נאתר את פרטי הרכב אוטומטית ממאגר משרד התחבורה.
         </p>
@@ -495,7 +495,7 @@ function ConfirmStep({
             נמצא במאגר משרד התחבורה
           </span>
         ) : null}
-        <h1 className="text-[24px] font-bold text-ink">
+        <h1 className="font-display text-[30px] font-semibold text-ink">
           {draft.fromRegistry ? "זה הרכב שלך?" : "פרטי הרכב"}
         </h1>
       </div>
@@ -803,7 +803,7 @@ function ExtrasStep({
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
         <div className="flex items-center gap-2">
-          <h1 className="text-[24px] font-bold text-ink">עוד כמה פרטים</h1>
+          <h1 className="font-display text-[30px] font-semibold text-ink">עוד כמה פרטים</h1>
           <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-muted">
             רשות
           </span>

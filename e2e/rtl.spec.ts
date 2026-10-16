@@ -114,7 +114,8 @@ test("chart tooltips carry the selected consumption unit, in both modes", async 
   // Switch the unit in settings and the whole section follows — title, axis,
   // average line and tooltip together, not the label alone.
   await page.goto("/settings");
-  // The unit control is a radiogroup, not plain buttons.
+  await page.getByRole("button", { name: /^יחידת צריכה/ }).click();
+  // The unit control is a radiogroup inside its sheet.
   await page
     .getByRole("radiogroup", { name: "יחידת צריכה" })
     .getByRole("radio", { name: "ל׳/100 ק״מ" })

@@ -28,7 +28,7 @@ test("F03: Settings withdraws every contribution and reports the server result",
   const { uid } = await signedInWithData(page);
   for (const suffix of ["", "__v1", "__archived", "__deleted"]) await setDocument(`benchmarks/${uid}${suffix}`, { modelKey: "x", fuelType: "95", year: 2020, avgKmPerLiter: 12, segments: 3, avgPricePerLiter: 7 });
   await page.goto("/settings");
-  await page.getByRole("switch", { name: "השוואה אנונימית" }).click();
+  await page.getByRole("switch", { name: "שיתוף נתוני השוואה" }).click();
   await expect(page.getByText("השיתוף כבוי. נתוני ההשוואה שלכם הוסרו מהשרת.")).toBeVisible();
   expect((await listDocuments("benchmarks")).filter((d) => d.id.startsWith(uid))).toHaveLength(0);
   expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({ shareBenchmarks: false });
@@ -176,10 +176,19 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   const tankContent = readFileSync((await (await tankDownload).path())!, "utf8");
   expect(tankContent).toContain("observation,o1,v2,");
   expect(tankContent).toContain("200100,0.5");
-  // The active-vehicle settings use the same explicit, separate gestures.
-  await page.goto("/settings");
-  await expect(page.getByRole("button", { name: /^ייצוא תדלוקים/ })).toBeVisible();
-  await expect(page.getByRole("button", { name: /^ייצוא עדכוני מיכל ונסיעות/ })).toBeVisible();
+  // Both scopes remain available after moving data tools into Profile.
+  await page.getByRole("button", { name: /^היקף הייצוא/ }).click();
+  const accountScope = page.getByRole("radio", { name: "כל הרכבים, כולל הארכיון", exact: true });
+  await accountScope.focus();
+  await accountScope.press("ArrowDown");
+  await expect(page.getByRole("button", { name: /^היקף הייצוא/ })).toContainText("הרכב הפעיל");
+  const activeDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
+  const activeContent = readFileSync((await (await activeDownload).path())!, "utf8");
+  expect(activeContent).toContain(",v1,"); expect(activeContent).not.toContain(",v2,");
+  await page.getByRole("button", { name: /^ייבוא נתונים/ }).click();
+  await expect(page).toHaveURL(/settings\/import$/);
+
 });
 
 test("F07: a rejected tank-capacity confirmation never claims success and retries", async ({ page }) => {
@@ -216,12 +225,15 @@ test("F09/F12: unknown stays unknown and a draft survives navigation and reload"
 test("F13/F14: modal focus and segmented keyboard navigation", async ({ page }) => {
   await signedInWithData(page);
   await page.goto("/settings");
-  const group = page.getByRole("radiogroup").first();
+  await page.getByRole("button", { name: /^ערכת נושא/ }).click();
+  const group = page.getByRole("radiogroup", { name: "ערכת נושא" });
   const selected = group.getByRole("radio", { checked: true });
   await selected.focus();
   await page.keyboard.press("ArrowLeft");
   await expect(group.getByRole("radio", { checked: true })).toBeFocused();
   await expect(group.locator('[tabindex="0"]')).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: /^ערכת נושא/ })).toBeFocused();
   await page.goto("/settings/profile");
   await page.getByRole("button", { name: "מחיקת חשבון", exact: true }).click();
   const modal = page.getByRole("alertdialog", { name: "למחוק את החשבון?" });

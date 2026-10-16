@@ -5,13 +5,16 @@ import { AppMark, GoogleMark } from '../components/icons';
 
 export function SignIn() {
   const { signIn, signingIn, error } = useAuth();
-  return <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg px-7 pb-safe pt-safe">
-    <div className="flex flex-1 flex-col justify-center py-12">
-      <span className="mb-7 flex size-16 items-center justify-center rounded-[18px] bg-accent text-accent-contrast"><AppMark size={35} /></span>
-      <h1 className="text-[42px] font-semibold leading-tight text-ink">טנק מלא</h1>
-      <p className="mt-3 text-[20px] leading-relaxed text-muted">צריכה, הוצאות ומצב המיכל.<br />כל התדלוקים במקום אחד.</p>
-      <div className="mt-12 flex flex-col gap-4">
-        <button type="button" disabled={signingIn} onClick={() => void signIn()} className="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-[14px] border border-line bg-surface px-4 text-[17px] font-semibold text-ink shadow-card transition-colors hover:bg-surface-2 disabled:opacity-60">
+  return <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg pb-safe">
+    <div className="flex flex-1 flex-col">
+      <header className="flex min-h-[48dvh] flex-col justify-center bg-[#101416] px-6 pb-12 pt-safe text-[#e8ebec]">
+      <span className="mb-5 flex items-center gap-2 text-[#4fd3bc]"><AppMark size={24} /><span className="text-[15px] font-bold text-[#e8ebec]">טנק מלא</span></span>
+      <h1 className="font-display text-[36px] font-semibold leading-tight">כל תדלוק, כל שקל,<br />כל ק״מ — במקום אחד</h1>
+      <p className="mt-3 text-[20px] leading-relaxed text-[#959ca1]">צריכת דלק אמיתית, הוצאה חודשית,<br />והערכת מצב המיכל.</p>
+      </header>
+      <div className="-mt-4 flex flex-1 flex-col gap-5 rounded-t-sheet bg-bg px-6 py-8">
+        <p className="py-5 text-center text-[14px] text-muted">זיהוי תחנה · איתור לפי לוחית · מחיר דלק מעודכן</p>
+        <button type="button" disabled={signingIn} onClick={() => void signIn()} className="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-control bg-[#14171a] px-4 text-[17px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
           {signingIn ? <Spinner /> : <GoogleMark size={22} />}
           {signingIn ? 'מתחברים…' : 'התחברות עם Google'}
         </button>
@@ -19,7 +22,7 @@ export function SignIn() {
         <p className="text-center text-[14px] text-muted">הנתונים נשמרים בחשבון שלך.</p>
       </div>
     </div>
-    <footer className="flex items-center justify-center gap-5 py-6 text-[14px] text-muted">
+    <footer className="flex items-center justify-center gap-5 px-6 py-6 text-[14px] text-muted">
       <Link className="flex min-h-[44px] items-center" to="/legal/privacy">פרטיות</Link>
       <Link className="flex min-h-[44px] items-center" to="/legal/terms">תנאי שימוש</Link>
     </footer>

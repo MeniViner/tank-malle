@@ -16,7 +16,7 @@ export function TabBar({ canAddFillup }: { canAddFillup: boolean }) {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[430px] flex-col border-t border-line bg-[color-mix(in_srgb,var(--surface)_95%,transparent)] pb-safe backdrop-blur-xl">
+    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[430px] flex-col border-t border-line bg-surface pb-safe">
       <div className="flex items-start px-1.5 pt-2">
         {TABS.slice(0, 2).map((tab) => (
           <Tab key={tab.to} {...tab} />
@@ -28,7 +28,7 @@ export function TabBar({ canAddFillup }: { canAddFillup: boolean }) {
             onClick={() => navigate("/fillup/new")}
             disabled={!canAddFillup}
             aria-label="תדלוק חדש"
-            className="-mt-[38px] flex size-[58px] items-center justify-center rounded-full bg-accent text-accent-contrast shadow-fab ring-[5px] ring-bg transition-[scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:brightness-[0.97] disabled:pointer-events-none disabled:opacity-45"
+            className="-mt-[24px] flex size-[56px] items-center justify-center rounded-full bg-accent text-accent-contrast shadow-fab ring-[4px] ring-bg transition-[scale,filter] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:brightness-[0.97] disabled:pointer-events-none disabled:opacity-45"
           >
             <PumpIcon size={26} />
           </button>

@@ -226,7 +226,7 @@ export function Statistics() {
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <header className="flex flex-none items-center justify-between gap-2 px-5 pb-3 pt-4">
-        <h1 className="text-[22px] font-bold text-ink">סטטיסטיקות</h1>
+        <h1 className="font-display text-[30px] font-semibold text-ink">סטטיסטיקות</h1>
         {/* A loose vehicle name floating in the header said nothing and had no
             affordance. With one vehicle it is redundant; with several it needs
             to be a control, so that is what it is. */}
@@ -246,7 +246,7 @@ export function Statistics() {
           scrolling — the old rail clipped its last tab off the edge. */}
       <nav
         aria-label="מדורי סטטיסטיקה"
-        className="grid flex-none grid-cols-4 gap-1.5 px-5 pb-3"
+        className="mx-5 mb-4 grid flex-none grid-cols-4 gap-1 rounded-control bg-surface-2 p-1"
       >
         {SECTIONS.map((entry) => (
           <button
@@ -254,10 +254,10 @@ export function Statistics() {
             type="button"
             aria-current={section === entry.value ? "page" : undefined}
             onClick={() => setSection(entry.value)}
-            className={`min-h-[34px] rounded-pill px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[42px] rounded-[8px] px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
               section === entry.value
-                ? "bg-accent text-accent-contrast"
-                : "bg-surface-2 text-muted"
+                ? "bg-surface text-ink"
+                : "text-muted"
             }`}
           >
             {entry.label}
@@ -303,15 +303,16 @@ export function Statistics() {
           <>
             {section === "costs" ? (
               <>
-                <div className="flex gap-3">
+                <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
+
                   <SummaryCard label={range.compactLabel} value={shekel(spend.total)} />
                   <SummaryCard
                     label="ליטרים"
                     value={num(spend.liters, 1)}
                     unit="ל׳"
                   />
-                </div>
-                <div className="flex gap-3">
+
+
                   <SummaryCard
                     label="ממוצע שבועי"
                     value={spend.perWeek !== null ? shekel(spend.perWeek) : "—"}
@@ -320,13 +321,15 @@ export function Statistics() {
                     label="ממוצע חודשי"
                     value={spend.perMonth !== null ? shekel(spend.perMonth) : "—"}
                   />
-                </div>
-                <div className="flex gap-3">
+
+
                   <SummaryCard label="מתחילת השנה" value={shekel(spend.yearToDate)} />
                   <SummaryCard
                     label="עלות ל־100 ק״מ"
                     value={rangeCostPerKm !== null ? shekel(rangeCostPerKm * 100) : "—"}
                   />
+
+
                 </div>
 
                 <Segmented
@@ -342,7 +345,7 @@ export function Statistics() {
                     <XAxis {...xAxis} />
                     <YAxis {...yAxis} width={44} />
                     <Tooltip content={<ChartTooltip currency />} />
-                    <Bar
+                    <Bar isAnimationActive={false}
                       dataKey="cost"
                       fill="var(--accent)"
                       radius={[6, 6, 0, 0]}
@@ -405,7 +408,7 @@ export function Statistics() {
                         strokeWidth={1.5}
                       />
                     ) : null}
-                    <Line
+                    <Line isAnimationActive={false}
                       type="monotone"
                       dataKey="value"
                       stroke="var(--accent)"
@@ -457,7 +460,7 @@ export function Statistics() {
                     <XAxis {...xAxis} />
                     <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
                     <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
-                    <Area
+                    <Area isAnimationActive={false}
                       type="monotone"
                       dataKey="odometer"
                       stroke="var(--accent)"
@@ -516,7 +519,7 @@ export function Statistics() {
                     <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
                     <Tooltip content={<ChartTooltip currency />} />
                     {hasOfficialLine ? (
-                      <Line
+                      <Line isAnimationActive={false}
                         type="monotone"
                         dataKey="official"
                         stroke="var(--muted)"
@@ -525,7 +528,7 @@ export function Statistics() {
                         dot={false}
                       />
                     ) : null}
-                    <Line
+                    <Line isAnimationActive={false}
                       type="monotone"
                       dataKey="paid"
                       stroke="var(--accent)"
@@ -540,7 +543,7 @@ export function Statistics() {
                     <Label className="text-[14px]">
                       מול המחיר הרשמי בתאריכי התדלוקים
                     </Label>
-                    <Num className="text-[22px] font-bold leading-tight text-ink">
+                    <Num className="font-display text-[26px] font-semibold leading-tight text-ink">
                       {shekelSigned(stats.avgPriceVsOfficial)}
                     </Num>
                     <span className="text-[14px] text-muted">
@@ -590,7 +593,7 @@ export function Statistics() {
                 <div className="flex gap-3">
                   <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
                     <Label className="text-[14px]">התדלוק היקר ביותר</Label>
-                    <Num className="text-[22px] font-bold leading-tight text-ink">
+                    <Num className="font-display text-[26px] font-semibold leading-tight text-ink">
                       {stats.records.mostExpensive
                         ? shekel(stats.records.mostExpensive.totalCost)
                         : "—"}
@@ -607,7 +610,7 @@ export function Statistics() {
                   <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
                     <Label className="text-[14px]">החודש החסכוני</Label>
                     <span className="flex items-baseline gap-1.5">
-                      <Num className="text-[22px] font-bold leading-tight text-accent">
+                      <Num className="font-display text-[26px] font-semibold leading-tight text-accent">
                         {stats.records.mostEconomicalMonth?.kmPerLiter != null
                           ? String(toUnit(stats.records.mostEconomicalMonth.kmPerLiter))
                           : "—"}
@@ -1001,7 +1004,7 @@ function PeerSection({
           <XAxis {...xAxis} />
           <YAxis {...yAxis} width={28} allowDecimals={false} />
           <Tooltip content={<ChartTooltip suffix=" נהגים" digits={0} />} />
-          <Bar dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
+          <Bar isAnimationActive={false} dataKey="count" radius={[6, 6, 0, 0]} maxBarSize={40}>
             {distribution.map((bucket, index) => (
               <Cell
                 key={index}
@@ -1027,7 +1030,7 @@ function PeerSection({
             width={78}
           />
           <Tooltip content={<ChartTooltip suffix={` ${unitLabel}`} />} />
-          <Bar dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22}>
+          <Bar isAnimationActive={false} dataKey="value" radius={[0, 6, 6, 0]} maxBarSize={22}>
             {versus.map((row, index) => (
               <Cell key={index} fill={row.isYou ? "var(--accent)" : "var(--surface-2)"} />
             ))}
@@ -1130,9 +1133,9 @@ function ChartCard({
   children: React.ReactElement;
 }) {
   return (
-    <Card className="flex flex-col gap-2 p-4">
+    <section className="flex flex-col gap-3 py-3">
       <div className="flex items-center justify-between gap-3">
-        <Label>{title}</Label>
+        <h2 className="text-[19px] font-bold text-ink">{title}</h2>
         {legend ? <span className="flex items-center gap-3">{legend}</span> : null}
       </div>
       <div className="h-[168px] w-full" dir="ltr">
@@ -1140,7 +1143,7 @@ function ChartCard({
           {children}
         </ResponsiveContainer>
       </div>
-    </Card>
+    </section>
   );
 }
 
@@ -1225,7 +1228,7 @@ function SummaryCard({
       <Label className="text-[14px]">{label}</Label>
       <span className="flex items-baseline gap-1.5">
         <Num
-          className={`text-[22px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}
+          className={`font-display text-[26px] font-semibold leading-tight ${accent ? "text-accent" : "text-ink"}`}
         >
           {value}
         </Num>

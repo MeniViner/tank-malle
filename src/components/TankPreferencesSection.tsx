@@ -23,7 +23,7 @@ import { levelLabel } from "../lib/tank/gaugeInteraction";
  * Automatic learning is the default. Turning the override on is a choice, and
  * turning it back off returns to learning without losing anything.
  */
-export function TankPreferencesSection() {
+export function TankPreferencesSection({ embedded = false }: { embedded?: boolean }) {
   const { activeVehicle, tankPreferences, updateTankPreferences } = useData();
   const { showToast } = useToast();
   const { estimate } = useTankEstimate();
@@ -37,10 +37,8 @@ export function TankPreferencesSection() {
   const overridden = tankPreferences.refuelLevelOverride !== null;
   const habit = estimate.habit;
 
-  return (
-    <section className="flex flex-col gap-2">
-      <Label>מעקב מיכל</Label>
-      <Card className="overflow-hidden">
+  const rows = (
+    <>
         <RowButton
           icon={
             <IconTile tone="muted">
@@ -55,7 +53,7 @@ export function TankPreferencesSection() {
           onClick={() => setReserveOpen(true)}
         />
 
-        <div className="flex items-center gap-2 p-4 pe-3">
+        <div className="flex min-h-[58px] items-center gap-2 px-4 py-3">
           <span className="flex flex-1 flex-col gap-0.5">
             <span className="text-[15px] font-semibold text-ink">
               התאמה אישית אוטומטית
@@ -91,7 +89,12 @@ export function TankPreferencesSection() {
           subtitle="התדלוקים נשמרים — רק הלמידה מתחילה מחדש"
           onClick={() => setConfirmReset(true)}
         />
-      </Card>
+    </>
+  );
+
+  return (
+    <>
+      {embedded ? rows : <section className="flex flex-col gap-2"><Label>מעקב מיכל</Label><Card className="overflow-hidden">{rows}</Card></section>}
 
       {/* Mounted only while open, so the gauge always starts from the stored
           value rather than from whatever was last dragged and abandoned. */}
@@ -111,8 +114,8 @@ export function TankPreferencesSection() {
       {overrideOpen ? (
       <LevelSheet
         onClose={() => setOverrideOpen(false)}
-        title="רמת תדלוק מועדפת"
-        description="קביעה ידנית מחליפה את הלמידה האוטומטית. אפשר לחזור ללמידה בכל רגע."
+        title="מתי לתדלק"
+        description="כמה דלק נשאר במיכל כשאתם בדרך כלל מתדלקים. קביעה ידנית מחליפה את הלמידה; אפשר לחזור ללמידה בכל רגע."
         initial={tankPreferences.refuelLevelOverride ?? habit.typicalLevel}
         onSave={(level) => {
           void updateTankPreferences({ refuelLevelOverride: level });
@@ -134,7 +137,7 @@ export function TankPreferencesSection() {
         }}
         onCancel={() => setConfirmReset(false)}
       />
-    </section>
+    </>
   );
 }
 
@@ -169,7 +172,7 @@ function LevelSheet({
             onSave(level);
             onClose();
           }}
-          className="min-h-[52px] w-full rounded-pill bg-accent text-[16px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97]"
+          className="min-h-[52px] w-full rounded-control bg-accent text-[16px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97]"
         >
           שמירה
         </button>

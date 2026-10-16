@@ -260,7 +260,7 @@ export function Admin() {
   if (!isAdmin) {
     return (
       <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-        <ScreenHeader title="ניהול" onBack={() => navigate("/")} />
+        <ScreenHeader title="לוח בקרה" onBack={() => navigate("/")} />
         <div className="px-5">
           <Card className="flex flex-col items-center gap-3 px-7 py-12 text-center">
             <IconTile tone="danger">
@@ -280,7 +280,7 @@ export function Admin() {
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <ScreenHeader
-        title="ניהול"
+        title="לוח בקרה"
         onBack={() => navigate("/settings")}
         trailing={
           <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-[13px] font-bold text-accent">
@@ -290,7 +290,7 @@ export function Admin() {
       />
 
       {/* Four sections, one at a time. */}
-      <nav aria-label="מדורי ניהול" className="sticky top-0 z-10 grid flex-none grid-cols-4 gap-1 border-b border-line bg-bg/95 px-3 py-2 backdrop-blur min-[400px]:px-5">
+      <nav aria-label="מדורי ניהול" className="sticky top-0 z-10 mx-3 mb-4 grid flex-none grid-cols-4 gap-1 rounded-control bg-surface-2 p-1 min-[400px]:mx-5">
         {ADMIN_TABS.map((entry) => (
           <button
             key={entry.value}
@@ -299,8 +299,8 @@ export function Admin() {
             onClick={() => setTab(entry.value)}
             className={`min-h-[48px] rounded-[10px] px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
               tab === entry.value
-                ? "bg-accent text-accent-contrast"
-                : "bg-surface-2 text-muted"
+                ? "bg-surface text-ink"
+                : "text-muted"
             }`}
           >
             {entry.label}
@@ -1417,7 +1417,7 @@ function StatTile({
         {icon}
         <Label className="text-[14px]">{label}</Label>
       </span>
-      <Num className={`text-[22px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
+      <Num className={`font-display text-[26px] font-semibold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
         {value}
       </Num>
       {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}

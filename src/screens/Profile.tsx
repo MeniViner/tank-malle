@@ -5,24 +5,17 @@ import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { ScreenHeader } from "../components/AppHeader";
 import { Avatar } from "../components/Avatar";
-import { Card, IconTile, Label } from "../components/Card";
+import { IconTile, Label, ListCard } from "../components/Card";
 import { RowButton } from "../components/Button";
-import { ConfirmDialog } from "../components/Sheet";
-import { downloadAllVehiclesCsv, downloadTankUpdatesCsv } from "../lib/csv";
+import { ConfirmDialog, Sheet } from "../components/Sheet";
+import { downloadAllVehiclesCsv, downloadFillupsCsv, downloadTankUpdatesCsv } from "../lib/csv";
 import { Num } from "../components/Num";
 import { loadAccountExport, accountTotals, type AccountExport } from "../lib/accountExport";
 import { db } from "../lib/firebase";
 import { fullDate, loginMoment, num, price, shekel } from "../lib/format";
-import { DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon } from "../components/icons";
+import { ChevronStart, DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon, UploadIcon } from "../components/icons";
 
-/**
- * Profile & account.
- *
- * Identity sits on the same dark hero card the home screen uses, so the two
- * "who/what am I looking at" surfaces read as one family, and the lifetime
- * totals below it are the same stat-card pair. Account SETTINGS are not here —
- * this screen states who you are and what you have logged.
- */
+/** Account identity, data tools and guarded account actions. */
 export function Profile() {
   const navigate = useNavigate();
   const { user, signOutUser, isAdmin, previousLoginAt } = useAuth();
@@ -33,7 +26,9 @@ export function Profile() {
   // writes count too, because the Firestore cache is shared.
   const [deviceState, setDeviceState] = useState<"none" | "some" | "unknown" | null>(null);
   const [clearLocal, setClearLocal] = useState(false);
-  const { vehicles, deleteAccount, accountDeletionPending } = useData();
+  const { vehicles, activeVehicle, fillups, observations, plans, deleteAccount, accountDeletionPending } = useData();
+  const [exportScope, setExportScope] = useState<"account" | "active">("account");
+  const [scopeOpen, setScopeOpen] = useState(false);
   const uid = user?.uid;
   const [accountData, setAccountData] = useState<AccountExport | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -67,8 +62,19 @@ export function Profile() {
     finally { setExporting(false); }
   }
 
-  // Firebase records the real account creation time; fall back to the oldest
-  // record we hold if the metadata is unavailable.
+  function exportSelected(kind: "fillups" | "tank") {
+    if (exportScope === "account") { void exportAll(kind); return; }
+    if (!activeVehicle || exporting) return;
+    if (kind === "fillups" ? !fillups.length : !observations.length && !plans.length) {
+      showToast({ tone: "info", title: "אין עדיין נתונים מהסוג הזה לייצוא" }); return;
+    }
+    if (kind === "fillups") downloadFillupsCsv(fillups, activeVehicle);
+    else downloadTankUpdatesCsv(observations, plans);
+    showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
+  }
+  const scopeLabel = exportScope === "account" ? "כל הרכבים, כולל הארכיון" : "הרכב הפעיל";
+
+  // Firebase records the real account creation time; missing metadata stays unknown.
   const joinedAt = user?.metadata?.creationTime
     ? new Date(user.metadata.creationTime).getTime()
     : null;
@@ -130,22 +136,22 @@ export function Profile() {
 
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-      <ScreenHeader title="פרופיל" onBack={() => navigate(-1)} />
+      <ScreenHeader title="פרופיל וחשבון" onBack={() => navigate(-1)} />
 
       <div className="flex flex-col gap-4 px-5">
         {accountDeletionPending ? <p role="alert" className="rounded-card bg-danger/10 p-4 text-sm text-danger">מחיקת החשבון ממתינה להשלמה. הנתונים שכבר נמחקו לא ישוחזרו; ניתן לנסות שוב דרך מחיקת החשבון למטה. אם הפעולה נעצרה, רעננו תחילה.</p> : null}
-        <section className="tm-rise flex flex-col gap-3.5 rounded-hero bg-hero p-[16px_18px_15px] text-hero-ink shadow-raised">
+        <section className="tm-rise flex flex-col gap-3.5 py-2 text-ink">
           <div className="flex items-center gap-3.5">
             <Avatar name={user?.displayName} photoURL={user?.photoURL} size={62} />
             <div className="flex min-w-0 flex-col items-start gap-1">
-              <span className="truncate text-[21px] font-bold leading-tight">
+              <span className="truncate font-display text-[28px] font-semibold leading-tight">
                 {user?.displayName ?? "משתמש"}
               </span>
-              <span dir="ltr" className="max-w-full truncate text-[13px] text-hero-muted">
+              <span dir="ltr" className="max-w-full truncate text-[13px] text-muted">
                 {user?.email}
               </span>
               {isAdmin ? (
-                <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-pill bg-hero-soft px-2.5 py-1 text-[13px] font-bold">
+                <span className="mt-0.5 inline-flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-[13px] font-bold">
                   <ShieldIcon size={13} />
                   מנהל מערכת
                 </span>
@@ -153,7 +159,7 @@ export function Profile() {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-hero-line pt-3 text-[12px] text-hero-muted">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-3 text-[12px] text-muted">
             <span>חבר מאז {joinedAt ? fullDate(joinedAt) : "—"}</span>
             <span>
               {previousLoginAt === undefined
@@ -205,15 +211,16 @@ export function Profile() {
 
         <section className="flex flex-col gap-2">
           <Label>פרטי חשבון</Label>
-          <Card className="overflow-hidden">
+          <ListCard>
             <DetailRow label="שיטת התחברות" value="חשבון Google" badge="מחובר" />
             {isAdmin ? <DetailRow label="הרשאות" value="מנהל מערכת" badge="אדמין" /> : null}
-          </Card>
+          </ListCard>
         </section>
 
         <section className="flex flex-col gap-2">
           <Label>הנתונים שלי</Label>
-          <Card className="overflow-hidden">
+          <ListCard>
+            <RowButton title="היקף הייצוא" value={scopeLabel} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setScopeOpen(true)} />
             <RowButton
               icon={
                 <IconTile tone="muted">
@@ -221,21 +228,25 @@ export function Profile() {
                 </IconTile>
               }
               title="ייצוא תדלוקים"
-              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : "CSV · כל הרכבים, כולל הארכיון"}
-              onClick={() => void exportAll("fillups")}
+              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : `CSV · ${scopeLabel}`}
+              disabled={exporting || (exportScope === "active" && !activeVehicle)}
+              onClick={() => exportSelected("fillups")}
             />
             <RowButton
               icon={<IconTile tone="muted"><DownloadIcon size={18} /></IconTile>}
               title="ייצוא עדכוני מיכל ונסיעות"
-              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : "CSV נפרד · כל הרכבים, כולל הארכיון"}
-              onClick={() => void exportAll("tank")}
+              subtitle={exporting ? "טוען נתונים מכל הרכבים…" : `CSV נפרד · ${scopeLabel}`}
+              disabled={exporting || (exportScope === "active" && !activeVehicle)}
+              onClick={() => exportSelected("tank")}
             />
-          </Card>
+            <RowButton icon={<UploadIcon size={18} className="text-muted" />} title="ייבוא נתונים" subtitle="CSV או Excel · גם יומנים ישנים" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/import")} />
+            <RowButton title="פעולות שלא סונכרנו" value={healthUnknown ? "מצב האחסון לא ידוע" : unsynced > 0 ? "יש פעולות לטיפול" : "הכול מסונכרן"} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/unsynced")} />
+          </ListCard>
         </section>
 
-        <Card className="overflow-hidden">
-          {/* Signing out clears the local session and cache, so the next
-              sign-in — with this account or another — starts clean. */}
+        <ListCard>
+          {/* Local data is preserved unless the user explicitly requests clearing,
+              after the existing device-wide pending-write checks pass. */}
           <RowButton
             icon={
               <IconTile tone="muted">
@@ -262,14 +273,14 @@ export function Profile() {
             onClick={() => setDeleteStep(1)}
             disabled={deleting}
           />
-        </Card>
+        </ListCard>
 
         <p className="px-1 pb-2 text-[14px] leading-relaxed text-muted">
           מחיקת חשבון היא פעולה בלתי הפיכה — כל הרכבים, התדלוקים והנתונים יימחקו לצמיתות.
         </p>
       </div>
 
-      <p className="px-1 text-[12px] leading-relaxed text-muted/80">
+      <p className="px-5 pt-3 text-[12px] leading-relaxed text-muted/80">
         השימוש כפוף{" "}
         <button
           type="button"
@@ -288,6 +299,17 @@ export function Profile() {
         </button>
         .
       </p>
+
+      <Sheet open={scopeOpen} onClose={() => setScopeOpen(false)} title={<h2 className="text-[18px] font-bold">היקף הייצוא</h2>}>
+        <div role="radiogroup" aria-label="היקף הייצוא" className="flex flex-col">
+          {(["account", "active"] as const).map((scope) => (
+            <label key={scope} className="flex min-h-[52px] cursor-pointer items-center justify-between gap-3 px-3 text-[16px]">
+              <span>{scope === "account" ? "כל הרכבים, כולל הארכיון" : "הרכב הפעיל"}</span>
+              <input type="radio" name="export-scope" value={scope} checked={exportScope === scope} className="size-5 accent-accent" onChange={() => { setExportScope(scope); setScopeOpen(false); }} />
+            </label>
+          ))}
+        </div>
+      </Sheet>
 
       <ConfirmDialog
         open={confirmSignOut}
@@ -373,14 +395,14 @@ function MetricCard({
   meta?: string;
 }) {
   return (
-    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-3">
       <Label className="text-[14px]">{label}</Label>
       <span className="flex items-baseline gap-1.5">
-        <Num className="text-[24px] font-bold leading-tight text-ink">{value}</Num>
+        <Num className="font-display text-[30px] font-semibold leading-tight text-ink">{value}</Num>
         {unit ? <span className="text-[12px] text-muted">{unit}</span> : null}
       </span>
       {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
-    </Card>
+    </div>
   );
 }
 

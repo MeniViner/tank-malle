@@ -128,7 +128,7 @@ for (const oldCache of [false, true]) {
 
 test("home renders a continuous area in light and dark themes", async ({ page }, testInfo) => {
   await signedInWithData(page, { fillups: RECORDS });
-  const hero = page.locator("section.bg-hero");
+  const hero = page.getByTestId("consumption-summary");
   const svg = hero.locator("svg[viewBox='0 0 100 40']");
   await expect(svg).toBeVisible();
   const curve = await svg.locator("path").nth(2).getAttribute("d");

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
 import { AppHeader } from "../components/AppHeader";
-import { Card, Label, SectionTitle, Skeleton } from "../components/Card";
+import { Card, Label, ListCard, SectionTitle, Skeleton } from "../components/Card";
 import { MyTankCard } from "../components/MyTankCard";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
@@ -23,14 +23,7 @@ import {
   shekel,
 } from "../lib/format";
 
-/**
- * Home dashboard.
- *
- * One dark hero card carries the single number the screen exists for, two
- * light cards under it carry the supporting pair, and the recent fill-ups are
- * a timeline rather than a boxed list — so the eye lands on the consumption
- * first and everything else reads as context to it.
- */
+/** Consumption first, followed by current costs, tank guidance and recent records. */
 export function Home() {
   const { settings, fillups, loadingFillups } = useData();
   const stats = useStats();
@@ -70,20 +63,19 @@ export function Home() {
           <HomeSkeleton />
         ) : (
           <>
-            <MyTankCard />
             {/* Hero: the last measured consumption, the personal average, and
                 which of the two is the more economical result. */}
-            <section className="tm-rise flex flex-col gap-3 rounded-hero bg-hero p-[16px_18px_17px] text-hero-ink shadow-raised">
+            <section data-testid="consumption-summary" className="tm-rise flex flex-col gap-2.5 py-2 text-ink">
               <div className="flex items-start justify-between gap-2">
                 <span className="flex flex-none items-center">
-                  <Label className="text-hero-muted">צריכה אחרונה</Label>
+                  <Label className="text-muted">צריכה אחרונה</Label>
                   <button
                     type="button"
                     aria-label="מה המספרים האלה"
                     aria-haspopup="dialog"
                     aria-expanded={explainerOpen}
                     onClick={() => setExplainerOpen(true)}
-                    className="flex size-9 items-center justify-center rounded-full text-hero-muted transition-[color,scale] duration-200 active:scale-[0.96]"
+                    className="flex size-9 items-center justify-center rounded-full text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
                   >
                     <InfoIcon size={15} />
                   </button>
@@ -91,12 +83,12 @@ export function Home() {
 
                 {comparison ? (
                   <span
-                    className={`mt-1 inline-flex items-center gap-1.5 rounded-pill bg-hero-soft px-[11px] py-1 text-[12px] font-semibold ${
+                    className={`mt-1 inline-flex items-center gap-1.5 rounded-pill px-1 py-1 text-[12px] font-semibold ${
                       comparison.outcome === "better"
-                        ? "text-hero-good"
+                        ? "text-success-ink"
                         : comparison.outcome === "worse"
-                          ? "text-hero-bad"
-                          : "text-hero-muted"
+                          ? "text-danger-ink"
+                          : "text-muted"
                     }`}
                   >
                     {comparison.outcome === "better" ? (
@@ -110,28 +102,28 @@ export function Home() {
               </div>
 
               <span className="flex items-baseline gap-2">
-                <Num className="text-[44px] font-semibold leading-none tracking-[-0.01em]">
+                <Num className="font-display text-[64px] font-medium leading-none tracking-[-0.03em]">
                   {hero.value}
                 </Num>
-                <span className="text-[15px] font-semibold text-hero-muted">{hero.unit}</span>
+                <span className="text-[15px] font-semibold text-muted">{hero.unit}</span>
               </span>
 
               <HeroSpark segments={stats.segments} />
 
               {stats.avgKmPerLiter !== null ? (
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-hero-line pt-3 text-[14px]">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-3 text-[14px]">
                   <span>
                     ממוצע כולל <Num className="font-semibold">{average.value}</Num>{" "}
                     {average.unit}
                   </span>
-                  <span className="text-hero-muted">
+                  <span className="text-muted">
                     מבוסס על <Num>{stats.segments.length}</Num>{" "}
                     {stats.segments.length === 1 ? "מקטע" : "מקטעים"} ·{" "}
                     <Num>{stats.records.fillupCount}</Num> תדלוקים
                   </span>
                 </div>
               ) : (
-                <div className="border-t border-hero-line pt-3 text-[14px] text-hero-muted">
+                <div className="border-t border-line pt-3 text-[14px] text-muted">
                   הצריכה תחושב אחרי שני תדלוקים
                 </div>
               )}
@@ -139,17 +131,12 @@ export function Home() {
               <OpenSegmentNote stats={stats} />
             </section>
 
-            <div className="tm-rise flex gap-3" style={{ animationDelay: "70ms" }}>
+            <div className="tm-rise mb-2 flex gap-5 border-y border-line py-4 [&>*+*]:border-s [&>*+*]:border-line [&>*+*]:ps-5" style={{ animationDelay: "70ms" }}>
               <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
               <FuelPriceCard />
             </div>
 
-            {/* Full width: the estimate, both thresholds, the personalised
-                sentence and two actions do not fit in half a row. The old
-                full-tank range strip is gone — this card carries the range that
-                matters, which is the one to the refuelling threshold rather
-                than to an empty tank. */}
-
+            <MyTankCard />
 
             <SectionTitle
               action={
@@ -174,24 +161,14 @@ export function Home() {
                 </span>
               </Card>
             ) : (
-              /* A timeline, not a list card: the rail runs down the end edge
-                 and each record hangs off its own node, newest at the top. */
-              <div
-                className="tm-rise relative flex flex-col"
-                style={{ animationDelay: "150ms" }}
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-y-6 end-[12px] w-px bg-line"
-                />
-
-                {recent.map((fillup, index) => {
+              <ListCard className="tm-rise" style={{ animationDelay: "150ms" }}>
+                {recent.map((fillup) => {
                   const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
                   return (
                     <Link
                       key={fillup.id}
                       to={`/fillup/${fillup.id}`}
-                      className="relative flex min-h-[58px] items-center gap-2.5 rounded-[16px] px-1 py-2.5 transition-[background-color] duration-150 active:bg-surface-2"
+                      className="flex min-h-[66px] items-center gap-2.5 px-4 py-3 transition-[background-color] duration-150 active:bg-surface-2"
                     >
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="truncate text-[15px] font-semibold text-ink">
@@ -216,22 +193,10 @@ export function Home() {
                         />
                       ) : null}
 
-                      {/* The node sits on the rail; its ring in the page
-                          background is what makes the line stop at the dot. */}
-                      <span
-                        aria-hidden="true"
-                        className="flex w-[24px] flex-none justify-center"
-                      >
-                        <span
-                          className={`size-[9px] rounded-full ring-4 ring-bg ${
-                            index === 0 ? "bg-accent" : "border border-line bg-surface"
-                          }`}
-                        />
-                      </span>
                     </Link>
                   );
                 })}
-              </div>
+              </ListCard>
             )}
           </>
         )}
@@ -276,14 +241,14 @@ function MonthSpendCard({
   const month = stats.currentMonth;
 
   return (
-    <Card className="flex min-w-0 flex-1 flex-col gap-1.5 p-[14px_16px]">
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
       <Label className="text-[14px]">הוצאה החודש</Label>
 
       {month ? (
         <>
           {/* dir="ltr" inside an RTL card left-aligns by default; the amount
               belongs on the card's start edge, which is the right. */}
-          <Num className="text-end text-[24px] font-bold leading-tight text-ink">
+          <Num className="text-end font-display text-[26px] font-semibold leading-tight text-ink">
             {shekel(month.cost)}
           </Num>
           <span className="text-[14px] text-muted">
@@ -299,7 +264,7 @@ function MonthSpendCard({
           </span>
         </>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -321,10 +286,10 @@ function FuelPriceCard() {
   const lookup = useMemo(() => officialPriceFor(prices, fuelType, today), [prices, fuelType, today]);
 
   return (
-    <Card className="flex min-w-0 flex-1 flex-col gap-1.5 p-[14px_16px]">
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
       <Label className="text-[14px]">מחיר דלק נוכחי</Label>
       <span className="flex flex-wrap items-baseline gap-x-1.5">
-        <Num className="text-[24px] font-bold leading-tight text-ink">
+        <Num className="font-display text-[26px] font-semibold leading-tight text-ink">
           {lookup.price !== null ? price(lookup.price) : "—"}
         </Num>
         {lookup.price !== null ? (
@@ -336,7 +301,7 @@ function FuelPriceCard() {
           ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
           : lookup.isRegulated ? '95 · שירות עצמי' : `${FUEL_TYPE_SHORT[fuelType]} · ידני`}
       </span>
-    </Card>
+    </div>
   );
 }
 
@@ -353,7 +318,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
   if (!open.hasBaseline) {
     if (stats.records.fillupCount === 0) return null;
     return (
-      <span className="text-[14px] text-hero-muted">
+      <span className="text-[14px] text-muted">
         עדיין אין נקודת התחלה. התדלוק הבא יפתח את החישוב.
       </span>
     );
@@ -362,7 +327,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
   if (open.pendingFillups === 0) return null;
 
   return (
-    <span className="text-[14px] text-hero-muted">
+    <span className="text-[14px] text-muted">
       במקטע הפתוח נשמרו <Quantity value={open.liters} digits={1} /> מ־
       <Num>{open.pendingFillups}</Num>{" "}
       {open.pendingFillups === 1 ? "תדלוק" : "תדלוקים"} — הם ייכללו בחישוב
