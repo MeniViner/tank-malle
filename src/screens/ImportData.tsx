@@ -281,14 +281,7 @@ export function ImportData() {
       <div className="flex flex-col gap-3 px-5 pb-10">
         {stage === "choose" || stage === "parsing" ? (
           <>
-            <Card className="flex flex-col gap-1 p-4">
-              <span className="text-[14px] leading-relaxed text-ink">
-                בחרו קובץ CSV או Excel. נראה לכם בדיוק מה ייובא לפני שנשמר משהו.
-              </span>
-              <span className="text-[14px] text-muted">
-                הקובץ נקרא במכשיר שלכם בלבד.
-              </span>
-            </Card>
+            <p className="text-[16px] leading-relaxed text-muted">מייבאים CSV או Excel. בודקים את התצוגה המקדימה ורק אז שומרים.</p>
 
             {activeVehicles.length === 0 ? (
               <Card className="flex flex-col gap-3 p-4">
@@ -321,7 +314,7 @@ export function ImportData() {
               ref={inputRef}
               type="file"
               accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              className="sr-only"
+              className="peer sr-only"
               disabled={activeVehicles.length === 0 || stage === "parsing"}
               onChange={(event) => {
                 const file = event.target.files?.[0];
@@ -334,7 +327,7 @@ export function ImportData() {
             <label
               htmlFor="import-file"
               aria-disabled={activeVehicles.length === 0}
-              className={`flex min-h-[52px] w-full items-center justify-center gap-2 rounded-pill bg-accent text-[16px] font-bold text-accent-contrast transition-[filter,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] active:brightness-[0.97] ${
+              className={`flex min-h-[150px] w-full flex-col items-center justify-center gap-2 rounded-card border-2 border-dashed border-line bg-surface text-[17px] font-bold text-accent transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2 peer-focus-visible:outline-2 peer-focus-visible:outline-accent ${
                 activeVehicles.length === 0 || stage === "parsing"
                   ? "pointer-events-none opacity-50"
                   : "cursor-pointer"
@@ -342,6 +335,7 @@ export function ImportData() {
             >
               {stage === "parsing" ? <Spinner size={18} /> : null}
               {stage === "parsing" ? "קורא את הקובץ…" : "בחירת קובץ"}
+              <span className="text-[13.5px] font-normal text-muted">CSV · Excel · הקובץ נקרא רק במכשיר</span>
             </label>
 
             <ImportHistory
@@ -421,7 +415,7 @@ function VehiclePicker({
       {/* A vehicle is never created from the file: the column that names one
           is import metadata, and the machine id in a Tank Maleh export only
           decides which existing vehicle is preselected. */}
-      <div className="flex flex-col gap-1.5">
+      <div className="tm-choice-list">
         {vehicles.map((vehicle) => (
           <button
             key={vehicle.id}
@@ -509,9 +503,9 @@ function PreviewStep({
         <Card className="flex flex-col gap-2 p-4">
           <Label>שורות שלא ייובאו</Label>
           {plan.rejected.slice(0, 8).map((entry) => (
-            <span key={entry.rowNumber} className="text-[14px] text-muted">
-              שורה <Num>{entry.rowNumber}</Num>: {entry.reason}
-            </span>
+            <div key={entry.rowNumber} className="flex items-start gap-3 border-t border-[var(--hairline)] py-2 text-[14px]">
+              <span className="flex-none text-danger-ink">שורה <Num>{entry.rowNumber}</Num></span><span className="text-muted">{entry.reason}</span>
+            </div>
           ))}
           {plan.rejected.length > 8 ? (
             <span className="text-[14px] text-muted">

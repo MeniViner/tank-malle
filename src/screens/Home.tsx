@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
 import { AppHeader } from "../components/AppHeader";
-import { Card, Label, ListCard, SectionTitle, Skeleton } from "../components/Card";
+import { Card, Label, SectionTitle, Skeleton } from "../components/Card";
 import { MyTankCard } from "../components/MyTankCard";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
@@ -12,6 +12,7 @@ import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
 import { officialPriceFor } from "../lib/prices/regulated";
+import { StationBrandMark } from "../components/StationBrand";
 import { HeroSpark } from "../components/HeroSpark";
 import {
   FUEL_TYPE_SHORT,
@@ -58,7 +59,7 @@ export function Home() {
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <AppHeader />
 
-      <div className="flex flex-col gap-3 px-5 pt-2.5">
+      <div className="tm-page">
         {loadingFillups ? (
           <HomeSkeleton />
         ) : (
@@ -75,7 +76,7 @@ export function Home() {
                     aria-haspopup="dialog"
                     aria-expanded={explainerOpen}
                     onClick={() => setExplainerOpen(true)}
-                    className="flex size-9 items-center justify-center rounded-full text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
+                    className="flex size-10 items-center justify-center rounded-full text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
                   >
                     <InfoIcon size={15} />
                   </button>
@@ -102,16 +103,16 @@ export function Home() {
               </div>
 
               <span className="flex items-baseline gap-2">
-                <Num className="font-display text-[64px] font-medium leading-none tracking-[-0.03em]">
+                <Num className="font-display text-[64px] font-bold leading-[0.88] tracking-[-0.03em]">
                   {hero.value}
                 </Num>
                 <span className="text-[15px] font-semibold text-muted">{hero.unit}</span>
               </span>
 
-              <HeroSpark segments={stats.segments} />
+              <HeroSpark segments={stats.segments} units={units} average={stats.avgKmPerLiter} />
 
               {stats.avgKmPerLiter !== null ? (
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-line pt-3 text-[14px]">
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[13.5px]">
                   <span>
                     ממוצע כולל <Num className="font-semibold">{average.value}</Num>{" "}
                     {average.unit}
@@ -131,8 +132,9 @@ export function Home() {
               <OpenSegmentNote stats={stats} />
             </section>
 
-            <div className="tm-rise mb-2 flex gap-5 border-y border-line py-4 [&>*+*]:border-s [&>*+*]:border-line [&>*+*]:ps-5" style={{ animationDelay: "70ms" }}>
+            <div className="tm-rise tm-statpair" style={{ animationDelay: "70ms" }}>
               <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
+              <span className="tm-statpair-divider" aria-hidden="true" />
               <FuelPriceCard />
             </div>
 
@@ -141,7 +143,7 @@ export function Home() {
             <SectionTitle
               action={
                 fillups.length > 0 ? (
-                  <Link to="/history" className="text-[14px] font-semibold text-accent">
+                  <Link to="/history" className="inline-flex min-h-10 items-center text-[14px] font-semibold text-accent">
                     לכל ההיסטוריה
                   </Link>
                 ) : null
@@ -161,15 +163,16 @@ export function Home() {
                 </span>
               </Card>
             ) : (
-              <ListCard className="tm-rise" style={{ animationDelay: "150ms" }}>
+              <div className="tm-timeline -mt-5" data-testid="recent-fillups-timeline">
                 {recent.map((fillup) => {
                   const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
                   return (
                     <Link
                       key={fillup.id}
                       to={`/fillup/${fillup.id}`}
-                      className="flex min-h-[66px] items-center gap-2.5 px-4 py-3 transition-[background-color] duration-150 active:bg-surface-2"
+                      className="tm-timeline-row"
                     >
+                      <StationBrandMark brand={fillup.station?.brand} name={fillup.station?.name} />
                       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="truncate text-[15px] font-semibold text-ink">
                           {fillup.station?.name || "ללא מיקום"}
@@ -196,7 +199,7 @@ export function Home() {
                     </Link>
                   );
                 })}
-              </ListCard>
+              </div>
             )}
           </>
         )}
@@ -242,13 +245,13 @@ function MonthSpendCard({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label className="text-[14px]">הוצאה החודש</Label>
+      <Label>הוצאה החודש</Label>
 
       {month ? (
         <>
           {/* dir="ltr" inside an RTL card left-aligns by default; the amount
               belongs on the card's start edge, which is the right. */}
-          <Num className="text-end font-display text-[26px] font-semibold leading-tight text-ink">
+          <Num className="self-start whitespace-nowrap font-display text-[26px] font-bold leading-tight text-ink">
             {shekel(month.cost)}
           </Num>
           <span className="text-[14px] text-muted">
@@ -287,9 +290,9 @@ function FuelPriceCard() {
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label className="text-[14px]">מחיר דלק נוכחי</Label>
+      <Label>מחיר דלק נוכחי</Label>
       <span className="flex flex-wrap items-baseline gap-x-1.5">
-        <Num className="font-display text-[26px] font-semibold leading-tight text-ink">
+        <Num className="font-display text-[26px] font-bold leading-tight text-ink">
           {lookup.price !== null ? price(lookup.price) : "—"}
         </Num>
         {lookup.price !== null ? (
@@ -339,7 +342,7 @@ function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
 function HomeSkeleton() {
   return (
     <div className="flex flex-col gap-3">
-      <Skeleton className="h-[208px] rounded-hero" />
+      <Skeleton className="h-[208px] rounded-card" />
       <div className="flex gap-3">
         <Skeleton className="h-[92px] flex-1 rounded-card" />
         <Skeleton className="h-[92px] flex-1 rounded-card" />

@@ -131,7 +131,9 @@ test("a continuity break does not corrupt the range metrics", async ({ page }) =
   await expect(page.getByText(/נקודת התחלה מחדש/)).toBeVisible({ timeout: 25_000 });
   await page.getByRole("button", { name: "סגירה" }).click();
 
-  await page.getByRole("button", { name: "צריכה", exact: true }).click();
+  // Cumulative mileage and its discontinuity explanation belong to Costs.
+  await page.getByRole("button", { name: "הוצאות", exact: true }).click();
+  await expect(page.getByText("קילומטראז׳ מצטבר", { exact: true })).toBeVisible();
   await expect(page.getByText(/הקו נקטע שם בכוונה/)).toBeVisible();
 });
 

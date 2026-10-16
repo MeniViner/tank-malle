@@ -92,13 +92,9 @@ export function VehicleManager() {
           </>
         ) : null}
 
-        <Button variant="secondary" full onClick={() => navigate("/vehicles/new")}>
-          <PlusIcon size={19} />
-          הוספת רכב
-        </Button>
-        <p className="pb-2 text-center text-[14px] text-muted">
-          איתור אוטומטי לפי מספר רישוי
-        </p>
+        <button type="button" className="tm-text-action justify-start rounded-card bg-surface px-4 py-3" onClick={() => navigate("/vehicles/new")}>
+          <PlusIcon size={19} /> הוספת רכב
+        </button>
       </div>
 
       <EditVehicleSheet
@@ -199,7 +195,7 @@ function VehicleCard({
         </div>
       ) : null}
 
-      <div className="flex gap-2">
+      <div className="flex gap-5 border-t border-[var(--hairline)] pt-1">
         {archived ? (
           <>
             <CardAction icon={<RestoreIcon size={17} />} label="שחזור" onClick={onRestore} />
@@ -240,9 +236,7 @@ function CardAction({
     <button
       type="button"
       onClick={onClick}
-      className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-pill text-[14px] font-semibold transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
-        tone === "danger" ? "bg-danger-soft text-danger-ink" : "bg-surface-2 text-ink"
-      }`}
+      className={`tm-text-action ${tone === "danger" ? "text-danger-ink" : ""}`}
     >
       {icon}
       {label}

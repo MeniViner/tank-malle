@@ -45,31 +45,28 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           דלג
         </button>
       </header>
+      <div className="tm-steps mt-3" aria-label={`שלב ${index + 1} מתוך ${SLIDES.length}`}>
+        {SLIDES.map((item, i) => <span key={item.title} data-active={i <= index} />)}
+      </div>
 
-      <div className="relative flex flex-1 flex-col items-center justify-center gap-8 text-center">
+      <div className="relative flex flex-1 flex-col items-center justify-center gap-7 py-6 text-start">
         {/* Keyed so every slide re-runs its own staggered entrance. */}
-        <div key={index} className="flex w-full flex-col items-center gap-8">
+        <div key={index} className="flex w-full flex-col items-center gap-7">
           <div className="relative flex w-full justify-center">
-            <div className="tm-pop relative">
+            <div className="tm-rise relative w-full">
               <Preview />
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-2.5">
-            <span
-              className="tm-rise px-3 py-1 text-[13px] font-bold tracking-[0.04em] text-accent"
-              style={{ animationDelay: "80ms" }}
-            >
-              {slide.kicker}
-            </span>
+          <div className="flex w-full flex-col items-start gap-2.5">
             <h1
-              className="tm-rise max-w-[320px] font-display text-[30px] font-semibold leading-[1.25] tracking-tight text-ink"
+              className="tm-rise max-w-[320px] font-display text-[30px] font-bold leading-[1.15] tracking-tight text-ink"
               style={{ animationDelay: "150ms" }}
             >
               {slide.title}
             </h1>
             <p
-              className="tm-rise max-w-[315px] text-[14.5px] leading-relaxed text-muted"
+              className="tm-rise max-w-[342px] text-[16px] leading-relaxed text-muted"
               style={{ animationDelay: "220ms" }}
             >
               {slide.body}
@@ -79,17 +76,6 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       </div>
 
       <div className="relative flex flex-col gap-5">
-        <div className="flex justify-center gap-2" aria-hidden="true">
-          {SLIDES.map((item, i) => (
-            <span
-              key={item.title}
-              className={`h-[7px] rounded-pill transition-[width,background-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-                i === index ? "w-7 bg-accent" : "w-[7px] bg-line"
-              }`}
-            />
-          ))}
-        </div>
-
         <Button full onClick={() => (isLast ? onDone() : setIndex(index + 1))}>
           {isLast ? "מתחילים" : "הבא"}
         </Button>

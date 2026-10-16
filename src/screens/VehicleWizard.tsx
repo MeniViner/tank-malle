@@ -247,11 +247,10 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           <ChevronStart size={18} />
         </button>
 
-        <Num className="rounded-pill bg-surface-2 px-3 py-1 text-[14px] font-semibold text-muted">
-          {stepIndex} / 3
-        </Num>
+        <span className="text-[13.5px] text-muted">שלב <Num>{stepIndex}</Num> מתוך 3</span>
       </header>
 
+      <div className="px-5 pb-5"><div className="tm-steps" aria-label={`שלב ${stepIndex} מתוך 3`}>{[1, 2, 3].map(n => <span key={n} data-active={n <= stepIndex} />)}</div></div>
       {step === "plate" ? (
         <PlateStep
           plate={plate}
@@ -334,7 +333,7 @@ function PlateStep({
   return (
     <div className="flex flex-1 flex-col px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
-        <h1 className="font-display text-[30px] font-semibold text-ink">מה מספר הרכב?</h1>
+        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">מה מספר הרכב?</h1>
         <p className="text-[14.5px] leading-relaxed text-muted">
           נאתר את פרטי הרכב אוטומטית ממאגר משרד התחבורה.
         </p>
@@ -342,22 +341,18 @@ function PlateStep({
 
       {/* Israeli plate: yellow field with the blue IL strip on the leading edge. */}
       <div className="mt-7 flex justify-center">
-        <div
-          dir="ltr"
-          className="flex h-[74px] w-[268px] items-stretch overflow-hidden rounded-[10px] border-[3px] border-[#1B2A24] bg-[#F4CE2A]"
-        >
-          <span className="flex w-[30px] flex-none flex-col items-center justify-end gap-1 bg-[#12408F] pb-2 text-[9px] font-bold text-white">
-            <span className="text-[13px] leading-none">★</span>
-            IL
-          </span>
-          <span
-            className="num flex flex-1 items-center justify-center text-[30px] font-bold tracking-[0.06em] text-[#16211C]"
-            role="textbox"
+        <div className="tm-plate">
+          <span className="tm-plate-il">IL</span>
+          <input
+            className="tm-plate-number num bg-transparent text-center outline-none placeholder:text-[#14171a]/30 focus-visible:bg-white/20"
             aria-label="מספר רכב"
-            aria-readonly="true"
-          >
-            {digits ? formatPlate(digits) : <span className="opacity-30">00-000-00</span>}
-          </span>
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="00-000-00"
+            value={formatPlate(digits)}
+            onChange={event => setPlate(event.target.value.replace(/\D/g, "").slice(0, 8))}
+            onKeyDown={event => { if (event.key === "Enter" && digits.length >= 5 && !looking) onLookup(); }}
+          />
         </div>
       </div>
 
@@ -454,8 +449,8 @@ function Key({
       type="button"
       onClick={onClick}
       aria-label={ariaLabel}
-      className={`num min-h-[54px] rounded-[14px] border border-line text-[20px] font-semibold transition-[background-color,scale] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:bg-surface-2 ${
-        muted ? "bg-surface-2 text-[15px] text-muted" : "bg-surface text-ink shadow-card"
+      className={`num min-h-[54px] rounded-[10px] text-[23px] font-semibold transition-[background-color,scale] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:bg-surface-2 ${
+        muted ? "bg-surface-2 text-[15px] text-muted" : "bg-surface text-ink"
       }`}
     >
       {children}
@@ -485,17 +480,19 @@ function ConfirmStep({
   notice?: string | null;
 }) {
   const [catalogOpen, setCatalogOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const review = draft.fromRegistry && !editing;
 
   return (
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
         {draft.fromRegistry && !notice ? (
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1 text-[14px] font-semibold text-success-ink">
+          <span className="tm-status text-success">
             <CheckIcon size={14} />
             נמצא במאגר משרד התחבורה
           </span>
         ) : null}
-        <h1 className="font-display text-[30px] font-semibold text-ink">
+        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">
           {draft.fromRegistry ? "זה הרכב שלך?" : "פרטי הרכב"}
         </h1>
       </div>
@@ -509,7 +506,7 @@ function ConfirmStep({
 
       {draft.plateNumber ? (
         <Card className="flex items-center gap-3 p-3.5">
-          <span className="flex size-9 items-center justify-center rounded-tile bg-accent-soft text-accent">
+          <span className="text-muted">
             <CarIcon size={18} />
           </span>
           <Num className="text-[16px] font-bold text-ink">{formatPlate(draft.plateNumber)}</Num>
@@ -519,8 +516,10 @@ function ConfirmStep({
         </Card>
       ) : null}
 
-      <div className="flex flex-col gap-3.5">
+      <div className="overflow-hidden rounded-card bg-surface">
         <Field
+          row
+          readOnly={review}
           label="יצרן"
           dir="rtl"
           value={draft.make}
@@ -528,6 +527,8 @@ function ConfirmStep({
           placeholder="לדוגמה: מזדה"
         />
         <Field
+          row
+          readOnly={review}
           label="דגם"
           dir="rtl"
           value={draft.model}
@@ -535,6 +536,8 @@ function ConfirmStep({
           placeholder="לדוגמה: 3 אקטיב"
         />
         <Field
+          row
+          readOnly={review}
           label="שנת ייצור"
           inputMode="numeric"
           value={draft.year}
@@ -545,9 +548,9 @@ function ConfirmStep({
           placeholder="2018"
         />
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2 border-t border-[var(--hairline)] px-4 py-3">
           <Label>סוג דלק</Label>
-          <div className="grid grid-cols-2 gap-2">
+          {review ? <span className="text-[15.5px] font-semibold">{FUEL_TYPE_LABELS[draft.fuelType]}</span> : <div className="grid grid-cols-2 gap-2">
             {FUEL_OPTIONS.map((option) => (
               <button
                 key={option}
@@ -562,10 +565,11 @@ function ConfirmStep({
                 {FUEL_TYPE_LABELS[option]}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       </div>
 
+      {review ? <button type="button" className="tm-text-action self-start" onClick={() => setEditing(true)}>תיקון פרטים</button> : (
       <button
         type="button"
         onClick={() => setCatalogOpen(true)}
@@ -577,6 +581,7 @@ function ConfirmStep({
         </span>
         <ChevronStart size={18} className="rotate-180 text-muted" />
       </button>
+      )}
 
       <div className="flex-1" />
 
@@ -803,7 +808,7 @@ function ExtrasStep({
     <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
       <div className="flex flex-col gap-2 pt-2">
         <div className="flex items-center gap-2">
-          <h1 className="font-display text-[30px] font-semibold text-ink">עוד כמה פרטים</h1>
+          <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">עוד כמה פרטים</h1>
           <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-muted">
             רשות
           </span>

@@ -7,7 +7,8 @@ import { useData } from "../context/DataContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../context/ToastContext";
 import { Card, IconTile, Label, ListCard, Skeleton } from "../components/Card";
-import { Segmented, Toggle } from "../components/Segmented";
+import { Toggle } from "../components/Segmented";
+import { ChoiceList } from "../components/ChoiceList";
 import { RowButton } from "../components/Button";
 import { Sheet } from "../components/Sheet";
 import { Avatar } from "../components/Avatar";
@@ -92,7 +93,7 @@ export function Settings() {
   return (
     <main className="flex flex-1 flex-col gap-5 pb-[104px] pt-safe">
       <header className="px-5 pb-1 pt-5">
-        <h1 className="font-display text-[30px] font-semibold leading-tight text-ink">הגדרות</h1>
+        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">הגדרות</h1>
       </header>
       <div className="flex flex-col gap-6 px-5">
         <ListCard>
@@ -146,7 +147,7 @@ export function Settings() {
 
             {activeVehicle?.fuelType === '95' ? <RowButton
               title="הנחה מהמחיר הרשמי"
-              subtitle={discountLabel(vehicleDiscount(activeVehicle))}
+              value={discountLabel(vehicleDiscount(activeVehicle))}
               trailing={<ChevronStart size={17} className="text-muted" />}
               onClick={() => setAdjustmentOpen(true)}
             /> : <p className="px-4 pb-4 text-[14px] text-muted">לסוג הדלק הזה מזינים את מחיר המשאבה בכל תדלוק.</p>}
@@ -169,6 +170,7 @@ export function Settings() {
               <span className="flex items-center gap-0.5">
                 <span className="text-[15px] font-semibold text-ink">שיתוף נתוני השוואה</span>
                 <InfoTip label="שיתוף נתוני השוואה">
+                  <p>השוואת הצריכה שלכם לנהגים עם רכב דומה.</p>
                   <span>
                     <b className="text-ink">משותף:</b> דגם ושנה, סוג דלק, ממוצע צריכה.
                   </span>
@@ -177,9 +179,6 @@ export function Settings() {
                     קילומטראז׳, תאריכים, תחנה ומיקום.
                   </span>
                 </InfoTip>
-              </span>
-              <span className="text-[14px] leading-relaxed text-muted">
-                מציג לכם איפה אתם עומדים מול נהגים עם רכב דומה.
               </span>
             </span>
             <Toggle
@@ -211,10 +210,10 @@ export function Settings() {
         </section>
       </div>
       <Sheet open={themeOpen} onClose={() => setThemeOpen(false)} title={<h2 className="text-[18px] font-bold">ערכת נושא</h2>}>
-        <Segmented value={theme} options={THEME_OPTIONS} ariaLabel="ערכת נושא" onChange={(value) => { setTheme(value); void updateSettings({ theme: value }); }} />
+        <ChoiceList value={theme} options={THEME_OPTIONS} ariaLabel="ערכת נושא" onChange={(value) => { setTheme(value); void updateSettings({ theme: value }); }} />
       </Sheet>
       <Sheet open={unitsOpen} onClose={() => setUnitsOpen(false)} title={<h2 className="text-[18px] font-bold">יחידת צריכה</h2>}>
-        <Segmented value={settings.units} options={UNIT_OPTIONS} ariaLabel="יחידת צריכה" onChange={(value) => void updateSettings({ units: value })} />
+        <ChoiceList value={settings.units} options={UNIT_OPTIONS} ariaLabel="יחידת צריכה" onChange={(value) => void updateSettings({ units: value })} />
       </Sheet>
 
       {/* Accent picker */}

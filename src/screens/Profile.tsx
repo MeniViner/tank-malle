@@ -138,7 +138,7 @@ export function Profile() {
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <ScreenHeader title="פרופיל וחשבון" onBack={() => navigate(-1)} />
 
-      <div className="flex flex-col gap-4 px-5">
+      <div className="tm-page">
         {accountDeletionPending ? <p role="alert" className="rounded-card bg-danger/10 p-4 text-sm text-danger">מחיקת החשבון ממתינה להשלמה. הנתונים שכבר נמחקו לא ישוחזרו; ניתן לנסות שוב דרך מחיקת החשבון למטה. אם הפעולה נעצרה, רעננו תחילה.</p> : null}
         <section className="tm-rise flex flex-col gap-3.5 py-2 text-ink">
           <div className="flex items-center gap-3.5">
@@ -175,7 +175,7 @@ export function Profile() {
         <section className="flex flex-col gap-2">
           <Label>הפעילות שלי · כל הרכבים, כולל הארכיון</Label>
           {exportError ? <p role="alert" className="text-sm text-danger">{exportError} <button className="min-h-10 px-2 underline" onClick={() => setLoadAttempt((n) => n + 1)}>ניסיון חוזר</button></p> : null}
-          <div className="flex gap-3">
+          <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
             <MetricCard
               label="תדלוקים"
               value={records ? num(records.fillupCount, 0) : "—"}
@@ -186,8 +186,7 @@ export function Profile() {
               value={records ? shekel(records.totalCost) : "—"}
               meta={avgPricePaid !== null ? `ממוצע ${price(avgPricePaid)} לליטר` : undefined}
             />
-          </div>
-          <div className="flex gap-3">
+
             <MetricCard
               label="ק״מ שתועדו"
               value={records ? num(records.totalKm, 0) : "—"}
@@ -395,10 +394,10 @@ function MetricCard({
   meta?: string;
 }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-3">
-      <Label className="text-[14px]">{label}</Label>
+    <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-4 py-4">
+      <Label>{label}</Label>
       <span className="flex items-baseline gap-1.5">
-        <Num className="font-display text-[30px] font-semibold leading-tight text-ink">{value}</Num>
+        <Num className="font-display text-[26px] font-bold leading-tight text-ink">{value}</Num>
         {unit ? <span className="text-[12px] text-muted">{unit}</span> : null}
       </span>
       {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}

@@ -5,6 +5,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { ScreenHeader } from "../components/AppHeader";
 import { Button } from "../components/Button";
+import { Segmented } from "../components/Segmented";
 import { Card } from "../components/Card";
 import { APP_VERSION } from "../lib/version";
 import { CheckIcon, HeartIcon, LightbulbIcon, WarningIcon } from "../components/icons";
@@ -76,7 +77,7 @@ export function Feedback() {
           <div className="tm-rise flex flex-col gap-2" style={{ animationDelay: "80ms" }}>
             <h1 className="text-balance text-[23px] font-bold text-ink">תודה על המשוב!</h1>
             <p className="text-pretty max-w-[290px] text-[14.5px] leading-relaxed text-muted">
-              קראנו כל מילה. אם השארתם דרך ליצור קשר, ייתכן שנחזור אליכם.
+              ההודעה התקבלה. תודה שעזרתם לשפר את האפליקציה.
             </p>
           </div>
 
@@ -107,38 +108,16 @@ export function Feedback() {
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <ScreenHeader title="משוב" onBack={() => navigate("/settings")} />
 
-      <div className="flex flex-col gap-4 px-5">
+      <div className="flex flex-col gap-6 px-5">
         <div className="tm-rise flex flex-col gap-1.5">
-          <h1 className="text-balance text-[21px] font-bold text-ink">
-            מה דעתכם על טנק מלא?
-          </h1>
+          <h2 className="font-display text-[26px] font-bold text-ink">מה חסר לכם?</h2>
           <p className="text-pretty text-[14px] leading-relaxed text-muted">
-            כל הודעה נקראת. ספרו לנו מה חסר, מה מעצבן או מה עובד מצוין.
+            רעיון, תקלה או משהו שעבד טוב — נשמח לשמוע.
           </p>
         </div>
 
-        <div className="tm-rise flex gap-2" style={{ animationDelay: "60ms" }}>
-          {OPTIONS.map((option) => {
-            const active = option.value === sentiment;
-            const { Icon } = option;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setSentiment(option.value)}
-                aria-pressed={active}
-                className={`flex min-h-[76px] flex-1 flex-col items-center justify-center gap-1.5 rounded-[16px] border text-[13px] font-semibold transition-[background-color,border-color,color,scale] duration-200 active:scale-[0.96] ${
-                  active
-                    ? "border-accent bg-accent-soft text-accent"
-                    : "border-line bg-surface text-muted"
-                }`}
-              >
-                <Icon size={20} />
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <Segmented ariaLabel="סוג המשוב" value={sentiment} onChange={setSentiment}
+          options={OPTIONS.map(({ value, label }) => ({ value, label }))} />
 
         <Card
           className="tm-rise flex flex-col gap-2 p-3.5"

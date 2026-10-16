@@ -40,7 +40,7 @@ function Modal({ open, close, children, labelId, bodyId, alert = false, sheet = 
       onCancel={(event) => { event.preventDefault(); closeRef.current(); }}
       className={`fixed inset-0 m-0 h-dvh max-h-none w-full max-w-none border-0 bg-transparent p-0 text-ink outline-none backdrop:bg-transparent`}>
       <div className={`flex h-full w-full justify-center ${sheet ? "items-end" : "items-center p-6"}`}>
-        <div aria-hidden="true" onClick={() => closeRef.current()} className="tm-fade-in absolute inset-0 bg-[rgb(13_35_28/0.42)] backdrop-blur-[2px]" />
+        <div aria-hidden="true" onClick={() => closeRef.current()} className="tm-fade-in absolute inset-0 bg-[rgb(10_14_16/0.42)]" />
         {children}
       </div>
     </dialog>, document.body,
@@ -60,7 +60,7 @@ export function Sheet({ open, onClose, title, children }: {
           <button type="button" data-modal-initial-focus aria-label="סגירה" onClick={onClose}
             className="flex size-10 flex-none items-center justify-center rounded-full text-xl text-muted hover:bg-surface-2">×</button>
         </div>
-        <div className="px-4 pb-4 pt-3">{children}</div>
+        <div className="tm-sheet-body px-5 pb-5 pt-3">{children}</div>
       </div>
     </Modal>
   );

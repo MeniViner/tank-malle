@@ -1,16 +1,18 @@
+import { StationBrandMark } from "../components/StationBrand";
 import { buildRange, inRange, rangeDates } from "../lib/periods";
 import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useStats } from "../hooks/useStats";
 import { Segmented } from "../components/Segmented";
-import { Card, Skeleton } from "../components/Card";
+import { Card, Label, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
 import { ConsumptionValue } from "../components/Fmt";
 import { CloudOffIcon, PumpIcon, SearchIcon, WarningIcon } from "../components/icons";
 import {
-  heMonthShort,
+
   monthYear,
+  dayMonthShort,
   num,
   shekel,
 } from "../lib/format";
@@ -112,10 +114,13 @@ export function History() {
     return [...map.entries()];
   }, [filtered]);
 
+  const visibleCost = filtered.reduce((sum, fillup) => sum + fillup.totalCost, 0);
+  const visibleLiters = filtered.reduce((sum, fillup) => sum + fillup.liters, 0);
+
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <header className="flex flex-none items-baseline justify-between gap-2 px-5 pb-2 pt-4">
-        <h1 className="font-display text-[30px] font-semibold text-ink">היסטוריה</h1>
+        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">היסטוריה</h1>
         <span className="text-[13px] text-muted">
           <Num>{stats.records.fillupCount}</Num> תדלוקים
         </span>
@@ -147,7 +152,7 @@ export function History() {
                 type="button"
                 aria-pressed={flaggedActive}
                 onClick={() => setOnlyFlagged((value) => !value)}
-                className={`flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill px-3 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
+                className={`flex min-h-[40px] flex-none items-center gap-1.5 rounded-pill px-3 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
                   flaggedActive
                     ? "bg-warning-soft text-warning-ink"
                     : "border border-line bg-surface text-muted"
@@ -164,6 +169,12 @@ export function History() {
       ) : null}
 
       <div className="flex flex-col gap-4 px-5">
+        {filtered.length > 0 ? <section className="tm-statpair py-4" aria-label="סיכום ההיסטוריה המסוננת">
+          <div className="flex min-w-0 flex-col gap-1"><Label>סך הוצאה</Label><Num className="self-start whitespace-nowrap font-display text-[26px] font-bold">{shekel(visibleCost)}</Num><span className="text-[13.5px] text-muted"><Num>{filtered.length}</Num> תדלוקים</span></div>
+          <span className="tm-statpair-divider" aria-hidden="true" />
+          <div className="flex min-w-0 flex-col gap-1"><Label>סך ליטרים</Label><Num className="self-start whitespace-nowrap font-display text-[26px] font-bold">{num(visibleLiters, 0)}</Num><span className="text-[13.5px] text-muted">ממוצע <Num>{visibleLiters ? (visibleCost / visibleLiters).toFixed(2) : "—"}</Num> ₪ לליטר</span></div>
+        </section> : null}
+
         {fillupsError ? (
           <Card className="flex items-start gap-2.5 p-4 text-[14px] text-danger-ink">
             <WarningIcon size={17} className="mt-px flex-none" />
@@ -278,7 +289,7 @@ export function History() {
                 <Card className="overflow-hidden">
                   {list.map((fillup, index) => {
                     const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
-                    const date = new Date(fillup.date);
+
                     // "חלקי" and "לא ידוע" are different claims: one says the
                     // tank was not filled, the other says nobody stated either
                     // way. The boolean projection cannot tell them apart.
@@ -312,14 +323,7 @@ export function History() {
                             : ""
                         }`}
                       >
-                        <span className="flex w-[38px] flex-none flex-col items-center">
-                          <Num className="text-[18px] font-semibold leading-none text-ink">
-                            {date.getDate()}
-                          </Num>
-                          <span className="text-[13px] text-muted">
-                            {heMonthShort(date.getMonth() + 1)}
-                          </span>
-                        </span>
+                        <StationBrandMark brand={fillup.station?.brand} name={fillup.station?.name} size={34} />
 
                         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                           <span className="flex items-center gap-1.5">
@@ -341,8 +345,7 @@ export function History() {
                             ) : null}
                           </span>
                           <span className="truncate text-[14px] text-muted">
-                            <Num>{num(fillup.liters, 1)}</Num> ל׳ ·{" "}
-                            <Num>{shekel(fillup.totalCost)}</Num>
+                            {dayMonthShort(fillup.date)} · <Num>{num(fillup.liters, 1)}</Num> ל׳
                           </span>
                           {/* Mileage as its own small metric, distinct from
                               fuel economy — they are different numbers and
@@ -352,17 +355,10 @@ export function History() {
                           </span>
                         </span>
 
-                        {endLabel !== null ? (
-                          <span className="flex-none rounded-pill border border-line px-[11px] py-1 text-[12px] font-semibold text-muted">
-                            {endLabel}
-                          </span>
-                        ) : kmPerLiter !== null ? (
-                          <ConsumptionValue
-                            kmPerLiter={kmPerLiter}
-                            units={settings.units}
-                            className="flex-none rounded-pill bg-success-soft px-[11px] py-1.5 text-[12px] font-semibold text-success-ink"
-                          />
-                        ) : null}
+                        <span className="flex flex-none flex-col items-end gap-1">
+                          <Num className="whitespace-nowrap font-display text-[22px] font-bold">{shekel(fillup.totalCost)}</Num>
+                          {endLabel !== null ? <span className="text-[12px] text-muted">{endLabel}</span> : kmPerLiter !== null ? <ConsumptionValue kmPerLiter={kmPerLiter} units={settings.units} className="text-[12px] text-muted" /> : null}
+                        </span>
                       </button>
                       </Fragment>
                     );

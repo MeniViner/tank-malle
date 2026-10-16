@@ -1,97 +1,40 @@
 import { useId } from "react";
 import type { Segment } from "../lib/stats";
-import { normalise, smoothPath } from "../lib/curve";
+import { consumption, dayMonthShort, num } from "../lib/format";
 
-const SPARK_SEGMENTS = 6;
-
-/**
- * The last few continuous closed segments, as a filled trend.
- *
- * The curve is the shape the individual results make —
- * a run of six numbers is a lot easier to read as a direction than as six
- * heights. Newest sits at the reading start of the row, which in RTL is the
- * left end, so the eye lands on the most recent result first.
- *
- * Decoration for the number above it: every figure it encodes is already
- * written out in text, so it is hidden from assistive tech rather than given
- * labels nobody asked for.
- */
-export function HeroSpark({ segments }: { segments: Segment[] }) {
-  const clipId = useId().replace(/:/g, "");
-  // Never draw a measured trend across an undocumented-history break.
+/** Each column is a measured interval. Dates and the average share its scale. */
+export function HeroSpark({ segments, units = "kmPerLiter", average }: {
+  segments: Segment[];
+  units?: "kmPerLiter" | "litersPer100";
+  average?: number | null;
+}) {
+  const titleId = useId();
   let start = segments.length - 1;
   while (start > 0 && segments[start].startId === segments[start - 1].endId) start -= 1;
-  const recent = segments.slice(Math.max(start, segments.length - SPARK_SEGMENTS));
-  if (recent.length < 2) return null;
-
-  // SVG x always runs left to right, so the series is reversed to put the
-  // newest result on the left the way the rest of the row reads.
-  const series = [...recent].reverse();
-  const heights = normalise(series.map((segment) => segment.kmPerLiter));
-
-  const width = 100;
-  const height = 40;
-  const gap = 1.6;
-  const barWidth = (width - gap * (series.length - 1)) / series.length;
-  // A flat run would otherwise collapse to a row of slivers, so the scale
-  // starts a third of the way up rather than at zero.
-  const topFor = (value: number) => height - (34 + 62 * value) * (height / 100);
-
-  const points = series.map((_, index) => ({
-    x: index * (barWidth + gap) + barWidth / 2,
-    y: topFor(heights[index]),
-  }));
-
-  // Run the curve out to both edges so it reads as a continuing trend rather
-  // than a line that starts and stops inside the card.
-  const curve = smoothPath([
-    { x: 0, y: points[0].y },
-    ...points,
-    { x: width, y: points[points.length - 1].y },
-  ]);
-
-  const newestEdge = barWidth + gap / 2;
-  const area = `${curve} L ${width} ${height} L 0 ${height} Z`;
-
-  return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      preserveAspectRatio="none"
-      className="h-[46px] w-full overflow-visible"
-      aria-hidden="true"
-    >
-      <defs>
-        {/* The newest result is highlighted by clipping a second copy of the
-            same geometry, so the fill and the curve above it can never disagree
-            about where "newest" ends. */}
-        <clipPath id={clipId} clipPathUnits="userSpaceOnUse">
-          <rect x={0} y={-8} width={newestEdge} height={height + 16} />
-        </clipPath>
-      </defs>
-
-      {/* Both colours share the exact curve boundary and baseline. Bars left
-          gaps and flat tops that disagreed with the smoothed trend. */}
-      <path d={area} className="fill-surface-2" />
-      <path d={area} className="fill-accent" opacity={0.22} clipPath={`url(#${clipId})`} />
-
-      <path
-        d={curve}
-        fill="none"
-        stroke="var(--muted)"
-        strokeOpacity={0.7}
-        strokeWidth={1.6}
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-      />
-      <path
-        d={curve}
-        fill="none"
-        stroke="var(--accent)"
-        strokeWidth={2.2}
-        strokeLinecap="round"
-        vectorEffect="non-scaling-stroke"
-        clipPath={`url(#${clipId})`}
-      />
+  const recent = segments.slice(Math.max(0, start, segments.length - 6));
+  if (!recent.length) return null;
+  const weighted = average ?? recent.reduce((sum, s) => sum + s.km, 0) / recent.reduce((sum, s) => sum + s.liters, 0);
+  const convert = (value: number) => units === "litersPer100" ? 100 / value : value;
+  const values = recent.map(s => convert(s.kmPerLiter));
+  const avg = Number.isFinite(weighted) && weighted > 0 ? convert(weighted) : null;
+  const max = Math.max(...values, avg ?? 0) * 1.22;
+  const width = 320, baseline = 88, chartHeight = 76, slot = width / recent.length;
+  const barWidth = Math.min(38, slot * .58);
+  const y = (value: number) => baseline - value / max * chartHeight;
+  const averageLabel = consumption(Number.isFinite(weighted) ? weighted : null, units);
+  return <figure className="tm-consumption-chart" data-testid="consumption-chart">
+    <svg viewBox="0 0 320 96" preserveAspectRatio="none" role="img" aria-labelledby={titleId}>
+      <title id={titleId}>{recent.map((s, i) => `${dayMonthShort(s.endDate)}: ${num(values[i], 1)} ${averageLabel.unit}`).join("; ")}</title>
+      <line x1="0" x2={width} y1={baseline} y2={baseline} stroke="var(--hairline)" />
+      {recent.map((segment, i) => <rect key={segment.endId} data-segment={segment.endId}
+        x={width - slot * (i + .5) - barWidth / 2} y={y(values[i])}
+        width={barWidth} height={baseline - y(values[i])} rx="4"
+        fill={i === recent.length - 1 ? (segment.kmPerLiter < weighted * .97 ? "var(--danger)" : "var(--accent)") : "color-mix(in srgb, var(--accent) 22%, var(--surface))"} />)}
+      {avg !== null ? <line data-testid="consumption-average" x1="0" x2={width} y1={y(avg)} y2={y(avg)} stroke="var(--muted)" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" /> : null}
     </svg>
-  );
+    <div className="tm-chart-dates" style={{ gridTemplateColumns: `repeat(${recent.length}, minmax(0, 1fr))` }}>
+      {recent.map(s => <span key={s.endId}>{dayMonthShort(s.endDate)}</span>)}
+    </div>
+    <figcaption>כל עמודה היא מקטע בין תדלוקים מלאים.{avg !== null ? <> הקו המקווקו הוא הממוצע שלכם.</> : null}</figcaption>
+  </figure>;
 }

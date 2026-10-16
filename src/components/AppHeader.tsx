@@ -35,11 +35,11 @@ export function AppHeader() {
         <button
           type="button"
           onClick={() => navigate("/settings/vehicles")}
-          className="flex min-w-0 flex-1 min-h-[42px] items-center gap-2.5 rounded-control py-2 transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
+          className="flex min-w-0 flex-1 min-h-[42px] items-center gap-2 rounded-control py-2 transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
           aria-label="ניהול רכבים"
         >
-          <CarIcon size={18} className="flex-none text-accent" />
-          <span className="min-w-0 truncate text-[14.5px] font-semibold text-ink">
+          <CarIcon size={21} className="flex-none text-muted" />
+          <span className="min-w-0 truncate text-[17px] font-bold text-ink">
             {activeVehicle.nickname?.trim() ? (
               activeVehicle.nickname
             ) : (
@@ -104,8 +104,9 @@ export function AppHeader() {
           type="button"
           onClick={() => navigate("/settings/profile")}
           aria-label="פרופיל"
+          className="flex size-11 items-center justify-center rounded-full active:scale-[0.96]"
         >
-          <Avatar name={user?.displayName} photoURL={user?.photoURL} size={40} />
+          <Avatar name={user?.displayName} photoURL={user?.photoURL} size={34} />
         </button>
       </div>
 
@@ -132,7 +133,7 @@ export function ScreenHeader({
           type="button"
           onClick={onBack}
           aria-label="סגירה"
-          className="flex size-[40px] flex-none items-center justify-center rounded-full text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
+          className="flex size-[44px] flex-none items-center justify-center rounded-full text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
         >
           <CloseGlyph />
         </button>
@@ -141,7 +142,7 @@ export function ScreenHeader({
       )}
 
       <div className="flex min-w-0 flex-1 flex-col items-center">
-        <h1 className="max-w-full truncate text-[18px] font-bold text-ink">{title}</h1>
+        <h1 className="max-w-full truncate text-[17px] font-bold text-ink">{title}</h1>
         {subtitle}
       </div>
 

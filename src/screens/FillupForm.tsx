@@ -267,7 +267,7 @@ function EditState({
       </header>
       {kind === "loading" ? (
         <div className="flex flex-col gap-3">
-          <Skeleton className="h-[120px] rounded-hero" />
+          <Skeleton className="h-[120px] rounded-card" />
           <Skeleton className="h-[180px] rounded-card" />
           <Skeleton className="h-[120px] rounded-card" />
         </div>
@@ -963,10 +963,10 @@ function FillupEditor({
     <main className="flex min-h-dvh flex-1 flex-col bg-bg pt-safe">
       <header className="flex flex-none items-start justify-between gap-2 px-3 pb-3 pt-2.5 min-[400px]:px-5">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <h1 className="truncate text-[22px] min-[400px]:text-[24px] font-bold leading-tight text-ink">
+          <h1 className="text-[19px] font-bold leading-tight text-ink">
             {operation ? "תיקון תדלוק שלא סונכרן" : isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
           </h1>
-          <span className="flex w-fit max-w-full items-center gap-1.5 truncate rounded-pill border border-line bg-surface px-2.5 py-1 text-[12px] font-semibold text-muted">
+          <span className="flex max-w-full items-center gap-1.5 text-[13.5px] text-muted">
             <CarIcon size={13} />
             {vehicleShort(activeVehicle)}
           </span>
@@ -994,7 +994,7 @@ function FillupEditor({
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col gap-2 overflow-y-auto px-3 pb-40 min-[400px]:px-5">
+      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 pb-40">
         {draftDirty ? <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
           <span>{draftStorageFailed ? "לא ניתן לשמור טיוטה במכשיר. השאירו את הטופס פתוח עד לשמירה." : restoredDraft ? "הטיוטה שלכם שוחזרה מהמכשיר" : "טיוטה נשמרת במכשיר — אפשר לחזור ולהמשיך"}</span>
           <button type="button" className="min-h-10 flex-none px-2 font-semibold text-danger" onClick={() => {
@@ -1044,36 +1044,6 @@ function FillupEditor({
             ) : null}
           </div>
         ) : null}
-
-        {/* A live receipt, on the same dark card the home screen uses. */}
-        <div className="mt-1 flex flex-col rounded-hero bg-hero p-[18px_20px_15px] text-hero-ink shadow-raised">
-          <span className="text-[14px] text-hero-muted">סה״כ לתשלום</span>
-          <span className={`mt-0.5 flex items-baseline gap-1.5 ${totalDue > 0 ? "" : "text-hero-muted"}`}>
-            <Num className="text-[40px] font-bold leading-none tracking-[-0.02em]">
-              {shekel(totalDue)}
-            </Num>
-          </span>
-
-          <div className="mt-4 grid grid-cols-3 border-t border-hero-line pt-3">
-            <ReceiptCell label="ליטרים" divided>
-              {Number.isFinite(litersValue) && litersValue > 0 ? <Num>{num(litersValue, 1)}</Num> : "—"}
-            </ReceiptCell>
-            <ReceiptCell label="מחיר לליטר" divided>
-              {Number.isFinite(priceValue) && priceValue > 0 ? <Num>{price(priceValue)}</Num> : "—"}
-            </ReceiptCell>
-            <ReceiptCell label="צריכה">
-              {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? (
-                <ConsumptionValue
-                  kmPerLiter={draftEvaluation.segment.kmPerLiter}
-                  units={settings.units}
-                  unitClassName="text-[11px] font-normal text-hero-muted"
-                />
-              ) : (
-                "—"
-              )}
-            </ReceiptCell>
-          </div>
-        </div>
 
         <Eyebrow>פרטי התדלוק</Eyebrow>
         <Card className="overflow-hidden">
@@ -1179,10 +1149,9 @@ function FillupEditor({
           />
         ) : null}
 
-        <Eyebrow>קילומטראז׳</Eyebrow>
-        <Card className="flex flex-col gap-3 p-4">
+        <Card className="flex flex-col overflow-hidden">
           <Field
-            big
+            row
             label={isBackdated ? "קילומטראז׳ בתאריך זה" : "קילומטראז׳ נוכחי"}
             inputMode="decimal"
             suffix="ק״מ"
@@ -1217,11 +1186,11 @@ function FillupEditor({
         </Card>
 
         <Eyebrow>כמות וסכום</Eyebrow>
-        <Card className="flex flex-col gap-3 p-4">
-          <div className="flex gap-3">
-            <div className="min-w-0 flex-1">
+        <div className="flex flex-col gap-2">
+          <div className="overflow-hidden rounded-card bg-surface">
               <Field
-                big
+                row
+                suffix="ל׳"
                 label="ליטרים"
                 inputMode="decimal"
                 value={receipt.liters}
@@ -1232,10 +1201,9 @@ function FillupEditor({
                 error={showErrors ? errorFor("liters") : null}
                 hint={litersParsed.ambiguous ? litersParsed.interpretation : undefined}
               />
-            </div>
-            <div className="min-w-0 flex-1">
               <Field
-                big
+                row
+                suffix="₪"
                 label="סה״כ לתשלום"
                 inputMode="decimal"
                 value={receipt.totalCost}
@@ -1245,7 +1213,6 @@ function FillupEditor({
                 placeholder="0"
                 error={showErrors ? errorFor("totalCost") : null}
               />
-            </div>
           </div>
 
           <span className="text-[14px] text-muted">
@@ -1266,7 +1233,12 @@ function FillupEditor({
             .map((warning) => (
               <SoftWarningBanner key={warning.field} message={warning.message} detail={warning.detail} />
             ))}
-        </Card>
+        </div>
+
+        <div className="flex flex-wrap items-baseline justify-between gap-3 px-1 text-[13.5px] text-muted" aria-live="polite">
+          <span>סכום התדלוק <Num className="font-semibold text-ink">{shekel(totalDue)}</Num></span>
+          {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? <span>צריכה <ConsumptionValue kmPerLiter={draftEvaluation.segment.kmPerLiter} units={settings.units} /></span> : null}
+        </div>
 
         {/* The end state is a visible, deliberate choice at form level — not
             a chip inside a collapsed section. Nothing is pre-selected: an
@@ -2099,25 +2071,5 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     <p className="px-1 pb-0.5 pt-3 text-[13px] font-bold tracking-[0.01em] text-muted">
       {children}
     </p>
-  );
-}
-
-/** One cell of the receipt's bottom row. */
-function ReceiptCell({
-  label,
-  divided = false,
-  children,
-}: {
-  label: string;
-  divided?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      className={divided ? "border-e border-hero-line pe-2.5 ps-2.5" : "pe-2.5 ps-2.5"}
-    >
-      <div className="text-[11px] font-semibold text-hero-muted">{label}</div>
-      <div className="mt-[3px] text-[15px] font-bold">{children}</div>
-    </div>
   );
 }

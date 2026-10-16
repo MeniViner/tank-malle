@@ -6,13 +6,8 @@ import { useState } from "react";
  * Israel's register is dominated by a handful of chains, and a row of
  * identical grey pins made a list of 1,250 stations read as one block.
  *
- * Each brand resolves to a file in `public/brands/<slug>.svg` (a `.png` also
- * works — see `SOURCES` below). Those files are the companies' own logos and
- * are NOT in this repository: they are third-party trademarks, and drawing an
- * imitation from memory would ship a wrong logo under a real company's name.
- * Drop the official file in with the slug below and it appears everywhere the
- * brand does; until then the row shows the coloured monogram, which is
- * legible and honest about being ours.
+ * The five supplied brand assets live in `public/brands`. Other brands use
+ * a readable monogram when no asset is available.
  *
  * The register spells a company both in the `c` field and at the start of the
  * station name ("סונול אלמיג"), so either one identifies the brand.
@@ -73,8 +68,7 @@ export function StationBrandMark({
   size?: number;
 }) {
   const entry = brandFor(brand, name);
-  // A missing file is the expected case until the logos are added, so the
-  // fallback is a state change rather than a broken-image icon.
+  // A missing asset falls back to a monogram, never a broken image.
   const [logoFailed, setLogoFailed] = useState(false);
   const fallback = (brand?.trim() || name?.trim() || "").slice(0, 2) || "—";
 
@@ -82,7 +76,7 @@ export function StationBrandMark({
     return (
       <span
         style={{ width: size, height: size }}
-        className="flex flex-none items-center justify-center overflow-hidden rounded-tile border border-line bg-surface"
+        className="flex flex-none items-center justify-center overflow-hidden rounded-[8px] bg-white ring-1 ring-inset ring-black/5"
       >
         <img
           src={`/brands/${entry.slug}.svg`}
@@ -104,7 +98,7 @@ export function StationBrandMark({
         fontSize: Math.round(size * 0.34),
         ...(entry ? { background: entry.background, color: entry.color } : {}),
       }}
-      className={`flex flex-none items-center justify-center rounded-tile font-bold leading-none ${
+      className={`flex flex-none items-center justify-center rounded-[8px] font-bold leading-none ${
         entry ? "" : "bg-surface-2 text-muted"
       }`}
     >

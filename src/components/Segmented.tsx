@@ -30,7 +30,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`flex w-full gap-1 rounded-control bg-surface-2 ${size === "sm" ? "p-[3px]" : "p-1"}`}
+      className={`flex w-full gap-1 rounded-pill bg-surface-2 ${size === "sm" ? "p-[3px]" : "p-1"}`}
     >
       {options.map((option, index) => {
         const selected = option.value === value;
@@ -54,7 +54,7 @@ export function Segmented<T extends string>({
             }}
             id={`${groupId}-${option.value}`}
             onClick={() => onChange(option.value)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-[8px] font-semibold transition-[background-color,color,box-shadow,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] ${
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-pill font-semibold transition-[background-color,color,box-shadow,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
               size === "sm" ? "min-h-[40px] text-[13px]" : "min-h-[42px] text-[14px]"
             } ${
               selected
