@@ -35,7 +35,7 @@ export function AppHeader() {
         <button
           type="button"
           onClick={() => navigate("/settings/vehicles")}
-          className="flex min-w-0 flex-1 min-h-[42px] items-center gap-2.5 rounded-pill border border-line bg-surface px-3.5 py-2 shadow-card transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
+          className="flex min-w-0 flex-1 min-h-[42px] items-center gap-2.5 rounded-control py-2 transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.97] active:bg-surface-2"
           aria-label="ניהול רכבים"
         >
           <CarIcon size={18} className="flex-none text-accent" />
@@ -132,7 +132,7 @@ export function ScreenHeader({
           type="button"
           onClick={onBack}
           aria-label="סגירה"
-          className="flex size-[40px] flex-none items-center justify-center rounded-full border border-line bg-surface text-ink shadow-card transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
+          className="flex size-[40px] flex-none items-center justify-center rounded-full text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
         >
           <CloseGlyph />
         </button>

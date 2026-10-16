@@ -21,8 +21,8 @@ export const ACCENTS: Accent[] = [
   {
     id: "teal",
     label: "טורקיז נפט",
-    light: "#0E7A6B",
-    dark: "#3FBFA8",
+    light: "#0B6B5E",
+    dark: "#4FD3BC",
     softLight: "#E3F0ED",
     softDark: "#123A34",
     contrastLight: "#FFFFFF",

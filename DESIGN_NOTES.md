@@ -1,7 +1,17 @@
 # Design Notes — טנק מלא (Tank Male)
 
-Extracted from `design/Tank Male - Mobile UI.dc.html` (24 screens, Hebrew RTL mobile UI kit).
-Base viewport 390px, flexible 360–430px. Full RTL, `lang="he"`.
+The current interface integrates the existing Open Design project
+`b3eca5a7-c0ed-4d56-a6f3-3884af335e5c` with the production React application.
+Base viewport 430px; verified layouts also cover 320px and 360px. Full Hebrew RTL.
+
+The prototype supplies visual direction, not account records or calculations.
+Production statistics, station identities, pricing, offline drafts and durable
+outbox remain authoritative. No schema or Rules changes are required.
+Settings contains behavior and appearance; Profile contains account/data tools.
+Profile export scope explicitly chooses all vehicles (including archive) or the
+active vehicle. Fill-up and tank-update CSV downloads remain separate gestures.
+The preferred refuel level means remaining fuel WHEN refuelling, not a target
+fill amount. Actual install detection and admin claims replace prototype samples.
 
 ## Design tokens
 
@@ -10,13 +20,13 @@ Semantic tokens, light on bare `:root`, dark under `[data-theme="dark"]` and
 
 | Token               | Light     | Dark      | Usage                                  |
 | ------------------- | --------- | --------- | -------------------------------------- |
-| `--bg`              | `#F3F6F4` | `#0E1512` | App background                          |
-| `--surface`         | `#FFFFFF` | `#182019` | Cards, sheets, bars                     |
-| `--surface-2`       | `#E9EFEA` | `#22322B` | Inset rows, muted chips, segmented bg   |
-| `--ink`             | `#16211C` | `#E9F0EA` | Primary text                            |
-| `--muted`           | `#63756D` | `#8FA298` | Secondary text, labels                  |
-| `--line`            | `#E3EAE5` | `#273129` | Borders, dividers                       |
-| `--accent`          | `#0E7A6B` | `#3FBFA8` | Primary action + hero number only       |
+| `--bg`              | `#F4F5F5` | `#0D0F10` | App background                          |
+| `--surface`         | `#FFFFFF` | `#16191B` | Cards, sheets, bars                     |
+| `--surface-2`       | `#EBEDEE` | `#1F2326` | Inset rows, muted chips, segmented bg   |
+| `--ink`             | `#14171A` | `#E8EBEC` | Primary text                            |
+| `--muted`           | `#636A70` | `#959CA1` | Secondary text, labels                  |
+| `--line`            | `#E2E5E6` | `#262B2E` | Borders, dividers                       |
+| `--accent`          | `#0B6B5E` | `#4FD3BC` | Primary action + hero number only       |
 | `--accent-contrast` | `#FFFFFF` | `#0B1613` | Text/icon on accent fill                |
 | `--accent-soft`     | `#E3F0ED` | `#123A34` | Accent-tinted chip/icon backgrounds     |
 | `--success`         | `#2E9E5B` | `#58C98B` | Better than average                     |
@@ -26,30 +36,30 @@ Semantic tokens, light on bare `:root`, dark under `[data-theme="dark"]` and
 | `--warning-soft`    | `#FDF0DC` | `#3A2A11` | Warning banner background               |
 | `--danger`          | `#CC3D2E` | `#EF7A69` | Destructive / hard blocks only          |
 | `--danger-soft`     | `#FCE7E3` | `#3A1A16` | Danger banner background                |
-| `--hero`            | `#26302A` | `#22302A` | Home hero card — dark in both themes    |
-| `--hero-ink`        | `#F4F8F5` | `#F4F8F5` | Text on the hero card                   |
-| `--hero-muted`      | `#A7B7AE` | `#A7B7AE` | Secondary text on the hero card         |
-| `--hero-accent`     | `--accent-d` | `--accent-d` | Accent ON the hero (always the dark variant) |
+| `--hero`            | `--surface` | `--surface` | Compatibility tokens for the form receipt |
+| `--hero-ink`        | `--ink` | `--ink` | Receipt text |
+| `--hero-muted`      | `--muted` | `--muted` | Receipt secondary text |
+| `--hero-accent`     | `--accent` | `--accent` | Receipt accent |
 
-Accent is **reserved** for the primary action and each screen's hero number.
+Accent identifies primary actions, meaningful status and selected controls.
 Semantic colors are independent of the accent choice.
 
 ### Accent palette (settings swatches)
 
-`טורקיז נפט #0E7A6B` (default) · `כחול ים #1D5FA8` · `סגול #6D4AA8` ·
+`טורקיז נפט #0B6B5E` (default) · `כחול ים #1D5FA8` · `סגול #6D4AA8` ·
 `ורוד #B03A72` · `אדום חמרה #B33A2B` · `כתום #B4620E` · `ירוק זית #4A7A22` ·
 `אפור פחם #44544C`, plus a custom color input.
 Each accent ships a lightened dark-mode variant that keeps AA contrast.
 
 ## Typography
 
-Heebo (400 / 600 / 700) via Google Fonts, `system-ui` fallback.
+Locally hosted Assistant (200–800) for UI and Frank Ruhl Libre (300–900) for headings and headline figures. WOFF2 Hebrew/Latin subsets are precached by the PWA. Upstream OFL licenses are in `public/fonts/`.
 
 | Role                   | Style                    |
 | ---------------------- | ------------------------ |
-| Hero number            | `700 52px/0.92` on the Home hero, `700 34px/1` elsewhere, `tabular-nums` |
-| Screen title           | `700 22px` (in-app headers use `700 18px`) |
-| Card title             | `700 17px`               |
+| Hero number            | Frank Ruhl Libre `500 64px/1` on Home, `600 26–30px` elsewhere, `tabular-nums` |
+| Screen title           | Frank Ruhl Libre `600 30px` (pushed headers use Assistant `700 18px`) |
+| Card title             | `700 19px`               |
 | Body                   | `400 16px`               |
 | Row title              | `600 15px`               |
 | Secondary / meta       | `400 13px`, muted        |
@@ -61,18 +71,18 @@ Every digit run uses `font-variant-numeric: tabular-nums` and is wrapped in
 
 ## Shape & elevation
 
-- Cards: `border-radius: 18px` (hero card `24px`), `1px solid var(--line)`, `var(--surface)`.
+- Groups: `border-radius: 14px`, `var(--surface)`, hairlines between rows. Home consumption and chart sections sit directly on the page.
 - Pills/chips/FAB: `border-radius: 99px` / `50%`.
-- Icon tiles: `36px` square, `border-radius: 11px`, `--accent-soft` background.
+- Controls: `10px` radius; sheets: `22px`. Icons are bare semantic glyphs. Cards have no shadows.
 - Phone frame in the kit: `30px` radius (app itself is edge-to-edge).
 - Elevation is used sparingly: bottom bar hairline `1px` top border; FAB has
-  `0 12px 24px -8px rgba(14,122,107,.6)` and a `5px` ring in `--bg`.
+  `0 12px 24px -8px rgba(14,122,107,.6)` and a `4px` ring in `--bg`.
 
 ## Layout
 
 - Screen padding: `20px` horizontal; content gap `13px`.
 - Status bar `44px` (device), app header `~48px`, bottom bar `88px` incl. home indicator.
-- FAB: `58px` circle, centered in the tab bar, `margin-top:-38px`.
+- FAB: `56px` circle, centered in the tab bar, `margin-top:-24px`.
 - Touch targets ≥ 44px; primary actions live in the thumb zone.
 - `prefers-reduced-motion` disables transitions/animations.
 

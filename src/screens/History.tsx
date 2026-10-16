@@ -115,7 +115,7 @@ export function History() {
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <header className="flex flex-none items-baseline justify-between gap-2 px-5 pb-2 pt-4">
-        <h1 className="text-[22px] font-bold text-ink">היסטוריה</h1>
+        <h1 className="font-display text-[30px] font-semibold text-ink">היסטוריה</h1>
         <span className="text-[13px] text-muted">
           <Num>{stats.records.fillupCount}</Num> תדלוקים
         </span>

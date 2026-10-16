@@ -14,7 +14,7 @@ export function Card({
   return (
     <Tag
       style={style}
-      className={`rounded-card border border-line bg-surface shadow-card ${className}`}
+      className={`rounded-card bg-surface ${className}`}
     >
       {children}
     </Tag>
@@ -31,7 +31,7 @@ export function Label({
 }) {
   return (
     <span
-      className={`text-[14px] font-medium text-muted ${className}`}
+      className={`text-[12px] font-bold tracking-[0.07em] text-muted ${className}`}
     >
       {children}
     </span>
@@ -47,13 +47,13 @@ export function SectionTitle({
 }) {
   return (
     <div className="flex items-center justify-between pt-1">
-      <h2 className="text-[18px] font-semibold text-ink">{children}</h2>
+      <h2 className="text-[19px] font-bold text-ink">{children}</h2>
       {action}
     </div>
   );
 }
 
-/** 36px rounded icon tile in accent-soft, used across the form cards. */
+/** A compact semantic icon, without a separate colored tile. */
 export function IconTile({
   children,
   tone = "accent",
@@ -64,14 +64,14 @@ export function IconTile({
   className?: string;
 }) {
   const tones = {
-    accent: "bg-accent-soft text-accent",
-    muted: "bg-surface-2 text-muted",
-    danger: "bg-danger-soft text-danger",
-    success: "bg-success-soft text-success-ink",
+    accent: "text-accent",
+    muted: "text-muted",
+    danger: "text-danger",
+    success: "text-success-ink",
   };
   return (
     <span
-      className={`flex size-9 flex-none items-center justify-center rounded-tile ${tones[tone]} ${className}`}
+      className={`flex size-5 flex-none items-center justify-center ${tones[tone]} ${className}`}
     >
       {children}
     </span>
@@ -117,7 +117,7 @@ export function ListCard({
   return (
     <div
       style={style}
-      className={`overflow-hidden rounded-card border border-line bg-surface shadow-card [&>*+*]:border-t [&>*+*]:border-line ${className}`}
+      className={`tm-list overflow-hidden rounded-card bg-surface [&>*+*]:border-t [&>*+*]:border-[var(--hairline)] ${className}`}
     >
       {children}
     </div>

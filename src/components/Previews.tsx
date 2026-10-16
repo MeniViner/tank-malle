@@ -43,7 +43,7 @@ export function FillupPreview() {
         <MiniInput label="ליטרים" value="38.2" accent />
       </div>
 
-      <div className="rounded-pill bg-accent py-2 text-center text-[11px] font-bold text-accent-contrast">
+      <div className="rounded-control bg-accent py-2 text-center text-[11px] font-bold text-accent-contrast">
         שמירת תדלוק
       </div>
     </Preview>
@@ -152,7 +152,7 @@ export function VehiclePreview() {
 
 function Preview({ children }: { children: React.ReactNode }) {
   return (
-    <Card className="flex w-full max-w-[268px] flex-col gap-2 rounded-[20px] p-3.5 shadow-[0_18px_40px_-20px_rgb(13_35_28/0.35)]">
+    <Card className="flex w-full max-w-[268px] flex-col gap-2 rounded-card p-3.5">
       {children}
     </Card>
   );

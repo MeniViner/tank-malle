@@ -32,7 +32,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const { Preview } = slide;
 
   return (
-    <div className="tm-aurora relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-bg px-6 pb-8 pt-safe">
+    <div className="relative mx-auto flex min-h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-bg px-6 pb-8 pt-safe">
       <header className="relative flex items-center justify-between pt-3">
         <span className="num text-[12px] font-semibold tracking-wide text-muted/70">
           {index + 1} / {SLIDES.length}
@@ -50,11 +50,6 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         {/* Keyed so every slide re-runs its own staggered entrance. */}
         <div key={index} className="flex w-full flex-col items-center gap-8">
           <div className="relative flex w-full justify-center">
-            {/* Glow behind the card so it reads as lifted, not pasted on. */}
-            <span
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-10 top-6 bottom-2 rounded-[32px] bg-accent/25 blur-[38px]"
-            />
             <div className="tm-pop relative">
               <Preview />
             </div>
@@ -62,13 +57,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
           <div className="flex flex-col items-center gap-2.5">
             <span
-              className="tm-rise rounded-pill bg-accent-soft px-3 py-1 text-[13px] font-bold tracking-[0.04em] text-accent"
+              className="tm-rise px-3 py-1 text-[13px] font-bold tracking-[0.04em] text-accent"
               style={{ animationDelay: "80ms" }}
             >
               {slide.kicker}
             </span>
             <h1
-              className="tm-rise max-w-[320px] text-[24px] font-bold leading-[1.25] tracking-tight text-ink"
+              className="tm-rise max-w-[320px] font-display text-[30px] font-semibold leading-[1.25] tracking-tight text-ink"
               style={{ animationDelay: "150ms" }}
             >
               {slide.title}

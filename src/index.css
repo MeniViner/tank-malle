@@ -1,5 +1,36 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Assistant";
+  src: url("/fonts/assistant-hebrew.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: "Assistant";
+  src: url("/fonts/assistant-latin.woff2") format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+@font-face {
+  font-family: "Frank Ruhl Libre";
+  src: url("/fonts/frankruhl-hebrew.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
+  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
+}
+@font-face {
+  font-family: "Frank Ruhl Libre";
+  src: url("/fonts/frankruhl-latin.woff2") format("woff2");
+  font-weight: 300 900;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
+}
+
 /* ---------------------------------------------------------------
    Design tokens — see DESIGN_NOTES.md
    Light palette lives on bare :root. Dark is applied either
@@ -8,33 +39,30 @@
    --------------------------------------------------------------- */
 
 :root {
-  --bg: #f6f6f3;
+  --bg: #f4f5f5;
   --surface: #ffffff;
-  --surface-2: #efefeb;
-  --ink: #202a26;
-  --muted: #5e6b65;
-  --line: #e4e6e1;
+  --surface-2: #ebedee;
+  --ink: #14171a;
+  --muted: #636a70;
+  --line: #e2e5e6;
 
   /* The accent is user-selectable. `--accent-l` / `--accent-d` are the two
      theme variants; ThemeProvider sets them on <html> and each theme block
      below picks the right one, so a custom accent still swaps with the theme
      instead of being pinned by an inline style. */
-  --accent: var(--accent-l, #0e7a6b);
+  --accent: var(--accent-l, #0b6b5e);
   --accent-contrast: var(--accent-contrast-l, #ffffff);
   --accent-soft: var(--accent-soft-l, #e3f0ed);
 
-  /* The home hero is a dark card in BOTH themes — a deliberate inversion, so
-     it carries its own foreground set instead of the surface tokens. The
-     accent on it is always the dark-theme variant: the light one is mixed for
-     white backgrounds and loses contrast on a near-black card. */
-  --hero: #26302a;
-  --hero-ink: #f4f8f5;
-  --hero-muted: #a7b7ae;
-  --hero-line: rgb(255 255 255 / 0.13);
-  --hero-soft: rgb(255 255 255 / 0.11);
-  --hero-accent: var(--accent-d, #3fbfa8);
-  --hero-good: #8fe3b0;
-  --hero-bad: #f5a99c;
+  /* Receipt tokens share the same neutral surface and semantic colours. */
+  --hero: var(--surface);
+  --hero-ink: var(--ink);
+  --hero-muted: var(--muted);
+  --hero-line: var(--line);
+  --hero-soft: var(--surface-2);
+  --hero-accent: var(--accent);
+  --hero-good: var(--success-ink);
+  --hero-bad: var(--danger-ink);
 
   --success: #2e9e5b;
   --success-soft: #e1f3e7;
@@ -46,35 +74,30 @@
   --danger-soft: #fce7e3;
   --danger-ink: #a93226;
 
-  /* Layered rather than single: transparent stacks read as real depth and
-     adapt to whatever sits behind them. */
-  --shadow-card: 0 1px 1px rgb(13 35 28 / 0.03), 0 2px 6px -2px rgb(13 35 28 / 0.05);
-  --shadow-raised: 0 1px 1px rgb(13 35 28 / 0.04), 0 4px 10px -3px rgb(13 35 28 / 0.08),
-    0 12px 28px -12px rgb(13 35 28 / 0.12);
+  /* Flat surfaces; elevation is reserved for sheets and the primary action. */
+  --shadow-card: none;
+  --shadow-raised: none;
   --shadow-fab: 0 2px 4px rgb(13 35 28 / 0.12),
     0 10px 22px -8px color-mix(in srgb, var(--accent) 55%, transparent);
   --shadow-sheet: 0 -12px 40px -12px rgb(13 35 28 / 0.22);
-  --hairline: rgb(0 0 0 / 0.08);
+  --hairline: rgb(20 23 26 / 0.09);
 
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --bg: #0e1512;
-    --surface: #182019;
-    --surface-2: #22322b;
-    --ink: #e9f0ea;
-    --muted: #8fa298;
-    --line: #273129;
+    --bg: #0d0f10;
+    --surface: #16191b;
+    --surface-2: #1f2326;
+    --ink: #e8ebec;
+    --muted: #959ca1;
+    --line: #262b2e;
 
-    --accent: var(--accent-d, #3fbfa8);
+    --accent: var(--accent-d, #4fd3bc);
     --accent-contrast: var(--accent-contrast-d, #0b1613);
     --accent-soft: var(--accent-soft-d, #123a34);
 
-    --hero: #22302a;
-    --hero-line: rgb(255 255 255 / 0.1);
-    --hero-soft: rgb(255 255 255 / 0.09);
 
     --success: #58c98b;
     --success-soft: #12331f;
@@ -86,31 +109,27 @@
     --danger-soft: #3a1a16;
     --danger-ink: #f5a99c;
 
-    --shadow-card: 0 1px 1px rgb(0 0 0 / 0.24), 0 2px 6px -2px rgb(0 0 0 / 0.3);
-    --shadow-raised: 0 1px 1px rgb(0 0 0 / 0.3), 0 4px 10px -3px rgb(0 0 0 / 0.4),
-      0 12px 28px -12px rgb(0 0 0 / 0.5);
+    --shadow-card: none;
+    --shadow-raised: none;
     --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / 0.5);
-    --hairline: rgb(255 255 255 / 0.09);
+    --hairline: rgb(255 255 255 / 0.1);
 
     color-scheme: dark;
   }
 }
 
 [data-theme="dark"] {
-  --bg: #0e1512;
-  --surface: #182019;
-  --surface-2: #22322b;
-  --ink: #e9f0ea;
-  --muted: #8fa298;
-  --line: #273129;
+  --bg: #0d0f10;
+  --surface: #16191b;
+  --surface-2: #1f2326;
+  --ink: #e8ebec;
+  --muted: #959ca1;
+  --line: #262b2e;
 
-  --accent: var(--accent-d, #3fbfa8);
+  --accent: var(--accent-d, #4fd3bc);
   --accent-contrast: var(--accent-contrast-d, #0b1613);
   --accent-soft: var(--accent-soft-d, #123a34);
 
-  --hero: #22302a;
-  --hero-line: rgb(255 255 255 / 0.1);
-  --hero-soft: rgb(255 255 255 / 0.09);
 
   --success: #58c98b;
   --success-soft: #12331f;
@@ -122,11 +141,10 @@
   --danger-soft: #3a1a16;
   --danger-ink: #f5a99c;
 
-  --shadow-card: 0 1px 1px rgb(0 0 0 / 0.24), 0 2px 6px -2px rgb(0 0 0 / 0.3);
-  --shadow-raised: 0 1px 1px rgb(0 0 0 / 0.3), 0 4px 10px -3px rgb(0 0 0 / 0.4),
-    0 12px 28px -12px rgb(0 0 0 / 0.5);
+  --shadow-card: none;
+  --shadow-raised: none;
   --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / 0.5);
-  --hairline: rgb(255 255 255 / 0.09);
+  --hairline: rgb(255 255 255 / 0.1);
 
   color-scheme: dark;
 }
@@ -163,11 +181,13 @@
   --color-hero-bad: var(--hero-bad);
 
   --font-sans: "Assistant", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Frank Ruhl Libre", "Assistant", Georgia, serif;
 
-  --radius-card: 16px;
+  --radius-card: 14px;
   --radius-hero: 20px;
   --radius-tile: 11px;
-  --radius-sheet: 28px;
+  --radius-sheet: 22px;
+  --radius-control: 10px;
   --radius-pill: 99px;
 
   --shadow-card: var(--shadow-card);
@@ -216,7 +236,7 @@
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
     text-rendering: optimizeLegibility;
-    /* Heebo's default numerals are proportional; the app is full of figures
+    /* The app is full of figures
        that must not jitter as they update. */
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
@@ -467,3 +487,8 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Shared summary group: one surface, with hairlines between the figures. */
+.tm-metrics > * { min-width: 0; border-radius: 0; }
+.tm-metrics > :nth-child(even) { border-inline-start: 1px solid var(--hairline); }
+.tm-metrics > :nth-child(n + 3) { border-top: 1px solid var(--hairline); }

@@ -71,13 +71,13 @@ export function HeroSpark({ segments }: { segments: Segment[] }) {
 
       {/* Both colours share the exact curve boundary and baseline. Bars left
           gaps and flat tops that disagreed with the smoothed trend. */}
-      <path d={area} className="fill-hero-soft" />
-      <path d={area} className="fill-hero-accent" opacity={0.85} clipPath={`url(#${clipId})`} />
+      <path d={area} className="fill-surface-2" />
+      <path d={area} className="fill-accent" opacity={0.22} clipPath={`url(#${clipId})`} />
 
       <path
         d={curve}
         fill="none"
-        stroke="var(--hero-ink)"
+        stroke="var(--muted)"
         strokeOpacity={0.7}
         strokeWidth={1.6}
         strokeLinecap="round"
@@ -86,7 +86,7 @@ export function HeroSpark({ segments }: { segments: Segment[] }) {
       <path
         d={curve}
         fill="none"
-        stroke="var(--hero-accent)"
+        stroke="var(--accent)"
         strokeWidth={2.2}
         strokeLinecap="round"
         vectorEffect="non-scaling-stroke"

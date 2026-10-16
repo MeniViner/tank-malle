@@ -11,8 +11,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-accent text-accent-contrast shadow-[0_2px_4px_rgb(13_35_28/0.10),0_10px_22px_-10px_var(--accent)] active:brightness-[0.97]",
-  secondary: "border border-line bg-surface text-ink shadow-card active:bg-surface-2",
+    "bg-accent text-accent-contrast active:brightness-[0.97]",
+  secondary: "border border-line bg-surface text-ink active:bg-surface-2",
   ghost: "text-muted active:bg-surface-2",
   danger: "bg-danger-soft text-danger-ink active:brightness-[0.97]",
 };
@@ -30,7 +30,7 @@ export function Button({
     <button
       type="button"
       disabled={disabled || loading}
-      className={`inline-flex min-h-[52px] items-center justify-center gap-2 rounded-pill px-6 text-[16px] font-bold transition-[filter,background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-45 ${
+      className={`inline-flex min-h-[52px] items-center justify-center gap-2 rounded-control px-6 text-[16px] font-bold transition-[filter,background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45 ${
         VARIANTS[variant]
       } ${full ? "w-full" : ""} ${className}`}
       {...rest}
@@ -66,6 +66,7 @@ export function RowButton({
   icon,
   title,
   subtitle,
+  value,
   trailing,
   onClick,
   tone = "default",
@@ -74,6 +75,7 @@ export function RowButton({
   icon?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
+  value?: ReactNode;
   trailing?: ReactNode;
   onClick?: () => void;
   tone?: "default" | "danger";
@@ -84,7 +86,7 @@ export function RowButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-[56px] w-full items-center gap-3 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 disabled:opacity-50"
+      className="flex min-h-[52px] w-full items-center gap-3 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 disabled:opacity-50"
     >
       {icon}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
@@ -99,6 +101,7 @@ export function RowButton({
           <span className="truncate text-[13px] font-normal text-muted">{subtitle}</span>
         ) : null}
       </span>
+      {value != null ? <span className="max-w-[50%] truncate text-[15px] text-muted">{value}</span> : null}
       {trailing}
     </button>
   );
