@@ -226,7 +226,7 @@ export function Statistics() {
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <header className="flex flex-none items-center justify-between gap-2 px-5 pb-3 pt-4">
-        <h1 className="font-display text-[30px] font-semibold text-ink">סטטיסטיקות</h1>
+        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">סטטיסטיקות</h1>
         {/* A loose vehicle name floating in the header said nothing and had no
             affordance. With one vehicle it is redundant; with several it needs
             to be a control, so that is what it is. */}
@@ -234,7 +234,7 @@ export function Statistics() {
           <button
             type="button"
             onClick={() => setVehicleSheetOpen(true)}
-            className="flex min-h-[32px] max-w-[52%] items-center gap-1 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-ink"
+            className="flex min-h-[40px] max-w-[52%] items-center gap-1 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-ink"
           >
             <span className="truncate">{vehicleShort(activeVehicle)}</span>
             <ChevronDown size={14} className="flex-none text-muted" />
@@ -246,7 +246,7 @@ export function Statistics() {
           scrolling — the old rail clipped its last tab off the edge. */}
       <nav
         aria-label="מדורי סטטיסטיקה"
-        className="mx-5 mb-4 grid flex-none grid-cols-4 gap-1 rounded-control bg-surface-2 p-1"
+        className="mx-5 mb-4 grid flex-none grid-cols-4 gap-2"
       >
         {SECTIONS.map((entry) => (
           <button
@@ -254,10 +254,10 @@ export function Statistics() {
             type="button"
             aria-current={section === entry.value ? "page" : undefined}
             onClick={() => setSection(entry.value)}
-            className={`min-h-[42px] rounded-[8px] px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[44px] rounded-pill px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
               section === entry.value
-                ? "bg-surface text-ink"
-                : "text-muted"
+                ? "bg-ink text-surface"
+                : "bg-surface text-muted"
             }`}
           >
             {entry.label}
@@ -354,6 +354,37 @@ export function Statistics() {
                   </BarChart>
                 </ChartCard>
 
+                <ChartCard title="קילומטראז׳ מצטבר">
+                  <AreaChart data={odometerData} margin={CHART_MARGIN}>
+                    <defs>
+                      <linearGradient id="odoFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
+                        <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="var(--line)" vertical={false} />
+                    <XAxis {...xAxis} />
+                    <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
+                    <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
+                    <Area isAnimationActive={false}
+                      type="monotone"
+                      dataKey="odometer"
+                      stroke="var(--accent)"
+                      strokeWidth={2.4}
+                      fill="url(#odoFill)"
+                      connectNulls={false}
+                    />
+                  </AreaChart>
+                </ChartCard>
+
+                {stats.breakCount > 0 ? (
+                  <p className="px-1 text-[12px] leading-relaxed text-muted">
+                    בגרף יש {stats.breakCount === 1 ? "נקודת" : `${stats.breakCount} נקודות`}{" "}
+                    התחלת תקופה חדשה. הקו נקטע שם בכוונה — לא מחושב שום נתון שחוצה תדלוקים
+                    שלא תועדו.
+                  </p>
+                ) : null}
+
                 <BasisNote
                   segments={segments.length}
                   fillups={spend.fillups}
@@ -370,7 +401,7 @@ export function Statistics() {
 
             {section === "consumption" ? (
               <>
-                <div className="flex gap-3">
+                <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
                   <SummaryCard
                     label="ממוצע צריכה"
                     value={averageLine !== null ? String(averageLine) : "—"}
@@ -413,7 +444,7 @@ export function Statistics() {
                       dataKey="value"
                       stroke="var(--accent)"
                       strokeWidth={2.6}
-                      dot={{ r: 3, fill: "var(--accent)", strokeWidth: 0 }}
+                      dot={({ cx, cy, index }) => <circle cx={cx} cy={cy} r={index === consumptionData.length - 1 ? 4.5 : 3} fill="var(--accent)" stroke={index === consumptionData.length - 1 ? "var(--surface)" : "none"} strokeWidth={2} />}
                       activeDot={{ r: 5 }}
                     />
                   </LineChart>
@@ -448,42 +479,13 @@ export function Statistics() {
                   </Card>
                 ) : null}
 
-                <ChartCard title="קילומטראז׳ מצטבר">
-                  <AreaChart data={odometerData} margin={CHART_MARGIN}>
-                    <defs>
-                      <linearGradient id="odoFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.28} />
-                        <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke="var(--line)" vertical={false} />
-                    <XAxis {...xAxis} />
-                    <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
-                    <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
-                    <Area isAnimationActive={false}
-                      type="monotone"
-                      dataKey="odometer"
-                      stroke="var(--accent)"
-                      strokeWidth={2.4}
-                      fill="url(#odoFill)"
-                      connectNulls={false}
-                    />
-                  </AreaChart>
-                </ChartCard>
 
-                {stats.breakCount > 0 ? (
-                  <p className="px-1 text-[12px] leading-relaxed text-muted">
-                    בגרף יש {stats.breakCount === 1 ? "נקודת" : `${stats.breakCount} נקודות`}{" "}
-                    התחלת תקופה חדשה. הקו נקטע שם בכוונה — לא מחושב שום נתון שחוצה תדלוקים
-                    שלא תועדו.
-                  </p>
-                ) : null}
               </>
             ) : null}
 
             {section === "prices" ? (
               <>
-                <div className="flex gap-3">
+                <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
                   <SummaryCard
                     label="מחיר ממוצע ששולם"
                     value={stats.avgPricePaid !== null ? price(stats.avgPricePaid) : "—"}
@@ -590,7 +592,7 @@ export function Statistics() {
                   </Card>
                 ) : null}
 
-                <div className="flex gap-3">
+                <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
                   <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
                     <Label className="text-[14px]">התדלוק היקר ביותר</Label>
                     <Num className="self-start font-display text-[26px] font-semibold leading-tight text-ink">
@@ -661,7 +663,7 @@ export function Statistics() {
               className={`flex min-h-[48px] items-center justify-between gap-3 rounded-[12px] px-3.5 text-start text-[14.5px] font-semibold transition-[background-color] duration-150 ${
                 vehicle.id === activeVehicle?.id
                   ? "bg-accent-soft text-accent"
-                  : "bg-surface-2 text-ink"
+                  : "bg-bg text-ink"
               }`}
             >
               <span className="truncate">{vehicleLabel(vehicle)}</span>
@@ -697,14 +699,14 @@ function RangePicker({
 
   return (
     <>
-      <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-[14px] border border-line bg-surface px-2 ps-3.5 shadow-card">
+      <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-card bg-surface px-2 ps-3.5">
         <span className="truncate text-[14px] text-muted">{summary}</span>
         <button
           type="button"
           aria-haspopup="dialog"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="flex min-h-[36px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[13px] font-bold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
+          className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[13px] font-bold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
         >
           <CalendarIcon size={15} className="text-muted" />
           {RANGE_COMPACT[value === "custom" ? "all" : value]}
@@ -717,7 +719,7 @@ function RangePicker({
         onClose={() => setOpen(false)}
         title={<h2 className="text-[18px] font-semibold text-ink">טווח תאריכים</h2>}
       >
-        <div className="flex flex-col gap-1.5">
+        <div className="tm-choice-list">
           {RANGE_OPTIONS.map((option) => (
             <button
               key={option}
@@ -730,7 +732,7 @@ function RangePicker({
               className={`flex min-h-[46px] items-center justify-between gap-3 rounded-[12px] px-3.5 text-start text-[14.5px] font-semibold transition-[background-color] duration-150 ${
                 option === value
                   ? "bg-accent-soft text-accent"
-                  : "bg-surface-2 text-ink"
+                  : "bg-bg text-ink"
               }`}
             >
               {RANGE_COMPACT[option]}

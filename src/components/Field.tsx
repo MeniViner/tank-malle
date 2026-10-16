@@ -11,6 +11,8 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size">
   icon?: ReactNode;
   /** Renders the value at hero size, for the odometer and liters inputs. */
   big?: boolean;
+  /** A labelled value row inside a shared group. */
+  row?: boolean;
 }
 
 /**
@@ -25,6 +27,7 @@ export function Field({
   warning,
   icon,
   big = false,
+  row = false,
   className = "",
   ...rest
 }: FieldProps) {
@@ -34,16 +37,16 @@ export function Field({
     .join(" ");
 
   return (
-    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
+    <div className={`${row ? "tm-field-row" : "flex min-w-0 flex-col gap-1.5"} ${className}`}>
       <label
         htmlFor={id}
-        className="truncate text-[13px] font-semibold  text-muted"
+        className={row ? "tm-field-label" : "text-[13.5px] font-semibold text-muted"}
       >
         {label}
       </label>
 
       <div
-        className={`flex items-center gap-2.5 rounded-[14px] border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)] ${
+        className={row ? `tm-field-input ${error ? "text-danger" : ""}` : `flex items-center gap-2.5 rounded-[10px] border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)] ${
           big ? "min-h-[58px]" : "min-h-[50px]"
         } ${
           error
@@ -59,8 +62,8 @@ export function Field({
           dir="ltr"
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
-          className={`num min-w-0 flex-1 bg-transparent text-start outline-none placeholder:text-muted/60 ${
-            big ? "text-[26px] font-bold" : "text-[16px] font-semibold"
+          className={`num min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted/60 ${
+            row ? "text-[17px] font-semibold" : big ? "text-[26px] font-bold" : "text-[16px] font-semibold"
           }`}
           {...rest}
         />

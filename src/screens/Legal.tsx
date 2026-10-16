@@ -34,7 +34,7 @@ export function Legal() {
           </p>
         </Card>
 
-        <article className="flex flex-col gap-5 pb-6">
+        <article className="tm-document flex flex-col gap-6 pb-6">
           {isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}
 
           <Card className="flex flex-col gap-1.5 p-4">
@@ -63,8 +63,8 @@ export function Legal() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="text-[16px] font-bold text-ink">{title}</h2>
-      <div className="flex flex-col gap-2 text-[14px] leading-[1.75] text-ink/85">
+      <h2 className="font-display text-[23px] font-bold text-ink">{title}</h2>
+      <div className="flex flex-col gap-2 text-[16px] leading-[1.72] text-ink/85">
         {children}
       </div>
     </section>

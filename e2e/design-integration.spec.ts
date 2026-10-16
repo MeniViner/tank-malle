@@ -53,7 +53,7 @@ test("design surfaces retain real fixture values and fit mobile layouts", async 
     await page.getByRole("dialog").getByRole("button", { name: "סגירה", exact: true }).click();
     await page.goto("/");
     await expect(page.getByTestId("consumption-summary").getByText("11.0", { exact: true }).first()).toBeVisible();
-    await expect(page.getByTestId("consumption-summary").locator("svg[viewBox='0 0 100 40']")).toBeVisible();
+    await expect(page.getByTestId("consumption-summary").getByTestId("consumption-chart").getByRole("img")).toBeVisible();
     await expect(page.getByText("המיכל שלי", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "פעולות שממתינות לסנכרון", exact: true })).toHaveCount(0);
     await capture(`home-${mode}`);

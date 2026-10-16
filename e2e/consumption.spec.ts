@@ -172,7 +172,7 @@ test("a continuity break stops every calculation from crossing the gap", async (
 
   // Records from BEFORE the break are still listed — a break hides nothing,
   // it only stops calculations crossing it. Two seeded plus two added.
-  await expect(page.getByText(/ל׳ · ₪/)).toHaveCount(4);
+  await expect(page.getByRole("button", { name: /ל׳.*ק״מ.*₪/ })).toHaveCount(4);
 });
 
 test("editing, deleting and backdating recompute the result", async ({ page }) => {

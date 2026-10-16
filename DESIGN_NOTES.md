@@ -2,7 +2,7 @@
 
 The current interface integrates the existing Open Design project
 `b3eca5a7-c0ed-4d56-a6f3-3884af335e5c` with the production React application.
-Base viewport 430px; verified layouts also cover 320px and 360px. Full Hebrew RTL.
+The complete import follows the supplied October 16 ZIP (index.html, entry.html, admin.html and DESIGN.md). Base app width 430px, fluid down to 320px, centered on wider screens. Full Hebrew RTL.
 
 The prototype supplies visual direction, not account records or calculations.
 Production statistics, station identities, pricing, offline drafts and durable
@@ -36,10 +36,6 @@ Semantic tokens, light on bare `:root`, dark under `[data-theme="dark"]` and
 | `--warning-soft`    | `#FDF0DC` | `#3A2A11` | Warning banner background               |
 | `--danger`          | `#CC3D2E` | `#EF7A69` | Destructive / hard blocks only          |
 | `--danger-soft`     | `#FCE7E3` | `#3A1A16` | Danger banner background                |
-| `--hero`            | `--surface` | `--surface` | Compatibility tokens for the form receipt |
-| `--hero-ink`        | `--ink` | `--ink` | Receipt text |
-| `--hero-muted`      | `--muted` | `--muted` | Receipt secondary text |
-| `--hero-accent`     | `--accent` | `--accent` | Receipt accent |
 
 Accent identifies primary actions, meaningful status and selected controls.
 Semantic colors are independent of the accent choice.
@@ -57,12 +53,12 @@ Locally hosted Assistant (200–800) for UI and Frank Ruhl Libre (300–900) for
 
 | Role                   | Style                    |
 | ---------------------- | ------------------------ |
-| Hero number            | Frank Ruhl Libre `500 64px/1` on Home, `600 26–30px` elsewhere, `tabular-nums` |
-| Screen title           | Frank Ruhl Libre `600 30px` (pushed headers use Assistant `700 18px`) |
+| Hero number            | Frank Ruhl Libre `700 64px/0.88` on Home, `700 26–34px` elsewhere, `tabular-nums` |
+| Screen title           | Frank Ruhl Libre `700 30px/1.15` (pushed headers use Assistant `700 17px`) |
 | Card title             | `700 19px`               |
 | Body                   | `400 16px`               |
-| Row title              | `600 15px`               |
-| Secondary / meta       | `400 13px`, muted        |
+| Row title              | `600 15.5px`               |
+| Secondary / meta       | `400 13.5px`, muted        |
 | Field label            | `600 13px`, `letter-spacing:.02em`, muted |
 | Chip / tab label       | `600 12.5px` / `700 11px` |
 
@@ -80,7 +76,7 @@ Every digit run uses `font-variant-numeric: tabular-nums` and is wrapped in
 
 ## Layout
 
-- Screen padding: `20px` horizontal; content gap `13px`.
+- Screen padding: `20px` horizontal; main section gap `28px`; grouped rows `54–58px`.
 - Status bar `44px` (device), app header `~48px`, bottom bar `88px` incl. home indicator.
 - FAB: `56px` circle, centered in the tab bar, `margin-top:-24px`.
 - Touch targets ≥ 44px; primary actions live in the thumb zone.
@@ -112,25 +108,20 @@ Every digit run uses `font-variant-numeric: tabular-nums` and is wrapped in
 
 ## Component patterns
 
-- **Vehicle switcher pill** — white pill with car icon + `מאזדה 3 · 2018` + chevron, top-right avatar.
-- **Hero consumption card** (Home) — a DARK card in both themes, on its own
-  `--hero*` tokens: label + outcome chip, 52px number + `קמ״ל`, a sparkline of
-  the last six closed segments (newest bar in `--hero-accent`), then a hairline
-  and the footer pair `ממוצע כולל 14.1 קמ״ל` / `מבוסס על 3 מקטעים · 5 תדלוקים`.
-- **Stat pair** — two equal cards: `הוצאה החודש` / `מחיר דלק נוכחי`. A month with
-  no fill-up in it reads `טרם תודלק` + `אחרון: 31 באוג׳`, never `₪0`.
-- **Timeline** (Home history) — rail down the end edge, one node per record
-  (newest filled in `--accent`, the rest hollow); row = name + meta at the
-  start, consumption at the end. No card around it.
-- **Info strip** — `--surface-2`, radius 14, icon + 13px text.
-- **List card** — rows separated by `1px solid` hairline; row = title + meta, trailing chip.
-- **Form card** — grouped rows with a 36px icon tile, label above value, trailing action link.
-- **Paired inputs** — `ליטרים` ⇄ `סה״כ לתשלום`, each editable, the other recomputed live.
-- **Soft warning** — amber banner inside the field card; never blocks saving.
-- **Hard block** — red helper text with the allowed range, e.g. `הזן בין 41,200 ל־42,850`.
-- **Segmented control** — pill track in `--surface-2`, active segment `--surface` (theme,
-  units, stats range `3ח׳ / 6ח׳ / שנה / הכול`).
-- **Bottom sheet** — radius-28 top corners, grab handle, action list, `סגירה`.
+- **Vehicle header** — bare vehicle name and car glyph, avatar with a 44px touch area.
+- **Home consumption** — 64px number directly on the page. Each bar is a measured full-to-full interval with a date. The latest contiguous six intervals are shown; average and bars share a scale. Unit changes convert both values and the scale. Latest adverse consumption uses the warning tone.
+- **Stat pair** — equal columns separated by one vertical hairline. Unknown monthly spend stays unknown rather than reading zero.
+- **Tank** — horizontal bar, 34px estimate, litres/capacity, reserve tick and optional learned habit marker. Unknown is a dashed placeholder. Forecast updates, conflicts, odometer/gauge edits and trip planning remain live; learning detail is expandable.
+- **History** — totals follow the current filter. Brand marks identify stations; the cost and consumption form a quiet trailing column. Pending, anomalous and continuity states remain visible.
+- **Grouped forms** — labelled value rows for mileage, litres and payment. Validation is associated with its input. A compact calculated summary replaces the duplicate receipt hero.
+- **Choices** — sheets use a single list with hairlines and a checkmark. Theme/unit lists retain radio semantics and arrow/Home/End navigation. Other segmented controls remain pill tracks.
+- **Entry** — thin progress segments, UI previews, clearly labelled sample figures at sign-in. Plate supports typing/paste and the custom keypad. Registry confirmation is read-only until the user chooses to edit.
+- **Admin** — four compact chips, grouped metrics, label/input/action fuel rows, source details in info sheets, visible pending/rejected acknowledgements. Feedback has category filters and a detail sheet. Load failure has an explicit retry state.
+- **Vehicles** — small text actions below a hairline and an add-vehicle row.
+- **Import** — file selection area, local-read disclosure, preview and per-row rejection reasons. Production column mapping, rollback and outbox handling remain available.
+- **Unsynced** — three numbered stages explain the local-save/server-send/acknowledgement lifecycle; actual recovery controls remain below.
+- **Legal** — 36ch reading width, 16px/1.72 body and serif section titles. Policy content is preserved.
+- **Bottom sheet** — 22px top corners, neutral scrim, grab handle and close action; focus trap and keyboard dismissal remain intact.
 - **Bottom tab bar** — `בית · היסטוריה · [FAB תדלוק] · סטטיסטיקות · הגדרות`.
 
 ## Charts (screen 17)

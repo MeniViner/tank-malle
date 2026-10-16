@@ -126,14 +126,14 @@ for (const oldCache of [false, true]) {
   });
 }
 
-test("home renders a continuous area in light and dark themes", async ({ page }, testInfo) => {
+test("home labels measured consumption intervals and their average in both themes", async ({ page }, testInfo) => {
   await signedInWithData(page, { fillups: RECORDS });
   const hero = page.getByTestId("consumption-summary");
-  const svg = hero.locator("svg[viewBox='0 0 100 40']");
-  await expect(svg).toBeVisible();
-  const curve = await svg.locator("path").nth(2).getAttribute("d");
-  await expect(svg.locator("path").nth(0)).toHaveAttribute("d", `${curve} L 100 40 L 0 40 Z`);
-  await expect(svg.locator("path").nth(1)).toHaveAttribute("d", `${curve} L 100 40 L 0 40 Z`);
+  const chart = hero.getByTestId("consumption-chart");
+  await expect(chart.getByRole("img")).toHaveAccessibleName("4 באוק׳: 10.0 קמ״ל; 10 באוק׳: 15.0 קמ״ל");
+  await expect(chart.locator("rect[data-segment]")).toHaveCount(2);
+  await expect(chart.getByRole("img")).toBeVisible();
+  await expect(hero.getByText(/ממוצע כולל 12\.5 קמ״ל/)).toBeVisible();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await testInfo.attach(`home-consumption-${colorScheme}`, { body: await hero.screenshot(), contentType: "image/png" });

@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { useTankEstimate } from "../hooks/useTankEstimate";
-import { Card, Label, Skeleton } from "./Card";
+import { Card, Skeleton } from "./Card";
 import { Sheet } from "./Sheet";
 import { Num } from "./Num";
 import { Field } from "./Field";
@@ -80,7 +80,7 @@ export function MyTankCard() {
       <Card className="tm-rise flex flex-col gap-3 p-[16px_18px]" style={{ animationDelay: "70ms" }}>
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center">
-            <Label>המיכל שלי</Label>
+            <h2 className="text-[19px] font-bold">המיכל שלי</h2>
             <button
               type="button"
               aria-label="איך המיכל מחושב"
@@ -101,10 +101,10 @@ export function MyTankCard() {
             <span className="rounded-pill bg-surface-2 px-[11px] py-1 text-[12px] font-semibold text-muted">
               המידע ישן
             </span>
-          ) : null}
+          ) : <span className="tm-status">הערכה</span>}
         </div>
 
-        <div className="flex flex-col items-center gap-3 min-[380px]:flex-row">
+        <div className="flex flex-col gap-3">
           <TankDial
             level={displayLevel}
             reserveLevel={estimate.reserveLevel}
@@ -112,7 +112,7 @@ export function MyTankCard() {
             tone={conflict ? "warning" : "accent"}
             caption={
               current.liters !== null
-                ? `כ־${num(current.liters, 0)} ליטר`
+                ? `כ־${num(current.liters, 0)} ל׳${estimate.capacity.liters ? ` מתוך ${num(estimate.capacity.liters, 0)}` : ""}`
                 : current.level === null && reportedLevel
                   ? `עודכן ${timeAgo(reportedLevel.at)}`
                   : null
@@ -121,17 +121,17 @@ export function MyTankCard() {
 
           {/* The legend is what turns two coloured ticks into the feature: the
               level you should act at, and the level you actually act at. */}
-          <div className="flex w-full min-w-0 flex-1 flex-col gap-2 min-[380px]:w-auto">
+          <div className="flex w-full min-w-0 flex-col gap-2">
             {current.level !== null || reportedLevel ? (
               <>
                 <LegendRow
-                  color="var(--warning)"
+                  color="var(--surface)"
                   label="כדאי לתדלק"
                   value={levelLabel(estimate.reserveLevel)}
                 />
                 {habit.canClaim || habit.overridden ? (
                   <LegendRow
-                    color="var(--accent)"
+                    color="var(--ink)"
                     dashed
                     label={habit.overridden ? "ההעדפה שלך" : "ההרגל שלך"}
                     value={levelLabel(habit.typicalLevel)}
@@ -187,17 +187,20 @@ export function MyTankCard() {
         {/* Exactly one personalised sentence. Everything else is in the sheet. */}
         {habit.canClaim || habit.overridden ? <p className="text-[15px] leading-relaxed text-ink">{habitCopy.text}</p> : null}
         {usage.count >= 3 || estimate.consumption.segmentCount > 0 ? (
-          <div className="grid grid-cols-2 gap-3 border-t border-line pt-3 text-[14px]" aria-label="מה למדנו מהשימוש שלך">
+          <details className="border-t border-[var(--hairline)] pt-2" aria-label="מה למדנו מהשימוש שלך">
+            <summary className="min-h-10 cursor-pointer py-2 text-[13.5px] font-semibold text-muted">מה למדנו מהשימוש שלך</summary>
+            <div className="grid grid-cols-2 gap-3 pb-2 text-[14px]">
             {estimate.mobility.kmPerDay !== null ? <div><span className="block text-muted">נסיעה ביום</span><span className="text-[21px] font-semibold"><Num>{num(estimate.mobility.kmPerDay, 0)}</Num> ק״מ</span></div> : null}
             {usage.cadenceDays !== null ? <div><span className="block text-muted">בדרך כלל מתדלקים כל</span><span className="text-[21px] font-semibold"><Num>{num(usage.cadenceDays, 0)}</Num> ימים</span></div> : null}
             {usage.typicalLiters !== null ? <div><span className="block text-muted">תדלוק טיפוסי</span><Num className="font-semibold">{num(usage.typicalLiters, 0)}</Num> ליטר</div> : null}
             {estimate.consumption.source === 'history' && estimate.consumption.kmPerLiter !== null ? <div><span className="block text-muted">הצריכה שנלמדה</span><Num className="font-semibold">{num(estimate.consumption.kmPerLiter, 1)}</Num> קמ״ל</div> : null}
-          </div>
+            </div>
+          </details>
         ) : null}
         {enriching ? <p role="status" className="text-[14px] text-muted">משלים מפרט רכב…</p> : null}
         {!estimate.capacity.liters && !enriching ? <button type="button" onClick={() => navigate('/settings/vehicles')} className="min-h-[44px] text-start text-[14px] font-semibold text-accent">השלמת נפח המיכל</button> : null}
         {current.level !== null && recommended ? <p className="text-[15px] font-semibold text-accent">{recommended}</p> : null}
-        <button type="button" onClick={() => setTripOpen(true)} className="flex min-h-[44px] items-center justify-center gap-2 rounded-[12px] border border-line text-[15px] font-semibold text-ink"><CalendarIcon size={17} /> תכנון נסיעה</button>
+        <button type="button" onClick={() => setTripOpen(true)} className="tm-text-action border-t border-[var(--hairline)]"><CalendarIcon size={17} /> תכנון נסיעה</button>
 
         {/* With nothing measured yet the column above already carries a single
             primary invitation; repeating it here as one of two equal-weight
@@ -269,7 +272,7 @@ function LegendRow({
         style={
           dashed
             ? { backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 3px, transparent 3px 5px)` }
-            : { backgroundColor: color }
+            : { backgroundColor: color, boxShadow: "0 0 0 1px var(--muted)" }
         }
       />
       <span className="min-w-0 flex-1 truncate text-muted">{label}</span>
@@ -344,7 +347,7 @@ function CardAction({
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-pill border border-line bg-surface px-3 text-[13px] font-semibold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97] active:bg-surface-2"
+      className="tm-text-action flex-1 text-[13.5px]"
     >
       {icon}
       {children}

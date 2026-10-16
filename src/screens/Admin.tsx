@@ -35,13 +35,14 @@ import { StationBrandMark } from "../components/StationBrand";
 import { Avatar } from "../components/Avatar";
 import { Segmented } from "../components/Segmented";
 import { Button } from "../components/Button";
+import { Sheet } from "../components/Sheet";
+import { InfoTip } from "../components/InfoTip";
 import { useToast } from "../context/ToastContext";
 import {
   CarIcon,
   ChartIcon,
   HeartIcon,
   LightbulbIcon,
-  MessageIcon,
   PumpIcon,
   RefreshIcon,
   ShieldIcon,
@@ -290,17 +291,17 @@ export function Admin() {
       />
 
       {/* Four sections, one at a time. */}
-      <nav aria-label="מדורי ניהול" className="sticky top-0 z-10 mx-3 mb-4 grid flex-none grid-cols-4 gap-1 rounded-control bg-surface-2 p-1 min-[400px]:mx-5">
+      <nav aria-label="מדורי ניהול" className="sticky top-0 z-10 mx-5 mb-4 grid flex-none grid-cols-4 gap-2 bg-bg py-2">
         {ADMIN_TABS.map((entry) => (
           <button
             key={entry.value}
             type="button"
             aria-current={tab === entry.value ? "page" : undefined}
             onClick={() => setTab(entry.value)}
-            className={`min-h-[48px] rounded-[10px] px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
+            className={`min-h-[44px] rounded-pill px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
               tab === entry.value
-                ? "bg-surface text-ink"
-                : "text-muted"
+                ? "bg-ink text-surface"
+                : "bg-surface text-muted"
             }`}
           >
             {entry.label}
@@ -308,7 +309,7 @@ export function Admin() {
         ))}
       </nav>
 
-      <div className="flex min-w-0 flex-col gap-4 px-3 min-[400px]:px-5">
+      <div className="flex min-w-0 flex-col gap-6 px-5">
         {error ? (
           <Card className="flex items-start gap-3 p-4">
             <IconTile tone="danger">
@@ -340,8 +341,7 @@ export function Admin() {
                   }
                   bare
                 >
-                  <div className="flex flex-col gap-3">
-                    <div className="flex gap-3">
+                  <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
                       <StatTile
                         icon={<UserIcon size={17} />}
                         label="משתמשים"
@@ -353,8 +353,7 @@ export function Admin() {
                         label="רכבים"
                         value={num(totals?.vehicles ?? 0, 0)}
                       />
-                    </div>
-                    <div className="flex gap-3">
+
                       <StatTile
                         icon={<PumpIcon size={17} />}
                         label="תדלוקים"
@@ -372,7 +371,6 @@ export function Admin() {
                         }
                         accent
                       />
-                    </div>
                   </div>
                 </Panel>
 
@@ -460,7 +458,7 @@ export function Admin() {
                             </span>
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-1.5 ps-[50px]">
+                          <div className="grid grid-cols-3 gap-x-4 gap-y-2 border-t border-[var(--hairline)] pt-3">
                             <MiniStat label="רכבים" value={num(entry.vehicles, 0)} />
                             <MiniStat label="תדלוקים" value={num(entry.fillups, 0)} />
                             <MiniStat
@@ -575,115 +573,66 @@ const SENTIMENT = {
 /** Everything users sent through Settings → משוב, newest first. */
 function FeedbackInbox() {
   const [entries, setEntries] = useState<FeedbackEntry[] | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [selected, setSelected] = useState<FeedbackEntry | null>(null);
+  const [filter, setFilter] = useState<"all" | "good" | "idea" | "bug">("all");
+  const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let active = true;
     const load = async () => {
-      // orderBy needs an index the first time; fall back to client sorting.
       try {
-        const snapshot = await getDocs(
-          query(collection(db, "feedback"), orderBy("createdAt", "desc"), limit(200)),
-        );
-        return snapshot;
+        return await getDocs(query(collection(db, "feedback"), orderBy("createdAt", "desc"), limit(200)));
       } catch {
         return getDocs(query(collection(db, "feedback"), limit(200)));
       }
     };
+    void load().then(snapshot => {
+      if (!active) return;
+      const rows = snapshot.docs.map(entry => {
+        const data = entry.data();
+        return {
+          id: entry.id, message: String(data.message ?? ""),
+          sentiment: Object.hasOwn(SENTIMENT, data.sentiment) ? data.sentiment as keyof typeof SENTIMENT : null,
+          displayName: data.displayName ?? null, email: data.email ?? null,
+          appVersion: data.appVersion ?? null, createdAt: data.createdAt?.toMillis?.() ?? null,
+        } satisfies FeedbackEntry;
+      });
+      rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      setEntries(rows);
+    }).catch(() => { if (active) setError(true); });
+    return () => { active = false; };
+  }, [attempt]);
+  const visible = entries?.filter(entry => filter === "all" || entry.sentiment === filter);
 
-    void load()
-      .then((snapshot) => {
-        const rows = snapshot.docs.map((entry) => {
-          const data = entry.data();
-          return {
-            id: entry.id,
-            message: String(data.message ?? ""),
-            sentiment: (data.sentiment ?? null) as FeedbackEntry["sentiment"],
-            displayName: data.displayName ?? null,
-            email: data.email ?? null,
-            appVersion: data.appVersion ?? null,
-            createdAt: data.createdAt?.toMillis?.() ?? null,
-          } satisfies FeedbackEntry;
-        });
-        rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-        setEntries(rows);
-      })
-      .catch(() => setEntries([]));
-  }, []);
-
-  return (
-    <Panel
-      title="משוב ממשתמשים"
-      bare
-      trailing={
-        entries ? (
-          <span className="text-[12px] font-semibold text-muted">
-            <Num>{entries.length}</Num>
+  return <Panel title="משוב ממשתמשים" bare trailing={entries ? <Num className="text-[13.5px] text-muted">{entries.length}</Num> : null}>
+    <Segmented ariaLabel="סינון משוב" value={filter} onChange={setFilter} options={[
+      { value: "all", label: "הכול" }, { value: "good", label: "מחמאות" },
+      { value: "idea", label: "רעיונות" }, { value: "bug", label: "תקלות" },
+    ]} />
+    {error ? <div role="alert" className="flex items-center justify-between gap-3 py-4 text-[14px] text-danger-ink">
+      לא ניתן לטעון את המשוב <button type="button" className="tm-text-action" onClick={() => { setError(false); setAttempt(n => n + 1); }}>ניסיון נוסף</button>
+    </div> : !visible ? <Skeleton className="h-[120px] rounded-card" /> : visible.length === 0 ?
+      <p className="py-8 text-center text-[15.5px] text-muted">{entries?.length ? "אין משוב בקטגוריה הזו" : "עוד לא התקבל משוב"}</p> :
+      <ListCard>{visible.map(entry => {
+        const meta = entry.sentiment ? SENTIMENT[entry.sentiment] : null;
+        return <button key={entry.id} type="button" onClick={() => setSelected(entry)} className="flex w-full flex-col gap-2 px-4 py-4 text-start active:bg-surface-2" aria-haspopup="dialog">
+          <span className="flex items-center gap-2">
+            {meta ? <meta.Icon size={18} className="text-muted" /> : null}
+            <span className="min-w-0 flex-1 truncate text-[15.5px] font-semibold">{entry.displayName ?? "משתמש"}</span>
+            <span className="text-[12px] text-muted">{entry.createdAt ? timeAgo(entry.createdAt) : "—"}</span>
           </span>
-        ) : null
-      }
-    >
-      {!entries ? (
-        <Skeleton className="h-[120px] rounded-card" />
-      ) : entries.length === 0 ? (
-        <Card className="flex flex-col items-center gap-2 px-6 py-8 text-center">
-          <IconTile tone="muted">
-            <MessageIcon size={18} />
-          </IconTile>
-          <span className="text-[14px] text-muted">עוד לא התקבל משוב</span>
-        </Card>
-      ) : (
-        <ListCard>
-          {entries.map((entry) => {
-            const meta = entry.sentiment ? SENTIMENT[entry.sentiment] : null;
-            const isOpen = expanded === entry.id;
-            const isLong = entry.message.length > 150;
-
-            return (
-              <button
-                key={entry.id}
-                type="button"
-                onClick={() => setExpanded(isOpen ? null : entry.id)}
-                className="flex w-full flex-col gap-2 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
-              >
-                <div className="flex items-center gap-2.5">
-                  {meta ? (
-                    <IconTile tone={meta.tone} className="size-7 rounded-[9px]">
-                      <meta.Icon size={15} />
-                    </IconTile>
-                  ) : null}
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-[14px] font-semibold text-ink">
-                      {entry.displayName ?? "משתמש"}
-                    </span>
-                    <span dir="ltr" className="truncate text-[13px] text-muted">
-                      {entry.email ?? "—"}
-                    </span>
-                  </span>
-                  <span className="flex-none text-[11px] text-muted">
-                    {entry.createdAt ? timeAgo(entry.createdAt) : "—"}
-                  </span>
-                </div>
-
-                <p
-                  className={`whitespace-pre-wrap text-[14px] leading-relaxed text-ink/85 ${
-                    isOpen ? "" : "line-clamp-3"
-                  }`}
-                >
-                  {entry.message}
-                </p>
-
-                {isLong ? (
-                  <span className="text-[13px] font-semibold text-accent">
-                    {isOpen ? "הצג פחות" : "הצג הכול"}
-                  </span>
-                ) : null}
-              </button>
-            );
-          })}
-        </ListCard>
-      )}
-    </Panel>
-  );
+          <span className="line-clamp-2 whitespace-pre-wrap break-words text-[14px] text-muted">{entry.message}</span>
+        </button>;
+      })}</ListCard>}
+    <Sheet open={selected !== null} onClose={() => setSelected(null)} title={<h2 className="text-[19px] font-bold">{selected?.sentiment ? SENTIMENT[selected.sentiment].label : "משוב"}</h2>}>
+      {selected ? <div className="flex flex-col gap-4">
+        <div><p className="text-[15.5px] font-semibold">{selected.displayName ?? "משתמש"}</p><p className="break-words text-[13.5px] text-muted">{selected.email ?? ""}</p></div>
+        <p className="whitespace-pre-wrap break-words text-[16px] leading-relaxed">{selected.message}</p>
+        <p className="text-[13.5px] text-muted">{selected.createdAt ? dayMonthShort(selected.createdAt) : "תאריך לא ידוע"}{selected.appVersion ? ` · גרסה ${selected.appVersion}` : ""}</p>
+      </div> : null}
+    </Sheet>
+  </Panel>;
 }
 
 /** Admin prices: durable manual saves, stored refresh and independent browser reading. */
@@ -883,12 +832,11 @@ function FuelPriceEditor() {
       bare
     >
       <Card className="flex min-w-0 flex-col gap-4 p-3 min-[400px]:p-4">
-        <div className="flex min-w-0 flex-col gap-2 rounded-[16px] bg-accent-soft p-3">
+        <div className="flex min-w-0 flex-col gap-2 border-b border-[var(--hairline)] pb-4">
           <span className="text-[18px] font-semibold text-ink">בנזין 95 · שירות עצמי</span>
-          <Num className="text-[42px] font-semibold leading-tight text-ink">{regulatedMaxPrice(config, '95', now).price != null ? price(regulatedMaxPrice(config, '95', now).price!) : '—'}</Num>
+          <Num className="self-start font-display text-[30px] font-bold leading-tight text-ink">{regulatedMaxPrice(config, '95', now).price != null ? price(regulatedMaxPrice(config, '95', now).price!) : '—'}</Num>
           <span className="text-[14px] text-muted">{config?.byFuelType?.['95']?.self?.current?.effectiveFrom ? `בתוקף מ־${dayMonthShort(config.byFuelType['95'].self.current.effectiveFrom)}` : 'המחיר האחרון שנשמר'} · לליטר</span>
-          <p className="text-[13px] leading-relaxed text-muted">המחיר מתעדכן ממשרד האנרגיה, כולל שינויים במהלך החודש.</p>
-          <Button full loading={pulling} disabled={!isAdmin || !outboxReady || priceOps.some(op => op.status === "pending")} onClick={() => void pull()} aria-label="משיכת מחיר מהדפדפן">
+          <Button variant="secondary" full loading={pulling} disabled={!isAdmin || !outboxReady || priceOps.some(op => op.status === "pending")} onClick={() => void pull()} aria-label="משיכת מחיר מהדפדפן">
             <RefreshIcon size={17} /> משיכת מחיר עכשיו
           </Button>
 
@@ -902,34 +850,11 @@ function FuelPriceEditor() {
             {reading?.url || config?.byFuelType?.['95']?.self?.sourceUrl ? <a href={reading?.url ?? config?.byFuelType?.['95']?.self?.sourceUrl ?? undefined} target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center text-[14px] font-semibold text-accent">מקור: משרד האנרגיה</a> : null}
           </div>
         </div>
-        <details className="min-w-0 rounded-[14px] bg-surface-2 px-3">
-          <summary className="min-h-[44px] cursor-pointer py-3 text-[13px] font-semibold text-ink">מצב העדכון האוטומטי · {automatic.value}</summary>
-          <div className="flex flex-col gap-3 pb-3">
-        {/* Whether the nightly job is alive, stated before the numbers it
-            writes — the question an admin opens this panel to answer. */}
-        <DiagnosticRow
-          title="עדכון אוטומטי (95)"
-          ok={automatic.ok}
-          value={automatic.value}
-          detail={automatic.detail}
-        />
-
-        <DiagnosticRow
-          title="הרשאת כתיבה"
-          ok={isAdmin}
-          value={!claimsLoaded ? "בודק…" : isAdmin ? "מותרת" : "חסרה"}
-          detail={
-            isAdmin
-              ? "אפשר לשמור מחירים. אישור השמירה מהשרת יוצג ליד המחיר."
-              : "שמירה זמינה למנהלי מערכת בלבד."
-          }
-        />
-
-          </div>
-        </details>
-        <details className="rounded-[14px] border border-line px-3">
-        <summary className="min-h-[48px] cursor-pointer py-3 text-[15px] font-semibold">עריכת מחירים ידנית</summary>
-        <div className="flex flex-col gap-4 pb-4">
+        <DiagnosticRow title="עדכון אוטומטי (95)" ok={automatic.ok} value={automatic.value} detail={automatic.detail} />
+        <DiagnosticRow title="הרשאת כתיבה" ok={isAdmin} value={!claimsLoaded ? "בודק…" : isAdmin ? "מותרת" : "חסרה"} detail={isAdmin ? "אפשר לשמור מחירים. אישור השמירה מהשרת יוצג ליד המחיר." : "שמירה זמינה למנהלי מערכת בלבד."} />
+        <section className="flex min-w-0 flex-col gap-3">
+        <h3 className="text-[15.5px] font-semibold">עריכת מחירים ידנית</h3>
+        <div className="flex flex-col gap-3">
         {EDITABLE_FUELS.map(({ fuelType, label }) => {
           const series = config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
           return (
@@ -948,7 +873,7 @@ function FuelPriceEditor() {
             />
           );
         })}
-        </div></details>
+        </div></section>
 
 
       </Card>
@@ -1051,20 +976,9 @@ function FuelPriceRow({
 
   return (
     <div className="flex flex-col gap-2 border-b border-line pb-3 last:border-b-0 last:pb-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="flex-none text-[14px] font-semibold text-ink">{label}</span>
-        <span className="flex min-w-0 items-baseline gap-2">
-          <Num className="text-[20px] font-bold text-ink">
-            {lookup.price !== null ? price(lookup.price) : "—"}
-          </Num>
-        </span>
-      </div>
-
-      <p className={`text-[12px] leading-relaxed ${currentMonth ? "text-muted" : "text-warning-ink"}`}>{sourceText}</p>
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
-        {/* A compact inline input rather than a full Field: four labelled
-            fields stacked would say the fuel name twice per row. */}
-        <label className="flex min-h-[52px] min-w-0 items-center gap-2 rounded-[12px] border border-line bg-surface px-3 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_88px_auto] items-center gap-2">
+        <span className="text-[15.5px] font-semibold">{label}</span>
+        <label className="flex min-h-[44px] min-w-0 items-center gap-1 rounded-[10px] border border-line bg-surface px-3 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
           <span className="text-[13px] text-muted">₪</span>
           <input
             inputMode="decimal"
@@ -1076,13 +990,14 @@ function FuelPriceRow({
               try { localStorage.setItem(draftKey, value); setDraftError(false); }
               catch { setDraftError(true); }
             }}
-            placeholder={lookup.price !== null ? String(lookup.price) : "8.10"}
+            placeholder={lookup.price !== null ? String(lookup.price) : "—"}
             dir="ltr"
             className="num min-w-0 w-full flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted"
           />
         </label>
         <Button
-          className="px-4"
+          size="sm"
+          variant="secondary"
           disabled={!changed || !writable || operation?.status === "pending"}
           loading={saving}
           onClick={() => {
@@ -1099,6 +1014,7 @@ function FuelPriceRow({
         </Button>
       </div>
 
+      <p className={`text-[12px] leading-relaxed ${currentMonth ? "text-muted" : "text-warning-ink"}`}>{sourceText}</p>
       {draftError ? <p role="alert" className="text-[12px] text-danger-ink">הטיוטה לא נשמרה באחסון המקומי. השאירו את המסך פתוח עד לשמירה.</p> : null}
       {draft && !valid ? <p role="alert" className="text-[12px] text-danger-ink">הזינו מחיר מלא בין 0 ל־20 ₪.</p> : null}
       <div aria-live="polite" className="text-[12px] leading-relaxed">
@@ -1286,15 +1202,13 @@ function StationDataPanel() {
             />
 
             {data.catalog.ok ? (
-              <div className="flex flex-wrap gap-1.5">
-                {data.catalog.brands.map(([brand, count]) => (
-                  <span
-                    key={brand}
-                    className="flex items-center gap-1.5 rounded-pill bg-surface-2 px-2.5 py-1 text-[13px] font-semibold text-muted"
-                  >
-                    <StationBrandMark brand={brand} size={18} />
-                    {brand} <Num>{count}</Num>
-                  </span>
+              <div className="flex flex-col gap-3 border-b border-[var(--hairline)] py-2">
+                {data.catalog.brands.map(([brand, count], _, brands) => (
+                  <div key={brand} className="grid grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-2 text-[13.5px]">
+                    <StationBrandMark brand={brand} size={26} />
+                    <div className="flex min-w-0 flex-col gap-1"><span>{brand}</span><span aria-hidden="true" className="h-1.5 overflow-hidden rounded-pill bg-surface-2"><span className="block h-full rounded-pill bg-accent/40" style={{width:`${count / Math.max(1, ...brands.map(([, n]) => n)) * 100}%`}} /></span></div>
+                    <Num className="font-semibold">{num(count, 0)}</Num>
+                  </div>
                 ))}
               </div>
             ) : null}
@@ -1329,10 +1243,7 @@ function StationDataPanel() {
               }
             />
 
-            <p className="text-[13px] leading-relaxed text-muted">
-              כל עוד אין מחיר ספציפי לתחנה, שורת תחנה מציגה את המחיר הארצי בסימון
-              „מחיר ארצי”. מחיר שדווח או נמשך באמת מוצג בירוק עם מקורו וגילו.
-            </p>
+            <div className="flex items-center justify-between text-[13.5px] text-muted">מקור המחיר ליד כל תחנה<InfoTip label="איך מוצג מחיר התחנה"><p>כשאין מחיר ספציפי לתחנה מוצג המחיר הארצי, עם התווית „מחיר ארצי”. מחיר תחנה שנמשך או דווח מוצג עם מקורו ומועד העדכון.</p></InfoTip></div>
           </>
         )}
       </Card>
@@ -1353,18 +1264,11 @@ function DiagnosticRow({
   detail: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 border-b border-line pb-3 last:border-b-0 last:pb-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="flex min-w-0 items-center gap-2 text-[14px] font-semibold text-ink">
-          <span
-            aria-hidden="true"
-            className={`size-[7px] flex-none rounded-full ${ok ? "bg-success" : "bg-warning"}`}
-          />
-          {title}
-        </span>
-        <span className="flex-none text-[14px] font-semibold text-ink">{value}</span>
-      </div>
-      <span className="break-words text-[13px] leading-relaxed text-muted">{detail}</span>
+    <div className="flex min-h-[52px] items-center gap-2 border-b border-[var(--hairline)] last:border-b-0">
+      <span className={`size-[7px] flex-none rounded-full ${ok ? "bg-success" : "bg-warning"}`} aria-hidden="true" />
+      <span className="min-w-0 flex-1 text-[15.5px] font-semibold">{title}</span>
+      <span className="text-[13.5px] text-muted">{value}</span>
+      <InfoTip label={`פרטים · ${title}`}><p className="break-words">{detail}</p></InfoTip>
     </div>
   );
 }
@@ -1417,7 +1321,7 @@ function StatTile({
         {icon}
         <Label className="text-[14px]">{label}</Label>
       </span>
-      <Num className={`font-display text-[26px] font-semibold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
+      <Num className={`self-start font-display text-[26px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
         {value}
       </Num>
       {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
@@ -1427,9 +1331,9 @@ function StatTile({
 
 function MiniStat({ label, value }: { label: string; value: string }) {
   return (
-    <span className="flex items-center gap-1 rounded-pill bg-surface-2 px-2.5 py-1 text-[13px]">
+    <span className="flex flex-col gap-0.5 text-[13px]">
       <span className="text-muted">{label}</span>
-      <Num className="font-bold text-ink">{value}</Num>
+      <Num className="self-start font-bold text-ink">{value}</Num>
     </span>
   );
 }

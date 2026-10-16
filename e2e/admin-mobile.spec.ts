@@ -30,8 +30,14 @@ for (const width of [320, 360, 393]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole('button', {name:'משיכת מחיר מהדפדפן'}).click();
     await expect(page.getByText('₪8.27', {exact:false}).first()).toBeVisible();
+    const currentPrice = await page.getByText('₪8.27', {exact:false}).first().boundingBox();
+    expect(currentPrice).not.toBeNull();
+    expect(currentPrice!.x + currentPrice!.width / 2).toBeGreaterThan(width / 2);
     expect(requests).toHaveLength(4);
-    if (width === 360) await page.screenshot({path:testInfo.outputPath("admin-mobile-360.png"),fullPage:true});
+    if (width === 360) {
+      await expect(page.getByText('המחיר אומת ונשלח לשמירה', {exact:true})).toHaveCount(0);
+      await page.screenshot({path:testInfo.outputPath("admin-mobile-360.png")});
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     // The verified reading is stored as automatic, without a manual override.
     await expect.poll(async () => {

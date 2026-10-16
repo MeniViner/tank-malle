@@ -7,8 +7,7 @@ import { Card } from "../components/Card";
 import { Button } from "../components/Button";
 import { ConfirmDialog } from "../components/Sheet";
 import { Num } from "../components/Num";
-import { InfoStrip } from "../components/Field";
-import { CloudOffIcon, WarningIcon } from "../components/icons";
+import { WarningIcon } from "../components/icons";
 import { fullDate, num, shekel, time } from "../lib/format";
 import { fillupFromPayload } from "../lib/fillupSerializer";
 import { exportOperations, outboxStatusText, type OutboxOperation } from "../lib/outbox";
@@ -97,11 +96,12 @@ export function Unsynced() {
       />
 
       <div className="flex flex-col gap-3 px-5">
-        <InfoStrip icon={<CloudOffIcon size={16} />}>
-          {offline
-            ? "אין חיבור. כל מה שנשמר במכשיר יישלח אוטומטית כשהחיבור יחזור."
-            : "רשומה נשארת כאן עד שהשרת מאשר אותה. דחייה לא מוחקת כלום — הנתונים שהקלדתם שמורים במכשיר הזה."}
-        </InfoStrip>
+        <p className="text-[15px] text-muted">{offline ? "אין חיבור. הפעולות יישלחו כשהחיבור יחזור." : "הפעולות כאן נשמרו במכשיר וממתינות לאישור השרת."}</p>
+        <ol className="tm-sync-steps" aria-label="שלבי הסנכרון">
+          <li><span><b>נשמר במכשיר</b><span className="block text-[13.5px] text-muted">הקלט נשאר כאן גם אחרי רענון.</span></span></li>
+          <li><span><b>נשלח לשרת</b><span className="block text-[13.5px] text-muted">ניסיון אוטומטי כשהחיבור זמין.</span></span></li>
+          <li><span><b>אושר וסונכרן</b><span className="block text-[13.5px] text-muted">רק אחרי האישור הפעולה יוצאת מהרשימה.</span></span></li>
+        </ol>
 
         {outboxReady && outboxHealth.state !== "ok" ? (
           <Card className="flex items-start gap-2.5 p-4 text-[14px] text-danger-ink" data-outbox-health={outboxHealth.state}>

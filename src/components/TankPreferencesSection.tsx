@@ -7,7 +7,7 @@ import { RowButton } from "./Button";
 import { Sheet, ConfirmDialog } from "./Sheet";
 import { Toggle } from "./Segmented";
 import { TankGauge } from "./TankGauge";
-import { GaugeIcon, RestoreIcon } from "./icons";
+import { GaugeIcon, RestoreIcon, ChevronStart } from "./icons";
 import { levelLabel } from "../lib/tank/gaugeInteraction";
 
 /**
@@ -46,25 +46,21 @@ export function TankPreferencesSection({ embedded = false }: { embedded?: boolea
             </IconTile>
           }
           title="רזרבה — מתי להתריע"
-          subtitle={`המלצה לתדלק כשנשאר ${levelLabel(tankPreferences.reserveFraction)}`}
+          value={levelLabel(tankPreferences.reserveFraction)}
           trailing={
-            <span className="text-[14px] font-semibold text-accent">שינוי</span>
+            <ChevronStart size={17} className="text-muted" />
           }
           onClick={() => setReserveOpen(true)}
         />
+
+        <RowButton title="מתי נוח לתדלק" value={overridden ? `${levelLabel(tankPreferences.refuelLevelOverride ?? 0)} · ידני` : habit.canClaim ? `${levelLabel(habit.typicalLevel)} · נלמד` : "נלמד מהשימוש"} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setOverrideOpen(true)} />
 
         <div className="flex min-h-[58px] items-center gap-2 px-4 py-3">
           <span className="flex flex-1 flex-col gap-0.5">
             <span className="text-[15px] font-semibold text-ink">
               התאמה אישית אוטומטית
             </span>
-            <span className="text-[14px] leading-relaxed text-muted">
-              {overridden
-                ? `כרגע מוגדר ידנית: ${levelLabel(tankPreferences.refuelLevelOverride ?? 0)}`
-                : habit.canClaim
-                  ? `נלמד מהתדלוקים שלך: ${levelLabel(habit.typicalLevel)}`
-                  : "עדיין נלמד. עד אז משתמשים בברירת מחדל."}
-            </span>
+
           </span>
           <Toggle
             checked={!overridden}

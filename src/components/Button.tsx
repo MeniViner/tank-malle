@@ -6,6 +6,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   full?: boolean;
   loading?: boolean;
+  size?: "md" | "sm";
   children: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function Button({
   variant = "primary",
   full = false,
   loading = false,
+  size = "md",
   disabled,
   className = "",
   children,
@@ -30,7 +32,7 @@ export function Button({
     <button
       type="button"
       disabled={disabled || loading}
-      className={`inline-flex min-h-[52px] items-center justify-center gap-2 rounded-control px-6 text-[16px] font-bold transition-[filter,background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45 ${
+      className={`inline-flex ${size === "sm" ? "min-h-[44px] px-3 text-[14px]" : "min-h-[52px] px-6 text-[16px]"} items-center justify-center gap-2 rounded-control font-bold transition-[filter,background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-45 ${
         VARIANTS[variant]
       } ${full ? "w-full" : ""} ${className}`}
       {...rest}
@@ -86,22 +88,22 @@ export function RowButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-[52px] w-full items-center gap-3 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 disabled:opacity-50"
+      className="flex min-h-[54px] w-full items-center gap-3 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 disabled:opacity-50"
     >
       {icon}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span
-          className={`truncate text-[15px] font-semibold ${
+          className={`text-[15.5px] font-semibold ${
             tone === "danger" ? "text-danger" : "text-ink"
           }`}
         >
           {title}
         </span>
         {subtitle ? (
-          <span className="truncate text-[13px] font-normal text-muted">{subtitle}</span>
+          <span className="text-[13.5px] font-normal text-muted">{subtitle}</span>
         ) : null}
       </span>
-      {value != null ? <span className="max-w-[50%] truncate text-[15px] text-muted">{value}</span> : null}
+      {value != null ? <span className="max-w-[44%] truncate text-[13.5px] text-muted">{value}</span> : null}
       {trailing}
     </button>
   );

@@ -143,7 +143,7 @@ test("a file with unusable rows never reports a clean success", async ({ page })
   await expect(page.getByText("לא תקינות").first().locator("..")).toContainText("2", {
     timeout: 25_000,
   });
-  await expect(page.getByText(/שורה 3: תאריך לא תקין/)).toBeVisible();
+  await expect(page.getByText("שורה 3", { exact: true }).locator("..")).toContainText("תאריך לא תקין");
 
   await page.getByRole("button", { name: /ייבוא 1 רשומות/ }).click();
   // "Partially" — not "finished".
