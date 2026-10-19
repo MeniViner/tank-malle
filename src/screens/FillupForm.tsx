@@ -1,3 +1,5 @@
+import { ScanWizard } from "../components/scan/ScanWizard";
+import { reviewedScan } from "../lib/scan/draft";
 import { useAuth } from "../context/AuthContext";
 import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -372,6 +374,7 @@ function FillupEditor({
   const draftKey = fillupDraftKey(user?.uid ?? "none", activeVehicle?.id ?? "none", operation?.opId ?? initial?.id ?? "new");
   const [restoredDraft] = useState(() => readFillupDraft(draftKey));
   const draftCleared = useRef(false);
+  const [scanOpen, setScanOpen] = useState(false);
   const [draftStorageFailed, setDraftStorageFailed] = useState(false);
 
   // An operation belongs to the vehicle it was journaled for. Editing it
@@ -994,7 +997,14 @@ function FillupEditor({
         </div>
       </header>
 
+      {scanOpen ? <ScanWizard initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)} onApply={draft => {
+        const checked = reviewedScan(draft);
+        if (checked) { setReceipt(checked.receipt); setOdometer(checked.odometer); setScanOpen(false); }
+      }} /> : null}
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 pb-40">
+        {!isEdit && !operation ? <button type="button" onClick={() => setScanOpen(true)} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-start text-accent">
+          <span><b className="block">הוספה בשני צילומים</b><span className="text-sm">צג המשאבה ואז מד הקילומטרים</span></span><span aria-hidden="true">←</span>
+        </button> : null}
         {draftDirty ? <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
           <span>{draftStorageFailed ? "לא ניתן לשמור טיוטה במכשיר. השאירו את הטופס פתוח עד לשמירה." : restoredDraft ? "הטיוטה שלכם שוחזרה מהמכשיר" : "טיוטה נשמרת במכשיר — אפשר לחזור ולהמשיך"}</span>
           <button type="button" className="min-h-10 flex-none px-2 font-semibold text-danger" onClick={() => {

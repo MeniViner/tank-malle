@@ -27,6 +27,11 @@ const config = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+// The isolated care preview must fail closed if its emulator configuration drifts.
+if (import.meta.env.VITE_LOCAL_CARE === '1' && (config.projectId !== 'demo-tankmaleh' || import.meta.env.VITE_USE_EMULATORS !== '1' || !['localhost','127.0.0.1'].includes(window.location.hostname))) {
+  throw new Error('Local care preview requires localhost and demo-tankmaleh emulators');
+}
+
 export const isFirebaseConfigured = Boolean(config.apiKey && config.projectId);
 
 export const app: FirebaseApp = initializeApp(config);

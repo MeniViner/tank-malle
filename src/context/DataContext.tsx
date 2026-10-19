@@ -1,3 +1,6 @@
+import { subscribeResilient } from "../lib/subscribeResilient";
+import { carePayloadMatches, conditionalCareWrite } from "../lib/maintenance/persistence";
+import { CARE_COLLECTIONS, carePayload, type CareCollection, type CareRecord } from "../lib/maintenance/model";
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
 import { storedDeclaredSource } from '../lib/vehicleSpecs';
@@ -98,6 +101,8 @@ import {
 import { readScopedTankInput, type ScopedTankInput, type TankInputScope, type TankInputStatus } from "../lib/tank/inputScope";
 
 interface DataContextValue {
+  saveCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord, previous?: CareRecord) => Promise<MutationReceipt>;
+  deleteCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord) => Promise<MutationReceipt>;
   ready: boolean;
   accountDeletionPending: boolean;
   benchmarkWithdrawal: "idle" | "pending" | "done" | "error";
@@ -252,80 +257,6 @@ function readTankPreferences(raw: unknown): TankPreferences {
         : null,
     usualRefuelLevel: number(data.usualRefuelLevel, null),
     habitResetAt: number(data.habitResetAt, null),
-  };
-}
-
-/**
- * Attach a Firestore listener that survives an account handover.
- *
- * Two things happen when the signed-in user changes, and Firestore handles
- * neither of them for us:
- *
- * 1. Listeners still attached to the OUTGOING account's paths fail with
- *    permission-denied before React runs their cleanup. An onSnapshot with no
- *    error callback rethrows that.
- * 2. Listeners attached to the INCOMING account's paths can be created before
- *    the SDK has finished swapping its auth token, so they are evaluated
- *    against the previous user's credentials and also fail with
- *    permission-denied — and a Firestore listener that fails this way is
- *    terminated permanently. It never retries on its own.
- *
- * (2) is what left a second tab stuck on "add your first vehicle" after
- * switching accounts: the write had landed in Firestore, but the listener that
- * should have delivered it was already dead, and only a manual reload fixed it.
- *
- * So a permission error is re-attached a few times with a short backoff, which
- * is far longer than a token swap needs. A genuine, persistent permission
- * failure exhausts the retries and is then reported rather than hidden.
- */
-function subscribeResilient<T>(
-  attach: (onNext: (value: T) => void, onError: (error: unknown) => void) => () => void,
-  onNext: (value: T) => void,
-  options: {
-    /** False once the account has moved on; the result is then dropped. */
-    isCurrent: () => boolean;
-    label: string;
-    onError?: (error: unknown) => void;
-    maxRetries?: number;
-  },
-): () => void {
-  const maxRetries = options.maxRetries ?? 5;
-  let unsubscribe: (() => void) | null = null;
-  let timer: ReturnType<typeof setTimeout> | null = null;
-  let attempts = 0;
-  let cancelled = false;
-
-  const start = (): void => {
-    if (cancelled) return;
-    unsubscribe = attach(
-      (value) => {
-        if (!cancelled && options.isCurrent()) onNext(value);
-      },
-      (error) => {
-        if (cancelled || !options.isCurrent()) return;
-
-        const code = (error as { code?: string })?.code;
-        if (code === "permission-denied" && attempts < maxRetries) {
-          attempts += 1;
-          unsubscribe?.();
-          unsubscribe = null;
-          timer = setTimeout(start, 120 * attempts);
-          return;
-        }
-
-        // eslint-disable-next-line no-console
-        console.warn(`[tank-maleh] ${options.label} listener failed`, error);
-        options.onError?.(error);
-      },
-    );
-  };
-
-  start();
-
-  return () => {
-    cancelled = true;
-    if (timer) clearTimeout(timer);
-    unsubscribe?.();
   };
 }
 
@@ -530,7 +461,7 @@ function settleOrphans(outbox: Outbox, stillCurrent: () => boolean): () => void 
       const { newest, superseded } = group;
       const collectionPath = collectionOf(newest.path);
       const isFillup = newest.kind.startsWith("fillup.") || newest.kind === "import.batch";
-      const matches = isFillup ? fillupPayloadMatches : genericPayloadMatches;
+      const matches = newest.kind.startsWith("maintenance.") ? carePayloadMatches : isFillup ? fillupPayloadMatches : genericPayloadMatches;
       let done = false;
       const unsubscribe = onSnapshot(
         doc(db, newest.path),
@@ -667,6 +598,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // The vehicle whose fill-ups the CURRENT listener serves. A snapshot that
   // arrives for another vehicle is dropped; state is never mixed.
   const fillupVehicleRef = useRef<string | null>(null);
+  const [fillupDataScope, setFillupDataScope] = useState<string | null>(null);
 
   /** Is this still the account the app is showing? */
   useEffect(() => {
@@ -741,6 +673,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setVehicles([]);
     vehicleDocumentsRef.current.clear();
     setFillups([]);
+    setFillupDataScope(null);
     setPrices(null);
     setReady(false);
     setLoadingFillups(Boolean(uid));
@@ -941,6 +874,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             priceDiscount: data.priceDiscount === undefined ? undefined : validFuelDiscount(data.priceDiscount) ? data.priceDiscount : null,
             nickname: data.nickname ?? null,
             archived: Boolean(data.archived),
+            deletionPending: data.deletionPending === true,
             createdAt: toMillis(data.createdAt),
             tozeretCd: toNumberOrNull(data.tozeretCd),
             degemCd: toNumberOrNull(data.degemCd),
@@ -958,7 +892,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     );
   }, [uid, isCurrent, reconcileLater]);
 
-  const activeVehicles = useMemo(() => vehicles.filter((v) => !v.archived), [vehicles]);
+  const activeVehicles = useMemo(() => vehicles.filter((v) => !v.archived && !v.deletionPending), [vehicles]);
 
   const activeVehicle = useMemo(() => {
     if (activeVehicles.length === 0) return null;
@@ -978,6 +912,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Keyed on the vehicle ID, not the vehicle object: a vehicle edit (a
     // nickname, a capacity) used to tear the listener down and rebuild it.
     fillupVehicleRef.current = activeVehicleId;
+    setFillupDataScope(uid && activeVehicleId ? `${uid}/${activeVehicleId}` : null);
     if (!uid || !activeVehicleId) {
       setFillups([]);
       setPendingFillupIds(new Set());
@@ -1045,6 +980,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
     );
   }, [uid, activeVehicleId, isCurrent, reconcileLater]);
+
+  const scopedFillups = useMemo(() => uid && activeVehicleId && fillupDataScope === `${uid}/${activeVehicleId}` ? fillups : [], [uid, activeVehicleId, fillupDataScope, fillups]);
+  const scopedLoadingFillups = loadingFillups || (!!activeVehicleId && fillupDataScope !== `${uid}/${activeVehicleId}`);
 
   /* ---------- tank observations and plans ---------- */
 
@@ -1378,9 +1316,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (vehicleId: string) => {
       if (!uid) return;
       const vehicleRef = doc(db, "users", uid, "vehicles", vehicleId);
+      // Lock new care writes before enumerating children. The marker is kept on failure for a safe retry.
+      const vehicle = await getDocFromServer(vehicleRef);
+      if (vehicle.exists()) await updateDoc(vehicleRef, { deletionPending: true, archived: true });
       // Every subcollection, not just fill-ups: leaving observations or plans
       // behind would keep a deleted vehicle's private tank history alive.
-      for (const name of ["fillups", "observations", "tankPlans"]) {
+      for (const name of ["fillups", "observations", "tankPlans", ...CARE_COLLECTIONS]) {
         const snapshot = await getDocsFromServer(collection(vehicleRef, name));
         for (let i = 0; i < snapshot.docs.length; i += 400) {
           const batch = writeBatch(db);
@@ -1571,6 +1512,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (claimed.kind.startsWith("maintenance.")) {
+        const mutation = conditionalCareWrite(db, refFor(claimed.path), claimed.opType, claimed.payload, claimed.beforeImage);
+        track(claimed.kind, mutation);
+        await mutation.then(() => outbox.acknowledge(opId, version), error => error instanceof FillupConflictError
+          ? outbox.markConflict(opId, version, error.serverImage)
+          : outbox.fail(opId, version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }));
+        return;
+      }
+
       if (collectionOf(claimed.path).endsWith("/fillups")) {
         const payload = claimed.payload;
         const current = await getDocFromServer(refFor(claimed.path)).catch(() => null);
@@ -1682,7 +1632,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // fill-up the payload's version becomes the server's plus one, so the
       // rules accept exactly this write and refuse any other stale one.
       const isFillup = op.kind.startsWith("fillup.") || op.kind === "import.batch";
-      const patch: OutboxPayload = isFillup
+      const patch: OutboxPayload = isFillup || op.kind.startsWith("maintenance.")
         ? { version: (typeof op.serverImage.version === "number" ? op.serverImage.version : 0) + 1 }
         : {};
       const rebased = await outbox.rebase(opId, op.serverImage, patch);
@@ -1860,6 +1810,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, track);
     return { written: inputs.length, duplicates, receipt: receipts[0] };
   }, [uid, requireOutbox, userPath, track]);
+
+  const saveCareRecord = useCallback(async (vehicleId: string, name: CareCollection, record: CareRecord, previous?: CareRecord) => {
+    if (!uid || activeVehicle?.id !== vehicleId || !CARE_COLLECTIONS.includes(name)) throw new Error("הרכב או החשבון התחלפו");
+    const generation = generationRef.current;
+    const payload = carePayload(name, record);
+    const path = userPath("vehicles", vehicleId, name, record.id);
+    return submit({ kind: "maintenance.save", path, vehicleId, payload, opType: previous ? "update" : "set",
+      beforeImage: previous ? carePayload(name, previous) : null }, () => {
+      if (generation !== generationRef.current || fillupVehicleRef.current !== vehicleId) throw new Error("הרכב או החשבון התחלפו");
+      return previous ? updateDoc(refFor(path), payload) : setDoc(refFor(path), payload);
+    });
+  }, [uid, activeVehicle?.id, submit, userPath, refFor]);
+
+  const deleteCareRecord = useCallback(async (vehicleId: string, name: CareCollection, record: CareRecord) => {
+    if (!uid || activeVehicle?.id !== vehicleId || !CARE_COLLECTIONS.includes(name)) throw new Error("הרכב או החשבון התחלפו");
+    const generation = generationRef.current;
+    const path = userPath("vehicles", vehicleId, name, record.id);
+    return submit({ kind: "maintenance.delete", path, vehicleId, payload: null, beforeImage: carePayload(name, record) }, () => {
+      if (generation !== generationRef.current || fillupVehicleRef.current !== vehicleId) throw new Error("הרכב או החשבון התחלפו");
+      return conditionalCareWrite(db, refFor(path), "delete", null, carePayload(name, record));
+    });
+  }, [uid, activeVehicle?.id, submit, userPath, refFor]);
 
   const addObservation = useCallback(
     async (observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">) => {
@@ -2160,6 +2132,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<DataContextValue>(
     () => ({
+      saveCareRecord,
+      deleteCareRecord,
       ready,
       accountDeletionPending,
       benchmarkWithdrawal,
@@ -2168,10 +2142,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles,
       activeVehicles,
       activeVehicle,
-      fillups,
+      fillups: scopedFillups,
       prices,
       updateAdminPrices,
-      loadingFillups,
+      loadingFillups: scopedLoadingFillups,
       loadVehicleFillups,
       loadVehicleCatalog,
       importTankUpdates,
@@ -2219,6 +2193,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteAccount,
     }),
     [
+      saveCareRecord,
+      deleteCareRecord,
       ready,
       accountDeletionPending,
       benchmarkWithdrawal,
@@ -2227,10 +2203,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles,
       activeVehicles,
       activeVehicle,
-      fillups,
+      scopedFillups,
       prices,
       updateAdminPrices,
-      loadingFillups,
+      scopedLoadingFillups,
       loadVehicleFillups,
       loadVehicleCatalog,
       importTankUpdates,

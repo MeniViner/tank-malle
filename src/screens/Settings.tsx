@@ -114,6 +114,7 @@ export function Settings() {
             {activeVehicles.length > 1 ? activeVehicles.map((vehicle) => (
               <RowButton key={vehicle.id} icon={<CarIcon size={18} className="text-muted" />} title={vehicleLabel(vehicle)} value={vehicle.id === activeVehicle?.id ? "פעיל" : FUEL_TYPE_SHORT[vehicle.fuelType]} onClick={() => void setActiveVehicle(vehicle.id)} />
             )) : null}
+            <RowButton icon={<CarIcon size={19} className="text-muted" />} title="תחזוקת הרכב והוצאות" onClick={() => navigate("/vehicle")} />
             <RowButton icon={<CarIcon size={19} className="text-muted" />} title="רכבים וארכיון" value={activeVehicle ? vehicleLabel(activeVehicle) : undefined} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/vehicles")} />
             <RowButton icon={<PlusIcon size={19} className="text-muted" />} title="הוספת רכב" onClick={() => navigate("/vehicles/new")} />
             <TankPreferencesSection embedded />

@@ -3,7 +3,10 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  // This preview only talks to local emulators. No production API, proxy or model service.
+  server: mode === 'care' ? { headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" } } : undefined,
+  preview: mode === 'care' ? { headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:*" } } : undefined,
   plugins: [
     react(),
     tailwindcss(),
@@ -56,4 +59,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

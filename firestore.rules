@@ -3,6 +3,43 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function careVehicleWritable(uid, vehicleId) {
+      let path = /databases/$(database)/documents/users/$(uid)/vehicles/$(vehicleId);
+      return exists(path) && get(path).data.get('deletionPending', false) != true;
+    }
+    function careInt(value, maximum) { return value is int && value >= 0 && value <= maximum; }
+    function careOptionalInt(value, maximum) { return value == null || careInt(value, maximum); }
+    function careDay(value) { return value is string && value.matches('^(19|20|21)[0-9]{2}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$'); }
+    function careBase(d) { return d.schemaVersion == 1 && careInt(d.version, 1000000000) && d.version > 0 && isString(d.notes, 2000); }
+    function careTitle(d) { return isString(d.title, 120) && d.title.size() > 0; }
+    function careIdAt(ids, n) { return ids.size() <= n || (isString(ids[n],64) && ids[n].size() > 0 && !ids[n].matches('.*[/].*')); }
+    function validService(d) {
+      return d.keys().hasOnly(['schemaVersion','version','day','title','jobs','odometer','costAgorot','garage','notes','completedPlanIds'])
+        && careBase(d) && careTitle(d) && careDay(d.day) && careOptionalInt(d.odometer,9999999) && careOptionalInt(d.costAgorot,100000000)
+        && isString(d.garage,160) && d.jobs is list && d.jobs.size()>0 && d.jobs.size()<=8
+        && d.jobs.hasOnly(['periodic','oil','tires','brakes','battery','repair','custom'])
+        && d.completedPlanIds is list && d.completedPlanIds.size()<=8
+        && careIdAt(d.completedPlanIds,0) && careIdAt(d.completedPlanIds,1) && careIdAt(d.completedPlanIds,2) && careIdAt(d.completedPlanIds,3)
+        && careIdAt(d.completedPlanIds,4) && careIdAt(d.completedPlanIds,5) && careIdAt(d.completedPlanIds,6) && careIdAt(d.completedPlanIds,7);
+    }
+    function validCarePlan(d) {
+      return d.keys().hasOnly(['schemaVersion','version','title','job','dueDay','dueOdometer','intervalMonths','intervalKm','basis','source','notes','active'])
+        && careBase(d) && careTitle(d) && d.job in ['periodic','oil','tires','brakes','battery','repair','custom']
+        && (d.dueDay == null || careDay(d.dueDay)) && careOptionalInt(d.dueOdometer,9999999) && (d.dueDay != null || d.dueOdometer != null)
+        && careOptionalInt(d.intervalMonths,120) && (d.intervalMonths == null || (d.intervalMonths > 0 && d.dueDay != null))
+        && careOptionalInt(d.intervalKm,1000000) && (d.intervalKm == null || (d.intervalKm > 0 && d.dueOdometer != null))
+        && d.basis in ['completion','fixed','manual'] && d.source in ['manufacturer','garage','owner'] && d.active is bool;
+    }
+    function validCareExpense(d) {
+      return d.keys().hasOnly(['schemaVersion','version','day','category','title','costAgorot','notes'])
+        && careBase(d) && careTitle(d) && careDay(d.day) && careOptionalInt(d.costAgorot,100000000)
+        && d.category in ['insurance','registration','parking','toll','wash','other'];
+    }
+    function validMileage(d) {
+      return d.keys().hasOnly(['schemaVersion','version','day','odometer','notes'])
+        && careBase(d) && careDay(d.day) && careInt(d.odometer,9999999);
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -304,7 +341,7 @@ service cloud.firestore {
       return data.make is string && data.make.size() > 0 && data.make.size() <= 60
         && data.model is string && data.model.size() <= 80
         && data.fuelType in ['95', '98', 'diesel', 'other']
-        && data.archived is bool
+        && data.archived is bool && optionalBool(data, 'deletionPending')
         && isNumber(data.priceAdjustment)
         && (!('priceDiscount' in data) || data.priceDiscount == null || (
           data.priceDiscount is map
@@ -481,7 +518,9 @@ service cloud.firestore {
       match /vehicles/{vehicleId} {
         allow read: if isOwner(uid);
         allow delete: if isOwner(uid);
-        allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);
+        allow create: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);
+        allow update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data)
+          && (!resource.data.get('deletionPending', false) || request.resource.data.get('deletionPending', false) == true);
 
         match /fillups/{fillupId} {
           allow read: if isOwner(uid);
@@ -527,6 +566,30 @@ service cloud.firestore {
          * holds — where somebody will be and when — so none of it is readable
          * by other users, by the community aggregates or by an admin.
          */
+        match /serviceEvents/{recordId} {
+          allow read, delete: if isOwner(uid);
+          allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validService(request.resource.data) && request.resource.data.version == 1;
+          allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validService(request.resource.data) && request.resource.data.version == resource.data.version + 1;
+        }
+
+        match /maintenancePlans/{recordId} {
+          allow read, delete: if isOwner(uid);
+          allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validCarePlan(request.resource.data) && request.resource.data.version == 1;
+          allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validCarePlan(request.resource.data) && request.resource.data.version == resource.data.version + 1;
+        }
+
+        match /vehicleExpenses/{recordId} {
+          allow read, delete: if isOwner(uid);
+          allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validCareExpense(request.resource.data) && request.resource.data.version == 1;
+          allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validCareExpense(request.resource.data) && request.resource.data.version == resource.data.version + 1;
+        }
+
+        match /odometerReadings/{recordId} {
+          allow read, delete: if isOwner(uid);
+          allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validMileage(request.resource.data) && request.resource.data.version == 1;
+          allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validMileage(request.resource.data) && request.resource.data.version == resource.data.version + 1;
+        }
+
         match /observations/{observationId} {
           allow read, delete: if isOwner(uid);
           allow create, update: if isOwner(uid) && accountWritable(uid) && validObservation(request.resource.data);

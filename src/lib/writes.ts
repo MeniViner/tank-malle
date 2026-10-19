@@ -35,6 +35,8 @@ export type MutationKind =
   | "tank.observation.delete"
   | "tank.plan"
   | "tank.plan.delete"
+  | "maintenance.save"
+  | "maintenance.delete"
   | "account.delete"
   | "adminPrice.update";
 
@@ -74,6 +76,8 @@ export interface MutationReceipt {
 }
 
 export const MUTATION_LABELS: Record<MutationKind, string> = {
+  "maintenance.save": "שמירת תחזוקת רכב",
+  "maintenance.delete": "מחיקת רשומת תחזוקה",
   "fillup.add": "הוספת תדלוק",
   "fillup.update": "עדכון תדלוק",
   "fillup.delete": "מחיקת תדלוק",

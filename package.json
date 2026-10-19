@@ -14,7 +14,11 @@
     "test:rules": "npx --no-install firebase emulators:exec --only firestore --project tank-maleh-rules-test \"vitest run --config vitest.rules.config.ts\"",
     "test:e2e": "playwright test",
     "test:e2e:pwa": "playwright test --project=pwa",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "dev:care": "vite --mode care --host 127.0.0.1 --port 5283 --strictPort",
+    "emulators:care": "firebase emulators:start --only auth,firestore --project demo-tankmaleh --config firebase.care-local.json",
+    "test:care": "playwright test --config playwright.care.config.ts",
+    "test:care:pwa": "playwright test --config playwright.care-pwa.config.ts"
   },
   "dependencies": {
     "firebase": "^11.10.0",

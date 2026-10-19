@@ -1,3 +1,4 @@
+import { CARE_COLLECTIONS } from "./maintenance/model";
 import {
   collection, deleteDoc, doc, getDocFromServer, getDocsFromServer, query,
   setDoc, where, writeBatch, type Firestore, type Query,
@@ -72,7 +73,7 @@ export function accountDataDeletionSteps(db: Firestore, uid: string) {
     { label: "vehicles", run: async () => {
       const vehicles = await getDocsFromServer(collection(db, "users", uid, "vehicles"));
       for (const vehicle of vehicles.docs) {
-        for (const name of ["fillups", "observations", "tankPlans"]) await eraseQuery(db, collection(vehicle.ref, name));
+        for (const name of ["fillups", "observations", "tankPlans", ...CARE_COLLECTIONS]) await eraseQuery(db, collection(vehicle.ref, name));
         await deleteDoc(vehicle.ref);
       }
       if (!(await getDocsFromServer(collection(db, "users", uid, "vehicles"))).empty) throw new Error("vehicles-remain");

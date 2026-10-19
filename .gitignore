@@ -46,3 +46,6 @@ functions/lib
 # Playwright output. Traces and screenshots are run artefacts, not source.
 test-results/
 playwright-report/
+
+# Explicitly local, placeholder-only care preview configuration.
+!.env.care

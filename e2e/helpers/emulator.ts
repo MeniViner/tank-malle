@@ -94,7 +94,8 @@ const ADMIN = { Authorization: "Bearer owner" } as const;
 
 type Primitive = string | number | boolean | null | Date;
 
-function toValue(value: Primitive | Record<string, Primitive>): unknown {
+function toValue(value: Primitive | Record<string, Primitive> | unknown[]): unknown {
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(item => toValue(item as Primitive)) } };
   if (value === null) return { nullValue: null };
   if (value instanceof Date) return { timestampValue: value.toISOString() };
   if (typeof value === "boolean") return { booleanValue: value };
@@ -123,6 +124,7 @@ function fromValue(value: Record<string, unknown>): unknown {
   if ("doubleValue" in value) return value.doubleValue;
   if ("timestampValue" in value) return new Date(value.timestampValue as string).getTime();
   if ("nullValue" in value) return null;
+  if ("arrayValue" in value) return ((value.arrayValue as { values?: Record<string, unknown>[] }).values ?? []).map(fromValue);
   if ("mapValue" in value) {
     return fromFields(((value.mapValue as Record<string, unknown>).fields ?? {}) as Record<string, Record<string, unknown>>);
   }

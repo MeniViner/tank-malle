@@ -85,7 +85,7 @@ export function VehicleManager() {
                 key={vehicle.id}
                 vehicle={vehicle}
                 archived
-                onRestore={() => void setVehicleArchived(vehicle.id, false).catch(() => showToast({ tone: "error", title: "שחזור הרכב נכשל" }))}
+                onRestore={vehicle.deletionPending ? undefined : () => void setVehicleArchived(vehicle.id, false).catch(() => showToast({ tone: "error", title: "שחזור הרכב נכשל" }))}
                 onDelete={() => setConfirmDelete(vehicle)}
               />
             ))}
@@ -177,7 +177,7 @@ function VehicleCard({
                 : "border border-line text-muted"
           }`}
         >
-          {archived ? "בארכיון" : isActive ? "פעיל" : "זמין"}
+          {vehicle.deletionPending ? "מחיקה ממתינה" : archived ? "בארכיון" : isActive ? "פעיל" : "זמין"}
         </span>
       </div>
 
@@ -198,7 +198,7 @@ function VehicleCard({
       <div className="flex gap-5 border-t border-[var(--hairline)] pt-1">
         {archived ? (
           <>
-            <CardAction icon={<RestoreIcon size={17} />} label="שחזור" onClick={onRestore} />
+            {!vehicle.deletionPending ? <CardAction icon={<RestoreIcon size={17} />} label="שחזור" onClick={onRestore} /> : null}
             <CardAction
               icon={<TrashIcon size={17} />}
               label="מחיקה"

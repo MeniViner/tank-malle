@@ -16,6 +16,7 @@ const VehicleWizard = lazy(() => import("./screens/VehicleWizard").then((m) => (
 import { Home } from "./screens/Home";
 import { FillupForm } from "./screens/FillupForm";
 import { History } from "./screens/History";
+const Maintenance = lazy(() => import("./screens/Maintenance").then(m => ({ default: m.Maintenance })));
 const Settings = lazy(() => import("./screens/Settings").then((m) => ({ default: m.Settings })));
 const Profile = lazy(() => import("./screens/Profile").then((m) => ({ default: m.Profile })));
 const VehicleManager = lazy(() => import("./screens/VehicleManager").then((m) => ({ default: m.VehicleManager })));
@@ -39,6 +40,7 @@ const ONBOARDING_KEY = "tm.onboarded";
 export default function App() {
   return (
     <>
+      {import.meta.env.VITE_LOCAL_CARE === "1" ? <div className="mx-auto max-w-[430px] bg-warning-soft px-3 py-1.5 text-center text-xs text-warning-ink">תצוגה מקומית · נתוני הדגמה</div> : null}
       <RouteScroll />
       <Suspense fallback={<Splash />}><Shell /></Suspense>
       {/* Mounted unconditionally: this is what registers the service worker,
@@ -129,6 +131,7 @@ function Shell() {
     <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/vehicle" element={<Maintenance />} />
         <Route path="/history" element={<History />} />
         <Route
           path="/stats"

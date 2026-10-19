@@ -60,6 +60,7 @@ export function Home() {
       <AppHeader />
 
       <div className="tm-page">
+        <Link to="/vehicle" className="mb-3 flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3"><span><b className="block">הרכב שלי</b><span className="text-sm text-muted">טיפולים, תזכורות והוצאות</span></span><span aria-hidden="true">←</span></Link>
         {loadingFillups ? (
           <HomeSkeleton />
         ) : (

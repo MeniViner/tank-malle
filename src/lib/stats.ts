@@ -121,6 +121,8 @@ export interface Vehicle {
   manualPricePerLiter?: number | null;
   nickname?: string | null;
   archived: boolean;
+  /** Client-side tree deletion has begun; only completion/retry is allowed. */
+  deletionPending?: boolean;
   createdAt?: number;
   /** Registry codes, kept so the WLTP spec register can be re-queried. */
   tozeretCd?: number | null;

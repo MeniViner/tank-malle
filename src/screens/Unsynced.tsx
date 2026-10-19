@@ -1,3 +1,4 @@
+import { CareConflictDetails } from "../components/maintenance/CareConflictDetails";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -96,7 +97,7 @@ export function Unsynced() {
       />
 
       <div className="flex flex-col gap-3 px-5">
-        <p className="text-[15px] text-muted">{offline ? "אין חיבור. הפעולות יישלחו כשהחיבור יחזור." : "הפעולות כאן נשמרו במכשיר וממתינות לאישור השרת."}</p>
+        <p className="text-[15px] text-muted">{offline ? "אין חיבור. פעולות ממתינות יישלחו כשהחיבור יחזור; לפעולות שנכשלו יש ללחוץ על ניסיון חוזר." : "הפעולות כאן נשמרו במכשיר וממתינות לאישור השרת."}</p>
         <ol className="tm-sync-steps" aria-label="שלבי הסנכרון">
           <li><span><b>נשמר במכשיר</b><span className="block text-[13.5px] text-muted">הקלט נשאר כאן גם אחרי רענון.</span></span></li>
           <li><span><b>נשלח לשרת</b><span className="block text-[13.5px] text-muted">ניסיון אוטומטי כשהחיבור זמין.</span></span></li>
@@ -214,7 +215,7 @@ function OperationCard({
   onDiscard: () => void;
 }) {
   const record =
-    op.payload && op.kind !== "vehicle.delete" && !op.kind.startsWith("tank.")
+    op.payload && op.kind !== "vehicle.delete" && !op.kind.startsWith("tank.") && !op.kind.startsWith("maintenance.")
       ? fillupFromPayload(op.docId, op.payload)
       : null;
   const before =
@@ -243,6 +244,13 @@ function OperationCard({
         </span>
       </div>
 
+      {op.kind.startsWith("maintenance.") ? <div className="rounded-xl bg-surface-2 p-3 text-sm">
+        <b>{String((op.payload ?? op.beforeImage)?.title ?? "עדכון תחזוקת רכב")}</b>
+        <p>{String((op.payload ?? op.beforeImage)?.day ?? (op.payload ?? op.beforeImage)?.dueDay ?? "")}</p>
+        {typeof (op.payload ?? op.beforeImage)?.costAgorot === "number" ? <p>₪{Number((op.payload ?? op.beforeImage)?.costAgorot) / 100}</p> : null}
+        <p className="mt-1 text-muted">הנתונים המלאים כלולים בייצוא הפעולות שלא סונכרנו.</p>
+      </div> : null}
+      {op.kind.startsWith("maintenance.") && op.status === "conflict" ? <CareConflictDetails mine={op.payload ?? op.beforeImage} server={op.serverImage ?? null} /> : null}
       {shown ? (
         <div className="flex flex-col gap-1 rounded-[12px] bg-surface-2 px-3 py-2.5 text-[14px] text-ink">
           <span>
