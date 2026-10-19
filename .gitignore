@@ -49,3 +49,6 @@ playwright-report/
 
 # Explicitly local, placeholder-only care preview configuration.
 !.env.care
+
+# Private local TLS keys, field samples and device-only builds
+.care-device/

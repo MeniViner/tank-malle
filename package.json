@@ -18,10 +18,12 @@
     "dev:care": "vite --mode care --host 127.0.0.1 --port 5283 --strictPort",
     "emulators:care": "firebase emulators:start --only auth,firestore --project demo-tankmaleh --config firebase.care-local.json",
     "test:care": "playwright test --config playwright.care.config.ts",
-    "test:care:pwa": "playwright test --config playwright.care-pwa.config.ts"
+    "test:care:pwa": "playwright test --config playwright.care-pwa.config.ts",
+    "dev:care:device": "node scripts/care-device.mjs"
   },
   "dependencies": {
     "firebase": "^11.10.0",
+    "pdfjs-dist": "6.4.299",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.4",

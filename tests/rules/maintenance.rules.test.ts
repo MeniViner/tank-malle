@@ -51,3 +51,17 @@ it('cannot create or update care under a missing or deleting vehicle, and deleti
   await assertSucceeds(deleteDoc(doc(owner(),'users/alice/vehicles/v')));
   await assertFails(setDoc(doc(owner(),path('serviceEvents')),service));
 });
+
+it('accepts explicit refunds but never a negative expense',async()=>{
+  await assertSucceeds(setDoc(doc(owner(),path('vehicleExpenses')),{...expense,category:'refund',costAgorot:5000}));
+  await assertFails(setDoc(doc(owner(),'users/alice/vehicles/v/vehicleExpenses/negative'),{...expense,category:'refund',costAgorot:-5000}));
+});
+it('receipt import retries cannot overwrite an edited receipt or create an orphan after vehicle deletion',async()=>{
+  const payload={date:new Date(),odometer:100000,liters:40,pricePerLiter:7,totalCost:280,isFullTank:false,station:null,notes:null,version:1,writeId:'first',importSource:'receipt-text-v1',importRowHash:'a'.repeat(64)};
+  const ref=doc(owner(),'users/alice/vehicles/v/fillups/receipt-test');
+  await assertSucceeds(setDoc(ref,payload));
+  await assertSucceeds(updateDoc(ref,{version:2,writeId:'edit',totalCost:281}));
+  await assertFails(setDoc(ref,{...payload,writeId:'retry'}));
+  await assertSucceeds(deleteDoc(doc(owner(),'users/alice/vehicles/v')));
+  await assertFails(setDoc(doc(owner(),'users/alice/vehicles/v/fillups/receipt-other'),payload));
+});

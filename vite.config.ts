@@ -1,9 +1,12 @@
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => {
+  const env = {...loadEnv(mode,process.cwd(),''),...process.env};
+  if (command==='build' && mode==='production' && (env.VITE_LOCAL_CARE==='1' || env.VITE_USE_EMULATORS==='1' || env.VITE_CARE_DEVICE_ORIGIN || env.VITE_FIREBASE_PROJECT_ID?.startsWith('demo-'))) throw new Error('Production builds must exclude emulator/demo configuration');
+  return ({
   // This preview only talks to local emulators. No production API, proxy or model service.
   server: mode === 'care' ? { headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" } } : undefined,
   preview: mode === 'care' ? { headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:*" } } : undefined,
@@ -14,7 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "prompt",
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "consumption-catalog.json"],
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,woff2,ttf}"],
+        maximumFileSizeToCacheInBytes: 5_000_000,
+        globPatterns: ["**/*.{js,mjs,css,html,svg,png,woff2,ttf}"],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\//,
@@ -59,4 +63,4 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ],
-}));
+}); });

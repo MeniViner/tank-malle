@@ -11,15 +11,14 @@ test('two-photo flow accepts manual fallback, reviews and fills the real fuel fo
   await dialog.getByLabel('ליטרים בצג',{exact:true}).fill('40');
   await dialog.getByRole('button',{name:'המשך לקילומטראז׳'}).click();
   await dialog.getByLabel('מד מרחק מצטבר',{exact:true}).fill('128450');
-  await dialog.getByRole('button',{name:'בדיקת הנתונים'}).click();
+  await dialog.getByRole('button',{name:'בדיקה בטופס התדלוק'}).click();
   await expect(dialog.getByRole('alert')).toContainText('יש לאשר');
   await dialog.getByRole('checkbox',{name:/בדקתי/}).check();
-  await dialog.getByRole('button',{name:'בדיקת הנתונים'}).click();
-  await dialog.getByRole('button',{name:'העברה לטופס התדלוק'}).click();
+  await dialog.getByRole('button',{name:'בדיקה בטופס התדלוק'}).click();
   await expect(dialog).toHaveCount(0);
   await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7.185');
   await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('40');
-  await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue('287.4');
+  await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue('287.40');
   expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`)).toHaveLength(0);
   await page.getByRole('button',{name:/שמירת תדלוק/}).click();
   await expect(async()=>{const rows=await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`);expect(rows).toHaveLength(1);expect(rows[0].data).toMatchObject({odometer:128450,liters:40,totalCost:287.4,pricePerLiter:7.185});}).toPass();
@@ -84,7 +83,7 @@ test('stale edits retain input and explicit conflict resolution advances the ver
   await expect(row).toHaveCount(0);
 });
 
-test('real pixel file selection reads both photos and preserves manually authored fields',async({page})=>{
+test('synthetic pixel file selection reads both photos and preserves manually authored fields',async({page})=>{
   const sharp=(await import('sharp')).default; const {demoPhoto}=await import('../src/lib/scan/fixtures');
   const png=async(kind:string)=>{const image=demoPhoto(kind);return sharp(Buffer.from(image.data),{raw:{width:image.width,height:image.height,channels:4}}).png().toBuffer();};
   await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
@@ -97,7 +96,7 @@ test('real pixel file selection reads both photos and preserves manually authore
   await dialog.getByRole('button',{name:'המשך לקילומטראז׳'}).click();
   await dialog.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:await png('odometer')});
   await expect(dialog.getByLabel('מד מרחק מצטבר',{exact:true})).toHaveValue('128450');
-  await dialog.getByRole('checkbox',{name:/בדקתי/}).check();await dialog.getByRole('button',{name:'בדיקת הנתונים'}).click();await dialog.getByRole('button',{name:'העברה לטופס התדלוק'}).click();
+  await dialog.getByRole('checkbox',{name:/בדקתי/}).check();await dialog.getByRole('button',{name:'בדיקה בטופס התדלוק'}).click();
   await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7');
   expect(await page.evaluate(()=>Object.values(localStorage).some(value=>String(value).includes('data:image')))).toBe(false);
 });
@@ -135,7 +134,7 @@ test('backup import deduplicates, CSV and date calendar export work on mobile',a
   for(const width of [320,390,430,820]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
 });
 
-test('a captured live frame is read and camera tracks stop after capture',async({page,browserName})=>{
+test('a synthetic live frame is read and camera tracks stop after capture',async({page,browserName})=>{
   test.skip(browserName!=='chromium','canvas.captureStream camera fixture is Chromium-only; file/cancellation paths run in both engines');
   const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');const raw=demoPhoto('pump');
   const png=await sharp(Buffer.from(raw.data),{raw:{width:raw.width,height:raw.height,channels:4}}).png().toBuffer();

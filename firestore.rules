@@ -33,7 +33,7 @@ service cloud.firestore {
     function validCareExpense(d) {
       return d.keys().hasOnly(['schemaVersion','version','day','category','title','costAgorot','notes'])
         && careBase(d) && careTitle(d) && careDay(d.day) && careOptionalInt(d.costAgorot,100000000)
-        && d.category in ['insurance','registration','parking','toll','wash','other'];
+        && d.category in ['insurance','registration','parking','toll','wash','other','refund'];
     }
     function validMileage(d) {
       return d.keys().hasOnly(['schemaVersion','version','day','odometer','notes'])
@@ -526,6 +526,7 @@ service cloud.firestore {
           allow read: if isOwner(uid);
           allow delete: if isOwner(uid);
           allow create: if isOwner(uid) && accountWritable(uid) && validFillup(request.resource.data)
+            && (request.resource.data.get('importSource','') != 'receipt-text-v1' || careVehicleWritable(uid, vehicleId))
             && versionOk(request.resource.data);
           // Optimistic concurrency: a client that stamps `version` must be
           // writing over the document it read, so the new stamp has to be
@@ -550,6 +551,7 @@ service cloud.firestore {
           // These compatible rules cannot protect older unconditional clients;
           // preserve their queued inputs and upgrade before editing conflicts.
           allow update: if isOwner(uid) && accountWritable(uid) && validFillup(request.resource.data)
+            && (request.resource.data.get('importSource','') != 'receipt-text-v1' || careVehicleWritable(uid, vehicleId))
             && ((('writeId' in request.resource.data)
                  && request.resource.data.diff(resource.data).affectedKeys().hasAny(['writeId']))
                   ? request.resource.data.version == resource.data.get('version', 0) + 1

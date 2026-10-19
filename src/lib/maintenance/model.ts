@@ -2,7 +2,7 @@
 export const CARE_COLLECTIONS = ['serviceEvents','maintenancePlans','vehicleExpenses','odometerReadings'] as const;
 export type CareCollection = typeof CARE_COLLECTIONS[number];
 export const JOBS = { periodic: 'טיפול תקופתי', oil: 'שמן ומסננים', tires: 'צמיגים', brakes: 'בלמים', battery: 'מצבר', repair: 'תיקון', custom: 'אחר' } as const;
-export const EXPENSES = { insurance: 'ביטוח', registration: 'רישוי וטסט', parking: 'חניה', toll: 'כבישי אגרה', wash: 'שטיפה', other: 'אחר' } as const;
+export const EXPENSES = { insurance: 'ביטוח', registration: 'רישוי וטסט', parking: 'חניה', toll: 'כבישי אגרה', wash: 'שטיפה', other: 'אחר', refund: 'החזר / זיכוי' } as const;
 export type Job = keyof typeof JOBS;
 export interface CareBase { id: string; schemaVersion: 1; version: number }
 export interface ServiceEvent extends CareBase {
@@ -90,9 +90,9 @@ export function dueStatus(due: ReturnType<typeof nextDue>, mileage: Mileage | nu
   if ((due.day !== null && due.day <= today) || (due.odometer !== null && mileage !== null && mileage.odometer >= due.odometer)) return 'due';
   if (due.needsMileage) return 'unknown';
   const days = due.day ? (Date.parse(`${due.day}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`))/86400000 : Infinity;
-  if (days<=30) return 'soon';
   if (!due.day && due.odometer === null) return 'unknown';
   if (due.odometer !== null && (!mileage || (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${mileage.day}T12:00:00Z`))/86400000 > 30)) return 'unknown';
+  if (days<=30) return 'soon';
   if (due.odometer !== null && mileage !== null && due.odometer-mileage.odometer<=1000) return 'soon';
   return 'later';
 }

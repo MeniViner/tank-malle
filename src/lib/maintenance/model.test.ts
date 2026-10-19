@@ -36,3 +36,17 @@ it('quarantines future schema fields instead of dropping them on edit',()=>{
   expect(validCareRecord('serviceEvents',{...event,photo:'pixels'})).toBe(false);
   expect(validCareRecord('maintenancePlans',{...plan,schemaVersion:2})).toBe(false);
 });
+
+it('editing a linked invoice updates only explicitly completed reminders and deletion rolls back',()=>{
+  const other={...plan,id:'tires'};
+  const edited={...event,day:'2026-04-01',odometer:102000};
+  expect(nextDue(plan,[edited],'2026-10-19')).toMatchObject({day:'2027-04-01',odometer:112000});
+  expect(nextDue(other,[edited],'2026-10-19')).toMatchObject({day:other.dueDay,odometer:other.dueOdometer});
+  expect(nextDue(plan,[],'2026-10-19')).toMatchObject({day:plan.dueDay,odometer:plan.dueOdometer});
+});
+it('an already crossed distance stays due even if stale, while absent measurements never imply later',()=>{
+  const due={day:'2027-12-01',odometer:100000,completed:false};
+  expect(dueStatus(due,{day:'2026-01-01',odometer:100001},'2026-10-19')).toBe('due');
+  expect(dueStatus(due,null,'2026-10-19')).toBe('unknown');
+  expect(dueStatus({...due,day:'2026-10-19'},null,'2026-10-19')).toBe('due');
+});

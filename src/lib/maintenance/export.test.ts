@@ -23,7 +23,12 @@ it('CSV preserves Hebrew, commas, quoted text, null versus zero and literal form
 });
 it('calendar uses date-only target, escaped text, short UTF-8 lines and no guessed mileage date',()=>{
   const ics=careCalendar('v',plan,EMPTY_CARE,new Date('2026-10-19T09:00:00Z'))!;
-  expect(ics).toContain('DTSTART;VALUE=DATE:20270131');expect(ics).toContain('DTSTAMP:20261019T090000Z');expect(ics.replaceAll('\r\n ', '')).toContain('SUMMARY:טיפול\\; שנתי\\, לרכב\\nחדש');
+  expect(ics.replaceAll('\r\n ', '')).toContain('היומן אינו עוקב אחר קילומטראז׳ או שינויים מאוחרים');expect(ics).toContain('DTSTART;VALUE=DATE:20270131');expect(ics).toContain('DTSTAMP:20261019T090000Z');expect(ics.replaceAll('\r\n ', '')).toContain('SUMMARY:טיפול\\; שנתי\\, לרכב\\nחדש');
   expect(ics.split('\r\n').every(line=>new TextEncoder().encode(line).length<=75)).toBe(true);
   expect(careCalendar('v',{...plan,dueDay:null,intervalMonths:null},EMPTY_CARE)).toBeNull();
+});
+
+it('refund exports retain a numeric negative amount while formula-like text stays escaped',()=>{
+  const csv=careCostsCsv({...EMPTY_CARE,vehicleExpenses:[{...data.vehicleExpenses[0],category:'refund',costAgorot:4000}]});
+  expect(csv).toContain('"-40"');expect(csv).not.toContain("'-40");
 });

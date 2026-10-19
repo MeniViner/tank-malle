@@ -1,3 +1,4 @@
+import { careCosts } from '../lib/maintenance/costs';
 import { Field } from '../components/Field';
 import { CareTransfer } from '../components/maintenance/CareTransfer';
 import { careCalendar, downloadCareFile } from '../lib/maintenance/export';
@@ -27,7 +28,7 @@ export function Maintenance() {
 }
 function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;label:string }) {
   const { data, loading, cached, errors, malformed } = useMaintenance(uid,vehicleId);
-  const { fillups, loadingFillups, fillupsError, malformedFillups, outbox, saveCareRecord, deleteCareRecord } = useData();
+  const { fillups, loadingFillups, fillupsError, malformedFillups, fromCache, fillupsFromCache, outbox, saveCareRecord, deleteCareRecord } = useData();
   const { showToast } = useToast();
   const [transfer,setTransfer] = useState(false);
   const [tab,setTab] = useState<'upcoming'|'history'|'costs'>('upcoming');
@@ -42,24 +43,20 @@ function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;la
   const [historyQuery,setHistoryQuery]=useState('');const [historyLimit,setHistoryLimit]=useState(50);
   const mileage = latestMileage([...data.odometerReadings,...data.serviceEvents.filter(e=>e.odometer!==null).map(e=>({ day:e.day, odometer:e.odometer! })), ...fillups.map(f=>({ day:localDay(new Date(f.date)),odometer:f.odometer }))],today);
   const fromDay = period === 'month' ? today.slice(0,7)+'-01' : period === 'year' ? today.slice(0,4)+'-01-01' : '1900-01-01';
-  const services = data.serviceEvents.filter(e=>e.day>=fromDay && e.day<=today);
-  const expenses = data.vehicleExpenses.filter(e=>e.day>=fromDay && e.day<=today);
-  const fuel = fillups.filter(f=>localDay(new Date(f.date))>=fromDay && localDay(new Date(f.date))<=today).reduce((sum,f)=>sum+Math.round(f.totalCost*100),0);
-  const sum = (rows: { costAgorot: number | null }[]) => rows.reduce((s,r)=>s+(r.costAgorot??0),0);
-  const unknownCosts = [...services,...expenses].filter(r=>r.costAgorot===null).length;
+  const costs = careCosts(data, fillups, fromDay, today, loading || loadingFillups || fromCache || fillupsFromCache || !!cached.length || !!errors.length || !!malformed || !!fillupsError || !!malformedFillups.length || outbox.some(o=>o.vehicleId===vehicleId));
   const pending = (id:string) => outbox.some(o=>o.vehicleId===vehicleId && o.docId===id && o.kind.startsWith('maintenance.'));
   const upcoming = data.maintenancePlans.filter(p=>p.active).map(plan=>({plan,due:nextDue(plan,data.serviceEvents)}));
   const order = { due:0, soon:1, unknown:2, later:3, done:4 };
   upcoming.sort((a,b)=>order[dueStatus(a.due,mileage,today)]-order[dueStatus(b.due,mileage,today)] || (a.due.day??'9999').localeCompare(b.due.day??'9999'));
   const history = [ ...data.serviceEvents.map(record=>({collection:'serviceEvents' as const,record})), ...data.vehicleExpenses.map(record=>({collection:'vehicleExpenses' as const,record})), ...data.odometerReadings.map(record=>({collection:'odometerReadings' as const,record})) ].filter(({record})=>!historyQuery.trim() || `${'title' in record ? record.title : 'עדכון קילומטראז׳'} ${record.notes} ${record.day} ${'garage' in record ? record.garage : ''}`.toLocaleLowerCase('he-IL').includes(historyQuery.trim().toLocaleLowerCase('he-IL'))).sort((a,b)=>b.record.day.localeCompare(a.record.day));
-  async function save(record:CareRecord) {
+  async function save(record:CareRecord, base?:CareRecord) {
     if (!editing) return;
     if ('odometer' in record && record.odometer !== null) {
       const others = [...data.odometerReadings.filter(r=>r.id!==record.id), ...data.serviceEvents.filter(r=>r.id!==record.id && r.odometer!==null).map(r=>({day:r.day,odometer:r.odometer!})), ...fillups.map(f=>({day:localDay(new Date(f.date)),odometer:f.odometer}))];
       const issue = mileageIssue({day:record.day,odometer:record.odometer},others);
       if (issue) throw new Error(issue);
     }
-    const receipt = await saveCareRecord(vehicleId,editing.collection,record,editing.record);
+    const receipt = await saveCareRecord(vehicleId,editing.collection,record,base);
     if(!mounted.current)return;
     setEditing(null); showToast({ tone:'success', title:'נשמר במכשיר — ממתין לסנכרון' });
     void receipt.settled.then(ok=> { if (!ok && mounted.current) showToast({ tone:'error', title:'הסנכרון לא הושלם — הפרטים נשמרו בפעולות שלא סונכרנו' }); });
@@ -85,7 +82,7 @@ function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;la
           <p className="text-sm text-muted">{due.day ? dayLabel(due.day) : ''}{due.day && due.odometer!==null ? ' או ' : ''}{due.odometer!==null ? `${due.odometer.toLocaleString('he-IL')} ק״מ` : ''}{due.day && due.odometer!==null ? ' — המוקדם מביניהם' : ''}{due.needsMileage || (!due.day && due.odometer===null && !due.completed) ? 'נדרשת קריאת ק״מ מהטיפול האחרון כדי לחשב יעד חדש.' : ''}</p>
           <p className="text-xs text-muted">מקור: {{owner:'הגדרה שלי',manufacturer:'הוראות יצרן',garage:'המלצת מוסך'}[plan.source]}</p>
           <div className="flex flex-wrap gap-2">{!due.completed ? <Button full size="sm" disabled={pending(plan.id)} onClick={()=>setEditing({collection:'serviceEvents',completePlan:plan})}>רישום טיפול שבוצע</Button> : null}<Button size="sm" variant="ghost" disabled={pending(plan.id)} onClick={()=>setEditing({collection:'maintenancePlans',record:plan})}>עריכת תזכורת</Button>{due.day && !due.completed ? <Button size="sm" variant="ghost" onClick={()=>{
-            const calendar=careCalendar(vehicleId,plan,data); if(calendar) {downloadCareFile(calendar,'tank-maleh-reminder.ics','text/calendar;charset=utf-8'); showToast({tone:'info',title:'תזכורת הוכנה ליומן',detail:'קובץ חד פעמי. שינויים באפליקציה לא יעדכנו אותו אוטומטית.'});}
+            const calendar=careCalendar(vehicleId,plan,data); if(calendar) {downloadCareFile(calendar,'tank-maleh-reminder.ics','text/calendar;charset=utf-8'); showToast({tone:'info',title:'תזכורת הוכנה ליומן',detail:'צילום מצב של התאריך בלבד. היומן לא עוקב אחרי ק״מ או שינויים.'});}
           }}>הוספה ליומן</Button> : null}<Button size="sm" variant="ghost" disabled={pending(plan.id)} onClick={()=>setDeleting({collection:'maintenancePlans',record:plan})}>מחיקה</Button></div>
         </Card>; })}
         {data.maintenancePlans.filter(p=>!p.active).map(plan=><Button variant="ghost" key={plan.id} onClick={()=>setEditing({collection:'maintenancePlans',record:plan})}>{plan.title} · תזכורת מושהית</Button>)}
@@ -104,15 +101,15 @@ function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;la
       {tab==='history' && history.length>historyLimit ? <Button variant="secondary" onClick={()=>setHistoryLimit(n=>n+50)}>הצגת רשומות נוספות ({history.length-historyLimit})</Button> : null}
       {tab==='costs' ? <>
         <SelectField label="תקופת הסיכום" value={period} onChange={setPeriod}><option value="year">השנה</option><option value="month">החודש</option><option value="all">כל התקופה</option></SelectField>
-        <Card className="p-4"><p className="text-sm text-muted">סך העלויות שתועדו</p><p className="mt-1 text-3xl font-bold tabular-nums" data-testid="care-total">{money(fuel+sum(services)+sum(expenses))}</p><p className="mt-2 text-xs text-muted">{unknownCosts ? `${unknownCosts} רשומות ללא עלות אינן נכללות בסכום.` : 'כולל הוצאות ותדלוקים שנרשמו בתקופה בלבד.'}{loadingFillups || loading || errors.length || fillupsError || malformedFillups.length ? ' הסיכום עדיין חלקי.' : ''}</p></Card>
-        <Card className="p-4"><dl className="flex flex-col gap-3">{[['דלק',fuel],['טיפולים ותחזוקה',sum(services)],['הוצאות נוספות',sum(expenses)]].map(([name,total])=><div key={name} className="flex justify-between gap-2"><dt>{name}</dt><dd className="font-bold">{money(Number(total))}</dd></div>)}</dl></Card>
+        <Card className="p-4"><p className="text-sm text-muted">סך העלויות שתועדו</p><p className="mt-1 text-3xl font-bold tabular-nums" data-testid="care-total">{money(costs.total)}</p><p className="mt-2 text-xs text-muted">{costs.unknown ? `${costs.unknown} רשומות ללא עלות אינן נכללות בסכום.` : 'כולל הוצאות ותדלוקים שנרשמו בתקופה בלבד.'}{costs.incomplete ? ' הסיכום עדיין חלקי.' : ''}</p></Card>
+        <Card className="p-4"><dl className="flex flex-col gap-3">{[['דלק',costs.fuel],['טיפולים ותחזוקה',costs.maintenance],['הוצאות נוספות',costs.other],['החזרים וזיכויים',-costs.refunds]].map(([name,total])=><div key={name} className="flex justify-between gap-2"><dt>{name}</dt><dd className="font-bold">{money(Number(total))}</dd></div>)}</dl></Card>
         <p className="text-xs text-muted">עלות חשבונית טיפול נספרת פעם אחת, גם כשנרשמו בה כמה עבודות. ירידת ערך ועלויות שלא הוזנו אינן נכללות.</p>
       </> : null}
       <Button variant="ghost" disabled={loading && !errors.length} onClick={()=>setTransfer(true)}>גיבוי וייצוא תחזוקה</Button>
       {actionError ? <p role="alert" className="text-sm text-danger">{actionError}</p> : null}
     </div>
     {transfer ? <CareTransfer vehicleId={vehicleId} label={label} data={data} incomplete={loading || !!cached.length || !!errors.length || !!malformed || outbox.some(o=>o.vehicleId===vehicleId&&o.kind.startsWith('maintenance.'))} canImport={!loading && !cached.length && !errors.length && !malformed && !outbox.some(o=>o.vehicleId===vehicleId&&o.kind.startsWith('maintenance.'))} onSave={(name,record)=>saveCareRecord(vehicleId,name,record)} onClose={()=>setTransfer(false)} /> : null}
-    {editing ? <CareEditor collection={editing.collection} record={editing.record} completePlan={editing.completePlan} plans={data.maintenancePlans} onClose={()=>setEditing(null)} onSave={save} /> : null}
+    {editing ? <CareEditor key={`${editing.collection}/${editing.record?.id ?? editing.completePlan?.id ?? "new"}`} uid={uid} vehicleId={vehicleId} collection={editing.collection} record={editing.record} completePlan={editing.completePlan} plans={data.maintenancePlans} onClose={()=>setEditing(null)} onSave={save} /> : null}
     <ConfirmDialog open={!!deleting} title="מחיקת רשומה" body="הרשומה תוסר מההיסטוריה, מהעלויות ומחישוב הטיפול הבא. פעולה זו תשפיע גם על התזכורות הקשורות אליה." confirmLabel={deletingBusy?'מוחקים…':'מחיקת הרשומה'} onCancel={()=>{if(!deletingBusy)setDeleting(null);}} onConfirm={()=>{
       if (!deleting?.record || deletingBusy) return; setDeletingBusy(true); setActionError('');
       void deleteCareRecord(vehicleId,deleting.collection,deleting.record).then(async receipt=>{setDeleting(null); if (await receipt.settled) showToast({tone:'success',title:'הרשומה נמחקה'}); else showToast({tone:'error',title:'המחיקה לא הושלמה — בדקו פעולות שלא סונכרנו'});}).catch(()=>setActionError('לא ניתן להשלים את המחיקה. הרשומה לא נשלחה מחדש.')).finally(()=>setDeletingBusy(false));

@@ -1,3 +1,4 @@
+import { assertCareEnvironment } from "./careEnvironment";
 import { initializeApp, type FirebaseApp } from "firebase/app";
 import {
   browserPopupRedirectResolver,
@@ -27,9 +28,10 @@ const config = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-// The isolated care preview must fail closed if its emulator configuration drifts.
-if (import.meta.env.VITE_LOCAL_CARE === '1' && (config.projectId !== 'demo-tankmaleh' || import.meta.env.VITE_USE_EMULATORS !== '1' || !['localhost','127.0.0.1'].includes(window.location.hostname))) {
-  throw new Error('Local care preview requires localhost and demo-tankmaleh emulators');
+// Only this explicit local build may use the same-origin HTTPS emulator gateway.
+const deviceOrigin = import.meta.env.VITE_LOCAL_CARE === '1' ? import.meta.env.VITE_CARE_DEVICE_ORIGIN ?? '' : '';
+if (import.meta.env.VITE_LOCAL_CARE === '1') {
+  assertCareEnvironment(config.projectId,import.meta.env.VITE_USE_EMULATORS,deviceOrigin,window.location.origin);
 }
 
 export const isFirebaseConfigured = Boolean(config.apiKey && config.projectId);
@@ -48,6 +50,7 @@ export const auth: Auth = initializeAuth(app, {
  * work. Multi-tab manager avoids the single-tab lock error.
  */
 export const db: Firestore = initializeFirestore(app, {
+  ...(deviceOrigin ? { host:window.location.host, ssl:true, experimentalForceLongPolling:true } : {}),
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
 
@@ -55,6 +58,6 @@ export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
 if (import.meta.env.VITE_USE_EMULATORS === "1") {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
-  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  connectAuthEmulator(auth, deviceOrigin || "http://127.0.0.1:9099", { disableWarnings: true });
+  if (!deviceOrigin) connectFirestoreEmulator(db, "127.0.0.1", 8080);
 }

@@ -221,6 +221,7 @@ export function parseFillupDocument(id: string, data: Record<string, unknown>): 
     liters,
     pricePerLiter: numberOrNull(data.pricePerLiter) ?? 0,
     totalCost: numberOrNull(data.totalCost) ?? 0,
+    ...(numberOrNull(data.totalCost) === null ? { totalCostUnknown: true } : {}),
     isFullTank: data.isFullTank !== false,
     station: sanitizeStation(data.station),
     notes: typeof data.notes === "string" ? data.notes : null,

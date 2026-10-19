@@ -1,3 +1,4 @@
+import { receiptDocumentId } from "../lib/import/receiptText";
 import { subscribeResilient } from "../lib/subscribeResilient";
 import { carePayloadMatches, conditionalCareWrite } from "../lib/maintenance/persistence";
 import { CARE_COLLECTIONS, carePayload, type CareCollection, type CareRecord } from "../lib/maintenance/model";
@@ -116,6 +117,7 @@ interface DataContextValue {
   updateAdminPrices: (payload: OutboxPayload) => Promise<void>;
   /** True while the initial fill-up snapshot is still loading. */
   loadingFillups: boolean;
+  fillupsFromCache: boolean;
   loadVehicleFillups: (vehicleId: string) => Promise<Fillup[]>;
   loadVehicleCatalog: () => Promise<Vehicle[]>;
   importTankUpdates: (vehicleId: string, records: TankImportRecord[]) => Promise<{ written: number; duplicates: number; receipt: MutationReceipt }>;
@@ -565,6 +567,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [loadingFillups, setLoadingFillups] = useState(true);
   const [offline, setOffline] = useState(!navigator.onLine);
+  const [fillupsFromCache,setFillupsFromCache] = useState(true);
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
   const [priceRules, setPriceRules] = useState<StoredPriceRule[]>([]);
@@ -912,6 +915,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Keyed on the vehicle ID, not the vehicle object: a vehicle edit (a
     // nickname, a capacity) used to tear the listener down and rebuild it.
     fillupVehicleRef.current = activeVehicleId;
+    setFillupsFromCache(true);
     setFillupDataScope(uid && activeVehicleId ? `${uid}/${activeVehicleId}` : null);
     if (!uid || !activeVehicleId) {
       setFillups([]);
@@ -953,6 +957,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (entry.metadata.hasPendingWrites) pending.add(entry.id);
         }
 
+        setFillupsFromCache(snapshot.metadata.fromCache);
         setFillups(list);
         setMalformedFillups(malformed);
         setPendingFillupIds(pending);
@@ -1374,7 +1379,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // An edited copy of a failed operation keeps its op id AND its document
       // id, so a retry that happens to succeed twice cannot create two records.
       const replaced = options.replaceOpId ? await outbox.get(options.replaceOpId) : null;
-      const docId = replaced ? replaced.docId : doc(collection(db, "users", uid, "vehicles", vehicleId, "fillups")).id;
+      const receiptId = receiptDocumentId(fillup.importSource,fillup.importRowHash);
+      if (!replaced && receiptId && (scopedFillups.some(row=>row.id===receiptId || row.importRowHash===fillup.importRowHash || (fillup.importBatchId && row.importBatchId===fillup.importBatchId)) || (await outbox.list()).some(op=>op.vehicleId===vehicleId && op.docId===receiptId))) throw new Error("הקבלה כבר קיימת או ממתינה לסנכרון ברכב הזה. פתחו אותה בהיסטוריה או בפעולות שלא סונכרנו.");
+      const docId = replaced ? replaced.docId : receiptId ?? doc(collection(db, "users", uid, "vehicles", vehicleId, "fillups")).id;
       const path = fillupPath(vehicleId, docId);
       const payload = serializeFillup({ ...fillup, version: fillup.version ?? 1 });
       await submit(
@@ -1390,7 +1397,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       );
       return docId;
     },
-    [uid, activeVehicle, submit, requireOutbox, fillupPath, refFor],
+    [uid, activeVehicle, scopedFillups, submit, requireOutbox, fillupPath, refFor],
   );
 
   const updateFillup = useCallback(
@@ -2146,6 +2153,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       prices,
       updateAdminPrices,
       loadingFillups: scopedLoadingFillups,
+      fillupsFromCache,
       loadVehicleFillups,
       loadVehicleCatalog,
       importTankUpdates,
@@ -2207,6 +2215,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       prices,
       updateAdminPrices,
       scopedLoadingFillups,
+      fillupsFromCache,
       loadVehicleFillups,
       loadVehicleCatalog,
       importTankUpdates,

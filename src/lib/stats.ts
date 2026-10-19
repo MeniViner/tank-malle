@@ -40,6 +40,8 @@ export interface Fillup extends FillupTankFields {
   liters: number;
   pricePerLiter: number;
   totalCost: number;
+  /** Read-only provenance: missing legacy amount is not an explicit zero. */
+  totalCostUnknown?: boolean;
   /**
    * True when the tank was FULL at the END of this fill-up — regardless of how
    * much was in it on arrival. A partial fill-up does not close a consumption

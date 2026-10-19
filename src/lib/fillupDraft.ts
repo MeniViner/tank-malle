@@ -2,6 +2,7 @@ import type { Fillup, Station } from "./types";
 import type { ReceiptState } from "./receipt";
 import type { TankStateDraft } from "./tank/draft";
 export interface FillupDraft {
+  receiptImport?: import("./import/receiptText").ReceiptImport | null;
   base: Fillup | null; date: number; dateConfirmed: boolean; odometer: string;
   receipt: ReceiptState; tankDraft: TankStateDraft; continuityBreak: boolean;
   pumpAnswer: "same" | "different" | "unanswered" | "discount" | "unknown"; pumpPrice: string; pumpTouched: boolean;

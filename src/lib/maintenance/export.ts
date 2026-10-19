@@ -35,13 +35,13 @@ export function importPreview(backup:CareBackup,existing:CareData): { additions:
 }
 /** Spreadsheet formula prefixes must remain literal user text after opening a CSV. */
 function cell(value:unknown): string {
-  let text=String(value??''); if (/^[\s]*[=+@-]/.test(text)) text="'"+text;
+  let text=String(value??''); if (typeof value==='string' && /^[\s]*[=+@-]/.test(text)) text="'"+text;
   return '"'+text.replaceAll('"','""')+'"';
 }
 export function careCostsCsv(data:CareData): string {
   const rows:unknown[][]=[['סוג','תאריך','שם','קילומטראז׳','עלות בש״ח','עבודות / קטגוריה','מוסך','הערות']];
   const ordered=[...data.serviceEvents.map(r=>['טיפול',r.day,r.title,r.odometer,r.costAgorot===null?'':r.costAgorot/100,r.jobs.map(j=>JOBS[j]).join(', '),r.garage,r.notes]),
-    ...data.vehicleExpenses.map(r=>['הוצאה',r.day,r.title,'',r.costAgorot===null?'':r.costAgorot/100,EXPENSES[r.category],'',r.notes])];
+    ...data.vehicleExpenses.map(r=>['הוצאה',r.day,r.title,'',r.costAgorot===null?'':r.costAgorot/100*(r.category==='refund'?-1:1),EXPENSES[r.category],'',r.notes])];
   ordered.sort((a,b)=>String(b[1]).localeCompare(String(a[1])));
   return '\uFEFF'+[...rows,...ordered].map(row=>row.map(cell).join(',')).join('\r\n')+'\r\n';
 }
@@ -52,7 +52,7 @@ export function careCalendar(vehicleId:string,plan:MaintenancePlan,data:CareData
   if (!plan.active || due.completed || !due.day) return null;
   const stamp=now.toISOString().replaceAll('-','').replaceAll(':','').replace(/\.\d{3}Z$/,'Z');
   const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Tank Maleh//Care//HE','CALSCALE:GREGORIAN','BEGIN:VEVENT',`UID:${encodeURIComponent(vehicleId)}-${encodeURIComponent(plan.id)}@tank-maleh.local`,`DTSTAMP:${stamp}`,`DTSTART;VALUE=DATE:${due.day.replaceAll('-','')}`,`SUMMARY:${escapeIcs(plan.title)}`,
-    `DESCRIPTION:${escapeIcs(`תזכורת מרכב בטנק מלא. ${due.odometer===null?'':`או ${due.odometer} ק״מ, המוקדם מביניהם. `}יש לבדוק באפליקציה אם המועד השתנה. ${plan.notes}`)}`,'END:VEVENT','END:VCALENDAR'];
+    `DESCRIPTION:${escapeIcs(`צילום מצב של תאריך היעד בטנק מלא. היומן אינו עוקב אחר קילומטראז׳ או שינויים מאוחרים. ${due.odometer===null?'':`יעד הק״מ באפליקציה: ${due.odometer}. `}יש לבדוק באפליקציה אם המועד השתנה. ${plan.notes}`)}`,'END:VEVENT','END:VCALENDAR'];
   // RFC 5545 line folding counts UTF-8 bytes, not UTF-16 code units (Hebrew).
   return lines.map(line=>{
     let current='',bytes=0;const parts:string[]=[];

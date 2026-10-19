@@ -1,5 +1,6 @@
+import { ReceiptImport } from "../components/ReceiptImport";
+import { RECEIPT_SOURCE, type ReceiptImport as ImportIdentity } from "../lib/import/receiptText";
 import { ScanWizard } from "../components/scan/ScanWizard";
-import { reviewedScan } from "../lib/scan/draft";
 import { useAuth } from "../context/AuthContext";
 import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -375,6 +376,8 @@ function FillupEditor({
   const [restoredDraft] = useState(() => readFillupDraft(draftKey));
   const draftCleared = useRef(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [importOpen,setImportOpen] = useState(false);
+  const [receiptImport,setReceiptImport] = useState<ImportIdentity|null>(restoredDraft?.receiptImport ?? null);
   const [draftStorageFailed, setDraftStorageFailed] = useState(false);
 
   // An operation belongs to the vehicle it was journaled for. Editing it
@@ -494,9 +497,9 @@ function FillupEditor({
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  const draft = useMemo(() => ({ base: editBase, date, dateConfirmed, odometer, receipt, tankDraft,
+  const draft = useMemo(() => ({ base: editBase, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft,
     continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes }),
-    [editBase, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes]);
+    [editBase, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes]);
   const initialDraft = useRef(draft);
   const humanInput = odometer.trim() || receipt.liters.trim() || receipt.authored.length > 0 ||
     notes.trim() || hasTankAnswer(tankDraft) || pumpTouched || date !== initialDraft.current.date ||
@@ -780,14 +783,15 @@ function FillupEditor({
       station: station ?? null,
       notes: notes.trim() || null,
       // Import provenance and creation metadata travel unchanged.
-      importSource: editing?.importSource,
-      importBatchId: editing?.importBatchId,
-      importRowHash: editing?.importRowHash,
+      importSource: editing?.importSource ?? (receiptImport ? RECEIPT_SOURCE : undefined),
+      importBatchId: editing?.importBatchId ?? receiptImport?.textHash,
+      importRowHash: editing?.importRowHash ?? receiptImport?.hash,
       schemaVersion: editing?.schemaVersion,
       createdAt: editing?.createdAt ?? null,
     };
   }, [
     activeVehicle,
+    receiptImport,
     odometerValue,
     litersValue,
     priceValue,
@@ -997,14 +1001,26 @@ function FillupEditor({
         </div>
       </header>
 
+      {importOpen ? <ReceiptImport fillups={fillups} hasAuthored={receipt.authored.length>0 || date!==initialDraft.current.date} onClose={()=>setImportOpen(false)} onApply={(candidate,identity)=>{
+        setReceipt(previous=>typeReceiptField(typeReceiptField(previous,'totalCost',candidate.total),'liters',candidate.liters));
+        setDate(new Date(`${candidate.day}T${candidate.time}:00`).getTime()); setDateConfirmed(true);
+        setReceiptImport(identity); setImportOpen(false);
+      }}/> : null}
       {scanOpen ? <ScanWizard initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)} onApply={draft => {
-        const checked = reviewedScan(draft);
-        if (checked) { setReceipt(checked.receipt); setOdometer(checked.odometer); setScanOpen(false); }
+        setReceipt(previous => {
+          let next = previous;
+          if (draft.total !== previous.totalCost) next = typeReceiptField(next, 'totalCost', draft.total);
+          if (draft.liters !== previous.liters) next = typeReceiptField(next, 'liters', draft.liters);
+          return next;
+        });
+        setOdometer(draft.odometer); setScanOpen(false);
       }} /> : null}
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 pb-40">
         {!isEdit && !operation ? <button type="button" onClick={() => setScanOpen(true)} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-start text-accent">
           <span><b className="block">הוספה בשני צילומים</b><span className="text-sm">צג המשאבה ואז מד הקילומטרים</span></span><span aria-hidden="true">←</span>
         </button> : null}
+        {!isEdit && !operation ? <Button variant="secondary" onClick={()=>setImportOpen(true)}>ייבוא קבלה מקובץ או טקסט</Button> : null}
+        {receiptImport ? <p role="status" className="text-sm text-muted">קבלה הועברה לבדיקה. השלימו קילומטראז׳ ובדקו את הנתונים לפני שמירה. מצב המיכל נשאר לבחירתכם.</p> : null}
         {draftDirty ? <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
           <span>{draftStorageFailed ? "לא ניתן לשמור טיוטה במכשיר. השאירו את הטופס פתוח עד לשמירה." : restoredDraft ? "הטיוטה שלכם שוחזרה מהמכשיר" : "טיוטה נשמרת במכשיר — אפשר לחזור ולהמשיך"}</span>
           <button type="button" className="min-h-10 flex-none px-2 font-semibold text-danger" onClick={() => {
