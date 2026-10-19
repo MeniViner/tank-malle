@@ -15,4 +15,6 @@ export function writeCareDraft(key: string, data: CareDraft): boolean {
   try { localStorage.setItem(key, JSON.stringify({ version: 1, at: Date.now(), data })); return true; }
   catch { return false; }
 }
-export function removeCareDraft(key: string): void { try { localStorage.removeItem(key); } catch { /* A failed removal does not lose input. */ } }
+export function removeCareDraft(key: string): boolean {
+  try { localStorage.removeItem(key); return true; } catch { return false; }
+}

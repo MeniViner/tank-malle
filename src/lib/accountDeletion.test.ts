@@ -1,6 +1,18 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("./firebase", () => ({ db: {} }));
-import { runAccountDeletion } from "./accountDeletion";
+import { clearAccountLocalStorage, runAccountDeletion } from "./accountDeletion";
+import { careDraftKey } from "./maintenance/draft";
+
+afterEach(() => vi.unstubAllGlobals());
+it("erases every care draft for the deleted account, preserving other accounts and preferences", () => {
+  const uid = "account/one";
+  const owned = [careDraftKey(uid, "v1", "serviceEvents"), careDraftKey(uid, "v2", "maintenancePlans", "edit-1"), careDraftKey(uid, "v1", "vehicleExpenses"), careDraftKey(uid, "v1", "odometerReadings")];
+  const retained = [careDraftKey(`${uid}2`, "v1", "serviceEvents"), careDraftKey("other", uid, "serviceEvents"), "tm.theme"];
+  const values = new Map([...owned, ...retained].map(key => [key, "draft"]));
+  vi.stubGlobal("localStorage", { get length() { return values.size; }, key: (i:number) => [...values.keys()][i], removeItem: (key:string) => values.delete(key) });
+  clearAccountLocalStorage(uid);
+  expect([...values.keys()]).toEqual(retained);
+});
 
 function steps() {
   return { reauthenticate: vi.fn(async () => true), preflight: vi.fn(async () => {}),

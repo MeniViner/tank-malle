@@ -1,43 +1,31 @@
+import { startCareEditor,setCareTitle,addCareJob } from './helpers/care';
 import { expect,test } from '@playwright/test';
 import { signedInWithData } from './helpers/app';
 import { listDocuments } from './helpers/emulator';
 
-test('two-photo flow accepts manual fallback, reviews and fills the real fuel form',async({page})=>{
-  const scope=await signedInWithData(page,{fillups:[]});
-  await page.goto('/fillup/new');
-  await page.getByRole('button',{name:'הוספה בשני צילומים',exact:false}).click();
-  const dialog=page.getByRole('dialog');
-  await dialog.getByLabel('סכום ששולם',{exact:true}).fill('287.40');
-  await dialog.getByLabel('ליטרים בצג',{exact:true}).fill('40');
-  await dialog.getByRole('button',{name:'המשך לקילומטראז׳'}).click();
-  await dialog.getByLabel('מד מרחק מצטבר',{exact:true}).fill('128450');
-  await dialog.getByRole('button',{name:'בדיקה בטופס התדלוק'}).click();
-  await expect(dialog.getByRole('alert')).toContainText('יש לאשר');
-  await dialog.getByRole('checkbox',{name:/בדקתי/}).check();
-  await dialog.getByRole('button',{name:'בדיקה בטופס התדלוק'}).click();
-  await expect(dialog).toHaveCount(0);
-  await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7.185');
-  await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('40');
-  await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue('287.40');
-  expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`)).toHaveLength(0);
+test('two-photo flow offers manual entry in the normal review form without saving early',async({page})=>{
+  const scope=await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel('סה״כ לתשלום',{exact:true}).fill('287.40');await page.getByLabel('ליטרים',{exact:true}).fill('40');await page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/).fill('128450');
+  await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7.185');expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`)).toHaveLength(0);
   await page.getByRole('button',{name:/שמירת תדלוק/}).click();
   await expect(async()=>{const rows=await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`);expect(rows).toHaveLength(1);expect(rows[0].data).toMatchObject({odometer:128450,liters:40,totalCost:287.4,pricePerLiter:7.185});}).toPass();
 });
 
 test('service invoice, recurring reminder and costs persist independently of fuel',async({page})=>{
   const scope=await signedInWithData(page,{fillups:[]});const base=`users/${scope.uid}/vehicles/${scope.vehicleId}`;
-  await page.goto('/vehicle'); await page.getByRole('button',{name:'הוספת תזכורת לטיפול',exact:true}).click();
+  await page.goto('/vehicle'); await startCareEditor(page,'plan');
   let dialog=page.getByRole('dialog');
-  await dialog.getByLabel('שם הרשומה',{exact:true}).fill('טיפול שמן');
+  await setCareTitle(page,'טיפול שמן');
   await dialog.getByLabel('יעד קילומטראז׳',{exact:true}).fill('130000');
-  await dialog.getByLabel('חזרה כל מספר ק״מ',{exact:true}).fill('10000');
+  await dialog.getByRole('checkbox',{name:/תזכורת חוזרת/}).check();await dialog.getByLabel('חזרה כל מספר ק״מ',{exact:true}).fill('10000');
   await dialog.getByRole('button',{name:'שמירת תזכורת לטיפול',exact:true}).click();
   await expect(async()=>expect(await listDocuments(`${base}/maintenancePlans`)).toHaveLength(1)).toPass();
   await page.getByRole('button',{name:'רישום טיפול שבוצע',exact:true}).click();
   dialog=page.getByRole('dialog');
   await dialog.getByLabel('קילומטראז׳ בעת הביצוע',{exact:true}).fill('130200');
   await dialog.getByLabel('עלות כוללת',{exact:true}).fill('800');
-  await dialog.getByRole('checkbox',{name:'צמיגים',exact:true}).check();
+  await addCareJob(page,'צמיגים');
   await dialog.getByRole('button',{name:'שמירת טיפול שבוצע',exact:true}).click();
   await expect(async()=>{const rows=await listDocuments(`${base}/serviceEvents`);expect(rows).toHaveLength(1);expect(rows[0].data.costAgorot).toBe(80000);}).toPass();
   await expect(page.getByText('140,200 ק״מ',{exact:false})).toBeVisible();
@@ -51,8 +39,8 @@ test('offline creation is journaled, visible and delivered once after reconnect'
   const scope=await signedInWithData(page,{fillups:[]}); const base=`users/${scope.uid}/vehicles/${scope.vehicleId}`;
   await page.goto('/vehicle'); await expect(page.getByRole('heading',{name:'הרכב שלי',exact:true})).toBeVisible(); await expect(page.getByText('טוענים את נתוני הרכב…')).toHaveCount(0);
   await page.context().setOffline(true);
-  await page.getByRole('button',{name:'הוספת הוצאה',exact:true}).click();
-  const dialog=page.getByRole('dialog'); await dialog.getByLabel('שם הרשומה',{exact:true}).fill('הוצאה אופליין');await dialog.getByLabel('עלות כוללת',{exact:true}).fill('123.45');
+  await startCareEditor(page,'expense');
+  const dialog=page.getByRole('dialog'); await setCareTitle(page,'הוצאה אופליין');await dialog.getByLabel('עלות כוללת',{exact:true}).fill('123.45');
   await dialog.getByRole('button',{name:'שמירת הוצאה לרכב',exact:true}).click();
   await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await expect(page.getByRole('heading',{name:'הוצאה אופליין',exact:true})).toBeVisible();
   expect(await listDocuments(`${base}/vehicleExpenses`)).toHaveLength(0);
@@ -83,21 +71,13 @@ test('stale edits retain input and explicit conflict resolution advances the ver
   await expect(row).toHaveCount(0);
 });
 
-test('synthetic pixel file selection reads both photos and preserves manually authored fields',async({page})=>{
-  const sharp=(await import('sharp')).default; const {demoPhoto}=await import('../src/lib/scan/fixtures');
+test('synthetic pixel selection advances both steps while preserving manually authored values',async({page})=>{
+  const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');
   const png=async(kind:string)=>{const image=demoPhoto(kind);return sharp(Buffer.from(image.data),{raw:{width:image.width,height:image.height,channels:4}}).png().toBuffer();};
-  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
-  const dialog=page.getByRole('dialog');
-  await dialog.getByLabel('סכום ששולם',{exact:true}).fill('280');
-  await dialog.getByLabel('תמונת משאבה',{exact:true}).setInputFiles({name:'pump.png',mimeType:'image/png',buffer:await png('pump')});
-  await expect(dialog.getByLabel('ליטרים בצג',{exact:true})).toHaveValue('40.000');
-  await expect(dialog.getByLabel('סכום ששולם',{exact:true})).toHaveValue('280');
-  await expect(dialog.getByRole('button',{name:'שימוש בקריאה 287.40',exact:true})).toBeVisible();
-  await dialog.getByRole('button',{name:'המשך לקילומטראז׳'}).click();
-  await dialog.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:await png('odometer')});
-  await expect(dialog.getByLabel('מד מרחק מצטבר',{exact:true})).toHaveValue('128450');
-  await dialog.getByRole('checkbox',{name:/בדקתי/}).check();await dialog.getByRole('button',{name:'בדיקה בטופס התדלוק'}).click();
-  await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7');
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByLabel('סה״כ לתשלום',{exact:true}).fill('280');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.getByLabel('תמונת משאבה',{exact:true}).setInputFiles({name:'pump.png',mimeType:'image/png',buffer:await png('pump')});await expect(page.getByText('המשאבה נקראה',{exact:true})).toBeVisible();
+  await page.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:await png('odometer')});await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue('280');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('40.000');await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7');
   expect(await page.evaluate(()=>Object.values(localStorage).some(value=>String(value).includes('data:image')))).toBe(false);
 });
 
@@ -111,8 +91,7 @@ test('camera denial offers manual entry and a late permission result is stopped 
   await dialog.getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();await expect(dialog.getByText('פותחים מצלמה…')).toBeVisible();
   await dialog.getByRole('button',{name:'סגירת מצלמה',exact:true}).click();await page.evaluate(()=>(window as any).__release());
   await expect.poll(()=>page.evaluate(()=>(window as any).__stopped)).toBe(true);
-  await dialog.getByLabel('סכום ששולם',{exact:true}).fill('300');await dialog.getByRole('button',{name:'חזרה לטופס הידני',exact:true}).click();
-  await expect(page.getByRole('alertdialog')).toBeVisible();await page.getByRole('button',{name:'המשך בדיקה',exact:true}).click();await expect(dialog.getByLabel('סכום ששולם',{exact:true})).toHaveValue('300');
+  await dialog.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toBeVisible();
 });
 
 test('backup import deduplicates, CSV and date calendar export work on mobile',async({page})=>{
@@ -134,26 +113,24 @@ test('backup import deduplicates, CSV and date calendar export work on mobile',a
   for(const width of [320,390,430,820]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
 });
 
-test('a synthetic live frame is read and camera tracks stop after capture',async({page,browserName})=>{
-  test.skip(browserName!=='chromium','canvas.captureStream camera fixture is Chromium-only; file/cancellation paths run in both engines');
-  const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');const raw=demoPhoto('pump');
-  const png=await sharp(Buffer.from(raw.data),{raw:{width:raw.width,height:raw.height,channels:4}}).png().toBuffer();
+for(const fixture of ['synthetic','supplied'] as const)test(`live scanning reads two ${fixture} displays automatically and stops every stream`,async({page,browserName})=>{
+  test.skip(fixture==='supplied'&&(!process.env.CARE_PUMP_PHOTO||!process.env.CARE_ODO_PHOTO),'Private local photographs required.');
+  test.skip(browserName!=='chromium','canvas.captureStream fixture is Chromium-only; this is not a physical camera test');
+  const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');
+  const urls=await Promise.all(['pump','odometer'].map(async kind=>{const raw=demoPhoto(kind);const source=fixture==='supplied'?sharp((kind==='pump'?process.env.CARE_PUMP_PHOTO:process.env.CARE_ODO_PHOTO)!).rotate():sharp(Buffer.from(raw.data),{raw:{width:raw.width,height:raw.height,channels:4}});return 'data:image/png;base64,'+(await source.png().toBuffer()).toString('base64');}));
   await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
-  await page.evaluate(async(url)=>{
-    const image=new Image();image.src=url;await image.decode();
+  await page.evaluate(async urls=>{
+    const images=await Promise.all(urls.map(async url=>{const image=new Image();image.src=url;await image.decode();return image;}));(window as any).__cameras=[];
     Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async()=>{
-      const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
-      const stream=canvas.captureStream(5);(window as any).__camera=stream;
-      const draw=()=>canvas.getContext('2d')!.drawImage(image,0,0);draw();
-      // A real camera supplies fresh frames; a static canvas otherwise leaves video.play() waiting.
-      const timer=setInterval(()=>{if(stream.active)draw();else clearInterval(timer);},100);
-      return stream;
+      const image=images[document.querySelector('input[aria-label="תמונת משאבה"]')?0:1],canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+      const stream=canvas.captureStream(5);(window as any).__cameras.push(stream);
+      const draw=()=>canvas.getContext('2d')!.drawImage(image,0,0);draw();const timer=setInterval(()=>{if(stream.active)draw();else clearInterval(timer);},100);return stream;
     }});
-  },'data:image/png;base64,'+png.toString('base64'));
-  const dialog=page.getByRole('dialog');await dialog.getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();
-  await expect(dialog.getByRole('button',{name:'צילום',exact:true})).toBeEnabled();await dialog.getByRole('button',{name:'צילום',exact:true}).click();
-  await expect(dialog.getByLabel('סכום ששולם',{exact:true})).toHaveValue('287.40');await expect(dialog.getByLabel('ליטרים בצג',{exact:true})).toHaveValue('40.000');
-  expect(await page.evaluate(()=>(window as any).__camera.getTracks().every((t:MediaStreamTrack)=>t.readyState==='ended'))).toBe(true);
+  },urls);
+  await page.getByRole('dialog').getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue(fixture==='supplied'?'202.73':'287.40');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue(fixture==='supplied'?'26.092':'40.000');await expect(page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/)).toHaveValue(fixture==='supplied'?'171272':'128450');
+  expect(await page.evaluate(()=>(window as any).__cameras.length)).toBeGreaterThanOrEqual(2);
+  expect(await page.evaluate(()=>(window as any).__cameras.every((s:MediaStream)=>s.getTracks().every(t=>t.readyState==='ended')))).toBe(true);
 });
 
 test('editing and deleting a service recalculates costs and the linked deadline',async({page})=>{
@@ -172,8 +149,8 @@ test('editing and deleting a service recalculates costs and the linked deadline'
 
 test('unavailable journal storage leaves input in the editor and sends no care record',async({page})=>{
   await page.addInitScript(()=>{const original=IDBFactory.prototype.open;IDBFactory.prototype.open=function(name:string,version?:number){if(name==='tm-outbox')throw new DOMException('simulated storage unavailable','QuotaExceededError');return original.call(this,name,version);};});
-  const scope=await signedInWithData(page,{fillups:[]});await page.goto('/vehicle');await page.getByRole('button',{name:'הוספת הוצאה',exact:true}).click();const dialog=page.getByRole('dialog');await dialog.getByLabel('שם הרשומה',{exact:true}).fill('קלט שנשמר בטופס');await dialog.getByLabel('עלות כוללת',{exact:true}).fill('80');await dialog.getByRole('button',{name:'שמירת הוצאה לרכב',exact:true}).click();
-  await expect(dialog.getByRole('alert')).toContainText('אחסון הפעולות המקומי אינו זמין');await expect(dialog.getByLabel('שם הרשומה',{exact:true})).toHaveValue('קלט שנשמר בטופס');expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/vehicleExpenses`)).toHaveLength(0);
+  const scope=await signedInWithData(page,{fillups:[]});await page.goto('/vehicle');await startCareEditor(page,'expense');const dialog=page.getByRole('dialog');await setCareTitle(page,'קלט שנשמר בטופס');await dialog.getByLabel('עלות כוללת',{exact:true}).fill('80');await dialog.getByRole('button',{name:'שמירת הוצאה לרכב',exact:true}).click();
+  await expect(dialog.getByRole('alert')).toContainText('אחסון הפעולות המקומי אינו זמין');await expect(dialog.getByLabel('תיאור',{exact:true})).toHaveValue('קלט שנשמר בטופס');expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/vehicleExpenses`)).toHaveLength(0);
 });
 
 test('vehicle switching isolates care and deleting a vehicle removes all four care collections',async({page})=>{
@@ -188,4 +165,27 @@ test('vehicle switching isolates care and deleting a vehicle removes all four ca
   await page.goto('/settings/vehicles');await page.getByRole('button',{name:'מחיקה',exact:true}).click();await page.getByRole('alertdialog').getByRole('button',{name:/מחק|מחיק/}).click();
   await expect(async()=>{expect(await getDocument(base)).toBeNull();for(const name of ['serviceEvents','maintenancePlans','vehicleExpenses','odometerReadings'])expect(await listDocuments(`${base}/${name}`)).toHaveLength(0);}).toPass();
   expect(await getDocument(`users/${scope.uid}/vehicles/v2`)).not.toBeNull();
+});
+
+test('a pending camera result cannot reopen the camera after the page goes to the background',async({page,browserName})=>{
+  test.skip(browserName!=='chromium','canvas.captureStream lifecycle fixture is Chromium-only');
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.evaluate(()=>{
+    (window as any).__deliver=[];(window as any).__cameras=[];
+    window.Worker=class {
+      onmessage:any;onerror:any;
+      postMessage(){(window as any).__deliver.push(()=>this.onmessage?.({data:{status:'read',values:{total:'287.40',liters:'40.000'}}}));}
+      terminate(){}
+    } as any;
+    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async()=>{
+      const canvas=document.createElement('canvas');canvas.width=640;canvas.height=480;const stream=canvas.captureStream(5);(window as any).__cameras.push(stream);
+      const draw=()=>{canvas.getContext('2d')!.fillRect(0,0,640,480);};draw();const timer=setInterval(()=>{if(stream.active)draw();else clearInterval(timer);},100);return stream;
+    }});
+  });
+  await page.getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>(window as any).__deliver.length)).toBe(1);await page.evaluate(()=>(window as any).__deliver[0]());
+  await expect.poll(()=>page.evaluate(()=>(window as any).__deliver.length)).toBe(2);
+  await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'));(window as any).__deliver[1]();});
+  await expect(page.getByText(/המצלמה נעצרה ברקע/)).toBeVisible();await expect(page.getByText('המשאבה נקראה',{exact:true})).toHaveCount(0);
+  expect(await page.evaluate(()=>(window as any).__cameras.every((stream:MediaStream)=>stream.getTracks().every(track=>track.readyState==='ended')))).toBe(true);
 });

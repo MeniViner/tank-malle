@@ -52,3 +52,6 @@ playwright-report/
 
 # Private local TLS keys, field samples and device-only builds
 .care-device/
+
+# Separate disposable emulator ports for cycle-6 regression tests.
+!.env.care-test

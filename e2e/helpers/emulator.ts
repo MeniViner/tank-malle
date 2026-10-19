@@ -8,8 +8,8 @@
  */
 
 export const PROJECT_ID = "demo-tankmaleh";
-export const AUTH_HOST = "http://127.0.0.1:9099";
-export const FIRESTORE_HOST = "http://127.0.0.1:8080";
+export const AUTH_HOST = `http://127.0.0.1:${process.env.CARE_AUTH_PORT ?? '9099'}`;
+export const FIRESTORE_HOST = `http://127.0.0.1:${process.env.CARE_FIRESTORE_PORT ?? '8080'}`;
 
 function assertLocal(url: string): void {
   if (!/^http:\/\/(127\.0\.0\.1|localhost):/.test(url)) {

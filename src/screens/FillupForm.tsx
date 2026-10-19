@@ -376,6 +376,7 @@ function FillupEditor({
   const [restoredDraft] = useState(() => readFillupDraft(draftKey));
   const draftCleared = useRef(false);
   const [scanOpen, setScanOpen] = useState(false);
+  const [scanCompleted,setScanCompleted] = useState(false);
   const [importOpen,setImportOpen] = useState(false);
   const [receiptImport,setReceiptImport] = useState<ImportIdentity|null>(restoredDraft?.receiptImport ?? null);
   const [draftStorageFailed, setDraftStorageFailed] = useState(false);
@@ -1006,7 +1007,8 @@ function FillupEditor({
         setDate(new Date(`${candidate.day}T${candidate.time}:00`).getTime()); setDateConfirmed(true);
         setReceiptImport(identity); setImportOpen(false);
       }}/> : null}
-      {scanOpen ? <ScanWizard initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)} onApply={draft => {
+      {scanOpen ? <ScanWizard initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)} onApply={(draft,scanned) => {
+        setScanCompleted(scanned);
         setReceipt(previous => {
           let next = previous;
           if (draft.total !== previous.totalCost) next = typeReceiptField(next, 'totalCost', draft.total);
@@ -1020,6 +1022,7 @@ function FillupEditor({
           <span><b className="block">הוספה בשני צילומים</b><span className="text-sm">צג המשאבה ואז מד הקילומטרים</span></span><span aria-hidden="true">←</span>
         </button> : null}
         {!isEdit && !operation ? <Button variant="secondary" onClick={()=>setImportOpen(true)}>ייבוא קבלה מקובץ או טקסט</Button> : null}
+        {scanCompleted ? <p role="status" className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">הסריקה הושלמה. בדקו את הסכום ששולם ואת קריאת ODO לפני השמירה. פרטים שכבר הזנתם נשמרו.</p> : null}
         {receiptImport ? <p role="status" className="text-sm text-muted">קבלה הועברה לבדיקה. השלימו קילומטראז׳ ובדקו את הנתונים לפני שמירה. מצב המיכל נשאר לבחירתכם.</p> : null}
         {draftDirty ? <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
           <span>{draftStorageFailed ? "לא ניתן לשמור טיוטה במכשיר. השאירו את הטופס פתוח עד לשמירה." : restoredDraft ? "הטיוטה שלכם שוחזרה מהמכשיר" : "טיוטה נשמרת במכשיר — אפשר לחזור ולהמשיך"}</span>

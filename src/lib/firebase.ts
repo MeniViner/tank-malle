@@ -58,6 +58,13 @@ export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
 if (import.meta.env.VITE_USE_EMULATORS === "1") {
-  connectAuthEmulator(auth, deviceOrigin || "http://127.0.0.1:9099", { disableWarnings: true });
-  if (!deviceOrigin) connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  // A separate local test pair keeps resets away from the guided demo's data.
+  const port = (value: string | undefined, fallback: number) => {
+    if (!value) return fallback;
+    const number = Number(value);
+    if (!Number.isInteger(number) || number < 1024 || number > 65535) throw new Error('Invalid local emulator port');
+    return number;
+  };
+  connectAuthEmulator(auth, deviceOrigin || `http://127.0.0.1:${port(import.meta.env.VITE_AUTH_EMULATOR_PORT,9099)}`, { disableWarnings: true });
+  if (!deviceOrigin) connectFirestoreEmulator(db, "127.0.0.1", port(import.meta.env.VITE_FIRESTORE_EMULATOR_PORT,8080));
 }

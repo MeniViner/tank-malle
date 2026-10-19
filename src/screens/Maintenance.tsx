@@ -12,6 +12,8 @@ import { AppHeader } from '../components/AppHeader';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ConfirmDialog } from '../components/Sheet';
+import { CareGlyph } from '../components/maintenance/CareGlyph';
+import { CarIcon, PencilIcon } from '../components/icons';
 import { CareEditor, SelectField } from '../components/maintenance/CareEditor';
 import { dueStatus, latestMileage, localDay, nextDue, mileageIssue, serviceJobs, EXPENSES, type CareCollection, type CareRecord, type MaintenancePlan, type ServiceEvent, type VehicleExpense } from '../lib/maintenance/model';
 import { vehicleLabel } from '../lib/format';
@@ -64,9 +66,13 @@ function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;la
   return <main className="flex flex-1 flex-col pb-[112px] pt-safe">
     <AppHeader />
     <div className="tm-page flex flex-col gap-4">
-      <div><p className="text-sm text-muted">{label}</p><h1 className="font-display text-3xl font-bold">הרכב שלי</h1><p className="mt-1 text-sm text-muted">טיפולים, תזכורות והוצאות — במקום אחד</p></div>
-      <Card className="flex p-4 items-center justify-between gap-2"><div><p className="text-xs text-muted">קריאת קילומטרים אחרונה</p><p className="font-bold">{mileage ? <><bdi>{mileage.odometer.toLocaleString('he-IL')}</bdi> ק״מ</> : 'עדיין אין קריאה'}</p>{mileage ? <p className="text-xs text-muted">נמדד ב־{dayLabel(mileage.day)}</p> : null}</div><Button size="sm" variant="secondary" onClick={()=>setEditing({collection:'odometerReadings'})}>עדכון ק״מ</Button></Card>
-      <div className="grid grid-cols-2 gap-2"><Button onClick={()=>setEditing({collection:'serviceEvents'})}>הוספת טיפול</Button><Button variant="secondary" onClick={()=>setEditing({collection:'vehicleExpenses'})}>הוספת הוצאה</Button></div>
+      <div className="care-page-heading"><h1>הרכב שלי</h1><p>כל מה שהרכב שלך צריך, במקום אחד.</p></div>
+      <div className="care-overview"><div className="care-vehicle-label"><CarIcon size={20}/><span>{label}</span></div><div className="care-mileage"><div><small>הקילומטרים האחרונים שתיעדת</small><strong>{mileage?<><bdi>{mileage.odometer.toLocaleString('he-IL')}</bdi><span> ק״מ</span></>:'עוד לא נרשמו'}</strong></div><button type="button" onClick={()=>setEditing({collection:'odometerReadings'})}><PencilIcon size={15}/>עדכון ק״מ</button></div><p>{mileage?`עודכן ב־${dayLabel(mileage.day)}`:'עדכון קטן שעוזר להגיע לטיפול בזמן.'}</p></div>
+      <section aria-labelledby="care-actions-heading"><h2 id="care-actions-heading" className="care-section-title">מה נוסיף לרכב?</h2><div className="care-actions">
+        <button type="button" aria-label="הוספת טיפול" onClick={()=>setEditing({collection:'serviceEvents'})}><span><CareGlyph kind="periodic" size={27}/></span><b>טיפול שבוצע</b><small>לתעד ולזכור</small></button>
+        <button type="button" aria-label="הוספת הוצאה" onClick={()=>setEditing({collection:'vehicleExpenses'})}><span><CareGlyph kind="expense" size={27}/></span><b>הוצאה או החזר</b><small>כל העלויות</small></button>
+        <button type="button" aria-label="הוספת תזכורת לטיפול" onClick={()=>setEditing({collection:'maintenancePlans'})}><span><CareGlyph kind="reminder" size={27}/></span><b>תזכורת</b><small>לטיפול הבא</small></button>
+      </div></section>
       {errors.length ? <div role="alert" className="rounded-xl bg-danger-soft p-3 text-sm text-danger">לא ניתן לקרוא חלק מנתוני התחזוקה. הנתונים המוצגים אינם מלאים. <Button size="sm" variant="ghost" onClick={()=>window.location.reload()}>ניסיון חוזר</Button></div> : null}
       {fillupsError || malformedFillups.length ? <p role="alert" className="text-sm text-danger">חלק מנתוני התדלוק אינם זמינים. סיכומי העלות והקילומטראז׳ עלולים להיות חלקיים.</p> : null}
       {malformed ? <p role="alert" className="text-sm text-danger">{malformed} רשומות לא ניתנות לקריאה בגרסה זו; הסיכומים חלקיים.</p> : null}
@@ -75,10 +81,9 @@ function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;la
       <div className="flex rounded-xl bg-surface-2 p-1" role="group" aria-label="תצוגת תחזוקה">{(['upcoming','history','costs'] as const).map((value,i)=><button key={value} type="button" className={`min-h-11 min-w-0 flex-1 rounded-lg px-2 text-sm font-semibold ${tab===value?'bg-surface text-ink shadow-sm':'text-muted'}`} aria-pressed={tab===value} onClick={()=>setTab(value)}>{['מה מתקרב','היסטוריה','עלויות'][i]}</button>)}</div>
       {loading && !errors.length ? <p role="status">טוענים את נתוני הרכב…</p> : null}
       {tab==='upcoming' ? <>
-        <Button variant="secondary" onClick={()=>setEditing({collection:'maintenancePlans'})}>הוספת תזכורת לטיפול</Button>
         {!loading && !upcoming.length ? <Card className="p-4"><h2 className="min-w-0 break-words font-bold">מה הטיפול הבא שלכם?</h2><p className="mt-1 text-sm text-muted">הוסיפו יעד לפי הוראות היצרן או המוסך. אפשר לקבוע תאריך, קילומטרים או את שניהם.</p></Card> : null}
-        {upcoming.map(({plan,due})=>{ const status=dueStatus(due,mileage,today); return <Card key={plan.id} className="flex flex-col gap-3 p-4">
-          <div className="flex items-start justify-between gap-2"><h2 className="min-w-0 break-words font-bold">{plan.title}</h2><span className={`rounded-pill px-2 py-1 text-xs ${status==='due'?'bg-warning-soft text-warning-ink':status==='soon'?'bg-accent-soft text-accent':'bg-surface-2 text-muted'}`}>{STATUS[status]}</span></div>
+        {upcoming.map(({plan,due})=>{ const status=dueStatus(due,mileage,today); return <Card key={plan.id} className="care-plan-card flex flex-col gap-3 p-5">
+          <div className="flex items-start justify-between gap-2"><h2 className="care-plan-title"><CareGlyph kind={plan.job} size={21}/><span>{plan.title}</span></h2><span className={`rounded-pill px-2 py-1 text-xs ${status==='due'?'bg-warning-soft text-warning-ink':status==='soon'?'bg-accent-soft text-accent':'bg-surface-2 text-muted'}`}>{STATUS[status]}</span></div>
           <p className="text-sm text-muted">{due.day ? dayLabel(due.day) : ''}{due.day && due.odometer!==null ? ' או ' : ''}{due.odometer!==null ? `${due.odometer.toLocaleString('he-IL')} ק״מ` : ''}{due.day && due.odometer!==null ? ' — המוקדם מביניהם' : ''}{due.needsMileage || (!due.day && due.odometer===null && !due.completed) ? 'נדרשת קריאת ק״מ מהטיפול האחרון כדי לחשב יעד חדש.' : ''}</p>
           <p className="text-xs text-muted">מקור: {{owner:'הגדרה שלי',manufacturer:'הוראות יצרן',garage:'המלצת מוסך'}[plan.source]}</p>
           <div className="flex flex-wrap gap-2">{!due.completed ? <Button full size="sm" disabled={pending(plan.id)} onClick={()=>setEditing({collection:'serviceEvents',completePlan:plan})}>רישום טיפול שבוצע</Button> : null}<Button size="sm" variant="ghost" disabled={pending(plan.id)} onClick={()=>setEditing({collection:'maintenancePlans',record:plan})}>עריכת תזכורת</Button>{due.day && !due.completed ? <Button size="sm" variant="ghost" onClick={()=>{
@@ -89,7 +94,7 @@ function CareWorkspace({ uid,vehicleId,label }: { uid:string;vehicleId:string;la
         <p className="text-xs text-muted">התזכורות מוצגות באפליקציה לפי הנתונים שנרשמו. אין כאן קביעה אוטומטית של מרווחי טיפול לרכב.</p>
       </> : null}
       {tab==='history' ? <>
-        <Field label="חיפוש בהיסטוריית הרכב" value={historyQuery} onChange={e=>{setHistoryQuery(e.target.value);setHistoryLimit(50);}} placeholder="שם טיפול, מוסך או הערה" />
+        <Field label="חיפוש בהיסטוריית הרכב" dir="auto" value={historyQuery} onChange={e=>{setHistoryQuery(e.target.value);setHistoryLimit(50);}} placeholder="שם טיפול, מוסך או הערה" />
         {!loading && !history.length ? <Card className="p-4"><h2 className="min-w-0 break-words font-bold">{historyQuery ? "לא נמצאו רשומות בחיפוש" : "ההיסטוריה מתחילה כאן"}</h2><p className="text-sm text-muted">רשמו טיפול, החלפת צמיגים או הוצאה. אפשר להוסיף גם טיפולים קודמים.</p></Card> : null}
         {history.slice(0,historyLimit).map(({collection,record})=><Card key={`${collection}/${record.id}`} className="flex flex-col gap-2 p-4"><div className="flex items-start justify-between gap-2"><h2 className="min-w-0 break-words font-bold">{'title' in record ? record.title : 'עדכון קילומטראז׳'}</h2><span className="shrink-0 text-xs text-muted">{dayLabel(record.day)}</span></div>
           {collection==='serviceEvents' ? <p className="text-xs text-muted">{serviceJobs(record as ServiceEvent)}</p> : collection==='vehicleExpenses' ? <p className="text-xs text-muted">{EXPENSES[(record as VehicleExpense).category]}</p> : null}

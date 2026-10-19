@@ -23,7 +23,8 @@ export function clearAccountLocalStorage(uid: string): void {
   const keys = Array.from({ length: localStorage.length }, (_, i) => localStorage.key(i));
   for (const key of keys) {
     if (key && ((key.startsWith("tm.cache.v") && key.includes(`.${uid}.`)) ||
-      key.startsWith(`tm.fillup-draft.v1.${uid}.`))) localStorage.removeItem(key);
+      key.startsWith(`tm.fillup-draft.v1.${uid}.`) ||
+      key.startsWith(`tm.care-draft.v1.${encodeURIComponent(uid)}.`))) localStorage.removeItem(key);
   }
 }
 export function finishAccountDeletion(uid: string): void {

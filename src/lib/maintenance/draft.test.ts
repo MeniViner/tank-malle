@@ -6,9 +6,14 @@ it('recovers invalid/incomplete human strings only within account, vehicle and e
   const key=careDraftKey('alice','v1','serviceEvents'),draft={fields:{cost:'12.',title:'unfinished'},base:null};
   expect(writeCareDraft(key,draft)).toBe(true);expect(readCareDraft(key)).toEqual(draft);
   for(const other of [careDraftKey('bob','v1','serviceEvents'),careDraftKey('alice','v2','serviceEvents'),careDraftKey('alice','v1','vehicleExpenses'),careDraftKey('alice','v1','serviceEvents','edit')])expect(readCareDraft(other)).toBeNull();
-  removeCareDraft(key);expect(readCareDraft(key)).toBeNull();
+  expect(removeCareDraft(key)).toBe(true);expect(readCareDraft(key)).toBeNull();
 });
 it('reports unavailable storage and ignores malformed/expired drafts',()=>{
   vi.stubGlobal('localStorage',{setItem:()=>{throw new Error('quota');},getItem:()=>JSON.stringify({version:1,at:0,data:{fields:{}}})});
   expect(writeCareDraft('x',{fields:{},base:null})).toBe(false);expect(readCareDraft('x')).toBeNull();
+});
+
+it('reports removal failure so an older draft cannot be silently left behind',()=>{
+  vi.stubGlobal('localStorage',{removeItem:()=>{throw new Error('unavailable');}});
+  expect(removeCareDraft('x')).toBe(false);
 });
