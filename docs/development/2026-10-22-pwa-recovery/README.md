@@ -12,6 +12,12 @@ Four unchanged local executions of the PDF case passed. Instead of weakening or 
 
 The regression first failed against the old code because it expected the form to stay open during the blocked disk write but found Home. With the fix it waits for the matching local SDK snapshot, then restarts offline and asserts exactly one server record with the original values after reconnection. A second test covers the same ordering for maintenance. Firebase's installed SDK emits those local mutation snapshots after its local persistence transaction completes; server acknowledgement remains a separate promise.
 
+### Additional finding before publication
+
+The first repair candidate (`8518266`) passed all four jobs in [main CI 39693405392](https://github.com/MeniViner/tank-malle/actions/runs/39693405392), but its legacy browser summary was **134 passed, 1 flaky, 2 skipped**. It was not deployed. Reading the first failure revealed a second race: a delayed earlier server snapshot could read a newly enqueued operation and mark it failed before its original SDK write had settled. The unexpectedly delivered record carried write marker revision **1**; an explicit retry would stamp revision **2**. The retry's failed verification did not dispatch that original write.
+
+A deterministic regression now holds an earlier collection snapshot's journal read, creates a durable offline write, and releases the old snapshot. It failed on the first candidate with `expected pending / received failed`. The final repair keeps pending writes bound to the SDK promises still owned by that page and outbox instance. Only their actual receipt can settle them. Lost promises after reload, other tabs' writes and genuinely failed operations remain eligible for server reconciliation. A separate two-tab regression proves that an already-open tab drains another tab's queued write after its writer closes.
+
 ## Changes
 
 | Before | After |
@@ -24,6 +30,7 @@ The regression first failed against the old code because it expected the form to
 | No deterministic test of the disk gap or real waiting-worker upgrade. | `e2e/helpers/disk.ts`, `e2e/care-pwa.spec.ts`, `e2e/care-pwa-upgrade.spec.ts` and `scripts/pwa-upgrade-test.mjs` exercise disk ordering, waiting/activation, both drafts, an offline queue, existing records, dismissal and cross-tab protection. |
 | No upgrade fixture in the unified rig. | `playwright.unified.config.ts` serves two optimized emulator builds on loopback port 5289. Its previous version label is synthetic (`acceptance-before`); these tests do not claim a physical-device or deployed-1.5.0 upgrade. `playwright.config.ts` excludes this fixture from the legacy rig. |
 | The failed unified job discarded its trace when the runner exited. | `.github/workflows/ci.yml` retains failure diagnostics for seven days. Only synthetic fixtures run in CI; the supplied personal photographs are local-only. |
+| A stale collection snapshot could mark a newer live write failed; a retry-success could make that CI run appear green. | `src/context/DataContext.tsx` preserves ownership of live SDK promises by operation version. `e2e/outbox-invariants.spec.ts` covers the delayed snapshot and cross-tab handoff. Legacy CI now uses `--fail-on-flaky-tests`; its existing failure-artifact step therefore also retains retry-success failures. Assertions, verification reads and rules remain intact. |
 | Release string was 1.5.0. | `src/lib/version.ts` identifies this actual repair as 1.5.1. This report records fresh evidence only. |
 
 The new controls retain the existing RTL typography and a minimum 40-pixel touch target. Activation remains an explicit **רענון** action; **אחר כך** leaves the current document open. Durable drafts restore after activation. A draft that cannot be saved keeps the current document and its inputs open instead.
@@ -36,6 +43,7 @@ The new controls retain the existing RTL typography and a minimum 40-pixel touch
 | Full local unit suite, including the two supplied private photographs | 701 passed, 7 private-workbook cases skipped. |
 | Types and lint | Passed; 20 existing warnings, no new warning or error. |
 | Legacy reliability suite | 9 passed, including rejection, immutable versions, retry and Undo. |
+| Outbox lifecycle and focused stress | 8 lifecycle cases passed, including the new stale-snapshot regression. The stale snapshot, remaining-tab handoff and verification-denied retry are additionally repeated five times each with no retries. |
 | Full unified Chromium, offline PWA, HTTPS and mobile WebKit | 70 passed, no skipped or failed case. Includes the 3 two-build upgrade scenarios and both deterministic disk-delay regressions. |
 
 The first exploratory upgrade run exposed two harness issues: the test clock also changed `performance.timeOrigin`, and a dismiss-button selector differed from its accessible name. The final assertions use a per-document random marker to detect reloads and the visible, accessible **אחר כך** label. No durability, duplicate-prevention or update-acceptance assertion was removed or relaxed.

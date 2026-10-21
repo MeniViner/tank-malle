@@ -182,7 +182,8 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: End-to-end tests
-        run: npm run test:e2e
+        # A successful retry must not hide a failed durability invariant.
+        run: npm run test:e2e -- --fail-on-flaky-tests
 
       - name: Upload the report on failure
         if: failure()

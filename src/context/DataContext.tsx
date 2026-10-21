@@ -396,6 +396,21 @@ function stripUndefined<T extends Record<string, unknown>>(input: T): T {
 
 const UNOPENED_HEALTH: OutboxHealth = { state: "unavailable", quarantined: [], message: null };
 
+// This page still owns these SDK promises. A delayed collection snapshot
+// must not reject a newer pending write before its actual promise settles.
+// A reload opens a new Outbox instance, so lost promises remain reconcilable;
+// other tabs' writes and conclusively failed entries remain reconcilable too.
+const ownedWrites = new WeakMap<Outbox, Set<string>>();
+function ownWrites(outbox: Outbox, operations: OutboxOperation[]): void {
+  const versions = ownedWrites.get(outbox) ?? new Set<string>();
+  operations.forEach(op => versions.add(`${op.opId}:${op.version}`));
+  ownedWrites.set(outbox, versions);
+}
+function reconcilableOperations(outbox: Outbox, operations: OutboxOperation[]): OutboxOperation[] {
+  const versions = ownedWrites.get(outbox);
+  return operations.filter(op => op.status !== 'pending' || !versions?.has(`${op.opId}:${op.version}`));
+}
+
 function unverified(): { code: string; message: string; at: number } {
   return {
     code: "unverified",
@@ -416,6 +431,7 @@ async function submitMany(
   track: (kind: MutationKind, promise: Promise<unknown>) => MutationReceipt,
 ): Promise<MutationReceipt[]> {
   const operations = await outbox.enqueueMany(inputs);
+  ownWrites(outbox, operations);
   let promise: Promise<unknown>;
   try {
     promise = write(operations);
@@ -462,7 +478,7 @@ function settleOrphans(outbox: Outbox, stillCurrent: () => boolean): () => void 
 
   void outbox.list().then((operations) => {
     if (stopped || !stillCurrent()) return;
-    for (const group of orphanGroups(operations)) {
+    for (const group of orphanGroups(reconcilableOperations(outbox, operations))) {
       const { newest, superseded } = group;
       const collectionPath = collectionOf(newest.path);
       const isFillup = newest.kind.startsWith("fillup.") || newest.kind === "import.batch";
@@ -643,7 +659,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (!stillRelevant()) return;
           applyVerdicts(
             outbox,
-            reconcileWithServer(operations, collectionPath, documents, matches, pendingWrites),
+            reconcileWithServer(reconcilableOperations(outbox, operations), collectionPath, documents, matches, pendingWrites),
           );
         }),
       );
@@ -1506,6 +1522,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const outbox = await requireOutbox();
       const claimed = await outbox.claimRetry(opId);
       if (!claimed) return;
+      ownWrites(outbox, [claimed]);
       const { version } = claimed;
       const settle = (promise: Promise<unknown>) => {
         track(claimed.kind, promise);

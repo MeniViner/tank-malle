@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { DENY_ALL_RULES, installRules, listDocuments, restoreRules } from "./helpers/emulator";
+import { DENY_ALL_RULES, installRules, listDocuments, restoreRules, FIRESTORE_HOST, PROJECT_ID, seedFillups } from "./helpers/emulator";
 import { signedInWithData } from "./helpers/app";
 import { outboxCount } from "./helpers/pwa";
 
@@ -91,6 +91,52 @@ const listOps = (page: Page) =>
 
 test.afterEach(async () => {
   await restoreRules();
+});
+
+test('an earlier server snapshot cannot reject a write journaled after that snapshot',async({page,context})=>{
+  const {uid,vehicleId}=await signedInWithData(page,{fillups:[]});
+  const path=`users/${uid}/vehicles/${vehicleId}/fillups`;
+  await seedFillups(uid,vehicleId,[{id:'temporary',date:new Date(Date.now()-86400000),odometer:90000,liters:10,pricePerLiter:7,totalCost:70}]);
+  await page.goto('/fillup/new');await expect(page.getByText(/אחרון:.*90,000/)).toBeVisible();
+  await page.evaluate(async uid=>{
+    const hook=(window as unknown as {__tankMalleTest:{openOutbox:(uid:string)=>Promise<{list:()=>Promise<unknown[]>;close:()=>void}>}}).__tankMalleTest;
+    const box=await hook.openOutbox(uid),prototype=Object.getPrototypeOf(box),original=prototype.list;box.close();
+    const gate={pending:[] as Promise<unknown[]>[],releases:[] as (()=>void)[],disarm:()=>{prototype.list=original;}};
+    (window as unknown as {journalGate:typeof gate}).journalGate=gate;
+    prototype.list=function(){
+      if(!(new Error().stack??'').includes('/src/context/DataContext.tsx'))return original.call(this);
+      const pending=new Promise<void>(resolve=>{gate.releases.push(resolve);}).then(()=>original.call(this));
+      gate.pending.push(pending);return pending;
+    };
+  },uid);
+  const deleted=await fetch(`${FIRESTORE_HOST}/v1/projects/${PROJECT_ID}/databases/(default)/documents/${path}/temporary`,{method:'DELETE',headers:{Authorization:'Bearer owner'}});
+  expect(deleted.ok).toBe(true);
+  await expect(page.getByText(/אחרון:.*90,000/)).toHaveCount(0);
+  await page.evaluate(()=>{(window as unknown as {journalGate:{disarm:()=>void}}).journalGate.disarm();});
+  // The server's empty snapshot exists, but its journal read is held. A
+  // subsequently accepted offline write must never be judged by that snapshot.
+  await context.setOffline(true);
+  await page.getByLabel(/^קילומטראז׳/).fill('100000');await page.getByLabel('ליטרים',{exact:true}).fill('40');await page.getByLabel('מחיר לליטר').fill('7');
+  await page.getByRole('button',{name:'שמירת תדלוק',exact:true}).click();await expect(page).toHaveURL('/');
+  await expect.poll(()=>outboxCount(page,uid)).toBe(1);
+  await page.evaluate(async()=>{const gate=(window as unknown as {journalGate:{pending:Promise<unknown>[];releases:(()=>void)[]}}).journalGate;if(!gate.pending.length)throw new Error('No server snapshot was deferred');gate.releases.forEach(resolve=>resolve());await Promise.all(gate.pending);});
+  const statuses=await page.evaluate(async uid=>{
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open('tm-outbox');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+    const rows=await new Promise<{uid:string;status:string}[]>(resolve=>{const r=db.transaction('operations').objectStore('operations').getAll();r.onsuccess=()=>resolve(r.result);});db.close();return rows.filter(r=>r.uid===uid).map(r=>r.status);
+  },uid);
+  expect(statuses).toEqual(['pending']);
+  await context.setOffline(false);await expect.poll(async()=>(await listDocuments(path)).length,{timeout:30000}).toBe(1);await expect.poll(()=>outboxCount(page,uid)).toBe(0);
+});
+
+test('the remaining tab settles another tab\'s queued write after that tab closes',async({page,context})=>{
+  const {uid,vehicleId}=await signedInWithData(page,{fillups:[]});
+  const writer=await context.newPage();await writer.goto('/fillup/new');await writer.getByLabel(/^קילומטראז׳/).waitFor();
+  await context.setOffline(true);
+  await writer.getByLabel(/^קילומטראז׳/).fill('100000');await writer.getByLabel('ליטרים',{exact:true}).fill('40');await writer.getByLabel('מחיר לליטר').fill('7');
+  await writer.getByRole('button',{name:'שמירת תדלוק',exact:true}).click();await expect(writer).toHaveURL('/');
+  await expect.poll(()=>outboxCount(page,uid)).toBe(1);await writer.close();await context.setOffline(false);
+  await expect.poll(async()=>(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).length,{timeout:30000}).toBe(1);
+  await expect.poll(()=>outboxCount(page,uid),{timeout:30000}).toBe(0);
 });
 
 test("two pages enqueuing at once both keep their input, with distinct revisions per document", async ({
