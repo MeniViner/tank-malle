@@ -19,7 +19,8 @@
     "emulators:care": "firebase emulators:start --only auth,firestore --project demo-tankmaleh --config firebase.care-local.json",
     "test:care": "playwright test --config playwright.care.config.ts",
     "test:care:pwa": "playwright test --config playwright.care-pwa.config.ts",
-    "dev:care:device": "node scripts/care-device.mjs"
+    "dev:care:device": "node scripts/care-device.mjs",
+    "test:unified": "playwright test --config playwright.unified.config.ts"
   },
   "dependencies": {
     "firebase": "^11.10.0",

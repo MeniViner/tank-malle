@@ -74,7 +74,7 @@ async function fillForm(
  * worker). Blocking only the emulator port keeps the app loadable while every
  * Firestore request fails, exactly like a phone with no signal at the pump.
  */
-const FIRESTORE_ROUTE = /127\.0\.0\.1:8080\//;
+const FIRESTORE_ROUTE = new RegExp(`127\\.0\\.0\\.1:${process.env.CARE_FIRESTORE_PORT??'8080'}/`);
 const serverUnreachable = (context: BrowserContext) =>
   context.route(FIRESTORE_ROUTE, (route) => route.abort("connectionfailed"));
 const serverReachable = (context: BrowserContext) => context.unroute(FIRESTORE_ROUTE);

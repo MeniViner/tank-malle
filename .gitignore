@@ -55,3 +55,6 @@ playwright-report/
 
 # Separate disposable emulator ports for cycle-6 regression tests.
 !.env.care-test
+
+# Isolated local integration demonstration; no real credentials.
+!.env.unified-preview

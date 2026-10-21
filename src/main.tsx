@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+import { VehicleDataProvider } from "./context/VehicleDataContext";
 import { AuthProvider } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -27,7 +28,7 @@ createRoot(document.getElementById("root")!).render(
         <ToastProvider>
           <AuthProvider>
             <DataProvider>
-              <App />
+              <VehicleDataProvider><App /></VehicleDataProvider>
             </DataProvider>
           </AuthProvider>
         </ToastProvider>

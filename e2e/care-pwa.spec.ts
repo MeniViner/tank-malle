@@ -1,3 +1,4 @@
+import { openCareHistory } from "./helpers/care";
 import {startCareEditor,setCareTitle} from './helpers/care';
 import {expect,test} from '@playwright/test';
 import {signedInWithData} from './helpers/app';
@@ -12,7 +13,7 @@ test('maintenance survives two real offline PWA restarts and syncs exactly once'
   await setCareTitle(page,'חניה באופליין');await dialog.getByLabel('עלות כוללת',{exact:true}).fill('25');await dialog.getByRole('button',{name:'שמירת הוצאה לרכב',exact:true}).click();await expect(dialog).toHaveCount(0);
   await expect.poll(()=>outboxCount(page,scope.uid)).toBe(1);expect(await listDocuments(path)).toHaveLength(0);
   const restart=await page.reload();expect(restart?.fromServiceWorker()).toBe(true);await expectNetworkCut(page);
-  await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await expect(page.getByRole('heading',{name:'חניה באופליין',exact:true})).toBeVisible();await expect.poll(()=>outboxCount(page,scope.uid)).toBe(1);
+  await openCareHistory(page);await expect(page.getByRole('heading',{name:'חניה באופליין',exact:true})).toBeVisible();await expect.poll(()=>outboxCount(page,scope.uid)).toBe(1);
   await context.setOffline(false);await expect(async()=>{const rows=await listDocuments(path);expect(rows).toHaveLength(1);expect(rows[0].data.costAgorot).toBe(2500);}).toPass({timeout:30000});await expect.poll(()=>outboxCount(page,scope.uid)).toBe(0);
 });
 

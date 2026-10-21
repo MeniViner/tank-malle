@@ -1,3 +1,6 @@
+import { vehicleMoney } from "../lib/vehicle/format";
+import { LegacyCareTransfer } from "../components/LegacyCareTransfer";
+import { UnifiedTransfer } from "../components/UnifiedTransfer";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -12,7 +15,7 @@ import { downloadAllVehiclesCsv, downloadFillupsCsv, downloadTankUpdatesCsv } fr
 import { Num } from "../components/Num";
 import { loadAccountExport, accountTotals, type AccountExport } from "../lib/accountExport";
 import { db } from "../lib/firebase";
-import { fullDate, loginMoment, num, price, shekel } from "../lib/format";
+import { fullDate, loginMoment, num, price } from "../lib/format";
 import { ChevronStart, DownloadIcon, LogoutIcon, ShieldIcon, TrashIcon, UploadIcon } from "../components/icons";
 
 /** Account identity, data tools and guarded account actions. */
@@ -90,8 +93,8 @@ export function Profile() {
 
   const active = vehicles.filter((vehicle) => !vehicle.archived);
   const avgPricePaid =
-    records && records.totalLiters > 0
-      ? records.totalCost / records.totalLiters
+    records && records.unknownFuelCosts===0 && records.totalLiters > 0
+      ? records.fuelCost / records.totalLiters
       : null;
 
   async function reallyDelete() {
@@ -139,6 +142,8 @@ export function Profile() {
       <ScreenHeader title="פרופיל וחשבון" onBack={() => navigate(-1)} />
 
       <div className="tm-page">
+        <UnifiedTransfer />
+        <LegacyCareTransfer />
         {accountDeletionPending ? <p role="alert" className="rounded-card bg-danger/10 p-4 text-sm text-danger">מחיקת החשבון ממתינה להשלמה. הנתונים שכבר נמחקו לא ישוחזרו; ניתן לנסות שוב דרך מחיקת החשבון למטה. אם הפעולה נעצרה, רעננו תחילה.</p> : null}
         <section className="tm-rise flex flex-col gap-3.5 py-2 text-ink">
           <div className="flex items-center gap-3.5">
@@ -183,15 +188,15 @@ export function Profile() {
             />
             <MetricCard
               label="סה״כ הוצאה"
-              value={records ? shekel(records.totalCost) : "—"}
-              meta={avgPricePaid !== null ? `ממוצע ${price(avgPricePaid)} לליטר` : undefined}
+              value={records ? vehicleMoney(Math.round(records.totalCost*100)) : "—"}
+              meta={records?.unknownCosts?`${records.unknownCosts} רשומות עם עלות חסרה לא נכללו`:avgPricePaid !== null ? `כולל תחזוקה והוצאות · ממוצע דלק ${price(avgPricePaid)} לליטר` : "רכישות דלק, טיפולים והוצאות פחות החזרים"}
             />
 
             <MetricCard
               label="ק״מ שתועדו"
-              value={records ? num(records.totalKm, 0) : "—"}
+              value={records && !records.distanceUnknown ? num(records.totalKm, 0) : "—"}
               unit="ק״מ"
-              meta={`על פני ${records ? num(records.fillupCount, 0) : "—"} תדלוקים`}
+              meta={records?.distanceUnknown?"אין כיסוי מד־דרך מספק בכל הרכבים":"מרחק מתועד מכל מקורות מד־הדרך"}
             />
             <MetricCard
               label="רכבים"

@@ -1,11 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { ChartIcon, ClockIcon, HomeIcon, PumpIcon, SlidersIcon } from "./icons";
+import { ChartIcon, ClockIcon, HomeIcon, PumpIcon, CarIcon } from "./icons";
 
 const TABS = [
   { to: "/", label: "בית", Icon: HomeIcon, end: true },
-  { to: "/history", label: "היסטוריה", Icon: ClockIcon, end: false },
-  { to: "/stats", label: "סטטיסטיקות", Icon: ChartIcon, end: false },
-  { to: "/settings", label: "הגדרות", Icon: SlidersIcon, end: false },
+  { to: "/history", label: "יומן", Icon: ClockIcon, end: false },
+  { to: "/stats", label: "תובנות", Icon: ChartIcon, end: false },
+  { to: "/vehicle", label: "רכב", Icon: CarIcon, end: false },
 ];
 
 /**
@@ -16,7 +16,7 @@ export function TabBar({ canAddFillup }: { canAddFillup: boolean }) {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[430px] flex-col border-t border-line bg-surface pb-safe">
+    <nav className="app-shell fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[430px] flex-col border-t border-line bg-surface pb-safe">
       <div className="flex items-start px-1.5 pt-2">
         {TABS.slice(0, 2).map((tab) => (
           <Tab key={tab.to} {...tab} />

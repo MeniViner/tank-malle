@@ -21,3 +21,10 @@ export async function setExpenseKind(page:Page,kind:string) {
   await page.getByRole('dialog').getByRole('button',{name:'שינוי סוג הרשומה'}).click();
   await page.getByRole('dialog').getByRole('button',{name:kind,exact:true}).click();
 }
+
+export async function openCareHistory(page:Page) { await page.getByRole('navigation').getByRole('link',{name:'יומן',exact:true}).click(); }
+export async function openCareRecord(page:Page,action:'edit'|'delete'='edit') {
+  await page.locator('.ledger-row').filter({has:page.locator('h3')}).first().click();
+  await page.getByRole('dialog').getByRole('button',{name:action==='edit'?'עריכה':'מחיקת רשומה',exact:true}).click();
+}
+export async function openCareCosts(page:Page) { await page.getByRole('navigation').getByRole('link',{name:'רכב',exact:true}).click();await page.getByRole('button',{name:'עלויות',exact:true}).click(); }

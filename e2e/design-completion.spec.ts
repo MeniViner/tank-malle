@@ -53,7 +53,7 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
         await expect(page.locator('main')).toBeVisible();
         // Assert populated surfaces, so a narrow loading skeleton cannot pass.
         if (path === '/') await expect(page.getByTestId('consumption-chart')).toBeVisible();
-        if (path === '/history') await expect(page.getByRole('region', {name:'סיכום ההיסטוריה המסוננת'})).toContainText('₪560');
+        if (path === '/history') await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
         if (path === '/stats') await expect(page.getByText('ממוצע חודשי', {exact:true})).toBeVisible();
         if (path === '/fillup/new') await expect(page.getByLabel('מחיר לליטר', {exact:true})).toHaveValue('7.77');
         if (path === '/settings') await expect(page.getByRole('button', {name:/^הנחה מהמחיר הרשמי/})).toBeVisible();
@@ -62,7 +62,7 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
     }
   }
   await page.goto('/history');
-  await expect(page.getByRole('region', {name:'סיכום ההיסטוריה המסוננת'})).toContainText('₪560');
+  await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
   await page.goto('/');
   await expect(page.getByTestId('consumption-chart').getByRole('img')).toHaveAccessibleName(/12.5 קמ״ל/);
   await expect(page.getByTestId('tank-level-bar')).toBeVisible();
@@ -88,7 +88,7 @@ test('sheet choices support keyboard navigation and feedback preserves the chose
 test('admin feedback filters and detail sheet show the full message at phone width', async ({page}) => {
   await page.setViewportSize({width:320,height:740});
   const {uid} = await signedInWithData(page);
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+  process.env.FIREBASE_AUTH_EMULATOR_HOST = `127.0.0.1:${process.env.CARE_AUTH_PORT??'9099'}`;
   const app = initializeApp({projectId:PROJECT_ID},`design-${Date.now()}`);
   await getAuth(app).setCustomUserClaims(uid,{admin:true});
   await deleteApp(app);

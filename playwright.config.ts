@@ -15,6 +15,9 @@ import { defineConfig, devices } from "@playwright/test";
  * means:  PATH="/opt/homebrew/opt/openjdk/bin:$PATH" npm run test:e2e
  */
 
+const isolated=process.env.E2E_ISOLATED==='1';
+const emulatorPort=isolated?8087:8080;
+if(isolated){process.env.CARE_AUTH_PORT='9097';process.env.CARE_FIRESTORE_PORT='8087';process.env.VITE_AUTH_EMULATOR_PORT='9097';process.env.VITE_FIRESTORE_EMULATOR_PORT='8087';}
 const PORT = 5273;
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 
@@ -34,6 +37,7 @@ const PWA_SPEC = "**/pwa-offline.spec.ts";
 
 export default defineConfig({
   testDir: "./e2e",
+  outputDir:"test-results/main",
   // The emulator hub answers before Auth and Firestore are listening, so the
   // webServer readiness check below is not sufficient on its own.
   globalSetup: "./e2e/global-setup.ts",
@@ -62,7 +66,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 430, height: 900 } },
       // The offline-restart spec needs a service worker, which the dev server
       // does not have; it belongs to the `pwa` project below.
-      testIgnore: PWA_SPEC,
+      testIgnore: [PWA_SPEC, '**/care-pwa.spec.ts', '**/care-device.spec.ts', '**/cycle5.spec.ts', '**/cycle6.spec.ts', '**/scan-maintenance.spec.ts', '**/unified-vehicle.spec.ts'],
     },
     {
       name: "pwa",
@@ -84,16 +88,17 @@ export default defineConfig({
       // The locally installed CLI, so this behaves the same on a machine with
       // no global firebase-tools and in CI.
       command:
-        "npx --no-install firebase emulators:start --only auth,firestore --project demo-tankmaleh",
+        `npx --no-install firebase emulators:start --only auth,firestore --project demo-tankmaleh${isolated?" --config firebase.e2e-isolated.json":""}`,
       // The FIRESTORE emulator's own root, not the hub's. The hub answered
       // reliably locally but never did on the CI runner, hanging the whole
       // job for the full timeout while the emulators themselves were up and
       // logging "All emulators ready". Probing the service the tests actually
       // need removes a moving part; e2e/global-setup.ts then waits for Auth
       // as well before any test runs.
-      url: "http://127.0.0.1:8080/",
-      reuseExistingServer: !process.env.CI,
+      url: `http://127.0.0.1:${emulatorPort}/`,
+      reuseExistingServer: !isolated && !process.env.CI,
       timeout: 120_000,
+      gracefulShutdown:{signal:"SIGTERM",timeout:15000},
       stdout: "pipe",
       stderr: "pipe",
     },
@@ -104,8 +109,9 @@ export default defineConfig({
       // like a server that never came up.
       command: `vite --mode e2e --host 127.0.0.1 --port ${PORT} --strictPort`,
       url: BASE_URL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !isolated && !process.env.CI,
       timeout: 120_000,
+      gracefulShutdown:{signal:"SIGTERM",timeout:15000},
       stdout: "pipe",
       stderr: "pipe",
     },
@@ -117,8 +123,9 @@ export default defineConfig({
       // separate step so `npm run test:e2e` is self-contained on any machine.
       command: `vite build --mode e2e && vite preview --mode e2e --host 127.0.0.1 --port ${PWA_PORT} --strictPort`,
       url: PWA_BASE_URL,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: !isolated && !process.env.CI,
       timeout: 180_000,
+      gracefulShutdown:{signal:"SIGTERM",timeout:15000},
       stdout: "pipe",
       stderr: "pipe",
     },

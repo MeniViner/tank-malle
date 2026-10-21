@@ -1,0 +1,20 @@
+import {mkdirSync,existsSync,readFileSync,writeFileSync,chmodSync} from 'node:fs';
+import {createServer} from 'node:http';
+import {resolve} from 'node:path';
+import {execFileSync} from 'node:child_process';
+import {startDeviceServer} from './care-device.mjs';
+const host=process.argv[2];if(!host||!/^192\.168\.\d+\.\d+$/.test(host))throw new Error('Pass this laptop’s private Wi-Fi IPv4 address.');
+const dir=resolve('.care-device/unified-preview/tls');mkdirSync(dir,{recursive:true});
+const caKey=dir+'/ca-key.pem',ca=dir+'/ca.pem',key=dir+'/server-key.pem',cert=dir+'/server.pem',der=dir+'/Tank-Maleh-Unified-Local-CA.crt';
+const run=args=>execFileSync('openssl',args,{stdio:'ignore'});
+if(!existsSync(ca)){run(['req','-x509','-newkey','rsa:2048','-nodes','-keyout',caKey,'-out',ca,'-days','7','-subj','/CN=Tank Maleh Unified Local CA','-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign']);chmodSync(caKey,0o600);}
+writeFileSync(dir+'/server.ext',`subjectAltName=IP:${host},IP:127.0.0.1\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\n`);
+run(['req','-new','-newkey','rsa:2048','-nodes','-keyout',key,'-out',dir+'/server.csr','-subj',`/CN=${host}`]);chmodSync(key,0o600);
+run(['x509','-req','-in',dir+'/server.csr','-CA',ca,'-CAkey',caKey,'-CAcreateserial','-out',cert,'-days','7','-extfile',dir+'/server.ext']);run(['x509','-in',ca,'-outform','DER','-out',der]);
+const origin=`https://${host}:5449`;
+execFileSync('node_modules/.bin/vite',['build','--mode','unified-preview','--outDir','.care-device/unified-preview/device-dist'],{stdio:'inherit',env:{...process.env,VITE_CARE_DEVICE_ORIGIN:origin}});
+const gateway=startDeviceServer({origin,key,cert,authPort:9096,firestorePort:8086},resolve('.care-device/unified-preview/device-dist'));
+const html=`<!doctype html><html lang="he" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>טנק מלא · חיבור לטלפון</title><style>body{font:18px system-ui;max-width:38rem;margin:40px auto;padding:20px;line-height:1.7;background:#f4f5f5;color:#14171a}a{display:block;margin:20px 0;padding:14px;background:#0b6b5e;color:white;border-radius:14px;text-align:center}small{color:#636a70}</style><h1>טנק מלא בטלפון</h1><p>הטלפון והמחשב צריכים להיות באותה רשת Wi-Fi. זהו שרת הדגמה מקומי בלבד.</p><ol><li>הורידו את התעודה הציבורית מהכפתור הראשון.</li><li>ב־Android: הגדרות ← אבטחה ופרטיות ← הגדרות אבטחה נוספות ← הצפנה ופרטי כניסה ← התקנת אישור CA. שמות התפריטים משתנים בין מכשירים. בחרו בתעודה שהורדתם.</li><li>ב־iPhone: התקינו את הפרופיל שהורד, ואז הגדרות ← כללי ← אודות ← הגדרות אמון באישורים, והפעילו אמון בתעודה המקומית.</li><li>פתחו את האפליקציה המאובטחת ואשרו גישה למצלמה כאשר תבקשו לצלם.</li></ol><a href="/ca.crt" download="Tank-Maleh-Unified-Local-CA.crt">1. הורדת תעודת ההדגמה</a><a href="${origin}/">2. פתיחת האפליקציה המאובטחת</a><p>כניסה: כפתור Google, בחירת <bdi>meni.unified@example.test</bdi>. אין סיסמה ואין שימוש בחשבון Google אמיתי.</p><small>האישור תקף לשבוע. אימות המצלמה והאמון בטלפון עדיין דורשים בדיקה במכשיר עצמו. אין לעקוף אזהרת אבטחה במקום להתקין את האישור.</small></html>`;
+const help=createServer((req,res)=>{if(req.method!=='GET'){res.writeHead(405);res.end();return;}if(req.url==='/ca.crt'){res.writeHead(200,{'content-type':'application/x-x509-ca-cert','content-disposition':'attachment; filename="Tank-Maleh-Unified-Local-CA.crt"','cache-control':'no-store'});res.end(readFileSync(der));}else if(req.url==='/'){res.writeHead(200,{'content-type':'text/html;charset=utf-8','cache-control':'no-store'});res.end(html);}else{res.writeHead(404);res.end();}}).listen(5294,host);
+console.log(`Phone setup: http://${host}:5294/ ; secure app: ${origin}/`);
+for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{help.close();gateway.close(()=>process.exit());});

@@ -308,7 +308,7 @@ test("an import interrupted by a reload settles every journal entry — rows and
   const { uid, vehicleId } = await signedInWithData(page);
   const { fileURLToPath } = await import("node:url");
   const fixture = fileURLToPath(new URL("../src/lib/import/__fixtures__/legacy-fuel-tracker.csv", import.meta.url));
-  const FIRESTORE_WRITES = /127\.0\.0\.1:8080\/.*Firestore\/Write\/channel/;
+  const FIRESTORE_WRITES = new RegExp(`127\\.0\\.0\\.1:${process.env.CARE_FIRESTORE_PORT??'8080'}/.*Firestore/Write/channel`);
 
   // Destination and duplicate checks need authoritative reads. Interrupt
   // only the write connection after those reads, keeping all eight writes

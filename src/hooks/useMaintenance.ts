@@ -10,6 +10,7 @@ export function useMaintenance(uid: string, vehicleId: string) {
   const scope = `${uid}/${vehicleId}`;
   const [state, setState] = useState<State>({ scope: '', data: EMPTY_CARE, loaded: [], cached: [], errors: [], malformed: 0 });
   useEffect(() => {
+    if (!uid || !vehicleId) return;
     let current = true;
     const invalid = new Map<string, number>();
     const base = (prev: State): State => prev.scope === scope ? prev : { scope, data: EMPTY_CARE, loaded: [], cached: [], errors: [], malformed: 0 };

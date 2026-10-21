@@ -63,7 +63,7 @@ test("design surfaces retain real fixture values and fit mobile layouts", async 
   await page.getByRole("radio", { name: "בהיר", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "סגירה", exact: true }).click();
   await capture("settings");
-  for (const [route, title] of [["/history", "היסטוריה"], ["/settings/profile", "פרופיל וחשבון"], ["/settings/vehicles", "ניהול רכבים"], ["/settings/import", "ייבוא נתונים"], ["/settings/unsynced", "לא סונכרן"], ["/feedback", "משוב"]]) {
+  for (const [route, title] of [["/history", "יומן"], ["/settings/profile", "פרופיל וחשבון"], ["/settings/vehicles", "ניהול רכבים"], ["/settings/import", "ייבוא נתונים"], ["/settings/unsynced", "לא סונכרן"], ["/feedback", "משוב"]]) {
     await page.goto(route);
     await expect(page.getByRole("heading", { name: title, exact: true })).toBeInViewport();
     if (route === "/settings/profile") await expect(page.getByText("272 ליטר בסך הכול", { exact: true })).toBeVisible();
@@ -72,7 +72,7 @@ test("design surfaces retain real fixture values and fit mobile layouts", async 
   await page.goto("/stats");
   for (const label of ["הוצאות", "צריכה", "מחירים", "קהילה"]) {
     await page.getByRole("button", { name: label, exact: true }).click();
-    await expect(page.getByRole("heading", { name: "סטטיסטיקות", exact: true })).toBeInViewport();
+    await expect(page.getByRole("heading", { name: "תובנות", exact: true })).toBeInViewport();
     await capture(`stats-${label}`);
   }
   await page.goto("/fillup/new");

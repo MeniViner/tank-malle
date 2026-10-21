@@ -1,3 +1,4 @@
+import { openCareHistory,openCareRecord,openCareCosts } from "./helpers/care";
 import { startCareEditor,setCareTitle,setExpenseKind } from './helpers/care';
 import { expect,test,type Page } from '@playwright/test';
 import { ALICE,BOB,signIn,signOut,signedInWithData } from './helpers/app';
@@ -25,9 +26,9 @@ test('refunds reduce costs and unknown amounts remain explicit beyond the first 
   const scope=await signedInWithData(page,{fillups:[]});const base=`users/${scope.uid}/vehicles/${scope.vehicleId}`;
   await Promise.all(Array.from({length:55},(_,i)=>setDocument(`${base}/vehicleExpenses/e${i}`,{schemaVersion:1,version:1,day:'2026-10-01',title:`הוצאה ${i}`,category:'other',costAgorot:i===0?null:10000,notes:''})));
   await page.goto('/vehicle');await startCareEditor(page,'expense');await setCareTitle(page,'החזר');await page.getByLabel('עלות כוללת',{exact:true}).fill('40');await setExpenseKind(page,'החזר / זיכוי');await page.getByRole('button',{name:'שמירת הוצאה לרכב'}).click();
-  await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await expect(page.getByRole('button',{name:/הצגת רשומות נוספות/})).toBeVisible();
-  await page.getByRole('button',{name:'עלויות',exact:true}).click();await expect(page.getByTestId('care-total')).toContainText('5,360');await expect(page.getByText(/1 רשומות ללא עלות/)).toBeVisible();
-  await page.context().setOffline(true);await expect(page.getByText(/הסיכום עדיין חלקי/)).toBeVisible();await page.context().setOffline(false);
+  await openCareHistory(page);await expect(page.getByRole('button',{name:/הצגת רשומות נוספות/})).toBeVisible();
+  await openCareCosts(page);await expect(page.getByTestId('running-total')).toContainText('5,360');await expect(page.getByText(/1 רשומות ללא עלות/)).toBeVisible();
+  await page.context().setOffline(true);await expect(page.getByText(/הנתונים עדיין חלקיים/)).toBeVisible();await page.context().setOffline(false);
 });
 test('device A offline care write cannot resurrect a vehicle deleted on device B',async({page,browser,baseURL})=>{
   const scope=await signedInWithData(page,{fillups:[]});const base=`users/${scope.uid}/vehicles/${scope.vehicleId}`;
@@ -85,7 +86,7 @@ test('one scan step can be skipped and partial results reach the manual form',as
 test('recovered maintenance edit keeps its original version after another device changes it',async({page})=>{
   const scope=await signedInWithData(page,{fillups:[]});const path=`users/${scope.uid}/vehicles/${scope.vehicleId}/vehicleExpenses/insurance`;
   const record={schemaVersion:1,version:1,day:'2026-10-01',title:'ביטוח',category:'insurance',costAgorot:10000,notes:''};await setDocument(path,record);
-  await page.goto('/vehicle');await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await page.getByRole('button',{name:'עריכה',exact:true}).click();await page.getByLabel('עלות כוללת',{exact:true}).fill('120');await page.reload();
-  await setDocument(path,{...record,version:2,costAgorot:15000});await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await expect(page.getByText('150.00',{exact:false}).first()).toBeVisible();await page.getByRole('button',{name:'עריכה',exact:true}).click();await expect(page.getByLabel('עלות כוללת',{exact:true})).toHaveValue('120');
+  await page.goto('/vehicle');await openCareHistory(page);await openCareRecord(page);await page.getByLabel('עלות כוללת',{exact:true}).fill('120');await page.reload();
+  await setDocument(path,{...record,version:2,costAgorot:15000});await openCareHistory(page);await expect(page.getByTestId('ledger-total')).toContainText('150');await openCareRecord(page);await expect(page.getByLabel('עלות כוללת',{exact:true})).toHaveValue('120');
   await page.getByRole('button',{name:'שמירת הוצאה לרכב'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await page.goto('/settings/unsynced');await expect(page.locator('[data-outbox-op]').filter({hasText:'שמירת תחזוקת רכב'})).toBeVisible();expect((await getDocument(path))?.costAgorot).toBe(15000);
 });

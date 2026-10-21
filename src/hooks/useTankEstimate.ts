@@ -1,3 +1,5 @@
+import { useVehicleData } from "../context/VehicleDataContext";
+import { bridgeTankMileage } from "../lib/vehicle/tankMileage";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
@@ -48,6 +50,7 @@ function readDismissals(key: string): Partial<Record<NextUpdateKind, number>> {
 
 export interface TankEstimateHandle {
   estimate: TankEstimate;
+  mileageNote: string | null;
   /** Silence the current next-update prompt for its cooldown. */
   dismissPrompt: (kind: NextUpdateKind) => void;
 }
@@ -56,6 +59,8 @@ export function useTankEstimate(): TankEstimateHandle {
   const { user } = useAuth();
   const { activeVehicle, fillups, observations, plans, tankPreferences, tankInputScope } = useData();
   const uid = user?.uid ?? null;
+  const { mileage } = useVehicleData();
+  const mileageSignature = JSON.stringify(mileage);
 
   const [now, setNow] = useState(() => Date.now());
   // Dismissals live in storage; `dismissalsVersion` only forces a re-read.
@@ -114,8 +119,8 @@ export function useTankEstimate(): TankEstimateHandle {
         observations,
         plans,
         preferences: tankPreferences,
-      }),
-    [uid, activeVehicle, fillups, observations, plans, tankPreferences],
+      }) + mileageSignature,
+    [uid, activeVehicle, fillups, observations, plans, tankPreferences, mileageSignature],
   );
 
   // Stabilised so a small model change does not make the headline oscillate.
@@ -135,7 +140,7 @@ export function useTankEstimate(): TankEstimateHandle {
         previousDisplayLevel: previousTankLevel(previousLevel.current, tankInputScope),
       });
       previousLevel.current = { scope: tankInputScope, level: result.habit.displayLevel };
-      return result;
+      return bridgeTankMileage(result,mileage,now);
     },
     // Keyed on the SIGNATURE rather than on the arrays themselves: it covers
     // every field the model reads, so an edit, a delete, an import rollback, a
@@ -148,7 +153,7 @@ export function useTankEstimate(): TankEstimateHandle {
   const estimate = useMemo(
     () =>
       projectTank({
-        fit,
+        fit: fit.fit,
         vehicle: activeVehicle,
         preferences: tankPreferences,
         plans,
@@ -173,5 +178,5 @@ export function useTankEstimate(): TankEstimateHandle {
     [storageKey],
   );
 
-  return { estimate, dismissPrompt };
+  return { estimate, dismissPrompt, mileageNote: fit.note };
 }

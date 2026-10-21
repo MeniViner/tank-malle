@@ -1,3 +1,5 @@
+import { RunningCosts } from "../components/RunningCosts";
+import { localDay } from "../lib/maintenance/model";
 import { useMemo, useState, type ReactNode } from "react";
 import {
   Area,
@@ -154,7 +156,8 @@ export function Statistics() {
   const rangeLiters = segments.reduce((sum, s) => sum + s.liters, 0);
   const rangeCost = segments.reduce((sum, s) => sum + s.cost, 0);
   const rangeKmPerLiter = rangeLiters > 0 ? rangeKm / rangeLiters : null;
-  const rangeCostPerKm = rangeKm > 0 ? rangeCost / rangeKm : null;
+  const measuredCostKnown=segments.every(s=>!stats.fillups.some(f=>f.totalCostUnknown&&f.date>=s.startDate&&f.date<=s.endDate));
+  const rangeCostPerKm = rangeKm > 0 && measuredCostKnown ? rangeCost / rangeKm : null;
 
   // Every plotted value, the average line, the axis and the tooltip are
   // converted together. Relabelling the title while leaving km/L values in
@@ -226,7 +229,7 @@ export function Statistics() {
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
       <header className="flex flex-none items-center justify-between gap-2 px-5 pb-3 pt-4">
-        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">סטטיסטיקות</h1>
+        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">תובנות</h1>
         {/* A loose vehicle name floating in the header said nothing and had no
             affordance. With one vehicle it is redundant; with several it needs
             to be a control, so that is what it is. */}
@@ -284,6 +287,7 @@ export function Statistics() {
           </div>
         ) : null}
 
+        {section === "costs" ? <RunningCosts from={range.from===null?"1900-01-01":localDay(new Date(range.from))} to={range.to===null?localDay():localDay(new Date(range.to))}/> : null}
         {loadingFillups ? (
           <>
             <Skeleton className="h-[188px] rounded-card" />
@@ -303,9 +307,10 @@ export function Statistics() {
           <>
             {section === "costs" ? (
               <>
+                <h2 className="v-section-head">פירוט רכישות דלק</h2>
                 <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
 
-                  <SummaryCard label={range.compactLabel} value={shekel(spend.total)} />
+                  <SummaryCard label={`רכישות דלק · ${range.compactLabel}`} value={shekel(spend.total)} />
                   <SummaryCard
                     label="ליטרים"
                     value={num(spend.liters, 1)}
@@ -325,7 +330,7 @@ export function Statistics() {
 
                   <SummaryCard label="מתחילת השנה" value={shekel(spend.yearToDate)} />
                   <SummaryCard
-                    label="עלות ל־100 ק״מ"
+                    label="דלק שנצרך · עלות ל־100 ק״מ"
                     value={rangeCostPerKm !== null ? shekel(rangeCostPerKm * 100) : "—"}
                   />
 

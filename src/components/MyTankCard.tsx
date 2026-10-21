@@ -43,7 +43,7 @@ export function MyTankCard() {
   const enriching = useVehicleEnrichment();
   const [usageNow] = useState(() => Date.now());
   const usage = usageInsights(fillups, usageNow);
-  const { estimate, dismissPrompt } = useTankEstimate();
+  const { estimate, dismissPrompt, mileageNote } = useTankEstimate();
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [odometerOpen, setOdometerOpen] = useState(false);
@@ -77,7 +77,8 @@ export function MyTankCard() {
 
   return (
     <>
-      <Card className="tm-rise flex flex-col gap-3 p-[16px_18px]" style={{ animationDelay: "70ms" }}>
+      <Card id="my-tank" className="tm-rise flex flex-col gap-3 p-[16px_18px]" style={{ animationDelay: "70ms" }}>
+        {mileageNote ? <p className="text-xs text-muted" data-testid="mileage-precision">{mileageNote}</p> : null}
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center">
             <h2 className="text-[19px] font-bold">המיכל שלי</h2>

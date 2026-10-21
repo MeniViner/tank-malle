@@ -40,6 +40,26 @@ service cloud.firestore {
         && careBase(d) && careDay(d.day) && careInt(d.odometer,9999999);
     }
 
+    function validVehicleIssue(d) {
+      let ids = d.serviceEventIds;
+      let history = d.history;
+      return d.keys().hasOnly(['schemaVersion','version','day','title','symptoms','odometer','importance','status','notes','serviceEventIds','history'])
+        && careBase(d) && careTitle(d) && careDay(d.day) && isString(d.symptoms,2000) && careOptionalInt(d.odometer,9999999)
+        && d.importance in ['normal','important'] && d.status in ['open','watching','resolved']
+        && ids is list && ids.size()<=8
+        && careIdAt(ids,0) && careIdAt(ids,1) && careIdAt(ids,2) && careIdAt(ids,3)
+        && careIdAt(ids,4) && careIdAt(ids,5) && careIdAt(ids,6) && careIdAt(ids,7)
+        && history is list && history.size()<=10
+        && (history.size()<=0 || isString(history[0],4096)) && (history.size()<=1 || isString(history[1],4096)) && (history.size()<=2 || isString(history[2],4096)) && (history.size()<=3 || isString(history[3],4096)) && (history.size()<=4 || isString(history[4],4096))
+        && (history.size()<=5 || isString(history[5],4096)) && (history.size()<=6 || isString(history[6],4096)) && (history.size()<=7 || isString(history[7],4096))
+        && (history.size()<=8 || isString(history[8],4096)) && (history.size()<=9 || isString(history[9],4096));
+    }
+    function validNotificationState(d) {
+      return d.keys().hasOnly(['schemaVersion','version','occurrence','read','archived','snoozeUntilDay'])
+        && d.schemaVersion==1 && careInt(d.version,1000000000) && d.version>0 && isString(d.occurrence,300) && d.occurrence.size()>0
+        && d.read is bool && d.archived is bool && (d.snoozeUntilDay==null || careDay(d.snoozeUntilDay));
+    }
+
     function isSignedIn() {
       return request.auth != null;
     }
@@ -590,6 +610,18 @@ service cloud.firestore {
           allow read, delete: if isOwner(uid);
           allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validMileage(request.resource.data) && request.resource.data.version == 1;
           allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validMileage(request.resource.data) && request.resource.data.version == resource.data.version + 1;
+        }
+
+        match /vehicleIssues/{recordId} {
+          allow read, delete: if isOwner(uid);
+          allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validVehicleIssue(request.resource.data) && request.resource.data.version == 1;
+          allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validVehicleIssue(request.resource.data) && request.resource.data.version == resource.data.version + 1;
+        }
+
+        match /notificationStates/{recordId} {
+          allow read, delete: if isOwner(uid);
+          allow create: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validNotificationState(request.resource.data) && request.resource.data.version == 1;
+          allow update: if isOwner(uid) && accountWritable(uid) && careVehicleWritable(uid, vehicleId) && validNotificationState(request.resource.data) && request.resource.data.version == resource.data.version + 1;
         }
 
         match /observations/{observationId} {

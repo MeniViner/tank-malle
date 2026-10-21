@@ -66,12 +66,12 @@ export function compareToPersonalAverage(
         outcome: "better",
         signedPercent,
         percent,
-        label: `פחות ${percent}% מהממוצע`,
+        label: `${percent}% פחות דלק לק״מ`,
       }
     : {
         outcome: "worse",
         signedPercent,
         percent,
-        label: `גבוה ב־${percent}% מהממוצע`,
+        label: `${percent}% יותר דלק לק״מ`,
       };
 }

@@ -6,7 +6,7 @@ import { PROJECT_ID, getDocument } from './helpers/emulator';
 
 async function admin(page: import('@playwright/test').Page) {
   const account = await signedInWithData(page, { regulatedPrice: 7.31 });
-  process.env.FIREBASE_AUTH_EMULATOR_HOST = '127.0.0.1:9099';
+  process.env.FIREBASE_AUTH_EMULATOR_HOST = `127.0.0.1:${process.env.CARE_AUTH_PORT??'9099'}`;
   const app = initializeApp({projectId:PROJECT_ID}, `admin-mobile-${Date.now()}`);
   await getAuth(app).setCustomUserClaims(account.uid, {admin:true});
   await deleteApp(app);
@@ -50,7 +50,7 @@ for (const width of [320, 360, 393]) {
 test('admin save survives backend-only outage and reload, then syncs to the fill-up form', async ({page}) => {
   const {uid} = await admin(page);
   const input = page.getByLabel('מחיר חדש לליטר · בנזין 95');
-  await page.route('**/127.0.0.1:8080/**', route => route.abort('failed'));
+  await page.route(`**/127.0.0.1:${process.env.CARE_FIRESTORE_PORT??'8080'}/**`, route => route.abort('failed'));
   await input.fill('8.19');
   await input.locator('xpath=../..').getByRole('button',{name:'שמירה',exact:true}).click();
   await expect(page.getByText('נשמר במכשיר · ממתין לאישור השרת').first()).toBeVisible();
@@ -59,7 +59,7 @@ test('admin save survives backend-only outage and reload, then syncs to the fill
   await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
   await expect(input).toHaveValue('8.19');
   await expect(page.getByText('נשמר במכשיר · ממתין לאישור השרת').first()).toBeVisible();
-  await page.unroute('**/127.0.0.1:8080/**');
+  await page.unroute(`**/127.0.0.1:${process.env.CARE_FIRESTORE_PORT??'8080'}/**`);
   await expect(async () => {
     const config = await getDocument('appConfig/fuelPrices');
     const series = ((config?.byFuelType as Record<string,Record<string,Record<string,unknown>>> | undefined)?.['95']?.self);

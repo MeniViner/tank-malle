@@ -13,7 +13,7 @@ export function Num({
   className?: string;
 }) {
   return (
-    <span dir="ltr" className={`num inline-block ${className}`}>
+    <span dir="ltr" className={`num font-num inline-block ${className}`}>
       {children}
     </span>
   );

@@ -1,7 +1,8 @@
+import { backupPath, type BackupEntry } from "../lib/vehicle/backup";
 import { receiptDocumentId } from "../lib/import/receiptText";
 import { subscribeResilient } from "../lib/subscribeResilient";
 import { carePayloadMatches, conditionalCareWrite } from "../lib/maintenance/persistence";
-import { CARE_COLLECTIONS, carePayload, type CareCollection, type CareRecord } from "../lib/maintenance/model";
+import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS, vehiclePayload as carePayload, type VehicleCollection as CareCollection, type VehicleRecord as CareRecord } from "../lib/vehicle/model";
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
 import { storedDeclaredSource } from '../lib/vehicleSpecs';
@@ -42,7 +43,7 @@ import {
 } from "firebase/firestore";
 import { reauthenticateWithPopup } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
-import { accountDataDeletionSteps, clearAccountLocalStorage, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
+import { accountDataDeletionSteps, clearAccountLocalStorage, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
 import { withdrawBenchmark } from "../lib/benchmarks";
 import { pruneOldCaches, readCache, writeCache } from "../lib/cache";
 import {
@@ -102,6 +103,7 @@ import {
 import { readScopedTankInput, type ScopedTankInput, type TankInputScope, type TankInputStatus } from "../lib/tank/inputScope";
 
 interface DataContextValue {
+  importBackupEntries: (entries: BackupEntry[]) => Promise<{written:number; receipts: MutationReceipt[]}>;
   saveCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord, previous?: CareRecord) => Promise<MutationReceipt>;
   deleteCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord) => Promise<MutationReceipt>;
   ready: boolean;
@@ -1335,6 +1337,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
       await deleteDoc(vehicleRef);
+      clearVehicleLocalDrafts(uid,vehicleId);
     },
     [uid],
   );
@@ -1517,6 +1520,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         await settle(deleteVehicleTree(claimed.docId));
         return;
+      }
+
+      if (claimed.kind === "backup.import") {
+        const mutation = runTransaction(db, async transaction=>{const ref=refFor(claimed.path),snap=await transaction.get(ref);if(snap.exists()){if(!genericPayloadMatches(claimed.payload??{},snap.data()))throw new FillupConflictError(snap.data());return;}transaction.set(ref,toFirestoreData(claimed.payload??{}));});
+        track(claimed.kind,mutation);await mutation.then(()=>outbox.acknowledge(opId,version),error=>error instanceof FillupConflictError?outbox.markConflict(opId,version,error.serverImage):outbox.fail(opId,version,{code:errorCode(error),message:errorMessage(error),at:Date.now()}));return;
       }
 
       if (claimed.kind.startsWith("maintenance.")) {
@@ -1817,6 +1825,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }, track);
     return { written: inputs.length, duplicates, receipt: receipts[0] };
   }, [uid, requireOutbox, userPath, track]);
+
+  const importBackupEntries = useCallback(async (entries: BackupEntry[]) => {
+    if(!uid || entries.length>5000 || entries.some(e=>!backupPath(e.path)))throw new Error("גיבוי לא תקין");
+    const generation=generationRef.current;const receipts:MutationReceipt[]=[];let written=0;
+    // Parents precede children. Each create rechecks server identity in its transaction;
+    // a retry can acknowledge identical content but never overwrite a different record.
+    for(const entry of [...entries].sort((a,b)=>a.path.split('/').length-b.path.split('/').length)) {
+      if(generation!==generationRef.current)throw new Error("החשבון התחלף");
+      const parts=entry.path.split('/');const payload={...entry.data};
+      if(parts.length===4&&(CARE_COLLECTIONS as readonly string[]).includes(parts[2]))payload.version=1;
+      const path=userPath(...parts);
+      const receipt=await submit({kind:"backup.import",path,vehicleId:parts[0]==="vehicles"?parts[1]:null,payload,opType:"set"},()=>runTransaction(db,async transaction=>{
+        if(generation!==generationRef.current)throw new Error("החשבון התחלף");
+        const ref=refFor(path),snap=await transaction.get(ref);if(snap.exists()){if(!genericPayloadMatches(payload,snap.data()))throw new FillupConflictError(snap.data());return;}transaction.set(ref,toFirestoreData(payload));
+      }));receipts.push(receipt);if(!(await receipt.settled))throw new Error("השחזור נעצר. הפעולה נשמרה בתור הפעולות; לא הוחלפו רשומות קיימות.");written++;
+    }
+    return {written,receipts};
+  },[uid,submit,userPath,refFor]);
 
   const saveCareRecord = useCallback(async (vehicleId: string, name: CareCollection, record: CareRecord, previous?: CareRecord) => {
     if (!uid || activeVehicle?.id !== vehicleId || !CARE_COLLECTIONS.includes(name)) throw new Error("הרכב או החשבון התחלפו");
@@ -2139,6 +2165,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<DataContextValue>(
     () => ({
+      importBackupEntries,
       saveCareRecord,
       deleteCareRecord,
       ready,
@@ -2201,6 +2228,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteAccount,
     }),
     [
+      importBackupEntries,
       saveCareRecord,
       deleteCareRecord,
       ready,

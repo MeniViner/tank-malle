@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { Sheet } from "./Sheet";
+import { useVehicleNotifications } from "../hooks/useVehicleNotifications";
 import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -22,7 +25,9 @@ import { Avatar } from "./Avatar";
  */
 export function AppHeader() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  const [accountOpen,setAccountOpen]=useState(false);
+  const { unread }=useVehicleNotifications();
   const { activeVehicle, offline, writes, outbox, outboxHealth, outboxReady } = useData();
   const failed =
     outbox.filter((op) => op.status !== "pending").length +
@@ -100,9 +105,10 @@ export function AppHeader() {
             <CloudOffIcon size={17} />
           </span>
         ) : null}
+        <button type="button" aria-label={`התראות${unread?` · ${unread} חדשות`:''}`} onClick={()=>navigate('/notifications')} className="relative flex size-11 items-center justify-center rounded-full text-muted"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>{unread?<span className="notification-dot">{unread}</span>:null}</button>
         <button
           type="button"
-          onClick={() => navigate("/settings/profile")}
+          onClick={() => setAccountOpen(true)}
           aria-label="פרופיל"
           className="flex size-11 items-center justify-center rounded-full active:scale-[0.96]"
         >
@@ -110,6 +116,7 @@ export function AppHeader() {
         </button>
       </div>
 
+      <Sheet open={accountOpen} onClose={()=>setAccountOpen(false)} title="החשבון שלי"><div className="v-group">{[['/settings/profile','פרופיל והנתונים שלי'],['/settings','הגדרות'],...(isAdmin?[['/admin','לוח הבקרה']]:[])].map(([to,label])=><button className="v-row" type="button" key={to} onClick={()=>{setAccountOpen(false);navigate(to);}}>{label}<span>←</span></button>)}</div></Sheet>
     </header>
   );
 }

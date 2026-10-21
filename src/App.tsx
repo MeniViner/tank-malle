@@ -1,3 +1,6 @@
+import { VehicleYear, ReminderDetail, IssueDetail } from "./screens/VehicleDetails";
+import { Notifications } from "./screens/Notifications";
+import { VehicleRecordEditor } from "./components/VehicleRecordEditor";
 import { useStats } from "./hooks/useStats";
 import { usePublishSummary } from "./hooks/usePublishSummary";
 import { RouteScroll } from "./components/RouteScroll";
@@ -46,6 +49,7 @@ export default function App() {
       {/* Mounted unconditionally: this is what registers the service worker,
           so the app is installable and offline-capable before sign-in too. */}
       <UpdatePrompt />
+      <VehicleRecordEditor />
       <Toaster />
     </>
   );
@@ -72,7 +76,7 @@ function Shell() {
   // when someone wants to read them.
   if (location.pathname.startsWith("/legal")) {
     return (
-      <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
+      <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
         <Routes>
           <Route path="/legal/:doc" element={<Legal />} />
           <Route path="*" element={<Navigate to="/legal/terms" replace />} />
@@ -128,10 +132,14 @@ function Shell() {
     !location.pathname.startsWith("/legal");
 
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
+    <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/vehicle" element={<Maintenance />} />
+        <Route path="/vehicle/years/:year" element={<VehicleYear />} />
+        <Route path="/vehicle/reminders/:planId" element={<ReminderDetail />} />
+        <Route path="/vehicle/issues/:issueId" element={<IssueDetail />} />
+        <Route path="/notifications" element={<Notifications />} />
         <Route path="/history" element={<History />} />
         <Route
           path="/stats"

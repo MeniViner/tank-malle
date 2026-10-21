@@ -52,9 +52,9 @@ export interface BalanceResult {
    * from the anchor. Null when there is no anchor, no capacity or no
    * consumption estimate to travel with.
    */
-  measured: { liters: number; sd: number; odometer: number; at: number } | null;
+  measured: { liters: number; sd: number; odometer: number; at: number; precision?: 'instant' | 'day'; day?: string } | null;
   /** Newest odometer reading of any kind. */
-  lastOdometer: { value: number; at: number } | null;
+  lastOdometer: { value: number; at: number; precision?: 'instant' | 'day'; day?: string } | null;
   /**
    * Newest level the user actually reported, in fraction terms. Survives a
    * missing capacity, which is what lets a percentage still be shown when

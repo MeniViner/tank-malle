@@ -4,15 +4,18 @@ export function Card({
   children,
   className = "",
   style,
+  id,
   as: Tag = "div",
 }: {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
+  id?: string;
   as?: "div" | "section";
 }) {
   return (
     <Tag
+      id={id}
       style={style}
       className={`rounded-card bg-surface ${className}`}
     >
@@ -109,13 +112,16 @@ export function ListCard({
   children,
   className = "",
   style,
+  id,
 }: {
   children: ReactNode;
   className?: string;
   style?: CSSProperties;
+  id?: string;
 }) {
   return (
     <div
+      id={id}
       style={style}
       className={`tm-list overflow-hidden rounded-card bg-surface [&>*+*]:border-t [&>*+*]:border-[var(--hairline)] ${className}`}
     >

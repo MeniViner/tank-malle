@@ -3,7 +3,7 @@ import { beforeAll,afterAll,beforeEach,describe,it } from 'vitest';
 import { initializeTestEnvironment, assertSucceeds, assertFails, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
 import { doc,setDoc,getDoc,updateDoc,deleteDoc } from 'firebase/firestore';
 let env: RulesTestEnvironment;
-beforeAll(async()=>{env=await initializeTestEnvironment({projectId:'demo-tank-care-rules',firestore:{host:'127.0.0.1',port:8080,rules:readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8')}});},60000);
+beforeAll(async()=>{env=await initializeTestEnvironment({projectId:'demo-tank-care-rules',firestore:{host:'127.0.0.1',port:Number(process.env.RULES_FIRESTORE_PORT??8080),rules:readFileSync(new URL('../../firestore.rules',import.meta.url),'utf8')}});},60000);
 afterAll(async()=>{await env?.cleanup();});
 beforeEach(async()=>{await env.clearFirestore();await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'users/alice/vehicles/v'),{make:'Test',model:'Car',fuelType:'95',archived:false,priceAdjustment:0});});});
 const service = {schemaVersion:1,version:1,title:'טיפול',day:'2026-10-19',jobs:['oil','tires'],costAgorot:123456,odometer:120000,garage:'מוסך',notes:'',completedPlanIds:['oil']};

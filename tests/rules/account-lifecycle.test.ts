@@ -7,7 +7,7 @@ import { accountDataDeletionSteps } from "../../src/lib/accountDeletion";
 import { withdrawBenchmark } from "../../src/lib/benchmarks";
 let env: RulesTestEnvironment;
 beforeAll(async () => { env = await initializeTestEnvironment({ projectId: "tank-lifecycle-rules-test", firestore: {
-  host: "127.0.0.1", port: 8080, rules: readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8") } }); }, 60000);
+  host: "127.0.0.1", port: Number(process.env.RULES_FIRESTORE_PORT ?? 8080), rules: readFileSync(new URL("../../firestore.rules", import.meta.url), "utf8") } }); }, 60000);
 afterAll(async () => { await env?.cleanup(); });
 beforeEach(async () => { await env.clearFirestore(); });
 const owner = () => env.authenticatedContext("alice").firestore() as unknown as Firestore;

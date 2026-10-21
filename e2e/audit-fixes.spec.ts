@@ -5,6 +5,10 @@ import { getDocument, installRules, listAccounts, listDocuments, restoreRules, s
 import { fillupsToCsv, rowsToCsv, tankUpdatesToCsv } from "../src/lib/csv";
 import type { Fillup, Vehicle } from "../src/lib/types";
 
+function denyVehicleWrites(rules:string):string {
+  let count=0;const denied=rules.replace(/allow (create|update): if isOwner\(uid\) && accountWritable\(uid\) && validVehicle\(request.resource.data\)[^;]*;/g,(_match,verb)=>{count++;return `allow ${verb}: if false;`;});
+  if(count!==2)throw new Error(`Vehicle rule rejection fixture must replace two grants; found ${count}`);return denied;
+}
 test.afterEach(async () => { await restoreRules(); });
 const ownRows = (uid: string) => `users/${uid}/vehicles/v1/fillups`;
 const vehicle = (id: string): Vehicle => ({ id, make: "מאזדה", model: "3", fuelType: "95", archived: false, priceAdjustment: 0 });
@@ -113,7 +117,7 @@ test("F07: invalid vehicle edits stay open, rejected valid edits never report su
   await expect(dialog.getByRole("button", { name: "שמירת שינויים" })).toBeDisabled();
   await dialog.getByLabel("נפח מיכל", { exact: true }).fill("60");
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
-  await installRules(rules.replace('allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);', 'allow create, update: if false;'));
+  await installRules(denyVehicleWrites(rules));
   await dialog.getByRole("button", { name: "שמירת שינויים" }).click();
   await expect(dialog.getByRole("alert")).toContainText("השינוי לא אושר בשרת");
   expect((await getDocument(`users/${uid}/vehicles/v1`))?.tankLiters).toBe(50);
@@ -135,7 +139,7 @@ test("F07: invalid vehicle edits stay open, rejected valid edits never report su
 test("F07: a rejected archive preserves the active preference and can be retried", async ({ page }) => {
   const { uid } = await signedInWithData(page);
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
-  await installRules(rules.replace('allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);', 'allow create, update: if false;'));
+  await installRules(denyVehicleWrites(rules));
   await page.goto("/settings/vehicles");
   // Seed AFTER navigation: otherwise the previous page can cache this car,
   // and its appearance on reload proves only that the display cache loaded.
@@ -194,7 +198,7 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
 test("F07: a rejected tank-capacity confirmation never claims success and retries", async ({ page }) => {
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "estimate" }, fillups: [{ id: "base", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
-  await installRules(rules.replace('allow create, update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);', 'allow create, update: if false;'));
+  await installRules(denyVehicleWrites(rules));
   await page.getByRole("button", { name: "מאשר", exact: true }).click();
   await expect(page.getByText("נפח המיכל לא אושר בשרת", { exact: true })).toBeVisible();
   await expect(page.getByText("נפח המיכל אושר", { exact: true })).toHaveCount(0);
@@ -270,8 +274,8 @@ test("F10/F11: History and Statistics share calendar bounds, including month-end
   ] });
   await page.clock.setFixedTime(new Date("2026-08-31T09:00:00Z"));
   await page.goto("/history");
-  await page.getByRole("radio", { name: "3 חודשים", exact: true }).click();
-  await expect(page.getByText(/2 תדלוקים מוצגים/)).toContainText("31.5.26");
+  await page.getByLabel("תקופת היומן").selectOption("3m");
+  await expect(page.getByTestId("ledger-range")).toContainText("2 תדלוקים");await expect(page.getByTestId("ledger-range")).toContainText("31.5.26");
   await page.goto("/stats");
   await expect(page.getByText(/^4 תדלוקים ·/)).toBeVisible();
   await expect(page.getByText("28.2.26 – 31.8.26", { exact: true })).toBeVisible();

@@ -1,3 +1,4 @@
+import { openCareHistory,openCareRecord } from "./helpers/care";
 import { expect,test } from '@playwright/test';
 import { signedInWithData } from './helpers/app';
 import { setDocument,seedFillups,listDocuments } from './helpers/emulator';
@@ -7,10 +8,10 @@ import { parseReceiptText,receiptHash } from '../src/lib/import/receiptText';
 test('returning an edited cost to its original value cannot restore an intermediate draft',async({page})=>{
   const {uid,vehicleId}=await signedInWithData(page,{fillups:[]});
   await setDocument(`users/${uid}/vehicles/${vehicleId}/vehicleExpenses/original`,{schemaVersion:1,version:1,day:'2026-10-01',title:'ביטוח',category:'insurance',costAgorot:10000,notes:''});
-  await page.goto('/vehicle');await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await page.getByRole('button',{name:'עריכה',exact:true}).click();
+  await page.goto('/vehicle');await openCareHistory(page);await openCareRecord(page);
   const cost=page.getByLabel('עלות כוללת',{exact:true});await cost.fill('120');
   await expect.poll(()=>page.evaluate(()=>Object.entries(localStorage).filter(([key])=>key.startsWith('tm.care-draft.v1.')).length)).toBe(1);
-  await cost.fill('100');await page.reload();await page.getByRole('button',{name:'היסטוריה',exact:true}).click();await page.getByRole('button',{name:'עריכה',exact:true}).click();
+  await cost.fill('100');await page.reload();await openCareHistory(page);await openCareRecord(page);
   await expect(page.getByLabel('עלות כוללת',{exact:true})).toHaveValue('100');
   expect(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('tm.care-draft.v1.')))).toEqual([]);
 });

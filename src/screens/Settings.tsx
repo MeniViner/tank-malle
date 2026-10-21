@@ -44,7 +44,7 @@ import {
   buildSharePayload,
   shareApp,
 } from "../lib/share";
-import { APP_VERSION } from "../lib/version";
+import { APP_VERSION, BUILD_COMMIT, BUILD_DIRTY } from "../lib/version";
 import type { ThemeSetting, Units } from "../lib/types";
 
 const THEME_OPTIONS: { value: ThemeSetting; label: string; icon: React.ReactNode }[] = [
@@ -118,6 +118,8 @@ export function Settings() {
             <RowButton icon={<CarIcon size={19} className="text-muted" />} title="רכבים וארכיון" value={activeVehicle ? vehicleLabel(activeVehicle) : undefined} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/vehicles")} />
             <RowButton icon={<PlusIcon size={19} className="text-muted" />} title="הוספת רכב" onClick={() => navigate("/vehicles/new")} />
             <TankPreferencesSection embedded />
+            <label className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז מד־דרך. אפשר לחזור להזנה ידנית.</small></span><input type="checkbox" checked={settings.quickEntry===true} onChange={e=>{void updateSettings({quickEntry:e.target.checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></label>
+            <button type="button" className="v-row" onClick={()=>navigate('/notifications')}>העדפות התראות ←</button>
           </ListCard>
         </section>
         {/* Fuel price */}
@@ -207,7 +209,7 @@ export function Settings() {
             <RowButton title="תנאי שימוש" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/terms")} />
             <RowButton title="מדיניות פרטיות" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/privacy")} />
           </ListCard>
-          <p className="py-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION}</Num></p>
+          <p className="py-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION} · {BUILD_COMMIT.slice(0,10)}{BUILD_DIRTY?" · שינויים מקומיים":""}</Num></p>
         </section>
       </div>
       <Sheet open={themeOpen} onClose={() => setThemeOpen(false)} title={<h2 className="text-[18px] font-bold">ערכת נושא</h2>}>

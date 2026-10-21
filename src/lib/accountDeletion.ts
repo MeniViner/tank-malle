@@ -1,4 +1,4 @@
-import { CARE_COLLECTIONS } from "./maintenance/model";
+import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS } from "./vehicle/model";
 import {
   collection, deleteDoc, doc, getDocFromServer, getDocsFromServer, query,
   setDoc, where, writeBatch, type Firestore, type Query,
@@ -26,6 +26,11 @@ export function clearAccountLocalStorage(uid: string): void {
       key.startsWith(`tm.fillup-draft.v1.${uid}.`) ||
       key.startsWith(`tm.care-draft.v1.${encodeURIComponent(uid)}.`))) localStorage.removeItem(key);
   }
+}
+export function clearVehicleLocalDrafts(uid:string,vehicleId:string): void {
+  const prefixes=[`tm.care-draft.v1.${encodeURIComponent(uid)}.${encodeURIComponent(vehicleId)}.`,`tm.fillup-draft.v1.${uid}.${vehicleId}.`];
+  const keys=Array.from({length:localStorage.length},(_,i)=>localStorage.key(i));
+  for(const key of keys)if(key&&prefixes.some(prefix=>key.startsWith(prefix)))localStorage.removeItem(key);
 }
 export function finishAccountDeletion(uid: string): void {
   localStorage.removeItem(deletionKey(uid));

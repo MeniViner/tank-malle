@@ -1,3 +1,6 @@
+import { vehicleMoney } from "../lib/vehicle/format";
+import { useVehicleData } from "../context/VehicleDataContext";
+import { VehicleOverview } from "../components/VehicleOverview";
 import { resolveEndState } from "../lib/tank/observations";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
@@ -57,10 +60,11 @@ export function Home() {
 
   return (
     <main className="flex flex-1 flex-col pb-[104px] pt-safe">
+      <h1 className="sr-only">מצב הרכב</h1>
       <AppHeader />
 
       <div className="tm-page">
-        <Link to="/vehicle" className="mb-3 flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-line bg-surface px-4 py-3"><span><b className="block">הרכב שלי</b><span className="text-sm text-muted">טיפולים, תזכורות והוצאות</span></span><span aria-hidden="true">←</span></Link>
+        <VehicleOverview />
         {loadingFillups ? (
           <HomeSkeleton />
         ) : (
@@ -113,7 +117,7 @@ export function Home() {
               <HeroSpark segments={stats.segments} units={units} average={stats.avgKmPerLiter} />
 
               {stats.avgKmPerLiter !== null ? (
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 text-[13.5px]">
+                <div className="home-average-row flex items-baseline justify-between gap-x-2 text-[13.5px]">
                   <span>
                     ממוצע כולל <Num className="font-semibold">{average.value}</Num>{" "}
                     {average.unit}
@@ -126,7 +130,7 @@ export function Home() {
                 </div>
               ) : (
                 <div className="border-t border-line pt-3 text-[14px] text-muted">
-                  הצריכה תחושב אחרי שני תדלוקים
+                  הצריכה תחושב אחרי מקטע רציף שמתחיל ומסתיים במיכל מלא
                 </div>
               )}
 
@@ -242,21 +246,22 @@ function MonthSpendCard({
   stats: ReturnType<typeof useStats>;
   lastFillupDate: number | null;
 }) {
-  const month = stats.currentMonth;
+  void stats;
+  const sharedMonth = useVehicleData().month;
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label>הוצאה החודש</Label>
+      <Label>הוצאות החודש</Label>
 
-      {month ? (
+      {sharedMonth.financialCount > 0 ? (
         <>
           {/* dir="ltr" inside an RTL card left-aligns by default; the amount
               belongs on the card's start edge, which is the right. */}
           <Num className="self-start whitespace-nowrap font-display text-[26px] font-bold leading-tight text-ink">
-            {shekel(month.cost)}
+            {vehicleMoney(sharedMonth.total)}
           </Num>
           <span className="text-[14px] text-muted">
-            <Num>{month.count}</Num> {month.count === 1 ? "תדלוק" : "תדלוקים"} ·{" "}
+            <Num>{sharedMonth.financialCount}</Num> רשומות ·{" "}
             {heMonthName(new Date().getMonth() + 1)}
           </span>
         </>
