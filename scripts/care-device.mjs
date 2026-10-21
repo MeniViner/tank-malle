@@ -32,7 +32,7 @@ export function startDeviceServer(config, root=resolve('.care-device/dist')) {
     if(port){
       port=port===9099?(config.authPort??9099):(config.firestorePort??8080);
       if(![9096,9098,9099,8080,8086,8088].includes(port)){res.writeHead(403);res.end();return;}
-      const proxy=request({hostname:'127.0.0.1',port,path:req.url,method:req.method,headers:{...req.headers,host:`127.0.0.1:${port}`}},upstream=>{
+      const proxy=request({agent:false,hostname:'127.0.0.1',port,path:req.url,method:req.method,headers:{...req.headers,connection:'close',host:`127.0.0.1:${port}`}},upstream=>{
         const headers={...upstream.headers};delete headers['access-control-allow-origin'];delete headers['content-security-policy'];
         res.writeHead(upstream.statusCode??502,{...headers,'cache-control':'no-store'});upstream.pipe(res);
       });proxy.on('error',()=>{if(!res.headersSent)res.writeHead(502);res.end();});req.on('aborted',()=>proxy.destroy());req.pipe(proxy);return;

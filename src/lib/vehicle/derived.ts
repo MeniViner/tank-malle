@@ -32,14 +32,15 @@ export function periodSummary(rows: LedgerRow[], evidence: MileageEvidence[], fr
   const first=points.filter(r=>r.day===firstDay),last=points.filter(r=>r.day===lastDay);
   const ambiguous=first.some(r=>r.at===null)&&new Set(first.map(r=>r.odometer)).size>1 || last.some(r=>r.at===null)&&new Set(last.map(r=>r.odometer)).size>1;
   const start=first.filter(r=>r.at!==null).sort((a,b)=>a.at!-b.at!)[0]??first[0];const end=last.filter(r=>r.at!==null).sort((a,b)=>b.at!-a.at!)[0]??last.at(-1);
-  const distance=start&&end&&start.day<end.day&&!ambiguous&&end.odometer>start.odometer ? end.odometer-start.odometer : null;
+  const mileageInconsistent=points.some((p,i)=>i>0&&(p.day>points[i-1].day || p.at!==null&&points[i-1].at!==null&&p.at>points[i-1].at!)&&p.odometer<points[i-1].odometer);
+  const distance=start&&end&&start.day<end.day&&!ambiguous&&!mileageInconsistent&&end.odometer>start.odometer ? end.odometer-start.odometer : null;
   // Ratios use ONLY costs inside the measured interval, with exact-time boundaries when available.
   const covered=distance!==null ? financial.filter(r=>r.day>=start.day&&r.day<=end.day && (r.day!==start.day || start.at===null || r.at!==null&&r.at>=start.at) && (r.day!==end.day || end.at===null || r.at!==null&&r.at<=end.at)) : [];
   const boundaryUnknown=financial.some(r=>(r.day===start?.day||r.day===end?.day)&&r.at===null) && (start?.at!==null || end?.at!==null);
 
   const continuityMissing=!!start&&!!end&&selected.some(r=>r.kind==='fuel'&&r.id!==start.id&&(r.record as Fillup).continuityBreakBefore&&r.day>=start.day&&r.day<=end.day);
   const ratiosKnown=distance!==null&&!incomplete&&!boundaryUnknown&&!continuityMissing&&covered.every(r=>r.amountAgorot!==null);
-  return {...totals,incomplete,count:selected.length,financialCount:financial.length,distance,fromDay:start?.day??null,toDay:end?.day??null,ambiguous,boundaryUnknown,continuityMissing,
+  return {...totals,incomplete,count:selected.length,financialCount:financial.length,distance,fromDay:start?.day??null,toDay:end?.day??null,ambiguous,mileageInconsistent,boundaryUnknown,continuityMissing,
     costPerKm:ratiosKnown?covered.reduce((s,r)=>s+r.amountAgorot!,0)/100/distance!:null,
     fuelPerKm:ratiosKnown?covered.filter(r=>r.kind==='fuel').reduce((s,r)=>s+r.amountAgorot!,0)/100/distance!:null,
 };

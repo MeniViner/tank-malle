@@ -257,7 +257,7 @@ test("Home carries the tank card alongside the two summary tiles", async ({ page
 
   await expect(page.getByText("המיכל שלי")).toBeVisible({ timeout: 20_000 });
   // The month-spend and fuel-price tiles keep their place above it.
-  await expect(page.getByText("הוצאה החודש")).toBeVisible();
+  await expect(page.locator(".tm-statpair").getByText("הוצאות החודש",{exact:true})).toBeVisible();
   await expect(page.getByText("מחיר דלק נוכחי")).toBeVisible();
   // The full-tank range strip is gone: the tank card carries the range that
   // matters, which is the one to the refuelling threshold.

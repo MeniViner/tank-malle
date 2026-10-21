@@ -1,10 +1,11 @@
 import { vehicleMoney } from "../lib/vehicle/format";
 import { LegacyCareTransfer } from "../components/LegacyCareTransfer";
 import { UnifiedTransfer } from "../components/UnifiedTransfer";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
+import { useVehicleData } from "../context/VehicleDataContext";
 import { useToast } from "../context/ToastContext";
 import { ScreenHeader } from "../components/AppHeader";
 import { Avatar } from "../components/Avatar";
@@ -29,29 +30,57 @@ export function Profile() {
   // writes count too, because the Firestore cache is shared.
   const [deviceState, setDeviceState] = useState<"none" | "some" | "unknown" | null>(null);
   const [clearLocal, setClearLocal] = useState(false);
-  const { vehicles, activeVehicle, fillups, observations, plans, deleteAccount, accountDeletionPending } = useData();
+  const { vehicles, activeVehicle, fillups, observations, plans, deleteAccount, accountDeletionPending, ready, loadingFillups, fillupsError, malformedFillups, observationsStatus } = useData();
+  const vehicleData = useVehicleData();
   const [exportScope, setExportScope] = useState<"account" | "active">("account");
   const [scopeOpen, setScopeOpen] = useState(false);
   const uid = user?.uid;
-  const [accountData, setAccountData] = useState<AccountExport | null>(null);
+  const [accountSnapshot, setAccountSnapshot] = useState<{ uid: string; data: AccountExport; at: number } | null>(null);
+  const [loadingAccount, setLoadingAccount] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const uidRef = useRef(uid);
+  useLayoutEffect(() => { uidRef.current = uid; }, [uid]);
+  // Other vehicles are an explicit server snapshot, not a listener per archive.
+  // Refetch when the catalog changes or an account import finishes.
+  const catalogKey = vehicles.map(vehicle => vehicle.id).sort().join("/");
   useEffect(() => {
-    if (!uid || accountDeletionPending) return;
+    if (!uid || !ready || accountDeletionPending) return;
     let current = true;
-    setAccountData(null); setExportError(null);
-    void loadAccountExport(db, uid).then((data) => { if (current) setAccountData(data); },
-      () => { if (current) setExportError("לא ניתן לטעון את נתוני כל הרכבים. נדרש חיבור לשרת."); });
-    return () => { current = false; };
-  }, [uid, accountDeletionPending, loadAttempt]);
-  const records = useMemo(() => accountData ? accountTotals(accountData) : null, [accountData]);
+    setLoadingAccount(true); setExportError(null);
+    const timer = window.setTimeout(() => {
+      void loadAccountExport(db, uid).then((data) => { if (current) setAccountSnapshot({ uid, data, at: Date.now() }); },
+        () => { if (current) setExportError("לא ניתן לרענן את נתוני כל הרכבים. נדרש חיבור לשרת."); })
+        .finally(() => { if (current) setLoadingAccount(false); });
+    }, 100);
+    return () => { current = false; window.clearTimeout(timer); };
+  }, [uid, ready, accountDeletionPending, loadAttempt, catalogKey, activeVehicle?.id]);
+  const snapshot = accountSnapshot?.uid === uid && !accountDeletionPending ? accountSnapshot : null;
+  const liveReady = !!activeVehicle && vehicleData.uid === uid && vehicleData.vehicleId === activeVehicle.id
+    && !vehicleData.care.loading && !vehicleData.care.errors.length && !vehicleData.care.malformed
+    && !loadingFillups && !fillupsError && !malformedFillups.length
+    && (observationsStatus === "ready" || observationsStatus === "cached");
+  const records = useMemo(() => {
+    if (!snapshot) return null;
+    if (!liveReady || !activeVehicle) return accountTotals(snapshot.data, vehicleData.today);
+    const id = activeVehicle.id;
+    return accountTotals({
+      ...snapshot.data,
+      vehicles,
+      rows: [...snapshot.data.rows.filter(row => row.vehicle?.id !== id), ...fillups.map(fillup => ({ vehicle: activeVehicle, fillup }))],
+      observations: [...snapshot.data.observations.filter(row => row.vehicleId !== id), ...observations],
+      plans: [...snapshot.data.plans.filter(row => row.vehicleId !== id), ...plans],
+      vehicleCare: { ...snapshot.data.vehicleCare, [id]: vehicleData.care.data },
+    }, vehicleData.today);
+  }, [snapshot, liveReady, activeVehicle, vehicles, fillups, observations, plans, vehicleData.care.data, vehicleData.today]);
   async function exportAll(kind: "fillups" | "tank") {
     if (!user || exporting) return;
     setExporting(true); setExportError(null);
+    const exportUid = user.uid;
     try {
-      const data = await loadAccountExport(db, user.uid);
-      setAccountData(data);
+      const data = await loadAccountExport(db, exportUid);
+      if (uidRef.current !== exportUid) return;
       const hasData = kind === "fillups" ? data.rows.length : data.observations.length + data.plans.length;
       if (!hasData) {
         showToast({ tone: "info", title: "אין עדיין נתונים מהסוג הזה לייצוא" }); return;
@@ -142,7 +171,7 @@ export function Profile() {
       <ScreenHeader title="פרופיל וחשבון" onBack={() => navigate(-1)} />
 
       <div className="tm-page">
-        <UnifiedTransfer />
+        <UnifiedTransfer onImported={() => setLoadAttempt(n => n + 1)} />
         <LegacyCareTransfer />
         {accountDeletionPending ? <p role="alert" className="rounded-card bg-danger/10 p-4 text-sm text-danger">מחיקת החשבון ממתינה להשלמה. הנתונים שכבר נמחקו לא ישוחזרו; ניתן לנסות שוב דרך מחיקת החשבון למטה. אם הפעולה נעצרה, רעננו תחילה.</p> : null}
         <section className="tm-rise flex flex-col gap-3.5 py-2 text-ink">
@@ -177,8 +206,12 @@ export function Profile() {
         </section>
 
         {/* Lifetime totals — the reason to keep a log in the first place. */}
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2" data-testid="profile-summary">
           <Label>הפעילות שלי · כל הרכבים, כולל הארכיון</Label>
+          <div className="flex items-start justify-between gap-3 text-xs text-muted">
+            <p>{snapshot ? `נתוני שאר הרכבים נכונים ל־${new Date(snapshot.at).toLocaleTimeString("he-IL", { hour: "2-digit", minute: "2-digit" })}. ` : "טוענים את סיכום החשבון. "}{liveReady ? vehicleData.incomplete ? "נתוני הרכב הפעיל כוללים מידע מקומי או שטרם סונכרן." : "הרכב הפעיל מתעדכן בזמן אמת." : activeVehicle ? "הרכב הפעיל יוצג לפי תמונת השרת עד השלמת הטעינה." : ""}</p>
+            <button type="button" className="min-h-10 shrink-0 underline" disabled={loadingAccount || !uid || accountDeletionPending} onClick={() => setLoadAttempt(n => n + 1)}>{loadingAccount ? "מרעננים…" : "רענון הסיכום"}</button>
+          </div>
           {exportError ? <p role="alert" className="text-sm text-danger">{exportError} <button className="min-h-10 px-2 underline" onClick={() => setLoadAttempt((n) => n + 1)}>ניסיון חוזר</button></p> : null}
           <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
             <MetricCard

@@ -33,7 +33,7 @@ test('missing specs are filled without Functions, with source labels and preserv
   expect((await getDocument(path))?.declaredKmPerLiter).toBe(14.8);
 });
 
-test('history learning and rounded money fit a small mobile screen', async ({page}) => {
+test('history learning and precise money fit a small mobile screen', async ({page}) => {
   await page.setViewportSize({width:360,height:780});
   const today = Date.now();
   await signedInWithData(page, { vehicle:{make:'מבחן',model:'למידה',tankLiters:50,tankLitersSource:'user',declaredKmPerLiter:15}, fillups:[0,7,14,21].map((days,i)=>({
@@ -52,5 +52,5 @@ test('history learning and rounded money fit a small mobile screen', async ({pag
   await expect(page.getByText('כדאי לתדלק לפני הנסיעה',{exact:true})).toBeVisible();
   await page.goto('/history');
   await expect(page.getByText('₪233.10',{exact:true}).first()).toBeVisible();
-  await expect(page.locator('.ledger-row[data-collection=fillups]').first()).toContainText('₪233.10');
+  await expect(page.locator('.ledger-row[data-collection=fillups]').filter({hasText:'₪233.10'})).toHaveCount(1);
 });

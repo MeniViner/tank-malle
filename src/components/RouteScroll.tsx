@@ -40,6 +40,6 @@ export function RouteScroll() {
       focusedHeading?.removeAttribute("tabindex");
       observer.disconnect(); clearTimeout(timeout); history.scrollRestoration = previous;
     };
-  }, [location.key, action]);
+  }, [location.key, location.hash, action]);
   return null;
 }
