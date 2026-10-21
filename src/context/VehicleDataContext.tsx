@@ -7,24 +7,25 @@ import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { useMaintenance } from '../hooks/useMaintenance';
 import { localDay, type MaintenancePlan } from '../lib/maintenance/model';
-import { EMPTY_EXTRA, EXTRA_COLLECTIONS, decodeVehicleRecord, validVehicleRecord, type ExtraData, type VehicleCollection, type VehicleRecord } from '../lib/vehicle/model';
+import { EXTRA_COLLECTIONS, decodeVehicleRecord, validVehicleRecord, type VehicleCollection, type VehicleRecord } from '../lib/vehicle/model';
+import { emptyExtraSources, recordExtraSourceError, type ExtraSourceState } from '../lib/vehicle/sourceState';
 import { buildLedger, currentMileage, mileageEvidence, periodSummary, reminderRows } from '../lib/vehicle/derived';
 export interface EditingRecord { collection: VehicleCollection; record?: VehicleRecord; completePlan?: MaintenancePlan }
 function useVehicleSources() {
   const {user}=useAuth();const data=useData();const uid=user?.uid??'',vehicleId=data.activeVehicle?.id??'';const scope=`${uid}/${vehicleId}`;
   const care=useMaintenance(uid,vehicleId);
-  const [extra,setExtra]=useState<{scope:string;data:ExtraData;loaded:string[];cached:string[];errors:string[];malformed:number}>({scope:'',data:EMPTY_EXTRA,loaded:[],cached:[],errors:[],malformed:0});
+  const [extra,setExtra]=useState<ExtraSourceState>(emptyExtraSources);
   const [today,setToday]=useState(localDay);
   useEffect(()=>{const resume=()=>setToday(localDay());window.addEventListener('focus',resume);document.addEventListener('visibilitychange',resume);const timer=setInterval(resume,60000);return()=>{clearInterval(timer);window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume);};},[]);
   useEffect(()=>{if(!uid||!vehicleId)return;let current=true;const invalid=new Map<string,number>();
-    const empty={scope,data:EMPTY_EXTRA,loaded:[],cached:[],errors:[],malformed:0};
+    const empty=emptyExtraSources(scope);
     const off=EXTRA_COLLECTIONS.map(name=>subscribeResilient<QuerySnapshot<DocumentData>>((next,error)=>onSnapshot(collection(db,'users',uid,'vehicles',vehicleId,name),{includeMetadataChanges:true},next,error),snap=>{
       const rows=snap.docs.map(d=>decodeVehicleRecord(name,{...d.data(),id:d.id}));const valid=rows.filter(r=>validVehicleRecord(name,r));invalid.set(name,rows.length-valid.length);
       setExtra(old=>{const prev=old.scope===scope?old:empty;return {...prev,data:{...prev.data,[name]:valid},loaded:[...new Set([...prev.loaded,name])],cached:[...prev.cached.filter(n=>n!==name),...(snap.metadata.fromCache?[name]:[])],errors:prev.errors.filter(n=>n!==name),malformed:[...invalid.values()].reduce((a,b)=>a+b,0)};});
-    },{isCurrent:()=>current,label:name,onError:()=>setExtra(old=>({...old,scope,errors:[...new Set([...old.errors,name])]}))}));
+    },{isCurrent:()=>current,label:name,onError:()=>setExtra(old=>recordExtraSourceError(old,scope,name))}));
     return()=>{current=false;off.forEach(fn=>fn());};
   },[uid,vehicleId,scope]);
-  const scoped=extra.scope===scope?extra:{scope,data:EMPTY_EXTRA,loaded:[],cached:[],errors:[],malformed:0};
+  const scoped=extra.scope===scope?extra:emptyExtraSources(scope);
   const mileage=useMemo(()=>mileageEvidence(data.fillups,data.observations,care.data),[data.fillups,data.observations,care.data]);
   const ledger=useMemo(()=>buildLedger(data.fillups,data.observations,care.data,scoped.data),[data.fillups,data.observations,care.data,scoped.data]);
   const incomplete=care.loading||care.cached.length>0||care.errors.length>0||care.malformed>0||scoped.loaded.length<2||scoped.cached.length>0||scoped.errors.length>0||scoped.malformed>0||data.loadingFillups||data.fillupsFromCache||!!data.fillupsError||data.malformedFillups.length>0||data.observationsStatus!=='ready'||data.outbox.some(op=>op.vehicleId===vehicleId);

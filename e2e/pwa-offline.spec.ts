@@ -15,12 +15,12 @@ import {
 } from "./helpers/pwa";
 
 /**
- * A full offline restart, against the PRODUCTION build.
+ * A full offline restart, against the optimized emulator-only build.
  *
  * `reliability.spec.ts` proves the data-preservation contract, but its
  * "offline" is a blocked Firestore port: the dev server it runs on has no
  * service worker, so the app could not be reloaded with the network truly
- * gone. This spec runs in the `pwa` project — the built `dist/` served by
+ * gone. This spec runs in the `pwa` project — its isolated build served by
  * `vite preview`, service worker included — and takes the browser fully
  * offline with `context.setOffline(true)`: no Vite, no emulators, no fonts.
  *
@@ -57,6 +57,8 @@ async function waitForDocuments(
  * Firestore cache the history and settings screens read from on a cold start.
  */
 async function primed(page: Page): Promise<{ uid: string; vehicleId: string; fillups: string }> {
+  const identity = await (await page.request.get('/build-info.json')).json();
+  expect(identity.mode, 'PWA must serve the isolated emulator build').toBe('e2e');
   const { uid, vehicleId } = await signedInWithData(page, {});
   for (const route of ["/", "/fillup/new", "/history", "/settings/unsynced"]) {
     await page.goto(route);

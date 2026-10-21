@@ -117,11 +117,12 @@ export default defineConfig({
     },
     {
       // The production build, served as built. `--mode e2e` on BOTH steps: the
-      // build bakes `.env.e2e` (the emulator config) into the bundle, and
-      // `vite preview` serves `dist/` as a static host with the SPA fallback,
+      // build bakes `.env.e2e` (the emulator config) into its own output, and
+      // `vite preview` serves that directory with the SPA fallback,
       // including the generated `sw.js`. The build runs here rather than as a
       // separate step so `npm run test:e2e` is self-contained on any machine.
-      command: `vite build --mode e2e && vite preview --mode e2e --host 127.0.0.1 --port ${PWA_PORT} --strictPort`,
+      // A concurrent production build must not replace the emulator bundle.
+      command: `vite build --mode e2e --outDir .care-device/main/pwa-dist && vite preview --mode e2e --outDir .care-device/main/pwa-dist --host 127.0.0.1 --port ${PWA_PORT} --strictPort`,
       url: PWA_BASE_URL,
       reuseExistingServer: !isolated && !process.env.CI,
       timeout: 180_000,
