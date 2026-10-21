@@ -1,0 +1,69 @@
+{
+  "sourceHead": "ef9644d04e72d6a858e5d18ae917113cbacd3e61",
+  "environment": "local Firebase emulators only, demo-tankaudit-ui",
+  "method": "Exact current deleteAccount callback extracted and type annotations transpiled; successful reauthentication stubbed; real Firestore and Auth deletion; one injected vehicle read failure",
+  "results": [
+    {
+      "scenario": "normal",
+      "result": {
+        "ok": true,
+        "deleted": [
+          "vehicles",
+          "stationPriceReports",
+          "benchmark",
+          "profile",
+          "auth"
+        ],
+        "failed": []
+      },
+      "remainingDocuments": {
+        "profile": false,
+        "vehicle": false,
+        "fillup": false,
+        "personalPriceRules": true,
+        "importBatches": true,
+        "userSummary": true,
+        "benchmark": true,
+        "feedback": true
+      },
+      "authExists": false,
+      "clearCacheCalled": true,
+      "reauth": "stubbed successful; this probe tests only post-reauth deletion"
+    },
+    {
+      "scenario": "vehicle-read-failure",
+      "result": {
+        "ok": false,
+        "deleted": [
+          "stationPriceReports",
+          "benchmark",
+          "profile",
+          "auth"
+        ],
+        "failed": [
+          "vehicles"
+        ]
+      },
+      "remainingDocuments": {
+        "profile": false,
+        "vehicle": true,
+        "fillup": true,
+        "personalPriceRules": true,
+        "importBatches": true,
+        "userSummary": true,
+        "benchmark": true,
+        "feedback": true
+      },
+      "authExists": false,
+      "clearCacheCalled": true,
+      "reauth": "stubbed successful; this probe tests only post-reauth deletion"
+    }
+  ],
+  "reauthProbe": {
+    "popupResult": "auth/popup-blocked",
+    "tokenRefresh": "succeeds",
+    "result": {
+      "ok": true
+    }
+  }
+}

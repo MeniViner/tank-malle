@@ -1,0 +1,5 @@
+﻿schema_version,record_id,vehicle_id,vehicle_label,date,time,odometer_km,liters,paid_price_per_liter,posted_station_price_per_liter,personal_discount_per_liter,total_cost,filled_to_full,continuity_break_before,station_id,station_name_snapshot,latitude,longitude,fuel_type,notes,import_source,import_batch_id,import_row_hash,fill_end_state,fill_end_state_source,pre_fill_level,pre_fill_level_source,post_fill_level,post_fill_level_source,refuel_reason,capacity_liters_at_entry,tank_schema_version
+2,f1,audit-v1,מאזדה 3 · 2020,2026-10-01,12:00,100000,40,7,,,280,1,0,,תחנת בדיקה,,,95,,,,,full,user-confirmed,,,,,,,2
+2,f2,audit-v1,מאזדה 3 · 2020,2026-10-05,12:00,100400,32,7,,,224,1,0,,תחנת בדיקה,,,95,,,,,full,user-confirmed,,,,,,,2
+2,f3,audit-v1,מאזדה 3 · 2020,2026-10-09,12:00,100800,32,7,,,224,1,0,,תחנת בדיקה,,,95,,,,,full,user-confirmed,,,,,,,2
+2,f4,audit-v1,מאזדה 3 · 2020,2026-10-13,12:00,101000,18,7,,,126,0,0,,תחנת בדיקה,,,95,,,,,unknown,unknown,,,,,,,2

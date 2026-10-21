@@ -1,0 +1,71 @@
+{
+  "roundtrip": {
+    "original": {
+      "fillEndState": "unknown",
+      "fillEndStateSource": "unknown",
+      "preFillLevel": 0.25,
+      "preFillLevelSource": "direct-gauge",
+      "postFillLevel": 0.65,
+      "postFillLevelSource": "direct-gauge",
+      "refuelReason": "routine",
+      "capacityLitersAtEntry": 50,
+      "tankSchemaVersion": 2,
+      "postedPricePerLiter": 7.3
+    },
+    "missing": [
+      "fillEndState",
+      "fillEndStateSource",
+      "preFillLevel",
+      "preFillLevelSource",
+      "postFillLevel",
+      "postFillLevelSource",
+      "refuelReason",
+      "capacityLitersAtEntry",
+      "tankSchemaVersion",
+      "postedPricePerLiter"
+    ],
+    "beforeEndState": {
+      "state": "unknown",
+      "source": "unknown"
+    },
+    "afterEndState": {
+      "state": "partial",
+      "source": "legacy-assumption"
+    }
+  },
+  "dedupe": {
+    "target": "audit-v2",
+    "usingTargetHistory": 0,
+    "usingActiveVehicleEmptyHistory": 1
+  },
+  "odometer": {
+    "input": "123,456",
+    "standalone": 123.456,
+    "fillup": 123456
+  },
+  "ranges": {
+    "sixMonthsFromAug31": "2026-03-03",
+    "threeMonthsStatistics": "2026-07-15",
+    "threeMonthsHistory": "2026-08-01"
+  },
+  "tankUpdatesRoundtrip": {
+    "rows": 0,
+    "rejected": [
+      {
+        "rowNumber": 1,
+        "reason": "לא נמצאו עמודות תאריך, קילומטראז׳ וכמות דלק — ודאו שהקובץ מכיל שורת כותרות."
+      }
+    ]
+  },
+  "summaryUpdate": {
+    "changedFields": [
+      "liters",
+      "lastFillupAt"
+    ],
+    "changeDetected": false
+  },
+  "stationCache": {
+    "returnedStation": "Old station",
+    "networkCalls": 0
+  }
+}

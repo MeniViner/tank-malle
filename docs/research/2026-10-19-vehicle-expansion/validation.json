@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-10-19T00:06:01.910Z",
+  "scope": "Synthetic local prototype only; desktop browser engines, not physical Android or iPhone. No real camera hardware or real fuel display photos tested.",
+  "checks": [
+    {
+      "browser": "chromium",
+      "version": "151.0.7922.34",
+      "executablePath": "/Users/meni/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "status": "passed",
+      "viewport": "390x844 (desktop screenshot also checked in Chromium)",
+      "assertions": [
+        "synthetic pump and blue odometer pixels",
+        "newest photo wins after rapid replacement",
+        "manual input preserved on re-scan",
+        "missing odometer confirmation blocks review",
+        "derived price 7.185",
+        "no application save",
+        "camera denial fallback",
+        "synthetic camera stream capture and track shutdown",
+        "local PNG file decoding",
+        "no horizontal overflow",
+        "no page errors",
+        "no external requests"
+      ]
+    },
+    {
+      "browser": "webkit",
+      "version": "26.5",
+      "executablePath": "/Users/meni/Library/Caches/ms-playwright/webkit-2370/pw_run.sh",
+      "status": "passed",
+      "viewport": "390x844 (desktop screenshot also checked in Chromium)",
+      "assertions": [
+        "synthetic pump and blue odometer pixels",
+        "newest photo wins after rapid replacement",
+        "manual input preserved on re-scan",
+        "missing odometer confirmation blocks review",
+        "derived price 7.185",
+        "no application save",
+        "camera denial fallback",
+        "local PNG file decoding",
+        "no horizontal overflow",
+        "no page errors",
+        "no external requests"
+      ]
+    }
+  ]
+}

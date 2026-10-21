@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e7a6b">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>טנק מלא · שני צילומים, פחות הקלדה</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="prototype.css">
+</head>
+<body>
+  <header class="site-header"><a href="./index.html" aria-label="טנק מלא, התחלה">טנק מלא<span class="brand-dot"></span></a><span class="badge">אב־טיפוס · ללא שמירה</span></header>
+  <main class="layout">
+    <aside class="intro">
+      <p class="eyebrow">פחות להקליד. יותר לזכור.</p>
+      <h1>שני צילומים.<br>והתדלוק אצלך.</h1>
+      <p class="lead">מצלמים את הסכום והליטרים, ואז את מד המרחק. בודקים את המספרים וממשיכים.</p>
+      <ol class="journey"><li><span>01</span><div><strong>הצג של המשאבה</strong><p>סכום לתשלום וכמות הדלק</p></div></li><li><span>02</span><div><strong>מד המרחק ברכב</strong><p>הקילומטראז׳ המצטבר</p></div></li></ol>
+      <div class="research-note"><strong>אב־טיפוס לבדיקה</strong><p>זיהוי מקומי של ספרות בתצוגת שבעה מקטעים. עדיין נדרשות בדיקות עם תמונות אמיתיות. הנתונים נשארים במסך הזה ואינם נשמרים באפליקציה.</p><p>התמונות מעובדות במכשיר בלבד, ללא מודלים וללא העלאה לשרת.</p></div>
+      <a class="report-link" href="./README.md">למחקר ולתוכנית הפיתוח ←</a>
+    </aside>
+
+    <section class="phone" aria-label="אב־טיפוס הוספת תדלוק">
+      <div class="phone-head"><span>תדלוק חדש</span><span id="step-count" class="badge">צילום 1 מתוך 2</span></div>
+      <div class="progress" aria-hidden="true"><span id="progress-pump" class="active"></span><span id="progress-odo"></span></div>
+      <div class="flow-body" id="capture-view">
+        <h2 id="step-title" tabindex="-1">מתחילים במשאבה</h2>
+        <p id="step-help" class="help">מכניסים את הסכום והליטרים למסגרות. מצלמים כשהתדלוק הסתיים ובהתאם להנחיות התחנה.</p>
+
+        <div id="image-stage" class="image-stage">
+          <div id="empty-photo" class="empty-photo"><svg width="46" height="46" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 6h4l2-3h4l2 3h4v14H4z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.5"/></svg><strong id="photo-prompt">הסכום למעלה, הליטרים למטה</strong><span>אפשר גם לבחור תמונה קיימת</span></div>
+          <canvas id="photo" hidden aria-label="התמונה שנבחרה; ניתן לגרור מסגרת סביב שורת הספרות"></canvas>
+          <div id="video-stage" hidden><video id="video" autoplay muted playsinline></video><div class="guide one"></div><div class="guide two"></div></div>
+          <span id="sample-label" class="sample-label" hidden>תמונה סינתטית להדגמה</span>
+        </div>
+        <div class="actions camera-actions"><button id="camera" class="primary">פתיחת מצלמה</button><button id="choose" class="secondary">בחירת תמונה</button></div>
+        <div id="live-actions" class="actions" hidden><button id="capture" class="primary">צילום</button><button id="stop-camera" class="secondary">ביטול צילום</button></div>
+        <input id="file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" hidden>
+        <input id="native-camera" type="file" accept="image/*" capture="environment" hidden>
+        <button id="native-fallback" class="text-button" hidden>צילום דרך מצלמת המכשיר</button>
+        <div class="minor-actions"><button id="sample" class="text-button">ניסיון עם דוגמה סינתטית</button><button id="manual" class="text-button">הזנה ידנית</button></div>
+
+        <div id="crop-tools" hidden>
+          <div class="crop-heading"><span>אם צריך, מסמנים רק את הספרות</span><button id="scan" class="text-button">סריקה מחדש</button></div>
+          <div class="chips" role="group" aria-label="השדה לסימון בתמונה"><button data-region="total" aria-pressed="true">סכום</button><button data-region="liters" aria-pressed="false">ליטרים</button><button data-region="odometer" aria-pressed="false" hidden>קילומטראז׳</button></div>
+          <details><summary>התאמת מסגרת עם המקלדת או שינוי צבע הצג</summary><div class="crop-ranges"><label>מיקום אופקי<input id="crop-x" type="range" min="0" max="95" value="8"></label><label>מיקום אנכי<input id="crop-y" type="range" min="0" max="95" value="18"></label><label>רוחב<input id="crop-w" type="range" min="5" max="100" value="84"></label><label>גובה<input id="crop-h" type="range" min="5" max="100" value="28"></label><label>צבע הספרות<select id="color-mode"><option value="auto">זיהוי צבע אוטומטי</option><option value="dark">כהות על רקע בהיר</option><option value="light">בהירות על רקע כהה</option><option value="blue">כחולות / תכלת</option></select></label></div></details>
+        </div>
+
+        <div id="notice" class="notice" role="status" aria-live="polite">אפשר להתחיל בצילום או להזין ידנית.</div>
+        <div id="pump-fields" class="fields"><label>סכום שמופיע במשאבה <span>₪</span><input id="total" inputmode="decimal" dir="ltr" placeholder="0.00" autocomplete="off"><small id="total-hint">יש לבדוק גם את הנקודה העשרונית.</small></label><label>כמות דלק <span>ליטרים</span><input id="liters" inputmode="decimal" dir="ltr" placeholder="0.000" autocomplete="off"><small id="liters-hint">את המחיר לליטר נחשב מהנתונים.</small></label></div>
+        <div id="odo-fields" class="fields" hidden><label>קילומטראז׳ מצטבר <span>ק״מ</span><input id="odometer" inputmode="numeric" dir="ltr" placeholder="128450" autocomplete="off"><small id="odometer-hint">הצבע לבדו לא מזהה את משמעות המספר.</small></label><label class="check"><input id="confirm-odo" type="checkbox"><span>בדקתי: זה מד המרחק המצטבר בק״מ, ולא Trip או טווח נסיעה.</span></label></div>
+        <div class="footer-actions"><button id="continue" class="primary">בדקתי, לצילום מד המרחק ←</button><button id="back" class="text-button" hidden>חזרה למשאבה</button></div>
+      </div>
+
+      <div id="review-view" class="flow-body" hidden>
+        <span class="review-mark" aria-hidden="true">✓</span><h2 tabindex="-1">רגע לפני שמסיימים</h2><p class="help">הקריאות הועברו לטיוטה. כאן בודקים את הנתונים ביחד.</p>
+        <dl class="summary"><div><dt>הסכום במשאבה</dt><dd id="review-total"></dd></div><div><dt>כמות דלק</dt><dd id="review-liters"></dd></div><div><dt>מחיר מחושב לליטר</dt><dd id="review-price"></dd></div><div><dt>קילומטראז׳ מצטבר</dt><dd id="review-odo"></dd></div></dl>
+        <p class="notice">הנחה או מימוש הטבה יכולים לשנות את הסכום ששולם בפועל. בחיבור לאפליקציה תהיה אפשרות לתקן אותו ולציין אם המיכל מלא.</p>
+        <button id="finish" class="primary">סיום ההדגמה</button><button id="edit" class="text-button">חזרה לעריכת הקריאות</button>
+        <p id="done" class="done" hidden role="status">ההדגמה הושלמה. לא נשמרה רשומה באפליקציה.</p>
+      </div>
+    </section>
+  </main>
+  <noscript>נדרש JavaScript כדי להפעיל את אב־הטיפוס.</noscript>
+  <script type="module" src="./prototype.mjs"></script>
+</body>
+</html>

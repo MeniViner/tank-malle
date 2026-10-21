@@ -1,0 +1,16 @@
+{
+  "verifiedAt": "2026-10-01T13:16:13.331Z",
+  "url": "https://tank-malle.web.app/",
+  "viewport": {
+    "width": 360,
+    "height": 780
+  },
+  "execution": "Actual browserFetch.ts function from deployed tree, transpiled unchanged; live page origin; fresh anonymous browser; no price save",
+  "reading": {
+    "month": "2026-10",
+    "url": "https://www.gov.il/he/pages/fuel-october-2026",
+    "price": 8.27,
+    "via": "public-reader",
+    "readAt": 1790860573330
+  }
+}

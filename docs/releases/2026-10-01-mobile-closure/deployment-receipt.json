@@ -1,0 +1,83 @@
+{
+  "verifiedAt": "2026-10-01T13:10:52.127Z",
+  "project": "tank-malle",
+  "url": "https://tank-malle.web.app/",
+  "sha": "ef9644d04e72d6a858e5d18ae917113cbacd3e61",
+  "version": "1.1.1",
+  "rules": {
+    "ruleset": "projects/tank-malle/rulesets/e5aa6308-8387-44af-972d-ff3f7ec6bfe6",
+    "releaseUpdatedAt": "2026-10-01T13:10:39.860729Z",
+    "sha256": "aac0508cf6d9e10276f746337e168e2886616655fa238fcf9fa1545bbde5b95f",
+    "matches": true
+  },
+  "hosting": {
+    "release": "projects/157993868783/sites/tank-malle/channels/live/releases/1790860242438000",
+    "releaseTime": "2026-10-01T13:10:42.438Z",
+    "version": "projects/157993868783/sites/tank-malle/versions/09c5ad3996094c1e",
+    "status": "FINALIZED"
+  },
+  "assets": [
+    {
+      "name": "index.html",
+      "sha256": "8d6bf3067bf649d7c526a88a76b038c9780376a22555d7a1f50b009243b62713",
+      "bytes": 2804
+    },
+    {
+      "name": "sw.js",
+      "sha256": "a263d9662e62b53d314f826331d28663906e0336a7de19413f16af5f40cadc98",
+      "bytes": 2869
+    },
+    {
+      "name": "manifest.webmanifest",
+      "sha256": "f4df9941b6a7bb1c7c7079bed8d06666968ab794ded80a1d806c844f2c829171",
+      "bytes": 600
+    },
+    {
+      "name": "assets/Admin-Bl00wXgK.js",
+      "sha256": "bfbe14ffe2209922260788caaf02d98735cbedf07fdc8a8bbdf0c5cdbad82b5b",
+      "bytes": 31522
+    },
+    {
+      "name": "assets/Statistics-COfAlcz8.js",
+      "sha256": "c76d7a8e10c4a9074c043d6258431727a72d86223a0e502f577d6f85aaecef5d",
+      "bytes": 423806
+    },
+    {
+      "name": "assets/csv-CusTu7sF.js",
+      "sha256": "0dd9cc9b7e021cae7b065230321e5622af390f7c5a57b758e68b0805ae88ed3d",
+      "bytes": 566
+    },
+    {
+      "name": "assets/index-Bl-fHKKW.css",
+      "sha256": "0c80853d12f0848c4bfd8ca6c1ae67db4c2b00a15926b766cbbff36c7929c72a",
+      "bytes": 53956
+    },
+    {
+      "name": "assets/index-Z-rXlIQO.js",
+      "sha256": "ad8110fb41e990e4444b54dc0656e7d910c35483a1cd098dab7a179e36074cad",
+      "bytes": 974370
+    },
+    {
+      "name": "assets/plan-BO3YW9tz.js",
+      "sha256": "8ba12795b21788d05678c08c0bd3d4c1fe739676ffaaefa7e2c76707427b1461",
+      "bytes": 1168
+    },
+    {
+      "name": "assets/rows-BcfX236k.js",
+      "sha256": "3b6981ead37899b035adbee527c67926ac4e63e4146cf046d134a26e36cb7032",
+      "bytes": 4177
+    },
+    {
+      "name": "assets/workbox-window.prod.es5-Bd17z0YL.js",
+      "sha256": "17bcc17d60dc78f927834b880c39649b03af46fd1f5cdbb8c42c5ae2b515dce9",
+      "bytes": 5653
+    },
+    {
+      "name": "assets/xlsx-DO4EweKR.js",
+      "sha256": "f0390b901af15b920da578350e89121792195b654e8d8723fbf239fc94fa98cd",
+      "bytes": 4126
+    }
+  ],
+  "authenticatedWriteSmoke": "Awaiting isolated Google test-account sign-in; no synthetic records added to owner history",
+  "historicalRecovery": "Original affected UID/device/export unavailable; no personal restoration"
+}

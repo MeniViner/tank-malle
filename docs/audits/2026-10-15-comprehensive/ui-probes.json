@@ -1,0 +1,85 @@
+{
+  "standaloneOdometer": {
+    "typed": "123,456",
+    "serverRecords": [
+      {
+        "kind": "odometer",
+        "odometer": 123.456,
+        "confirmed": true
+      }
+    ]
+  },
+  "sharingAfterToggle": {
+    "shareBenchmarks": false,
+    "remainingVehicles": [
+      "audit-archived",
+      "audit-v1"
+    ]
+  },
+  "sharingAfterStatistics": {
+    "shareBenchmarks": false,
+    "remainingVehicles": [
+      "audit-archived"
+    ]
+  },
+  "keyboard": {
+    "statsRadioArrowLeft": {
+      "before": "חודשי",
+      "after": "חודשי",
+      "allRadioButtonsTabbable": true
+    },
+    "infoSheet": {
+      "accessibleName": null,
+      "initialFocusInsideDialog": false,
+      "firstTabFocus": "סגירה",
+      "firstTabInsideDialog": false
+    }
+  },
+  "unsavedFillup": {
+    "typed": {
+      "odometer": "101250",
+      "liters": "25",
+      "note": "בדיקת טיוטה סינתטית"
+    },
+    "action": "Close then reopen new fillup",
+    "warningShown": false,
+    "reopened": {
+      "odometer": "",
+      "liters": "",
+      "note": ""
+    }
+  },
+  "profileExport": {
+    "button": "קובץ CSV עם כל התדלוקים",
+    "expectedAcrossTwoActiveVehicles": 5,
+    "actualRows": 4,
+    "activeVehicleOnly": true,
+    "exportedVehicleIds": [
+      "audit-v1"
+    ]
+  },
+  "invalidVehicleSave": {
+    "typedTankLiters": "-20",
+    "successToast": "פרטי הרכב עודכנו",
+    "serverTankLiters": 50,
+    "outboxStatus": "conflict",
+    "outboxMessage": "הרשומה בשרת השתנתה מאז העריכה — יש לבחור איזו גרסה נכונה"
+  },
+  "narrowHome": {
+    "viewportWidth": 320,
+    "documentScrollWidth": 340,
+    "profileButtonBounds": {
+      "left": -35.703125,
+      "right": 2.296875
+    },
+    "conditions": "Dark theme, Mazda 3 2020, one unsynced operation",
+    "visual": "10-narrow-home-overflow.jpg"
+  },
+  "routeScroll": {
+    "from": "settings",
+    "to": "settings/profile",
+    "scrollY": 163.5,
+    "headingTop": -146.546875,
+    "result": "New page starts below its heading"
+  }
+}

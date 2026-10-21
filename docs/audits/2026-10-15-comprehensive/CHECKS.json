@@ -1,0 +1,101 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "ef9644d04e72d6a858e5d18ae917113cbacd3e61",
+  "appVersion": "1.1.1",
+  "sourceComparison": {
+    "trackedSourceFiles": 145,
+    "isolatedRuntimeFilesDifferingFromHEAD": [
+      "src/lib/firebase.ts"
+    ],
+    "expectedDifference": "src/lib/firebase.ts has local emulator ports remapped",
+    "rulesIdentical": true
+  },
+  "concurrentWorktreeChange": {
+    "path": "src/screens/Home.tsx",
+    "scope": "Fuel price description only, not modified by this audit, not included in isolated E2E baseline"
+  },
+  "results": {
+    "unit": {
+      "passed": 547,
+      "skipped": 7,
+      "files": 28
+    },
+    "firestoreRules": {
+      "passed": 191,
+      "files": 4
+    },
+    "e2eStable": {
+      "passed": 96,
+      "skipped": 2,
+      "total": 98,
+      "processExitCode": 0
+    },
+    "consumptionRetrySubset": {
+      "passed": 6
+    },
+    "targetedProbes": {
+      "passed": 8,
+      "behaviorScenarios": 7,
+      "evidenceWriteTest": 1
+    },
+    "accountDeletion": {
+      "emulatorScenarios": 2,
+      "reauthFallbackMockScenarios": 1
+    },
+    "build": {
+      "status": "passed",
+      "mainBundleBytes": 974370,
+      "mainBundleGzipKB": 289.93,
+      "statisticsBundleKB": 423.8,
+      "statisticsBundleGzipKB": 120.25
+    },
+    "targetedLint": {
+      "errors": 0,
+      "warnings": 14
+    },
+    "dependencyAudit": {
+      "all": {
+        "info": 0,
+        "low": 1,
+        "moderate": 19,
+        "high": 19,
+        "critical": 3,
+        "total": 42
+      },
+      "omitDev": {
+        "info": 0,
+        "low": 0,
+        "moderate": 2,
+        "high": 4,
+        "critical": 0,
+        "total": 6
+      }
+    }
+  },
+  "limits": [
+    "Not a production authenticated acceptance run",
+    "Public deployed commit not verified",
+    "Two E2E and seven unit cases need absent external legacy workbook",
+    "No physical-device Safari or real cellular performance test",
+    "No exploit or penetration testing",
+    "Earlier emulator-unavailable E2E run excluded from product conclusions"
+  ],
+  "findingCounts": {
+    "total": 21,
+    "P1": 6,
+    "P2": 14,
+    "P3": 1
+  },
+  "cleanup": {
+    "temporaryTabsClosed": true,
+    "viewportReset": true,
+    "ownedTestServersStopped": true,
+    "temporaryRuntimeFoldersRemoved": true,
+    "preexistingListenersStillRunning": {
+      "8080": false,
+      "5273": false,
+      "5274": false
+    },
+    "preexistingServersNotSignaledByAudit": true
+  }
+}

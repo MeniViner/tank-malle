@@ -572,3 +572,110 @@ warning has to do it on purpose rather than letting them accumulate unnoticed.
 - [docs/DATA-MIGRATION.md](docs/DATA-MIGRATION.md) — how every pre-upgrade shape is read, and the migration script
 - [docs/FIREBASE-SPARK-AND-BLAZE.md](docs/FIREBASE-SPARK-AND-BLAZE.md) — what works today, what needs Blaze, read/write budget
 - [docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md](docs/PRICE-SOURCE-AND-CONFIDENCE-MODEL.md) — the five price concepts, precedence, confidence, privacy
+
+
+
+
+
+
+
+
+
+
+הנה קוד עצמאי שאפשר להעביר לחבר שלך כמו שהוא. זו אותה שיטה שעובדת אצלנו: לוקחים את שם המשתמש המחובר מ-Windows Authentication, ואז שולפים מ-AD את המספר האישי ואת השם.
+
+1. חבילת NuGet
+
+
+dotnet add package System.DirectoryServices.AccountManagement
+2. להפעיל Windows Authentication ב-IIS
+ב-IIS Manager, תחת Authentication של האתר: Windows Authentication = Enabled, Anonymous = Disabled. אפשר גם דרך web.config:
+
+
+<configuration>
+  <system.webServer>
+    <security>
+      <authentication>
+        <anonymousAuthentication enabled="false" />
+        <windowsAuthentication enabled="true" />
+      </authentication>
+    </security>
+  </system.webServer>
+</configuration>
+ברוב המקרים זו הסיבה שלא מקבלים שם משתמש: כש-Anonymous דלוק, User.Identity.Name חוזר ריק.
+
+3. Controller
+
+
+using System.DirectoryServices;
+using System.DirectoryServices.AccountManagement;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/me")]
+public class MeController : ControllerBase
+{
+    private const string AdDomain = "your-domain.local";   // ← לשנות לדומיין שלכם
+
+    [HttpGet]
+    public IActionResult Get()
+    {
+        if (User.Identity?.IsAuthenticated != true)
+            return Unauthorized("המשתמש לא מאומת — בדוק ש-Windows Authentication דלוק ו-Anonymous כבוי");
+
+        // מגיע בפורמט DOMAIN\user או user@domain — משאירים רק את user
+        var username = NormalizeUsername(User.Identity.Name ?? User.FindFirstValue(ClaimTypes.NameIdentifier));
+        if (username is null)
+            return Forbid();
+
+        using var ctx = new PrincipalContext(ContextType.Domain, AdDomain);
+        using var user = UserPrincipal.FindByIdentity(ctx, IdentityType.SamAccountName, username);
+        if (user is null)
+            return NotFound($"המשתמש {username} לא נמצא ב-AD");
+
+        return Ok(new
+        {
+            Username       = user.SamAccountName,
+            PersonalNumber = ReadAttr(user, "name"),          // ← אצלנו המספר האישי יושב ב-"name"
+            DisplayName    = ReadAttr(user, "displayName"),
+            FirstName      = ReadAttr(user, "givenName"),
+            LastName       = ReadAttr(user, "sn"),
+            Rank           = ReadAttr(user, "st"),
+            Department     = ReadAttr(user, "department"),
+        });
+    }
+
+    private static string? NormalizeUsername(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var u = value.Trim();
+        var slash = u.LastIndexOf('\\');
+        if (slash >= 0 && slash < u.Length - 1) u = u[(slash + 1)..];
+        var at = u.IndexOf('@');
+        if (at > 0) u = u[..at];
+        return u;
+    }
+
+    // קורא כל מאפיין AD לפי שם, גם כאלה ש-UserPrincipal לא חושף
+    private static string ReadAttr(UserPrincipal user, string attr)
+    {
+        try
+        {
+            var entry = user.GetUnderlyingObject() as DirectoryEntry;
+            return entry?.Properties[attr]?.Value?.ToString() ?? "";
+        }
+        catch { return ""; }
+    }
+}
+4. בצד הלקוח (אם הקריאה נשלחת מ-JS)
+
+
+const me = await fetch('/api/me', { credentials: 'include' }).then(r => r.json());
+console.log(me.username, me.personalNumber);
+כמה דברים שכדאי להגיד לו:
+
+שם המאפיין של המספר האישי תלוי בארגון. אצלנו הוא נמצא ב-name (מוגדר ב-config.json:68). אצלו הוא יכול להיות employeeID, employeeNumber או משהו אחר. אם PersonalNumber חוזר ריק, צריך לפתוח את המשתמש ב-ADUC, ללכת ללשונית Attribute Editor ולבדוק איפה המספר נמצא.
+השרת חייב להיות חבר בדומיין, וה-App Pool צריך לרוץ תחת זהות שמורשית לקרוא מ-AD.
+הקוד רץ רק על Windows, כי System.DirectoryServices לא עובד על Linux.
+אם תרצה, אכין גם גרסה שמחזירה פרטים של משתמש אחר לפי מספר אישי, כלומר חיפוש הפוך ולא רק של המשתמש המחובר.

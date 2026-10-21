@@ -1,0 +1,26 @@
+{
+  "headSha": "87e7f2e993781008c94140299b0e31a5e2e0de50",
+  "deployedMainSha": "ef9644d04e72d6a858e5d18ae917113cbacd3e61",
+  "conclusion": "success",
+  "url": "https://github.com/MeniViner/tank-malle/actions/runs/36864836956",
+  "jobs": [
+    {
+      "name": "End-to-end",
+      "conclusion": "success",
+      "startedAt": "2026-10-01T12:53:36Z",
+      "completedAt": "2026-10-01T13:09:55Z"
+    },
+    {
+      "name": "Firestore Rules",
+      "conclusion": "success",
+      "startedAt": "2026-10-01T12:53:36Z",
+      "completedAt": "2026-10-01T12:54:35Z"
+    },
+    {
+      "name": "Types, lint, unit tests, build",
+      "conclusion": "success",
+      "startedAt": "2026-10-01T12:53:35Z",
+      "completedAt": "2026-10-01T12:54:17Z"
+    }
+  ]
+}

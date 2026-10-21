@@ -11,7 +11,7 @@ import { Num } from "../components/Num";
 import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
-import { describeOfficialPrice, officialPriceFor } from "../lib/prices/regulated";
+import { describeOfficialPrice, officialPriceFor, priceMonthLabel } from "../lib/prices/regulated";
 import type { Segment } from "../lib/stats";
 import { normalise, smoothPath } from "../lib/curve";
 import {
@@ -407,8 +407,8 @@ function MonthSpendCard({
  *
  * The regulated maximum in Israel covers 95-octane self-service and nothing
  * else. A diesel or 98 vehicle therefore gets "אין מחיר עדכני" rather than the
- * 95 figure wearing its label — unless an admin entered one, in which case it
- * is shown and named as a manual entry. Same resolver as the fill-up form.
+ * 95 figure wearing its label. Prices entered for other fuels are shown only
+ * for their corresponding fuel type. Same resolver as the fill-up form.
  */
 function FuelPriceCard() {
   const { prices, activeVehicle } = useData();
@@ -418,6 +418,9 @@ function FuelPriceCard() {
   // not an event.
   const [today] = useState(() => Date.now());
   const lookup = useMemo(() => officialPriceFor(prices, fuelType, today), [prices, fuelType, today]);
+  const priceDescription = lookup.isManual && lookup.fromHistory
+    ? priceMonthLabel(lookup.effectiveMonth, today)
+    : describeOfficialPrice(lookup, today);
 
   return (
     <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
@@ -433,7 +436,7 @@ function FuelPriceCard() {
       <span className="truncate text-[12.5px] text-muted">
         {lookup.price === null
           ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
-          : `${FUEL_TYPE_SHORT[fuelType]} · ${describeOfficialPrice(lookup)}`}
+          : [FUEL_TYPE_SHORT[fuelType], priceDescription].filter(Boolean).join(" · ")}
       </span>
     </Card>
   );
