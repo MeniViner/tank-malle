@@ -95,6 +95,23 @@ export function typeReceiptField(
 }
 
 /**
+ * A deliberate edit in the amount calculator uses the displayed unit price.
+ * The last edited amount drives the other amount. Import/scan application uses
+ * typeReceiptField instead: two reviewed measurements must retain their values
+ * and determine the paid price, even when a suggested price differs.
+ */
+export function editReceiptField(state: ReceiptState, field: ReceiptField, value: string): ReceiptState {
+  if (field !== 'pricePerLiter' && isValid(numberOf(state, 'pricePerLiter'))) {
+    const other = field === 'liters' ? 'totalCost' : 'liters';
+    const next = { ...state, authored: state.authored.filter(entry => entry !== other) };
+    if (value.trim() === '') return { ...next, [field]: '', [other]: '', authored: next.authored.filter(entry => entry !== field) };
+    if (!isValid(numberOf({ ...next, [field]: value }, field))) return { ...next, [field]: value, [other]: '', authored: [...new Set([...next.authored, field])] };
+    return typeReceiptField(next, field, value);
+  }
+  return typeReceiptField(state, field, value);
+}
+
+/**
  * A suggested price arrived (first load, a month change, a late fetch).
  *
  * It fills the price only when the user has not authored it, and it never

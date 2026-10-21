@@ -124,7 +124,7 @@ export function Home() {
                   </span>
                   <span className="text-muted">
                     מבוסס על <Num>{stats.segments.length}</Num>{" "}
-                    {stats.segments.length === 1 ? "מקטע" : "מקטעים"} ·{" "}
+                    מקטעים ·{" "}
                     <Num>{stats.records.fillupCount}</Num> תדלוקים
                   </span>
                 </div>

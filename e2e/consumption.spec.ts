@@ -135,7 +135,7 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
   // The dashboard agrees with the toast, because both come from one engine.
   await page.goto("/");
   await expect(page.getByText(/ממוצע כולל 13\.3 קמ״ל/)).toBeVisible();
-  await expect(page.getByText(/1 מקטע · 3 תדלוקים/)).toBeVisible();
+  await expect(page.getByText(/1 מקטעים · 3 תדלוקים/)).toBeVisible();
 });
 
 test("a continuity break stops every calculation from crossing the gap", async ({ page }) => {
@@ -150,7 +150,7 @@ test("a continuity break stops every calculation from crossing the gap", async (
   await page.reload();
 
   // The break record opens a new period.
-  await expect(page.getByText(/1 מקטע · 2 תדלוקים/)).toBeVisible();
+  await expect(page.getByText(/1 מקטעים · 2 תדלוקים/)).toBeVisible();
   const toast = await addFillup(page, {
     odometer: 103_000,
     liters: 40,
@@ -186,7 +186,7 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await page.goto("/");
   // 600 km / 50 L = 12.0 km/L
   await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/1 מקטע · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/1 מקטעים · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
 
   // A BACKDATED partial lands between them and changes the answer: the same
   // 600 km is now covered by 50 + 10 L.
@@ -205,7 +205,7 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   // fill-up count is asserted in the same string so the check cannot pass
   // against a list that has not finished loading the third record.
   await expect(page.getByText(/ממוצע כולל 10\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/1 מקטע · 3 תדלוקים/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/1 מקטעים · 3 תדלוקים/)).toBeVisible({ timeout: 25_000 });
 
   // Delete the backdated record; the figure returns to 12.0. History rows are
   // identified by their litres — the odometer is not shown in the list.
@@ -225,5 +225,5 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
 
   await page.goto("/");
   await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/1 מקטע · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByText(/1 מקטעים · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
 });

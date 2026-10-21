@@ -77,11 +77,10 @@ export function MyTankCard() {
 
   return (
     <>
-      <Card id="my-tank" className="tm-rise flex flex-col gap-3 p-[16px_18px]" style={{ animationDelay: "70ms" }}>
-        {mileageNote ? <p className="text-xs text-muted" data-testid="mileage-precision">{mileageNote}</p> : null}
+      <Card id="my-tank" className="tm-rise home-tank flex flex-col gap-2 p-[14px_16px]" style={{ animationDelay: "70ms" }}>
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center">
-            <h2 className="text-[19px] font-bold">המיכל שלי</h2>
+            <h2 className="text-[17px] font-semibold">המיכל שלי</h2>
             <button
               type="button"
               aria-label="איך המיכל מחושב"
@@ -152,9 +151,8 @@ export function MyTankCard() {
               /* Unknown has to LOOK unknown. An empty dial with a real
                  invitation, not a zero reading dressed up as a measurement. */
               <>
-                <span className="text-[15px] font-bold text-ink">כמה דלק נשאר?</span>
                 <span className="text-[14px] leading-relaxed text-muted">
-                  מעדכנים את המחוג פעם אחת. התדלוקים והנסיעות יעדכנו את ההערכה בהמשך.
+                  עדכון המחוג יאפשר להעריך את הדלק שנשאר.
                 </span>
                 <button
                   type="button"
@@ -187,13 +185,13 @@ export function MyTankCard() {
 
         {/* Exactly one personalised sentence. Everything else is in the sheet. */}
         {habit.canClaim || habit.overridden ? <p className="text-[15px] leading-relaxed text-ink">{habitCopy.text}</p> : null}
-        {usage.count >= 3 || estimate.consumption.segmentCount > 0 ? (
+        {fillups.length > 0 ? (
           <details className="border-t border-[var(--hairline)] pt-2" aria-label="מה למדנו מהשימוש שלך">
             <summary className="min-h-10 cursor-pointer py-2 text-[13.5px] font-semibold text-muted">מה למדנו מהשימוש שלך</summary>
             <div className="grid grid-cols-2 gap-3 pb-2 text-[14px]">
             {estimate.mobility.kmPerDay !== null ? <div><span className="block text-muted">נסיעה ביום</span><span className="text-[21px] font-semibold"><Num>{num(estimate.mobility.kmPerDay, 0)}</Num> ק״מ</span></div> : null}
-            {usage.cadenceDays !== null ? <div><span className="block text-muted">בדרך כלל מתדלקים כל</span><span className="text-[21px] font-semibold"><Num>{num(usage.cadenceDays, 0)}</Num> ימים</span></div> : null}
-            {usage.typicalLiters !== null ? <div><span className="block text-muted">תדלוק טיפוסי</span><Num className="font-semibold">{num(usage.typicalLiters, 0)}</Num> ליטר</div> : null}
+            <div><span className="block text-muted">בדרך כלל מתדלקים כל</span>{usage.cadenceDays !== null ? <span className="text-[19px] font-semibold"><Num>{num(usage.cadenceDays, 0)}</Num> ימים</span> : <span className="text-[13px] text-muted">עדיין לומדים את התדירות</span>}</div>
+            <div><span className="block text-muted">תדלוק טיפוסי</span>{usage.typicalLiters !== null ? <><Num className="font-semibold">{num(usage.typicalLiters, 0)}</Num> ליטר</> : <span className="text-[13px] text-muted">נדרשים עוד תדלוקים</span>}</div>
             {estimate.consumption.source === 'history' && estimate.consumption.kmPerLiter !== null ? <div><span className="block text-muted">הצריכה שנלמדה</span><Num className="font-semibold">{num(estimate.consumption.kmPerLiter, 1)}</Num> קמ״ל</div> : null}
             </div>
           </details>
@@ -201,7 +199,6 @@ export function MyTankCard() {
         {enriching ? <p role="status" className="text-[14px] text-muted">משלים מפרט רכב…</p> : null}
         {!estimate.capacity.liters && !enriching ? <button type="button" onClick={() => navigate('/settings/vehicles')} className="min-h-[44px] text-start text-[14px] font-semibold text-accent">השלמת נפח המיכל</button> : null}
         {current.level !== null && recommended ? <p className="text-[15px] font-semibold text-accent">{recommended}</p> : null}
-        <button type="button" onClick={() => setTripOpen(true)} className="tm-text-action border-t border-[var(--hairline)]"><CalendarIcon size={17} /> תכנון נסיעה</button>
 
         {/* With nothing measured yet the column above already carries a single
             primary invitation; repeating it here as one of two equal-weight
@@ -239,6 +236,7 @@ export function MyTankCard() {
         open={detailsOpen}
         onClose={() => setDetailsOpen(false)}
         estimate={estimate}
+        mileageNote={mileageNote}
         recommended={recommended}
         habitText={habitCopy.text}
         onPlanTrip={() => {
@@ -395,6 +393,7 @@ function DetailsSheet({
   recommended,
   habitText,
   onPlanTrip,
+  mileageNote,
 }: {
   open: boolean;
   onClose: () => void;
@@ -402,6 +401,7 @@ function DetailsSheet({
   recommended: string | null;
   habitText: string;
   onPlanTrip: () => void;
+  mileageNote?: string | null;
 }) {
   const { plans, deletePlan } = useData();
   const fillStyle = fillStyleSentence(estimate.habit);
@@ -464,6 +464,7 @@ function DetailsSheet({
 
         <div className="flex flex-col gap-1.5 border-t border-line pt-3">
           <span className="text-[14px] font-semibold text-muted">על מה זה מבוסס</span>
+          {mileageNote ? <p className="text-xs text-muted" data-testid="mileage-precision">{mileageNote}</p> : null}
           {estimate.reasons.map((reason) => (
             <span key={reason} className="text-[14px] leading-relaxed text-muted">
               · {REASON_TEXT[reason]}

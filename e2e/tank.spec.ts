@@ -129,6 +129,7 @@ test("§16.15.10 dragging the gauge sets a level and leaves the page scrollable"
   // Three quarters of the way DOWN the track is a quarter of a tank.
   await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.75);
   await page.mouse.down();
+  expect((await gauge.boundingBox())!.y).toBeCloseTo(box.y, 0);
   await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.75, { steps: 4 });
   await page.mouse.up();
 
@@ -228,8 +229,8 @@ test("§16.15.3 confirming a full tank derives the pre-fill level from the litre
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("30");
   await page.getByLabel("מחיר לליטר").fill("7");
+  if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
   await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
 
   // 40 L − 30 L ⇒ about a quarter was left, shown as an estimate.
   await expect(page.getByText("משוער לפי הכמות")).toBeVisible();
@@ -265,7 +266,8 @@ test("Home carries the tank card alongside the two summary tiles", async ({ page
 
   // Nothing measured yet, so the card leads with a single invitation rather
   // than two equal-weight actions.
-  await expect(page.getByText("כמה דלק נשאר?")).toBeVisible();
+  await expect(page.getByTestId("current-tank-level")).toHaveText("לא ידוע");
+  await expect(page.getByText("כמה דלק נשאר?")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeVisible();
 });
 
@@ -370,8 +372,8 @@ test("unknown endpoint preserves before evidence through server read and reopeni
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("12");
   await page.getByLabel("מחיר לליטר").fill("7");
-  await page.getByRole("button", { name: "לא יודע", exact: true }).click();
   await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await page.getByRole("button", { name: "לא יודע", exact: true }).click();
   const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
   await before.press("Home");
   await before.press("PageUp");
@@ -381,8 +383,8 @@ test("unknown endpoint preserves before evidence through server read and reopeni
   const [record] = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
   expect(record.data).toMatchObject({ fillEndState: "unknown", preFillLevel: 0.25, preFillLevelSource: "direct-gauge", postFillLevel: null });
   await page.goto(`/fillup/${record.id}`);
-  await expect(page.getByRole("button", { name: "לא יודע", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await expect(page.getByRole("button", { name: "לא יודע", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveAttribute("aria-valuenow", "25");
 });
 

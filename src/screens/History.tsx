@@ -1,4 +1,5 @@
-import {PumpIcon, GaugeIcon, WarningIcon} from "../components/icons";
+import {PeriodPicker} from "../components/PeriodPicker";
+import {PumpIcon, GaugeIcon, WarningIcon, SearchIcon} from "../components/icons";
 import {CareGlyph} from "../components/maintenance/CareGlyph";
 import {consumption,num} from "../lib/format";
 import {resolveEndState} from "../lib/tank/observations";
@@ -38,7 +39,13 @@ export function History() {
   const change=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value==='all')next.delete(key);else next.set(key,value);if(key==='period'){next.delete('year');next.delete('from');next.delete('to');}setPeriodNow(Date.now());setParams(next);setLimit(50);};
   const inspect=(row:LedgerRow)=>row.collection==='fillups'?navigate(`/fillup/${encodeURIComponent(row.id)}`):setSelected(row);
   return <VehiclePage title="יומן" subtitle="כל מה שנרשם לרכב, במקום אחד."><VehicleAddBar/>
-    <div className="v-filter-line"><label>תקופה<select aria-label="תקופת היומן" value={explicitRange?'selected-range':year?'selected-year':period} onChange={e=>change('period',e.target.value)}><option value="all">כל התקופה</option><option value="month">החודש</option><option value="year">השנה</option><option value="3m">3 חודשים</option>{year?<option value="selected-year">שנת {year}</option>:null}{explicitRange?<option value="selected-range">התקופה שנבחרה</option>:null}</select></label><input aria-label="חיפוש ביומן" placeholder="חיפוש ברשומות" value={query} onChange={e=>{setQuery(e.target.value);setLimit(50);}}/></div>
+    <div className="v-filter-line">
+      <div className="ledger-search"><SearchIcon size={16}/><input type="search" dir="rtl" aria-label="חיפוש ביומן" placeholder="חיפוש ברשומות" value={query} onChange={e=>{setQuery(e.target.value);setLimit(50);}}/></div>
+      <PeriodPicker value={explicitRange?'selected-range':year?'selected-year':period} onChange={value=>change('period',value)} label="תקופת היומן" ariaLabel="תקופת היומן" options={[
+        {value:'all',label:'כל התקופה'},{value:'month',label:'החודש'},{value:'year',label:'השנה'},{value:'3m',label:'3 חודשים'},
+        ...(year?[{value:'selected-year',label:`שנת ${year}`}]:[]),...(explicitRange?[{value:'selected-range',label:'התקופה שנבחרה'}]:[]),
+      ]}/>
+    </div>
     <div className="v-chips" aria-label="סוג רשומה">{KINDS.map(([value,label])=><button type="button" key={value} aria-pressed={kind===value} onClick={()=>change('kind',value)}>{label}</button>)}</div>
     {plan||year||params.has('flagged')?<div className="v-filter-summary"><span>{year?`שנת ${year}`:plan?'טיפולים המקושרים לתזכורת':'תדלוקים לבדיקה'}</span><button type="button" onClick={()=>setParams({})}>ניקוי סינון</button></div>:null}
     {flagged.size&&!params.has('flagged')?<button className="v-text-button" type="button" onClick={()=>{const p=new URLSearchParams(params);p.set('flagged','1');p.set('kind','fuel');setParams(p);}}>תדלוקים שכדאי לבדוק ({flagged.size})</button>:null}

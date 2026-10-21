@@ -4,6 +4,7 @@ import { CareGlyph } from './CareGlyph';
 import { CheckIcon, ChevronStart, ChevronEnd } from '../icons';
 import { Field } from '../Field';
 import { Button } from '../Button';
+import { Toggle } from '../Segmented';
 import { Sheet, ConfirmDialog } from '../Sheet';
 import { JOBS, EXPENSES, localDay, validCareRecord, type CareCollection, type CareRecord, type Job, type MaintenancePlan } from '../../lib/maintenance/model';
 import { parseNumberInput } from '../../lib/numeric';
@@ -101,7 +102,8 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
             return <button key={key} type="button" className="care-choice" aria-pressed={selected} onClick={()=>choice(key)}><CareGlyph kind={key}/><span>{label}</span>{selected?<CheckIcon size={16}/>:<span className="care-choice-dot"/>}</button>;
           })}
         </div>
-        {serviceMode?<p className="care-quiet-note">{jobs.length?jobs.length===1?'עבודה אחת בחשבונית':`${jobs.length} עבודות בחשבונית אחת`:'העלות נרשמת פעם אחת לכל הטיפול.'}</p>:null}
+        {!expenseMode?<p className="care-quiet-note">מגבים, מיזוג או חלק אחר? בחרו ״אחר״ והוסיפו תיאור.</p>:null}
+        {serviceMode?<p className="care-quiet-note">{jobs.length?jobs.length===1?'עבודה אחת בחשבונית':`${jobs.length} עבודות בחשבונית אחת`:'העלות נרשמת פעם אחת, גם אם נבחרו כמה עבודות.'}</p>:null}
       </>:<>
         {collection!=='odometerReadings'?<button type="button" className="care-selection" aria-label="שינוי סוג הרשומה" onClick={()=>setStep(0)}><span className="care-selection-icon"><CareGlyph kind={expenseMode?category:planMode?job:jobs[0]}/></span><span><small>{expenseMode?'סוג ההוצאה':planMode?'הטיפול הבא':'מה בוצע'}</small><b>{selectedLabel}</b></span><ChevronStart size={18}/></button>:null}
         <div className="care-step-heading"><h3 ref={heading} tabIndex={-1}>{planMode?'מתי להזכיר לך?':collection==='odometerReadings'?'כמה קילומטרים הרכב עבר?':category==='refund'&&expenseMode?'כמה כסף חזר אליך?':serviceMode?'פרטי הטיפול':'פרטי ההוצאה'}</h3></div>
@@ -110,15 +112,15 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
         {planMode?<>
           <div className="care-details-group"><Field row label="תאריך יעד" type="date" value={dueDay} onChange={e=>setDueDay(e.target.value)}/><Field row label="יעד קילומטראז׳" inputMode="numeric" value={dueOdo} onChange={e=>setDueOdo(e.target.value)} suffix="ק״מ" placeholder="למשל 180000"/></div>
           <p className="care-quiet-note">אפשר תאריך, קילומטרים או שניהם — המוקדם מביניהם. לפי הוראות היצרן או המוסך שלך.</p>
-          <label className="care-toggle"><span><b>תזכורת חוזרת</b><small>לקבוע גם את הטיפול הבא</small></span><input type="checkbox" checked={basis!=='manual'} onChange={e=>setBasis(e.target.checked?'completion':'manual')}/></label>
+          <div className="care-toggle"><span><b>תזכורת חוזרת</b><small>לקבוע גם את הטיפול הבא</small></span><Toggle ariaLabel="תזכורת חוזרת" checked={basis!=='manual'} onChange={checked=>setBasis(checked?'completion':'manual')}/></div>
           {basis!=='manual'?<div className="care-repeat"><div className="grid grid-cols-2 gap-3"><Field label="חזרה כל מספר חודשים" inputMode="numeric" value={months} onChange={e=>setMonths(e.target.value)} placeholder="חודשים"/><Field label="חזרה כל מספר ק״מ" inputMode="numeric" value={km} onChange={e=>setKm(e.target.value)} placeholder="ק״מ"/></div><SelectField label="חישוב המועד הבא" value={basis} onChange={v=>setBasis(v as typeof basis)}><option value="completion">מהטיפול האחרון שבוצע</option><option value="fixed">לפי יעדים קבועים מהיעד הראשון</option></SelectField><p className="care-quiet-note">חזרה בחודשים דורשת תאריך יעד, וחזרה בק״מ דורשת יעד קילומטראז׳.</p></div>:null}
         </>:null}
         {serviceMode&&plans.length?<details className="care-disclosure" open={linkedOpen} onToggle={e=>setLinkedOpen(e.currentTarget.open)}><summary><span>עדכון תזכורות</span><small>{completed.length?`${completed.length} סומנו כהושלמו`:'הטיפול הזה משלים תזכורת?'}</small></summary><p className="care-quiet-note">רק התזכורות שתסמנו יתקדמו למועד הבא.</p>{plans.filter(p=>p.active||completed.includes(p.id)).map(p=><label key={p.id} className="care-check-row"><input type="checkbox" checked={completed.includes(p.id)} onChange={e=>setCompleted(prev=>e.target.checked?[...prev,p.id]:prev.filter(id=>id!==p.id))}/><span>{p.title}</span></label>)}</details>:null}
         <details className="care-disclosure"><summary><span>עוד פרטים</span><small>{planMode?'תיאור, מקור ההנחיה והערות':serviceMode?'תיאור, מוסך והערות':'תיאור והערות'}</small></summary><div className="flex flex-col gap-4 pt-3">
           {collection!=='odometerReadings'?<Field label="תיאור" dir="auto" maxLength={120} value={title} onChange={e=>{setTitle(e.target.value);setTitleAuthored(true);}}/>:null}
           {serviceMode?<Field label="מוסך / ספק" dir="auto" value={garage} maxLength={160} onChange={e=>setGarage(e.target.value)}/>:null}
-          {planMode?<><SelectField label="מקור ההנחיה" value={source} onChange={v=>setSource(v as typeof source)}><option value="owner">הגדרה שלי</option><option value="manufacturer">הוראות יצרן</option><option value="garage">המלצת מוסך</option></SelectField><label className="care-check-row"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>תזכורת פעילה</label></>:null}
-          <label className="flex flex-col gap-2 text-sm font-semibold text-muted">הערות<textarea dir="auto" className="min-h-24 rounded-xl border border-line bg-surface p-3 text-base text-ink" maxLength={2000} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="מה חשוב לזכור בפעם הבאה?"/></label>
+          {planMode?<><SelectField label="מקור ההנחיה" value={source} onChange={v=>setSource(v as typeof source)}><option value="owner">הגדרה שלי</option><option value="manufacturer">הוראות יצרן</option><option value="garage">המלצת מוסך</option></SelectField><div className="care-toggle"><span>תזכורת פעילה</span><Toggle ariaLabel="תזכורת פעילה" checked={active} onChange={setActive}/></div></>:null}
+          <label className="flex flex-col gap-2 text-sm font-semibold text-muted">הערות<textarea aria-label="הערות" dir="rtl" className="min-h-24 rounded-xl border border-line bg-surface p-3 text-base text-ink" maxLength={2000} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="מה חשוב לזכור בפעם הבאה?"/></label>
         </div></details>
       </>}
       {error?<p role="alert" className="care-form-error">{error}</p>:null}

@@ -46,7 +46,7 @@ export function Field({
       </label>
 
       <div
-        className={row ? `tm-field-input ${error ? "text-danger" : ""}` : `flex items-center gap-2.5 rounded-[10px] border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)] ${
+        className={row ? `tm-field-input ${error ? "text-danger" : ""}` : `tm-field-control flex items-center gap-2.5 rounded-[10px] border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 ${
           big ? "min-h-[58px]" : "min-h-[50px]"
         } ${
           error
@@ -59,7 +59,7 @@ export function Field({
         {icon}
         <input
           id={id}
-          dir="ltr"
+          dir={rest.inputMode === 'decimal' || rest.inputMode === 'numeric' || rest.type === 'number' || rest.type === 'date' ? 'ltr' : 'rtl'}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
           className={`num min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted/60 ${

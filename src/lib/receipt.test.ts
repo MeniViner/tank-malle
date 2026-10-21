@@ -3,6 +3,7 @@ import {
   receiptConflict,
   suggestReceiptPrice,
   typeReceiptField,
+  editReceiptField,
   type ReceiptState,
 } from "./receipt";
 
@@ -89,5 +90,41 @@ describe("receipt ownership", () => {
     let state = typeReceiptField(empty, "liters", "40");
     state = typeReceiptField(state, "pricePerLiter", "6.5");
     expect(state.totalCost).toBe("260.00");
+  });
+});
+
+describe('interactive amount calculator', () => {
+  it('switches direction repeatedly while keeping the displayed price', () => {
+    let state = suggestReceiptPrice(empty, 7.5);
+    state = editReceiptField(state, 'liters', '40');
+    expect(state.totalCost).toBe('300.00');
+    state = editReceiptField(state, 'totalCost', '150');
+    expect(state.liters).toBe('20');
+    state = editReceiptField(state, 'liters', '30');
+    expect(state.totalCost).toBe('225.00');
+    state = editReceiptField(state, 'totalCost', '375');
+    expect(state.liters).toBe('50');
+    expect(state.pricePerLiter).toBe('7.5');
+    expect(receiptConflict(state)).toBeNull();
+  });
+  it('derives a missing price from the two measurements, without assuming zero', () => {
+    let state = editReceiptField(empty, 'liters', '40');
+    expect(state.totalCost).toBe('');
+    state = editReceiptField(state, 'totalCost', '280');
+    expect(state).toMatchObject({liters:'40',totalCost:'280',pricePerLiter:'7'});
+    expect(suggestReceiptPrice(state,8)).toEqual(state);
+  });
+  it('preserves reviewed imports until an explicit edit, then clears stale derived amounts on invalid input', () => {
+    const imported = typeReceiptField(typeReceiptField(suggestReceiptPrice(empty,8),'totalCost','280'),'liters','40');
+    expect(imported).toMatchObject({totalCost:'280',liters:'40',pricePerLiter:'7'});
+    const edited = editReceiptField(imported,'totalCost','350');
+    expect(edited).toMatchObject({totalCost:'350',liters:'50',pricePerLiter:'7'});
+    expect(editReceiptField(edited,'liters','')).toMatchObject({liters:'',totalCost:'',pricePerLiter:'7'});
+    expect(editReceiptField(edited,'totalCost','-')).toMatchObject({totalCost:'-',liters:'',pricePerLiter:'7'});
+  });
+  it('supports decimal-comma and pump precision when either amount is edited', () => {
+    const state = editReceiptField(editReceiptField(empty,'pricePerLiter','7,77'),'liters','26,092');
+    expect(state.totalCost).toBe('202.73');
+    expect(editReceiptField(state,'totalCost','388,50').liters).toBe('50');
   });
 });

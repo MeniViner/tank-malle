@@ -19,6 +19,6 @@ export function TankDial({ level, reserveLevel = null, habitLevel = null, tone =
       <span className="tm-tank-fill" style={{ inlineSize: `${percent}%`, background: tone === "warning" ? "var(--warning)" : undefined }} />
       {reserveLevel !== null && Number.isFinite(reserveLevel) ? <span className="tm-tank-marker" style={{ insetInlineStart: `${Math.max(0, Math.min(100, reserveLevel * 100))}%` }} /> : null}
       {habitLevel !== null && Number.isFinite(habitLevel) ? <span className="tm-tank-marker tm-tank-habit" style={{ insetInlineStart: `${Math.max(0, Math.min(100, habitLevel * 100))}%` }} /> : null}
-    </div> : <div className="tm-tank-unknown" aria-hidden="true" />}
+    </div> : null}
   </div>;
 }

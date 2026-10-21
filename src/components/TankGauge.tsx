@@ -71,6 +71,10 @@ export function TankGauge({
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!interactive) return;
+    // Default pointer focus may scroll an expanded form midway through a drag,
+    // moving the track underneath the pointer and changing the selected level.
+    event.preventDefault();
+    event.currentTarget.focus({ preventScroll: true });
     // Capture keeps the drag attached to this element even when the finger
     // leaves it, and releasing it on pointerup is what hands scrolling back.
     event.currentTarget.setPointerCapture(event.pointerId);

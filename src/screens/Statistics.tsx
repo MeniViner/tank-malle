@@ -1,3 +1,4 @@
+import { PeriodPicker } from "../components/PeriodPicker";
 import { RunningCosts } from "../components/RunningCosts";
 import { localDay } from "../lib/maintenance/model";
 import { useMemo, useState, type ReactNode } from "react";
@@ -44,7 +45,6 @@ import { Segmented } from "../components/Segmented";
 import { Sheet } from "../components/Sheet";
 import { Num } from "../components/Num";
 import {
-  CalendarIcon,
   CheckIcon,
   ChartIcon,
   ChevronDown,
@@ -279,7 +279,7 @@ export function Statistics() {
             summary={
               <>
                 <Num>{spend.fillups}</Num> תדלוקים · <Num>{segments.length}</Num>{" "}
-                {segments.length === 1 ? "מקטע" : "מקטעים"}
+                מקטעים
               </>
             }
           />
@@ -359,7 +359,7 @@ export function Statistics() {
                   </BarChart>
                 </ChartCard>
 
-                <ChartCard title="קילומטראז׳ מצטבר">
+                <ChartCard title="קילומטראז׳ מצטבר" note="מד מרחק כולל · הציר מתחיל ב־0 כדי לשמור על קנה המידה">
                   <AreaChart data={odometerData} margin={CHART_MARGIN}>
                     <defs>
                       <linearGradient id="odoFill" x1="0" y1="0" x2="0" y2="1">
@@ -368,11 +368,11 @@ export function Statistics() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid stroke="var(--line)" vertical={false} />
-                    <XAxis {...xAxis} />
-                    <YAxis {...yAxis} width={52} domain={["auto", "auto"]} />
+                    <XAxis {...xAxis} reversed={false} />
+                    <YAxis {...yAxis} width={52} domain={[0, "auto"]} tickFormatter={value=>Number(value).toLocaleString('he-IL')} />
                     <Tooltip content={<ChartTooltip suffix=" ק״מ" />} />
                     <Area isAnimationActive={false}
-                      type="monotone"
+                      type="linear"
                       dataKey="odometer"
                       stroke="var(--accent)"
                       strokeWidth={2.4}
@@ -700,54 +700,10 @@ function RangePicker({
   /** What the chosen range currently holds — shown opposite the control. */
   summary?: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-card bg-surface px-2 ps-3.5">
-        <span className="truncate text-[14px] text-muted">{summary}</span>
-        <button
-          type="button"
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          onClick={() => setOpen(true)}
-          className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[13px] font-bold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
-        >
-          <CalendarIcon size={15} className="text-muted" />
-          {RANGE_COMPACT[value === "custom" ? "all" : value]}
-          <ChevronDown size={14} className="text-muted" />
-        </button>
-      </div>
-
-      <Sheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title={<h2 className="text-[18px] font-semibold text-ink">טווח תאריכים</h2>}
-      >
-        <div className="tm-choice-list">
-          {RANGE_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={option === value}
-              onClick={() => {
-                onChange(option);
-                setOpen(false);
-              }}
-              className={`flex min-h-[46px] items-center justify-between gap-3 rounded-[12px] px-3.5 text-start text-[14.5px] font-semibold transition-[background-color] duration-150 ${
-                option === value
-                  ? "bg-accent-soft text-accent"
-                  : "bg-bg text-ink"
-              }`}
-            >
-              {RANGE_COMPACT[option]}
-              {option === value ? <CheckIcon size={18} className="flex-none" /> : null}
-            </button>
-          ))}
-        </div>
-      </Sheet>
-    </>
-  );
+  return <div className="stats-period-line">
+    <span className="text-[13px] text-muted">{summary}</span>
+    <PeriodPicker value={value} onChange={onChange} options={RANGE_OPTIONS.map(option=>({value:option,label:RANGE_COMPACT[option]}))}/>
+  </div>;
 }
 
 /**
@@ -771,7 +727,7 @@ function BasisNote({
   return (
     <div className="flex items-center gap-0.5 px-1">
       <span className="text-[12px] text-muted">
-        <Num>{segments}</Num> {segments === 1 ? "מקטע" : "מקטעים"} ·{" "}
+        <Num>{segments}</Num> מקטעים ·{" "}
         <Num>{fillups}</Num> תדלוקים · {range.compactLabel}
       </span>
       <InfoTip label="בסיס החישוב">
@@ -1133,10 +1089,12 @@ const yAxis = {
 function ChartCard({
   title,
   legend,
+  note,
   children,
 }: {
   title: string;
   legend?: React.ReactNode;
+  note?: string;
   children: React.ReactElement;
 }) {
   return (
@@ -1145,6 +1103,7 @@ function ChartCard({
         <h2 className="text-[19px] font-bold text-ink">{title}</h2>
         {legend ? <span className="flex items-center gap-3">{legend}</span> : null}
       </div>
+      {note ? <p className="text-xs text-muted">{note}</p> : null}
       <div className="h-[168px] w-full" dir="ltr">
         <ResponsiveContainer width="100%" height="100%">
           {children}

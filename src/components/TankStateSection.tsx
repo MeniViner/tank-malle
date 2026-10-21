@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Card, IconTile } from "./Card";
 import { Sheet } from "./Sheet";
 import { TankGauge } from "./TankGauge";
@@ -16,11 +16,11 @@ import type { ResolvedCapacity } from "../lib/tank/capacity";
 import type { RefuelReason } from "../lib/tank/types";
 
 /**
- * The optional before/after gauges inside the fill-up form.
+ * The single optional end-state / before-and-after section.
  *
  * Genuinely optional: someone recording odometer, litres, amount and station
- * can save without ever opening this. The end state (full / partial /
- * unknown) is chosen at form level; this section only adds the gauges and
+ * can save without ever opening this. No end state is selected by default.
+ * The form passes the choices into the same disclosure as the gauges and
  * the reason. It computes NOTHING about fuel: every number it shows comes
  * from the one `TankOutcome` the form resolved, the same one that is stored.
  */
@@ -40,6 +40,8 @@ export function TankStateSection({
   capacity,
   capacityNote,
   onReviewCapacity,
+  children,
+  footer,
 }: {
   draft: TankStateDraft;
   onChange: (next: TankStateDraft) => void;
@@ -49,6 +51,8 @@ export function TankStateSection({
   /** Set when that capacity is an approximation, so the UI can say so. */
   capacityNote?: string | null;
   onReviewCapacity?: () => void;
+  children?: ReactNode;
+  footer?: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -87,11 +91,11 @@ export function TankStateSection({
             aria-expanded={open}
             className="flex min-w-0 flex-1 flex-col gap-0.5 py-1 text-start"
           >
-            <span className="text-[15px] font-semibold text-ink">מד הדלק לפני ואחרי</span>
+            <span className="text-[15px] font-semibold text-ink">בסיום התדלוק</span>
             <span className="truncate text-[12px] text-muted">
               {hasAnswer || confirmedFull
                 ? summarise(draft, afterLevel, confirmedFull)
-                : "לא חובה · עוזר להעריך כמה נשאר וללמוד מתי אתם נוהגים לתדלק"}
+                : endChoice === 'partial' ? 'תדלוק חלקי' : 'מצב המיכל · פרטים לבחירה'}
             </span>
           </button>
 
@@ -118,6 +122,8 @@ export function TankStateSection({
 
         {open ? (
           <div className="flex flex-col gap-4 border-t border-line p-4">
+            {children}
+            <p className="text-[14px] font-semibold">מד הדלק לפני ואחרי</p>
             <div className="flex items-start justify-center gap-5">
               <TankGauge
                 label="לפני"
@@ -272,6 +278,7 @@ export function TankStateSection({
                 ניקוי המדים
               </button>
             ) : null}
+            {footer}
           </div>
         ) : null}
       </Card>

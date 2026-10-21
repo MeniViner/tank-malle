@@ -213,10 +213,11 @@ export async function addFillup(page: Page, input: FillupInput, scope: ReadyAcco
     await page.getByLabel("מחיר לליטר").fill(String(input.pricePerLiter));
   }
 
-  // A full tank is an explicit statement. The choice is a visible chip at
-  // form level (full / partial / unknown); nothing is pre-selected, so the
+  // A full tank is an explicit statement. The optional end-state section contains
+  // full / partial / unknown; nothing is pre-selected, so the
   // helper has to say it.
   if ((input.fillEndState ?? "full") === "full") {
+    if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
     await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
   }
 

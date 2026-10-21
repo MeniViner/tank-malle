@@ -87,15 +87,9 @@ export function Toggle({
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
-      className={`relative h-[31px] w-[51px] before:absolute before:-inset-y-[5px] before:inset-x-0 before:content-[''] flex-none rounded-pill transition-[background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
-        checked ? "bg-accent" : "border border-line bg-surface-2"
-      }`}
+      className="tm-switch"
     >
-      <span
-        className={`absolute top-1/2 size-[27px] -translate-y-1/2 rounded-full bg-white shadow-[0_1px_1px_rgb(13_35_28/0.10),0_2px_5px_rgb(13_35_28/0.22)] transition-[inset-inline-start] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-          checked ? "start-[22px]" : "start-[2px]"
-        }`}
-      />
+      <span className="tm-switch-track" aria-hidden="true"><span className="tm-switch-thumb"/></span>
     </button>
   );
 }

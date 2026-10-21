@@ -274,7 +274,8 @@ test("F10/F11: History and Statistics share calendar bounds, including month-end
   ] });
   await page.clock.setFixedTime(new Date("2026-08-31T09:00:00Z"));
   await page.goto("/history");
-  await page.getByLabel("תקופת היומן").selectOption("3m");
+  await page.getByLabel("תקופת היומן",{exact:true}).click();
+  await page.getByRole('dialog').getByRole('button',{name:'3 חודשים',exact:true}).click();
   await expect(page.getByTestId("ledger-range")).toContainText("2 תדלוקים");await expect(page.getByTestId("ledger-range")).toContainText("31.5.26");
   await page.goto("/stats");
   await expect(page.getByText(/^4 תדלוקים ·/)).toBeVisible();

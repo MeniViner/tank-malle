@@ -33,6 +33,7 @@ import {
   receiptNumbers,
   suggestReceiptPrice,
   typeReceiptField,
+  editReceiptField,
   type ReceiptState,
 } from "../lib/receipt";
 import {
@@ -1151,7 +1152,7 @@ function FillupEditor({
               aria-invalid={showErrors && errorFor("pricePerLiter") ? true : undefined}
               value={receipt.pricePerLiter}
               onChange={(event) =>
-                setReceipt((current) => typeReceiptField(current, "pricePerLiter", event.target.value))
+                setReceipt((current) => editReceiptField(current, "pricePerLiter", event.target.value))
               }
               className="num min-h-[44px] w-[88px] flex-none rounded-[11px] border border-line bg-surface px-2 text-center text-[16px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
             />
@@ -1225,7 +1226,7 @@ function FillupEditor({
                 inputMode="decimal"
                 value={receipt.liters}
                 onChange={(event) =>
-                  setReceipt((current) => typeReceiptField(current, "liters", event.target.value))
+                  setReceipt((current) => editReceiptField(current, "liters", event.target.value))
                 }
                 placeholder="0"
                 error={showErrors ? errorFor("liters") : null}
@@ -1238,7 +1239,7 @@ function FillupEditor({
                 inputMode="decimal"
                 value={receipt.totalCost}
                 onChange={(event) =>
-                  setReceipt((current) => typeReceiptField(current, "totalCost", event.target.value))
+                  setReceipt((current) => editReceiptField(current, "totalCost", event.target.value))
                 }
                 placeholder="0"
                 error={showErrors ? errorFor("totalCost") : null}
@@ -1246,15 +1247,15 @@ function FillupEditor({
           </div>
 
           <span className="text-[14px] text-muted">
-            {receipt.authored.length >= 3
-              ? "שלושת השדות הוזנו ידנית — אף אחד מהם לא ישתנה אוטומטית"
-              : "שדה שלא הוזן ידנית מחושב מהשניים האחרים"}
+            {receipt.authored.includes('liters') && receipt.authored.includes('totalCost')
+              ? 'המחיר חושב מהליטרים ומהסכום שנבדקו'
+              : 'הליטרים והסכום מתעדכנים זה לפי זה, לפי המחיר לליטר'}
           </span>
 
           {conflict ? (
             <SoftWarningBanner
               message="הליטרים, המחיר והסכום לא מסתדרים"
-              detail={`${conflict.message}. נקו את השדה השגוי כדי שיחושב מחדש — שום ערך לא ישתנה מעצמו.`}
+              detail={`${conflict.message}. ערכו את הליטרים או את הסכום כדי לחשב מחדש לפי המחיר לליטר.`}
             />
           ) : null}
 
@@ -1270,11 +1271,15 @@ function FillupEditor({
           {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? <span>צריכה <ConsumptionValue kmPerLiter={draftEvaluation.segment.kmPerLiter} units={settings.units} /></span> : null}
         </div>
 
-        {/* The end state is a visible, deliberate choice at form level — not
-            a chip inside a collapsed section. Nothing is pre-selected: an
-            untouched default must never be stored as a user statement. */}
-        <Eyebrow>בסיום התדלוק</Eyebrow>
-        <Card className="flex flex-col gap-3 p-4">
+        <TankStateSection
+          draft={tankDraft}
+          onChange={setTankDraft}
+          outcome={tankOutcome}
+          capacity={capacity}
+          capacityNote={capacityNote(capacity)}
+          onReviewCapacity={() => { if (canLeaveDraft()) navigate("/settings/vehicles"); }}
+          footer={draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
+        >
           <div className="flex flex-wrap gap-2">
             {END_CHOICES.map((choice) => (
               <button
@@ -1297,32 +1302,8 @@ function FillupEditor({
               </button>
             ))}
           </div>
-          <span className="text-[14px] leading-relaxed text-muted">
-            {endChoice === null
-              ? isEdit && !tankTouched && editing?.isFullTank
-                ? "ברשומה הישנה הזו סומן מיכל מלא בלי שנשאלתם. בחירה כאן תהפוך את זה להצהרה שלכם."
-                : "בלי בחירה, הרשומה נשמרת עם מצב לא ידוע והצריכה לא תחושב ממנה."
-              : END_CHOICES.find((choice) => choice.value === endChoice)?.hint}
-          </span>
-          {tankOutcome.state === "conflict" ||
-          tankOutcome.state === "capacitySuspect" ||
-          tankOutcome.state === "overCapacity" ? (
-            <SoftWarningBanner message="הנתונים לא לגמרי מסתדרים" detail={tankOutcome.message ?? undefined} />
-          ) : null}
-        </Card>
-
-        {/* Optional gauges: before / after. The financial record saves
-            whether or not anybody opens this. */}
-        <TankStateSection
-          draft={tankDraft}
-          onChange={setTankDraft}
-          outcome={tankOutcome}
-          capacity={capacity}
-          capacityNote={capacityNote(capacity)}
-          onReviewCapacity={() => { if (canLeaveDraft()) navigate("/settings/vehicles"); }}
-        />
-
-        {draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
+          {endChoice !== null ? <span className="text-[14px] leading-relaxed text-muted">{END_CHOICES.find(choice=>choice.value===endChoice)?.hint}</span> : null}
+        </TankStateSection>
 
         <Eyebrow>תיעוד</Eyebrow>
         <Card className="flex flex-col p-4">
@@ -1336,12 +1317,9 @@ function FillupEditor({
               ariaLabel="היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת"
             />
           </div>
-          {continuityBreak ? (
-            <p className="pt-2.5 text-[14px] leading-relaxed text-muted">
-              מתחיל תקופת חישוב חדשה. הרשומות הישנות נשמרות — פשוט לא יחושב שום נתון
-              שחוצה את הנקודה הזו.
-            </p>
-          ) : null}
+          <p className="pt-1 text-[13px] leading-relaxed text-muted">
+            מתחילים תקופת מדידה חדשה לסטטיסטיקת הצריכה. ההיסטוריה נשמרת, והחישוב לא יחצה תדלוקים חסרים.
+          </p>
         </Card>
 
         <Eyebrow>הערה</Eyebrow>

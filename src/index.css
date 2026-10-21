@@ -253,7 +253,7 @@
     -moz-appearance: textfield;
   }
 
-  :focus-visible {
+  :where(button, a, summary, [tabindex]):focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
     border-radius: 6px;
@@ -460,16 +460,16 @@
 /* Vehicle care uses an intent picker followed by a short, progressive editor. */
 .care-editor { display:flex;flex-direction:column;gap:20px; }
 .care-step-heading > span { display:block;color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.08em;direction:ltr;text-align:right;margin-bottom:10px; }
-.care-step-heading h3 { font-size:25px;line-height:1.25;font-weight:750;letter-spacing:-.02em;text-wrap:balance; }
-.care-step-heading p { margin-top:8px;color:var(--muted);font-size:15px;line-height:1.55;text-wrap:pretty; }
-.care-choice-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px; }
-.care-choice { display:flex;align-items:center;gap:10px;min-height:76px;padding:14px 12px;border-radius:18px;background:var(--surface-2);text-align:start;font-size:15px;font-weight:650;box-shadow:inset 0 0 0 1px transparent;transition:background-color .18s,box-shadow .18s,scale .18s; }
+.care-step-heading h3 { font-size:23px;line-height:1.25;font-weight:750;letter-spacing:-.02em;text-wrap:balance; }
+.care-step-heading p { margin-top:8px;color:var(--muted);font-size:14px;line-height:1.55;text-wrap:pretty; }
+.care-choice-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }
+.care-choice { display:flex;align-items:center;gap:8px;min-height:54px;padding:10px;border-radius:12px;background:var(--surface-2);text-align:start;font-size:14px;font-weight:650;box-shadow:inset 0 0 0 1px transparent;transition:background-color .18s,box-shadow .18s,scale .18s; }
 .care-choice > svg:first-child { flex:none;color:var(--muted); }
 .care-choice > span:nth-child(2) { flex:1; }
 .care-choice[aria-pressed=true] { color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent); }
 .care-choice[aria-pressed=true] > svg { color:var(--accent); }
 .care-choice:active { scale:.96; }
-.care-choice-dot { width:16px;height:16px;flex:none;border:1px solid var(--line);border-radius:50%; }
+.care-choice-dot { width:14px;height:14px;flex:none;border:1px solid var(--line);border-radius:50%; }
 .care-quiet-note { color:var(--muted);font-size:13px;line-height:1.6;text-wrap:pretty; }
 .care-selection { display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:var(--surface-2);text-align:start;min-height:64px; }
 .care-selection > span:nth-child(2) { flex:1;min-width:0; }

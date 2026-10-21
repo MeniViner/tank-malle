@@ -118,7 +118,7 @@ export function Settings() {
             <RowButton icon={<CarIcon size={19} className="text-muted" />} title="רכבים וארכיון" value={activeVehicle ? vehicleLabel(activeVehicle) : undefined} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/vehicles")} />
             <RowButton icon={<PlusIcon size={19} className="text-muted" />} title="הוספת רכב" onClick={() => navigate("/vehicles/new")} />
             <TankPreferencesSection embedded />
-            <label className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז מד־דרך. אפשר לחזור להזנה ידנית.</small></span><input type="checkbox" checked={settings.quickEntry===true} onChange={e=>{void updateSettings({quickEntry:e.target.checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></label>
+            <div className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז מד־דרך. אפשר לחזור להזנה ידנית.</small></span><Toggle ariaLabel="פתח תמיד תדלוק מהיר" checked={settings.quickEntry===true} onChange={checked=>{void updateSettings({quickEntry:checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></div>
             <button type="button" className="v-row" onClick={()=>navigate('/notifications')}>העדפות התראות ←</button>
           </ListCard>
         </section>

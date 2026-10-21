@@ -1,11 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { ChartIcon, ClockIcon, HomeIcon, PumpIcon, CarIcon } from "./icons";
+import { ChartIcon, ClockIcon, HomeIcon, PumpIcon, CarSideIcon } from "./icons";
 
 const TABS = [
   { to: "/", label: "בית", Icon: HomeIcon, end: true },
   { to: "/history", label: "יומן", Icon: ClockIcon, end: false },
   { to: "/stats", label: "תובנות", Icon: ChartIcon, end: false },
-  { to: "/vehicle", label: "רכב", Icon: CarIcon, end: false },
+  { to: "/vehicle", label: "רכב", Icon: CarSideIcon, end: false },
 ];
 
 /**

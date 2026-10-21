@@ -19,7 +19,7 @@ test('service invoice, recurring reminder and costs persist independently of fue
   let dialog=page.getByRole('dialog');
   await setCareTitle(page,'טיפול שמן');
   await dialog.getByLabel('יעד קילומטראז׳',{exact:true}).fill('130000');
-  await dialog.getByRole('checkbox',{name:/תזכורת חוזרת/}).check();await dialog.getByLabel('חזרה כל מספר ק״מ',{exact:true}).fill('10000');
+  await dialog.getByRole('switch',{name:'תזכורת חוזרת',exact:true}).check();await dialog.getByLabel('חזרה כל מספר ק״מ',{exact:true}).fill('10000');
   await dialog.getByRole('button',{name:'שמירת תזכורת לטיפול',exact:true}).click();
   await expect(async()=>expect(await listDocuments(`${base}/maintenancePlans`)).toHaveLength(1)).toPass();
   await page.getByRole('link',{name:/טיפול שמן/}).first().click();await page.getByRole('button',{name:'רישום טיפול שבוצע',exact:true}).click();

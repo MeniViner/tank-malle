@@ -265,7 +265,8 @@ test("a retry that cannot verify against the server writes nothing", async ({ pa
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("40");
   await page.getByLabel("מחיר לליטר").fill("7");
-  await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+  if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
+    await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
   // Leave only once the save has been journaled (the form navigates home).
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });

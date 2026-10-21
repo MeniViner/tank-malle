@@ -40,12 +40,13 @@ test('history learning and precise money fit a small mobile screen', async ({pag
     id:`history-${i}`,date:new Date(today-(21-days)*86400000),odometer:10000+i*450,liters:30+i,pricePerLiter:7.77,totalCost:233.1+i*7.77,
   })) });
   await expect(page.getByLabel('מה למדנו מהשימוש שלך')).toContainText('בדרך כלל מתדלקים כל');
-  await expect(page.getByRole('button',{name:'תכנון נסיעה',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'תכנון נסיעה',exact:true})).toHaveCount(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button',{name:'עדכון מד הדלק',exact:true}).click();
   await page.getByRole('slider').press('End');
   await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();
-  await page.getByRole('button',{name:'תכנון נסיעה',exact:true}).click();
+  await page.getByRole('button',{name:'איך המיכל מחושב',exact:true}).click();
+  await page.getByRole('button',{name:'יש לי נסיעה מתוכננת',exact:true}).click();
   await page.getByLabel('מרחק צפוי',{exact:true}).fill('600');
   await page.getByRole('button',{name:'היום',exact:true}).click();
   await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();

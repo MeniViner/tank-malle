@@ -82,6 +82,14 @@ export const CarIcon = (props: IconProps) => (
   </Svg>
 );
 
+/** Side profile, visually distinct from the old front-facing vehicle tab. */
+export const CarSideIcon = (props: IconProps) => (
+  <Svg strokeWidth={1.8} {...props}>
+    <path d="M3 16H2v-4l3-1 3-5h7l4 5 3 2v3h-2M8 16h8M5 11h14M10 6v5" />
+    <circle cx="5.5" cy="16" r="2"/><circle cx="18.5" cy="16" r="2"/>
+  </Svg>
+);
+
 export const CalendarIcon = (props: IconProps) => (
   <Svg strokeWidth={1.8} {...props}>
     <rect x="3.8" y="5" width="16.4" height="15" rx="2.2" />

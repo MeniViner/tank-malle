@@ -75,6 +75,7 @@ for (const identified of [false, true]) {
     await page.getByLabel(/^קילומטראז׳/).fill("101400");
     await page.getByLabel("ליטרים", { exact: true }).fill("40");
     await page.getByLabel("מחיר לליטר").fill("7");
+    if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
     await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
     await page.getByRole("button", { name: "שמירת תדלוק" }).click();
     await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
