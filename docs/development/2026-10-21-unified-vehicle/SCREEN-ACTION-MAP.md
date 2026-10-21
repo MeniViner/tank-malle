@@ -37,3 +37,18 @@ Neutral background `#f4f5f5`, ink `#14171a`, surfaces `#fff/#ebedee`, dark equiv
 | Display font used for numeric headlines | Local Rubik numeric font, lighter weights and tabular digits |
 | No issue entity / notification persistence | Versioned owner-only issues and per-occurrence notification state |
 | Fragmented account export | Versioned full-account JSON with separate cloud/pending/drafts and explicit attachment limit |
+
+| Before | After |
+|---|---|
+| Mixed care/PWA/HTTPS test collection | Dedicated built-PWA and HTTPS projects, disposable emulator ports, no broad care skips |
+| Version string only | Build version, commit SHA, dirty flag and build mode in the UI / build-info.json |
+| Eager capture/PDF execution | Lazy modules, with PWA offline assets retained |
+| Rounded journal amounts and missing interval markers | Exact agorot display, explicit LTR numeric islands, fuel quantities/consumption and continuity marker |
+| Local preview using existing emulator state | Additive isolated demo seed, local HTTPS gateway and public certificate guide |
+| Ambiguous comparison label | Same existing fuel-per-km formula, explicitly labeled more/less fuel per km |
+| Proxy reusing an expired upstream socket | Fresh upstream connections for reliable local HTTPS profile/bootstrap writes |
+| Account summary loaded once and then stale | Live active-vehicle overlay, scoped server snapshot for other vehicles, explicit refresh/time, and refresh after full-account import |
+| Period ratio despite an intermediate odometer decrease | Coverage marked inconsistent and distance/ratios withheld |
+| Subscription error before the new vehicle's first snapshot | Previous owner/vehicle issue and notification data are discarded before applying the error |
+| Cost-summary link falling back to all dates | Explicit validated from/to range in the ledger; changing its period clears those bounds |
+| Production build replacing the legacy PWA test bundle | Separate PWA output directory with a served-build mode assertion |
