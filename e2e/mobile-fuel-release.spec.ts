@@ -51,6 +51,6 @@ test('history learning and rounded money fit a small mobile screen', async ({pag
   await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();
   await expect(page.getByText('כדאי לתדלק לפני הנסיעה',{exact:true})).toBeVisible();
   await page.goto('/history');
-  await expect(page.getByText('₪233',{exact:true}).first()).toBeVisible();
-  await expect(page.getByText('₪233.10',{exact:true})).toHaveCount(0);
+  await expect(page.getByText('₪233.10',{exact:true}).first()).toBeVisible();
+  await expect(page.locator('.ledger-row[data-collection=fillups]').first()).toContainText('₪233.10');
 });

@@ -13,7 +13,7 @@ export default defineConfig(({ mode, command }) => {
   define: { __BUILD_COMMIT__: JSON.stringify(commit), __BUILD_DIRTY__: JSON.stringify(dirty) },
 
   // This preview only talks to local emulators. No production API, proxy or model service.
-  server: ['care','unified-preview'].includes(mode) ? { headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" } } : undefined,
+  server: ['care','unified-preview'].includes(mode) ? { watch:{ignored:["**/.care-device/**","**/test-results/**"]}, headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" } } : {watch:{ignored:["**/.care-device/**","**/test-results/**"]}},
   preview: ['care','unified-preview'].includes(mode) ? { headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:*" } } : undefined,
   plugins: [
     { name:"build-identity",generateBundle(){this.emitFile({type:"asset",fileName:"build-info.json",source:JSON.stringify({version:"1.5.0-local",commit,dirty,mode})});} },

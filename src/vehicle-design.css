@@ -21,3 +21,7 @@ body{-webkit-font-smoothing:antialiased}h1,h2,h3{text-wrap:balance}p{text-wrap:p
 .ledger-row h3{font-size:16px;font-weight:600;overflow-wrap:anywhere}
 
 .num{font-family:var(--font-num);font-variant-numeric:tabular-nums}.num.font-display{font-family:var(--font-num)}
+
+/* Keep the preserved Home compact when the new overview/urgent group appears. */
+.vehicle-gauges{margin-block:6px 0}.vehicle-gauges a{min-height:76px}.urgent-group{margin-bottom:0}
+.home-average-row{font-size:clamp(11px,3.4vw,13.5px)}.num.font-display{font-weight:500}.care-amount input{font-family:var(--font-num);font-weight:500}

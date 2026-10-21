@@ -13,6 +13,13 @@ export function RouteScroll() {
     const top = action === "POP" ? savedPositions.get(location.key) ?? 0 : 0;
     let focusedHeading: HTMLElement | null = null;
     const placeScreen = () => {
+      if(location.hash && (action!=="POP" || !savedPositions.has(location.key))) {
+        let target:HTMLElement|null=null;try{target=document.getElementById(decodeURIComponent(location.hash.slice(1)));}catch{return false;}
+        if(!target)return false;
+        target.scrollIntoView({block:"start",behavior:"instant"});
+        if(!target.hasAttribute("tabindex")){target.tabIndex=-1;focusedHeading=target;}
+        target.focus({preventScroll:true});return true;
+      }
       window.scrollTo({ top, behavior: "instant" });
       const heading = document.querySelector<HTMLElement>("main h1");
       if (heading && action !== "POP") {
