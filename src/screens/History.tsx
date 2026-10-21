@@ -3,7 +3,7 @@ import {CareGlyph} from "../components/maintenance/CareGlyph";
 import {consumption,num} from "../lib/format";
 import {resolveEndState} from "../lib/tank/observations";
 import {buildRange,rangeDates} from "../lib/periods";
-import {localDay} from "../lib/maintenance/model";
+import {localDay,validDay} from "../lib/maintenance/model";
 import { vehicleMoney, vehicleDay } from "../lib/vehicle/format";
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -23,23 +23,26 @@ export function History() {
   const [query,setQuery]=useState(''),[limit,setLimit]=useState(50),[selected,setSelected]=useState<LedgerRow|null>(null),[deleting,setDeleting]=useState<LedgerRow|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const [periodNow,setPeriodNow]=useState(()=>Date.now());
   const year=params.get('year'),period=params.get('period')??'all',kind=params.get('kind')??'all',plan=params.get('plan');
+  const rangeFrom=params.get('from'),rangeTo=params.get('to');
+  const explicitRange=validDay(rangeFrom)&&validDay(rangeTo)&&rangeFrom!<=rangeTo!;
   const calendarRange=buildRange(period==='month'?'thisMonth':period==='year'?'ytd':period==='3m'?'3m':'all',periodNow);
-  const from=year&&/^\d{4}$/.test(year)?year+'-01-01':period==='month'?v.today.slice(0,7)+'-01':period==='year'?v.today.slice(0,4)+'-01-01':calendarRange.from===null?'1900-01-01':localDay(new Date(calendarRange.from));
-  const to=year&&/^\d{4}$/.test(year)?year+'-12-31':v.today;
+  const from=explicitRange?rangeFrom!:year&&/^\d{4}$/.test(year)?year+'-01-01':period==='month'?v.today.slice(0,7)+'-01':period==='year'?v.today.slice(0,4)+'-01-01':calendarRange.from===null?'1900-01-01':localDay(new Date(calendarRange.from));
+  const to=explicitRange?rangeTo!:year&&/^\d{4}$/.test(year)?year+'-12-31':v.today;
+  const rangeLabel=explicitRange?`${vehicleDay(from)} — ${vehicleDay(to)}`:year?`שנת ${year}`:rangeDates(calendarRange);
   const flagged=useMemo(()=>new Set(stats.anomalies.map(a=>a.fillupId)),[stats.anomalies]);
   const rows=useMemo(()=>v.ledger.filter(r=>r.day>=from&&r.day<=to&&(kind==='all'||r.kind===kind)&&(!plan||r.collection==='serviceEvents'&&'completedPlanIds' in r.record&&r.record.completedPlanIds.includes(plan))&&(!params.has('flagged')||r.collection==='fillups'&&flagged.has(r.id))&&`${r.title} ${r.notes} ${r.day}`.toLocaleLowerCase('he-IL').includes(query.toLocaleLowerCase('he-IL'))),[v.ledger,from,to,kind,plan,params,query,flagged]);
   const segmentValues=new Map(stats.segments.map(s=>[s.endId,s.kmPerLiter]));
   const visibleKeys=new Set(rows.slice(0,limit).map(r=>r.key));
   const summary=periodSummary(rows,v.mileage,from,to,v.incomplete);
   const groups=new Map<string,LedgerRow[]>();for(const row of rows){const month=row.day.slice(0,7);groups.set(month,[...(groups.get(month)??[]),row]);}
-  const change=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value==='all')next.delete(key);else next.set(key,value);if(key==='period')next.delete('year');setPeriodNow(Date.now());setParams(next);setLimit(50);};
+  const change=(key:string,value:string)=>{const next=new URLSearchParams(params);if(value==='all')next.delete(key);else next.set(key,value);if(key==='period'){next.delete('year');next.delete('from');next.delete('to');}setPeriodNow(Date.now());setParams(next);setLimit(50);};
   const inspect=(row:LedgerRow)=>row.collection==='fillups'?navigate(`/fillup/${encodeURIComponent(row.id)}`):setSelected(row);
   return <VehiclePage title="יומן" subtitle="כל מה שנרשם לרכב, במקום אחד."><VehicleAddBar/>
-    <div className="v-filter-line"><label>תקופה<select aria-label="תקופת היומן" value={year?'selected-year':period} onChange={e=>change('period',e.target.value)}><option value="all">כל התקופה</option><option value="month">החודש</option><option value="year">השנה</option><option value="3m">3 חודשים</option>{year?<option value="selected-year">שנת {year}</option>:null}</select></label><input aria-label="חיפוש ביומן" placeholder="חיפוש ברשומות" value={query} onChange={e=>{setQuery(e.target.value);setLimit(50);}}/></div>
+    <div className="v-filter-line"><label>תקופה<select aria-label="תקופת היומן" value={explicitRange?'selected-range':year?'selected-year':period} onChange={e=>change('period',e.target.value)}><option value="all">כל התקופה</option><option value="month">החודש</option><option value="year">השנה</option><option value="3m">3 חודשים</option>{year?<option value="selected-year">שנת {year}</option>:null}{explicitRange?<option value="selected-range">התקופה שנבחרה</option>:null}</select></label><input aria-label="חיפוש ביומן" placeholder="חיפוש ברשומות" value={query} onChange={e=>{setQuery(e.target.value);setLimit(50);}}/></div>
     <div className="v-chips" aria-label="סוג רשומה">{KINDS.map(([value,label])=><button type="button" key={value} aria-pressed={kind===value} onClick={()=>change('kind',value)}>{label}</button>)}</div>
     {plan||year||params.has('flagged')?<div className="v-filter-summary"><span>{year?`שנת ${year}`:plan?'טיפולים המקושרים לתזכורת':'תדלוקים לבדיקה'}</span><button type="button" onClick={()=>setParams({})}>ניקוי סינון</button></div>:null}
     {flagged.size&&!params.has('flagged')?<button className="v-text-button" type="button" onClick={()=>{const p=new URLSearchParams(params);p.set('flagged','1');p.set('kind','fuel');setParams(p);}}>תדלוקים שכדאי לבדוק ({flagged.size})</button>:null}
-    <section className="v-statpair" aria-label="סיכום היומן המסונן"><div><small>סך הכול בתקופה</small><strong data-testid="ledger-total">{vehicleMoney(summary.total)}</strong><span>{summary.unknown?`${summary.unknown} עלויות חסרות`:`${rows.length} רשומות`}</span></div><div><small>מתוכו רכישות דלק</small><strong>{vehicleMoney(summary.fuel)}</strong><span>סכומים ידועים בלבד</span></div></section><p className="helper" data-testid="ledger-range">{rows.length} רשומות מוצגות · {rows.filter(r=>r.kind==='fuel').length} תדלוקים · {year?`שנת ${year}`:rangeDates(calendarRange)}</p><CoverageNotice/>
+    <section className="v-statpair" aria-label="סיכום היומן המסונן"><div><small>סך הכול בתקופה</small><strong data-testid="ledger-total">{vehicleMoney(summary.total)}</strong><span>{summary.unknown?`${summary.unknown} עלויות חסרות`:`${rows.length} רשומות`}</span></div><div><small>מתוכו רכישות דלק</small><strong>{vehicleMoney(summary.fuel)}</strong><span>סכומים ידועים בלבד</span></div></section><p className="helper" data-testid="ledger-range">{rows.length} רשומות מוצגות · {rows.filter(r=>r.kind==='fuel').length} תדלוקים · {rangeLabel}</p><CoverageNotice/>
     {data.outbox.some(o=>o.vehicleId===v.vehicleId)?<Link data-history-unsynced className="v-group v-row" to="/settings/unsynced">יש פעולות שלא סונכרנו · בדיקה ותיקון ←</Link>:null}
     {data.fillupsError||data.malformedFillups.length||v.care.errors.length||v.care.malformed?<p role="alert">חלק מהרשומות אינן זמינות לקריאה. אין כאן היסטוריה מלאה.</p>:null}
     {!rows.length?<div className="v-empty"><h2>{query?'לא נמצאו רשומות':'היומן מתחיל כאן'}</h2><p>תדלוקים, טיפולים, הוצאות ועדכוני ק״מ יופיעו כאן.</p><Link to="/fillup/new">תדלוק חדש ←</Link></div>:null}
