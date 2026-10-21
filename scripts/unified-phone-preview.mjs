@@ -8,9 +8,9 @@ const dir=resolve('.care-device/unified-preview/tls');mkdirSync(dir,{recursive:t
 const caKey=dir+'/ca-key.pem',ca=dir+'/ca.pem',key=dir+'/server-key.pem',cert=dir+'/server.pem',der=dir+'/Tank-Maleh-Unified-Local-CA.crt';
 const run=args=>execFileSync('openssl',args,{stdio:'ignore'});
 if(!existsSync(ca)){run(['req','-x509','-newkey','rsa:2048','-nodes','-keyout',caKey,'-out',ca,'-days','7','-subj','/CN=Tank Maleh Unified Local CA','-addext','basicConstraints=critical,CA:TRUE','-addext','keyUsage=critical,keyCertSign,cRLSign']);chmodSync(caKey,0o600);}
-writeFileSync(dir+'/server.ext',`subjectAltName=IP:${host},IP:127.0.0.1\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\n`);
+writeFileSync(dir+'/server.ext',`subjectAltName=IP:${host},IP:127.0.0.1\nbasicConstraints=critical,CA:FALSE\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\nsubjectKeyIdentifier=hash\nauthorityKeyIdentifier=keyid,issuer\n`);
 run(['req','-new','-newkey','rsa:2048','-nodes','-keyout',key,'-out',dir+'/server.csr','-subj',`/CN=${host}`]);chmodSync(key,0o600);
-run(['x509','-req','-in',dir+'/server.csr','-CA',ca,'-CAkey',caKey,'-CAcreateserial','-out',cert,'-days','7','-extfile',dir+'/server.ext']);run(['x509','-in',ca,'-outform','DER','-out',der]);
+run(['x509','-req','-in',dir+'/server.csr','-CA',ca,'-CAkey',caKey,'-CAcreateserial','-out',cert,'-days','7','-extfile',dir+'/server.ext']);run(['verify','-x509_strict','-CAfile',ca,cert]);run(['x509','-in',ca,'-outform','DER','-out',der]);
 const origin=`https://${host}:5449`;
 execFileSync('node_modules/.bin/vite',['build','--mode','unified-preview','--outDir','.care-device/unified-preview/device-dist'],{stdio:'inherit',env:{...process.env,VITE_CARE_DEVICE_ORIGIN:origin}});
 const gateway=startDeviceServer({origin,key,cert,authPort:9096,firestorePort:8086},resolve('.care-device/unified-preview/device-dist'));
