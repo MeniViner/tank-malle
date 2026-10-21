@@ -32,12 +32,13 @@ export function Button({
     <button
       type="button"
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={`inline-flex ${size === "sm" ? "min-h-[44px] px-3 text-[14px]" : "min-h-[52px] px-6 text-[16px]"} items-center justify-center gap-2 rounded-control font-bold transition-[filter,background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-45 ${
         VARIANTS[variant]
       } ${full ? "w-full" : ""} ${className}`}
       {...rest}
     >
-      {loading ? <Spinner /> : children}
+      {loading ? <><Spinner /><span className="sr-only">{children}</span></> : children}
     </button>
   );
 }

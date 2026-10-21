@@ -45,6 +45,7 @@ import {
   shareApp,
 } from "../lib/share";
 import { APP_VERSION, BUILD_COMMIT, BUILD_DIRTY } from "../lib/version";
+import { UpdateCheckButton } from "../components/UpdateCheckButton";
 import type { ThemeSetting, Units } from "../lib/types";
 
 const THEME_OPTIONS: { value: ThemeSetting; label: string; icon: React.ReactNode }[] = [
@@ -210,6 +211,7 @@ export function Settings() {
             <RowButton title="מדיניות פרטיות" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/privacy")} />
           </ListCard>
           <p className="py-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION} · {BUILD_COMMIT.slice(0,10)}{BUILD_DIRTY?" · שינויים מקומיים":""}</Num></p>
+          <UpdateCheckButton />
         </section>
       </div>
       <Sheet open={themeOpen} onClose={() => setThemeOpen(false)} title={<h2 className="text-[18px] font-bold">ערכת נושא</h2>}>

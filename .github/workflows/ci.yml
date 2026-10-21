@@ -211,3 +211,10 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --config playwright.unified.config.ts
+      - name: Keep failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unified-pwa-failure
+          path: test-results/unified/
+          retention-days: 7

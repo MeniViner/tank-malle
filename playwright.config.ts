@@ -66,7 +66,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"], viewport: { width: 430, height: 900 } },
       // The offline-restart spec needs a service worker, which the dev server
       // does not have; it belongs to the `pwa` project below.
-      testIgnore: [PWA_SPEC, '**/care-pwa.spec.ts', '**/care-device.spec.ts', '**/cycle5.spec.ts', '**/cycle6.spec.ts', '**/scan-maintenance.spec.ts', '**/unified-vehicle.spec.ts', '**/ui-review.spec.ts'],
+      testIgnore: [PWA_SPEC, '**/care-pwa.spec.ts', '**/care-pwa-upgrade.spec.ts', '**/care-device.spec.ts', '**/cycle5.spec.ts', '**/cycle6.spec.ts', '**/scan-maintenance.spec.ts', '**/unified-vehicle.spec.ts', '**/ui-review.spec.ts'],
     },
     {
       name: "pwa",

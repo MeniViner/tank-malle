@@ -1,4 +1,6 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { useEffect, useRef, useState } from "react";
+import { APP_UPDATE_AVAILABLE, canReloadForUpdate, watchAppUpdates } from "../lib/appUpdates";
 import { RefreshIcon } from "./icons";
 
 /**
@@ -7,6 +9,9 @@ import { RefreshIcon } from "./icons";
  * mid-entry.
  */
 export function UpdatePrompt() {
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [blocked, setBlocked] = useState(false);
+  const reloadPending = useRef(false);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -14,12 +19,24 @@ export function UpdatePrompt() {
     // Without this the hook waits for window's `load` event, which has often
     // already fired by the time React mounts — leaving the SW unregistered.
     immediate: true,
+    onRegisteredSW(_url, registered) { if (registered) setRegistration(registered); },
+    onNeedReload() {
+      reloadPending.current = true;
+      if (canReloadForUpdate()) window.location.reload();
+      else setBlocked(true);
+    },
     onRegisterError(error) {
       console.warn("service worker registration failed", error);
     },
   });
+  useEffect(() => registration ? watchAppUpdates(registration) : undefined, [registration]);
+  useEffect(() => {
+    const available = () => setNeedRefresh(true);
+    window.addEventListener(APP_UPDATE_AVAILABLE, available);
+    return () => window.removeEventListener(APP_UPDATE_AVAILABLE, available);
+  }, [setNeedRefresh]);
 
-  if (!needRefresh) return null;
+  if (!needRefresh && !blocked) return null;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[100px] z-[80] flex justify-center px-4 pb-safe">
@@ -30,20 +47,24 @@ export function UpdatePrompt() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-[14.5px] font-bold text-ink">גרסה חדשה זמינה</span>
-          <span className="truncate text-[14px] text-muted">רעננו כדי לעבור אליה</span>
+          <span role="status" className="text-[14px] text-muted">{blocked ? "סיימו את השמירה או שמרו את הטיוטה לפני הרענון." : "רעננו כדי לעבור אליה"}</span>
         </div>
 
         <button
           type="button"
-          onClick={() => void updateServiceWorker(true)}
+          onClick={() => {
+            if (!canReloadForUpdate()) { setBlocked(true); return; }
+            setBlocked(false);
+            if (reloadPending.current) window.location.reload();
+            else void updateServiceWorker(true);
+          }}
           className="min-h-[40px] flex-none rounded-pill bg-accent px-3.5 text-[13px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.96]"
         >
           רענון
         </button>
         <button
           type="button"
-          onClick={() => setNeedRefresh(false)}
-          aria-label="סגירה"
+          onClick={() => { setNeedRefresh(false); setBlocked(false); }}
           className="min-h-[40px] flex-none px-2 text-[13px] font-semibold text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
         >
           אחר כך

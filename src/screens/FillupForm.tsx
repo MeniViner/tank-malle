@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
 const ReceiptImport = lazy(()=>import("../components/ReceiptImport").then(m=>({default:m.ReceiptImport})));
 import { RECEIPT_SOURCE, type ReceiptImport as ImportIdentity } from "../lib/import/receiptText";
 const ScanWizard = lazy(()=>import("../components/scan/ScanWizard").then(m=>({default:m.ScanWizard})));
@@ -509,6 +510,7 @@ function FillupEditor({
     continuityBreak !== initialDraft.current.continuityBreak ||
     (!stationAuto && JSON.stringify(station) !== JSON.stringify(initialDraft.current.station));
   const draftDirty = !!restoredDraft || (!!humanInput && JSON.stringify(draft) !== JSON.stringify(initialDraft.current));
+  useAppUpdateBlocker((draftStorageFailed && draftDirty) || saving);
   useEffect(() => {
     if (draftCleared.current) return;
     if (!draftDirty) { removeFillupDraft(draftKey); return; }

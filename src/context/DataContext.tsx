@@ -1,4 +1,5 @@
 import { backupPath, type BackupEntry } from "../lib/vehicle/backup";
+import { writeWithLocalAcceptance } from "../lib/localWriteAcceptance";
 import { receiptDocumentId } from "../lib/import/receiptText";
 import { subscribeResilient } from "../lib/subscribeResilient";
 import { carePayloadMatches, conditionalCareWrite } from "../lib/maintenance/persistence";
@@ -1228,12 +1229,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async (
       input: EnqueueInput,
       write: (operation: OutboxOperation) => Promise<unknown>,
+      localMatch?: (operation: OutboxOperation, data: DocumentData) => boolean,
     ): Promise<MutationReceipt> => {
       const outbox = await requireOutbox();
-      const [operation] = await submitMany(outbox, [input], (ops) => write(ops[0]), track);
+      let accepted = Promise.resolve();
+      const [operation] = await submitMany(outbox, [input], (ops) => {
+        if (!localMatch) return write(ops[0]);
+        const receipt = writeWithLocalAcceptance(refFor(input.path), data => localMatch(ops[0], data), () => write(ops[0]));
+        accepted = receipt.accepted;
+        return receipt.settled;
+      }, track);
+      await accepted;
       return operation;
     },
-    [requireOutbox, track],
+    [requireOutbox, track, refFor],
   );
 
   const updateAdminPrices = useCallback(async (payload: OutboxPayload) => {
@@ -1397,6 +1406,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             ? conditionalFillupWrite(db, refFor(path), "set", toFirestoreData(outgoing), null)
             : setDoc(refFor(path), toFirestoreData(outgoing));
         },
+        (op, data) => data.writeId === `${op.opId}.${op.version}`,
       );
       return docId;
     },
@@ -1853,7 +1863,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       beforeImage: previous ? carePayload(name, previous) : null }, () => {
       if (generation !== generationRef.current || fillupVehicleRef.current !== vehicleId) throw new Error("הרכב או החשבון התחלפו");
       return previous ? updateDoc(refFor(path), payload) : setDoc(refFor(path), payload);
-    });
+    }, (_op, data) => carePayloadMatches(payload, data));
   }, [uid, activeVehicle?.id, submit, userPath, refFor]);
 
   const deleteCareRecord = useCallback(async (vehicleId: string, name: CareCollection, record: CareRecord) => {

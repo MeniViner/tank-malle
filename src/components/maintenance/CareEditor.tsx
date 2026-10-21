@@ -1,4 +1,5 @@
 import { careDraftKey, readCareDraft, writeCareDraft, removeCareDraft } from '../../lib/maintenance/draft';
+import { useAppUpdateBlocker } from '../../hooks/useAppUpdateBlocker';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { CareGlyph } from './CareGlyph';
 import { CheckIcon, ChevronStart, ChevronEnd } from '../icons';
@@ -58,6 +59,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const [storageFailed,setStorageFailed] = useState(false);
   const saved = useRef(false);
   const dirty = !!restored || signature !== original;
+  useAppUpdateBlocker((storageFailed && dirty) || busy);
   useEffect(()=>{
     if (!saved.current && dirty) setStorageFailed(!writeCareDraft(draftKey,{fields:{...JSON.parse(signature),_step:step},base:record??null}));
     else if (!saved.current) setStorageFailed(!removeCareDraft(draftKey));
