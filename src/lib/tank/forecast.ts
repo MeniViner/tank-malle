@@ -181,8 +181,10 @@ function firstPassageDays(
     const end = schedule.starts[i + 1] ?? addLocalDays(schedule.starts[i], 1, timeZone);
     if (end <= start) continue;
     const share = (end - start) / (end - schedule.starts[i]);
-    const km = schedule.routineKm[i] * routineScale + schedule.planKm[i];
-    const burnt = km * share * litersPerKm;
+    // Routine exposure shrinks with the remaining day. A trip the user still
+    // plans to take today keeps its entire distance, even late in the evening.
+    const km = schedule.routineKm[i] * routineScale * share + schedule.planKm[i];
+    const burnt = km * litersPerKm;
     if (burnt <= 0) continue;
 
     if (liters - burnt <= targetLiters) {
@@ -283,7 +285,7 @@ export function forecast(input: ForecastInput): ForecastResult {
   const measuredKm = lastOdometer ? Math.max(0, lastOdometer.value - anchor.odometer) : 0;
   const forecastFrom = lastOdometer ? Math.max(lastOdometer.at, anchor.at) : anchor.at;
 
-  const upcoming = plans.filter((plan) => plan.date >= startOfLocalDay(forecastFrom, timeZone));
+  const upcoming = plans.filter((plan) => plan.date >= startOfLocalDay(now, timeZone));
   const elapsedSinceOdometer = Math.max(0, elapsedDays(forecastFrom, now));
   const horizon = Math.ceil(elapsedSinceOdometer) + FORECAST_HORIZON_DAYS + 2;
 
@@ -315,7 +317,9 @@ export function forecast(input: ForecastInput): ForecastResult {
       // do not treat excess litres as fuel that keeps tomorrow's gauge full.
       const usableAnchor = Math.min(capacity, anchor.liters);
       const anchorLiters = usableAnchor + scenario.litersOffset * Math.max(anchor.sd, anchor.liters - usableAnchor);
-      const forecastKm = kmBetween(schedule, forecastFrom, now, routineScale);
+      // A planned trip is not evidence that it happened. Keep current fuel
+      // independent of unconfirmed plans, and apply them only to the future.
+      const forecastKm = kmBetween(withoutPlans, forecastFrom, now, routineScale);
       const currentLiters =
         anchorLiters - (measuredKm + forecastKm) * scenarioConsumption;
 
@@ -358,7 +362,7 @@ export function forecast(input: ForecastInput): ForecastResult {
   const currentLiters = reserveRun.centralCurrent;
   const rawLevel = currentLiters / capacity;
   const currentSd = Math.sqrt(
-    anchor.sd ** 2 + ((measuredKm + kmBetween(withPlans, forecastFrom, now, 1)) * consumptionSd) ** 2,
+    anchor.sd ** 2 + ((measuredKm + kmBetween(withoutPlans, forecastFrom, now, 1)) * consumptionSd) ** 2,
   );
 
   // A stale projection that ran below zero is unknown, not "0%". The tank is
@@ -373,7 +377,7 @@ export function forecast(input: ForecastInput): ForecastResult {
     asOf: now,
     anchorAgeDays,
     stale,
-    forecastKmSinceOdometer: kmBetween(withPlans, forecastFrom, now, 1),
+    forecastKmSinceOdometer: kmBetween(withoutPlans, forecastFrom, now, 1),
   };
 
   const toPassage = (

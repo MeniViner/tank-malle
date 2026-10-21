@@ -143,12 +143,10 @@ test("rapid switching settles on the account that signed in last", async ({ page
 });
 
 test("a second tab does not keep the previous account's listeners alive", async ({
-  browser,
+  page: first,
+  context,
 }) => {
   await resetEmulators();
-
-  const context = await browser.newContext({ locale: "he-IL" });
-  const first = await context.newPage();
 
   await signIn(first, ALICE);
   await createVehicle(first, { make: "מאזדה", model: "3" });
@@ -172,7 +170,6 @@ test("a second tab does not keep the previous account's listeners alive", async 
   // The listener from the first account must not still be feeding this tab.
   await expect(second.getByText("מאזדה")).toHaveCount(0);
 
-  await context.close();
 });
 
 /* ------------------------------------------------------------------ *

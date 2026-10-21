@@ -53,3 +53,4 @@ Neutral background `#f4f5f5`, ink `#14171a`, surfaces `#fff/#ebedee`, dark equiv
 | Cost-summary link falling back to all dates | Explicit validated from/to range in the ledger; changing its period clears those bounds |
 | Production build replacing the legacy PWA test bundle | Separate PWA output directory with a served-build mode assertion |
 | Phone leaf certificate lacked key identifiers required by strict TLS clients | Explicit subject/authority key identifiers and strict chain verification before serving the preview |
+| A late same-day trip was prorated away and could affect current fuel before occurring | Entire pending distance remains in the future forecast; current fuel uses measured evidence and routine exposure only |

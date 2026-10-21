@@ -711,6 +711,27 @@ describe("calendar", () => {
  * ------------------------------------------------------------------ */
 
 describe("forecast", () => {
+  it("keeps the whole remaining planned journey when today is almost over", () => {
+    const now = Date.parse("2026-03-25T23:50:00+02:00");
+    const input = { fillups: routineHistory(0.25, 8), observations: [observation({ id: "fresh", kind: "level", level: 1, observedAt: now, odometer: 4500 })], vehicle: TANK_40, preferences: DEFAULT_TANK_PREFERENCES, now };
+    const baseline = estimateTank(input);
+    const planned = estimateTank({ ...input, plans: [{ id: "today", vehicleId: "v1", date: now, distanceKm: 600, mode: "additional" }] });
+    expect(baseline.recommendedRefuel.days).toBeGreaterThan(1);
+    expect(planned.tripPullsForward).toBe(true);
+    expect(planned.recommendedRefuel.days).toBeLessThan(1 / 24);
+    expect(planned.current.liters).toBeCloseTo(baseline.current.liters!, 6);
+  });
+
+  it("does not consume a newly planned trip before it happens", () => {
+    const now = Date.parse("2026-03-25T23:50:00+02:00");
+    const input = { fillups: routineHistory(0.25, 8), observations: [observation({ id: "level", kind: "level", level: 1, observedAt: now - 6 * 3600_000, odometer: 4500 })], vehicle: TANK_40, preferences: DEFAULT_TANK_PREFERENCES, now };
+    const baseline = estimateTank(input);
+    const planned = estimateTank({ ...input, plans: [{ id: "today", vehicleId: "v1", date: now, distanceKm: 600, mode: "additional" }] });
+    expect(planned.current.liters).toBeCloseTo(baseline.current.liters!, 6);
+    expect(baseline.current.forecastKmSinceOdometer).not.toBeNull();
+    expect(planned.current.forecastKmSinceOdometer).toBeCloseTo(baseline.current.forecastKmSinceOdometer!, 6);
+  });
+
   it("§15.11: a replacement trip does not add the routine it replaces", () => {
     const mobility = estimateMobility(routineHistory(0.25, 8), [], T0 + 80 * DAY, TZ);
     const day = startOfLocalDay(T0 + 3 * DAY, TZ);

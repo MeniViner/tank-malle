@@ -60,6 +60,8 @@ export async function signIn(page: Page, account: TestAccount): Promise<void> {
     page.getByRole("button", { name: /Google/ }).click(),
   ]);
   await popup.waitForLoadState("domcontentloaded");
+  // Register before submitting: the emulator can close immediately on success.
+  const popupClosed = popup.waitForEvent("close", { timeout: 20_000 }).catch(() => undefined);
 
   // An account the emulator already holds is listed and can be picked; a new
   // one goes through the add form.
@@ -73,7 +75,7 @@ export async function signIn(page: Page, account: TestAccount): Promise<void> {
     await popup.getByRole("button", { name: /Sign in with Google\.com/ }).click();
   }
 
-  await popup.waitForEvent("close", { timeout: 20_000 }).catch(() => undefined);
+  await popupClosed;
   await expect(page.getByRole("button", { name: /Google/ })).toHaveCount(0, {
     timeout: 20_000,
   });

@@ -15,7 +15,7 @@
 
 ## מה השתנה
 
-הבית הקיים נשמר: צריכה וגרף, ממוצע ובסיס באותה שורה, למידה מהרגלי השימוש, מצב מיכל לא ידוע, תכנון נסיעה ותדלוקים אחרונים. מעליו נוספו מצב דלק, תחזוקה והוצאות חודש, עם קישורים לפירוט והתראות דחופות אמיתיות. נתונים חסרים נשארים חסרים. נוסח השוואת הצריכה תואם לחישוב הקיים של דלק לק״מ.
+הבית הקיים נשמר: צריכה וגרף, ממוצע ובסיס באותה שורה, למידה מהרגלי השימוש, מצב מיכל לא ידוע, תכנון נסיעה ותדלוקים אחרונים. תיקון בתחזית שומר את מלוא המרחק של נסיעה שעדיין מתוכננת להיום, גם בשעה מאוחרת, ואינו מציג אותה כדלק שכבר נצרך. מעליו נוספו מצב דלק, תחזוקה והוצאות חודש, עם קישורים לפירוט והתראות דחופות אמיתיות. נתונים חסרים נשארים חסרים. נוסח השוואת הצריכה תואם לחישוב הקיים של דלק לק״מ.
 
 היומן מאחד תדלוקים, טיפולים, הוצאות, החזרים, קריאות מד־דרך ותקלות. אפשר לסנן סוג ותקופה, לחפש ולפתוח את רשומת המקור לעריכה או מחיקה. נשמרו ליטרים, צריכה מדודה, סימוני הפסקת רציפות ואגורות. בחירה בשנה פותחת את אותה שנה ביומן. ביטול מחיקה אחרי אישור השרת משחזר את המזהה המקורי.
 
@@ -49,7 +49,7 @@
 | תחום | קבצים |
 |---|---|
 | מקור נתונים משותף | src/context/VehicleDataContext.tsx, src/context/DataContext.tsx, src/hooks/useMaintenance.ts |
-| חישובים ומודל | src/lib/vehicle/model.ts, derived.ts, financial.ts, tankMileage.ts; src/hooks/useTankEstimate.ts; src/lib/maintenance/costs.ts |
+| חישובים ומודל | src/lib/vehicle/model.ts, derived.ts, financial.ts, tankMileage.ts; src/hooks/useTankEstimate.ts; src/lib/maintenance/costs.ts; src/lib/tank/forecast.ts |
 | מסכים | src/screens/Home.tsx, History.tsx, Maintenance.tsx, VehicleDetails.tsx, Notifications.tsx, Statistics.tsx, Profile.tsx, FillupForm.tsx, Settings.tsx |
 | רכיבים | src/components/VehicleOverview.tsx, VehicleRecordEditor.tsx, RunningCosts.tsx, VehicleUI.tsx, UnifiedTransfer.tsx, LegacyCareTransfer.tsx, AppHeader.tsx, TabBar.tsx, MyTankCard.tsx, RouteScroll.tsx |
 | גיבוי ואבטחה | src/lib/vehicle/backup.ts, src/lib/accountExport.ts, src/lib/accountDeletion.ts, firestore.rules |
