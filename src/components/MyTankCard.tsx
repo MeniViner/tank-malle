@@ -74,6 +74,7 @@ export function MyTankCard() {
   // actually reported, clearly labelled as a report rather than an estimate.
   const displayLevel = displayTankLevel(estimate);
   const reportedLevel = displayLevel !== null ? estimate.lastLevelReport : null;
+  const hasMeasurementActions = current.level !== null || Boolean(reportedLevel);
 
   return (
     <>
@@ -203,7 +204,7 @@ export function MyTankCard() {
         {/* With nothing measured yet the column above already carries a single
             primary invitation; repeating it here as one of two equal-weight
             buttons only makes the first tap harder to find. */}
-        {current.level !== null || reportedLevel ? (
+        {hasMeasurementActions ? (
           <div className="flex gap-2">
             <CardAction icon={<GaugeIcon size={16} />} onClick={() => setOdometerOpen(true)}>
               עדכון קילומטראז׳
@@ -215,7 +216,7 @@ export function MyTankCard() {
         ) : null}
 
         {/* At most one request, and only after its cooldown has expired. */}
-        {estimate.nextUpdate.kind !== "none" && estimate.nextUpdate.kind !== "updateGauge" && !(estimate.nextUpdate.kind === "confirmCapacity" && estimate.capacity.suggestion !== null) ? (
+        {estimate.nextUpdate.kind !== "none" && estimate.nextUpdate.kind !== "updateGauge" && !(estimate.nextUpdate.kind === "updateOdometer" && hasMeasurementActions) && !(estimate.nextUpdate.kind === "confirmCapacity" && estimate.capacity.suggestion !== null) ? (
           <NextUpdatePrompt
             kind={estimate.nextUpdate.kind}
             onAct={() => {

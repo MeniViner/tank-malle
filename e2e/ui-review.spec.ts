@@ -5,6 +5,17 @@ const DAY=86400000;
 const car={make:'רכב',model:'בדיקת ממשק',tankLiters:50,tankLitersSource:'user' as const,declaredKmPerLiter:15};
 const records=(n:number)=>Array.from({length:n},(_,i)=>({id:`ui-${i}`,date:new Date(Date.now()-(n-i)*7*DAY),odometer:170000+i*450,liters:30,pricePerLiter:7.77}));
 
+test('a recent gauge with old mileage has one odometer action after every source loads',async({page})=>{
+  const {uid,vehicleId}=await signedInWithData(page,{vehicle:car,fillups:[{id:'old-mileage',date:new Date(Date.now()-28*DAY),odometer:100000,liters:40,pricePerLiter:7,totalCost:280}]});
+  await setDocument(`users/${uid}/vehicles/${vehicleId}/observations/gauge`,{observedAt:new Date(Date.now()-60000),recordedAt:new Date(),kind:'level',level:0.5,confirmed:true,levelSource:'direct-gauge'});
+  await page.goto('/');const overview=page.getByRole('region',{name:'מצב הרכב'});
+  await expect(overview).not.toContainText('טוענים');await expect(overview).not.toContainText('חלקי');
+  const tank=page.locator('#my-tank');await expect(tank).toBeVisible();
+  await expect(tank.getByRole('button',{name:'עדכון קילומטראז׳',exact:true})).toHaveCount(1);
+  await tank.getByRole('button',{name:'עדכון קילומטראז׳',exact:true}).click();
+  await expect(page.getByRole('dialog').getByLabel('קילומטראז׳ נוכחי')).toBeVisible();
+});
+
 test('Home has one compact tank, useful mileage and honest purchase habits',async({page},info)=>{
   const {uid,vehicleId}=await signedInWithData(page,{vehicle:car,fillups:records(2)});
   const base=`users/${uid}/vehicles/${vehicleId}`;

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { listDocuments, resetEmulators, seedFillups } from "./helpers/emulator";
+import { outboxCount } from './helpers/pwa';
 import {
   ALICE,
   addFillup,
@@ -48,7 +49,13 @@ async function freshVehicle(page: Page): Promise<{ uid: string; vehicleId: strin
   await signIn(page, ALICE);
   await createVehicle(page, { make: "מאזדה", model: "3" });
   const uid = await uidOf(ALICE);
-  return { uid, vehicleId: await firstVehicleId(uid) };
+  const vehicleId = await firstVehicleId(uid);
+  // These tests inspect the tank UI, after online fixture creation. The
+  // vehicle can be acknowledged before its active-vehicle settings write.
+  // Wait for both setup receipts before an unrelated full navigation.
+  // Intentional queued-write reloads live in the separate offline PWA rig.
+  await expect.poll(() => outboxCount(page, uid), { timeout: 20_000 }).toBe(0);
+  return { uid, vehicleId };
 }
 
 /* ------------------------------------------------------------------ *
