@@ -44,6 +44,7 @@ The new controls retain the existing RTL typography and a minimum 40-pixel touch
 | Types and lint | Passed; 20 existing warnings, no new warning or error. |
 | Legacy reliability suite | 9 passed, including rejection, immutable versions, retry and Undo. |
 | Outbox lifecycle and focused stress | 8 lifecycle cases passed, including the new stale-snapshot regression. The stale snapshot, remaining-tab handoff and verification-denied retry are additionally repeated five times each with no retries. |
+| Final import/rollback and outbox coverage | 16 passed, 2 pre-existing private-workbook cases skipped. Bulk import and rollback register their SDK receipts under the same ownership rule as individual writes. |
 | Full unified Chromium, offline PWA, HTTPS and mobile WebKit | 70 passed, no skipped or failed case. Includes the 3 two-build upgrade scenarios and both deterministic disk-delay regressions. |
 
 The first exploratory upgrade run exposed two harness issues: the test clock also changed `performance.timeOrigin`, and a dismiss-button selector differed from its accessible name. The final assertions use a per-document random marker to detect reloads and the visible, accessible **אחר כך** label. No durability, duplicate-prevention or update-acceptance assertion was removed or relaxed.

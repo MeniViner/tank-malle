@@ -1761,6 +1761,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         { kind: "import.batch" as const, path: batchPath, vehicleId, payload: batchPayload, batchId },
       ]);
       const rowOps = journaled.slice(0, rows.length);
+      ownWrites(outbox, journaled);
       const batchOp = journaled[rows.length];
 
       const commits: Promise<unknown>[] = [];
@@ -2052,6 +2053,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           },
         ]);
         const rowOps = journaled.slice(0, snapshot.docs.length);
+        ownWrites(outbox, journaled);
         const batchOp = journaled[snapshot.docs.length];
 
         const commits: Promise<unknown>[] = [];
