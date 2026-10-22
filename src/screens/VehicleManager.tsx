@@ -31,13 +31,14 @@ import type { FuelType, Vehicle } from "../lib/types";
 export function VehicleManager() {
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { vehicles, activeVehicle, setVehicleArchived, deleteVehicle, updateVehicle, ready } =
+  const { vehicles, activeVehicle, setActiveVehicle, setVehicleArchived, deleteVehicle, updateVehicle, ready } =
     useData();
 
   const [editing, setEditing] = useState<Vehicle | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<Vehicle | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selecting, setSelecting] = useState<string|null>(null);
 
   const active = useMemo(() => vehicles.filter((v) => !v.archived), [vehicles]);
   const archived = useMemo(() => vehicles.filter((v) => v.archived), [vehicles]);
@@ -72,6 +73,8 @@ export function VehicleManager() {
             key={vehicle.id}
             vehicle={vehicle}
             isActive={vehicle.id === activeVehicle?.id}
+            selecting={selecting!==null}
+            onSelect={() => { if(selecting)return;setSelecting(vehicle.id);void setActiveVehicle(vehicle.id).catch(()=>showToast({tone:'error',title:'בחירת הרכב לא נשמרה'})).finally(()=>setSelecting(null)); }}
             onEdit={() => { setSaveError(null); setEditing(vehicle); }}
             onArchive={() => void setVehicleArchived(vehicle.id, true).catch(() => showToast({ tone: "error", title: "העברה לארכיון נכשלה" }))}
           />
@@ -137,6 +140,8 @@ function VehicleCard({
   onArchive,
   onRestore,
   onDelete,
+  onSelect,
+  selecting = false,
 }: {
   vehicle: Vehicle;
   isActive?: boolean;
@@ -145,6 +150,8 @@ function VehicleCard({
   onArchive?: () => void;
   onRestore?: () => void;
   onDelete?: () => void;
+  onSelect?: () => void;
+  selecting?: boolean;
 }) {
   return (
     <Card className={`flex flex-col gap-3 p-4 ${archived ? "opacity-70" : ""}`}>
@@ -168,7 +175,7 @@ function VehicleCard({
           </span>
         </div>
 
-        <span
+        {!archived&&!isActive?<button type="button" aria-label="בחירה ברכב" disabled={selecting||vehicle.deletionPending} onClick={onSelect} className="min-h-10 flex-none rounded-pill border border-line px-3 py-2 text-[12px] font-semibold text-accent">{vehicle.deletionPending?'מחיקה ממתינה':'בחירה'}</button>:<span
           className={`flex-none rounded-pill px-2.5 py-1 text-[12px] font-semibold ${
             archived
               ? "bg-surface-2 text-muted"
@@ -178,7 +185,7 @@ function VehicleCard({
           }`}
         >
           {vehicle.deletionPending ? "מחיקה ממתינה" : archived ? "בארכיון" : isActive ? "פעיל" : "זמין"}
-        </span>
+        </span>}
       </div>
 
       {vehicle.plateNumber ? (
