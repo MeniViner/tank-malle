@@ -12,6 +12,8 @@ import { validVehicleRecord, type VehicleIssue } from '../lib/vehicle/model';
 export function VehicleRecordEditor() {
   const state=useVehicleData();const {saveCareRecord}=useData();const {showToast}=useToast();const scope=useRef(state.scope);useLayoutEffect(()=>{scope.current=state.scope;},[state.scope]);
   const edit=state.editing;if(!edit)return null;const bound=state.scope;
+  const previous=edit.completePlan?state.care.data.serviceEvents.filter(event=>event.day<=state.today&&event.completedPlanIds.includes(edit.completePlan!.id)).sort((a,b)=>b.day.localeCompare(a.day)||(b.odometer??-1)-(a.odometer??-1)||a.id.localeCompare(b.id))[0]:undefined;
+  const completionDefaults=edit.completePlan&&!edit.record?{costAgorot:previous?.costAgorot??null,garage:previous?.garage??'',odometer:state.currentMileage&&!state.currentMileage.ambiguous?state.currentMileage.odometer:null,previousDay:previous?.day??null}:undefined;
   const onSave=async(record:CareRecord,base?:CareRecord)=>{
     if(scope.current!==bound)throw new Error('הרכב או החשבון התחלפו');
     if('odometer' in record&&record.odometer!==null){const issue=mileageIssue({day:record.day,odometer:record.odometer},state.mileage.filter(r=>r.source!==edit.collection||r.id!==record.id));if(issue)throw new Error(issue);}
@@ -19,7 +21,7 @@ export function VehicleRecordEditor() {
     if(scope.current!==bound)return;state.edit(null);showToast({tone:'info',title:'נשמר במכשיר — ממתין לסנכרון'});
     void receipt.settled.then(ok=>{if(scope.current===bound&&!ok)showToast({tone:'error',title:'הסנכרון לא הושלם — בדקו פעולות שלא סונכרנו'});});
   };
-  if(careCollection(edit.collection))return <CareEditor key={`${bound}/${edit.collection}/${edit.record?.id??edit.completePlan?.id??'new'}`} uid={state.uid} vehicleId={state.vehicleId} collection={edit.collection as CareCollection} record={edit.record as CareRecord|undefined} completePlan={edit.completePlan} plans={state.care.data.maintenancePlans} onClose={()=>state.edit(null)} onSave={onSave}/>;
+  if(careCollection(edit.collection))return <CareEditor key={`${bound}/${edit.collection}/${edit.record?.id??edit.completePlan?.id??'new'}`} uid={state.uid} vehicleId={state.vehicleId} collection={edit.collection as CareCollection} record={edit.record as CareRecord|undefined} completePlan={edit.completePlan} completionDefaults={completionDefaults} plans={state.care.data.maintenancePlans} onClose={()=>state.edit(null)} onSave={onSave}/>;
   if(edit.collection==='vehicleIssues')return <IssueEditor key={`${bound}/${edit.record?.id??'new'}`} original={edit.record as VehicleIssue|undefined} onClose={()=>state.edit(null)}/>;
   return null;
 }

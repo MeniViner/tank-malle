@@ -85,15 +85,15 @@ export function nextDue(plan: MaintenancePlan, events: ServiceEvent[], asOf = lo
   }
   return { day, odometer, completed: false, ...(plan.intervalKm !== null && last.odometer === null ? { needsMileage: true } : {}) };
 }
-export function dueStatus(due: ReturnType<typeof nextDue>, mileage: Mileage | null, today: string): 'done'|'due'|'soon'|'unknown'|'later' {
+export function dueStatus(due: ReturnType<typeof nextDue>, mileage: Mileage | null, today: string, lead={days:30,km:1000}): 'done'|'due'|'soon'|'unknown'|'later' {
   if (due.completed) return 'done';
   if ((due.day !== null && due.day <= today) || (due.odometer !== null && mileage !== null && mileage.odometer >= due.odometer)) return 'due';
   if (due.needsMileage) return 'unknown';
   const days = due.day ? (Date.parse(`${due.day}T12:00:00Z`) - Date.parse(`${today}T12:00:00Z`))/86400000 : Infinity;
   if (!due.day && due.odometer === null) return 'unknown';
   if (due.odometer !== null && (!mileage || (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${mileage.day}T12:00:00Z`))/86400000 > 30)) return 'unknown';
-  if (days<=30) return 'soon';
-  if (due.odometer !== null && mileage !== null && due.odometer-mileage.odometer<=1000) return 'soon';
+  if (days<=lead.days) return 'soon';
+  if (due.odometer !== null && mileage !== null && due.odometer-mileage.odometer<=lead.km) return 'soon';
   return 'later';
 }
 

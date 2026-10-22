@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./design.css";
 @import "./vehicle-design.css";
+@import "./admin.css";
 
 @font-face {
   font-family: "Assistant";
@@ -167,10 +168,10 @@
   --font-sans: "Assistant", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Frank Ruhl Libre", "Assistant", Georgia, serif;
 
-  --radius-card: 18px;
+  --radius-card: 14px;
   --radius-tile: 11px;
-  --radius-sheet: 26px;
-  --radius-control: 14px;
+  --radius-sheet: 22px;
+  --radius-control: 12px;
   --radius-pill: 99px;
 
   --shadow-card: var(--shadow-card);

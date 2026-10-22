@@ -1,4 +1,7 @@
 import type { Stats, Vehicle } from "./stats";
+import type { LedgerRow } from './vehicle/derived';
+import { financialTotals } from './vehicle/financial';
+import { localDay } from './maintenance/model';
 
 /**
  * Operational summaries for the admin dashboard.
@@ -8,8 +11,8 @@ import type { Stats, Vehicle } from "./stats";
  * unbounded read pattern that made /admin a quota risk.
  *
  * So each client publishes a small summary of what it has already computed —
- * no dates beyond the last fill-up, no odometer readings, no stations, no
- * notes, no prices paid per record. The dashboard reads those.
+ * only the last fill-up time and six coarse month buckets, no odometer
+ * readings, stations, notes or per-record prices. The dashboard reads those.
  *
  * **These are client-produced and must never back a security decision.** A
  * modified client can write whatever numbers it likes into its own summary.
@@ -18,7 +21,14 @@ import type { Stats, Vehicle } from "./stats";
  */
 
 /** Bump when the shape changes, so a stale summary can be recognised. */
-export const SUMMARY_VERSION = 1;
+export const SUMMARY_VERSION = 2;
+
+export interface LedgerSummary {
+  counts: Record<LedgerRow['kind'], number>;
+  totalAgorot: number;
+  unknownCosts: number;
+  months: { month: string; totalAgorot: number; unknownCosts: number }[];
+}
 
 export interface VehicleSummary {
   fuelType: string;
@@ -32,6 +42,8 @@ export interface VehicleSummary {
   segments: number;
   lastFillupAt: number | null;
   updatedAt: number;
+  /** Optional for clients that have not yet published the unified ledger. */
+  ledger?: LedgerSummary;
 }
 
 export interface UserSummary {
@@ -87,8 +99,66 @@ export function summaryChanged(
     previous.cost !== next.cost ||
     previous.liters !== next.liters ||
     previous.lastFillupAt !== next.lastFillupAt ||
-    previous.fuelType !== next.fuelType
+    previous.fuelType !== next.fuelType ||
+    JSON.stringify(previous.ledger) !== JSON.stringify(next.ledger)
   );
+}
+
+/** Coarse, bounded totals only; never publish notes, mileage or record identities. */
+export function summariseLedger(rows: LedgerRow[], now = Date.now()): LedgerSummary {
+  const counts: LedgerSummary['counts'] = { fuel: 0, service: 0, expense: 0, odometer: 0, tank: 0, issue: 0 };
+  for (const row of rows) counts[row.kind]++;
+  const totals = financialTotals(rows);
+  const today = localDay(new Date(now));
+  const current = new Date(`${today.slice(0, 7)}-01T12:00:00`);
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(current.getFullYear(), current.getMonth() - 5 + index, 1, 12);
+    const month = localDay(date).slice(0, 7);
+    const total = financialTotals(rows.filter(row => row.day.startsWith(month) && row.day <= today));
+    return { month, totalAgorot: total.total, unknownCosts: total.unknown };
+  });
+  return { counts, totalAgorot: totals.total, unknownCosts: totals.unknown, months };
+}
+
+/** Summaries are owner-written telemetry, not trusted application records. */
+export function readUserSummary(value: unknown): UserSummary | null {
+  const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+  const number = (v: unknown, low = 0, high = 1e12): v is number => typeof v === 'number' && Number.isFinite(v) && v >= low && v <= high;
+  const count = (v: unknown): v is number => number(v, 0, 1e8) && Number.isInteger(v);
+  if (!object(value) || typeof value.version !== 'number' || ![1, 2].includes(value.version) || !count(value.vehicleCount) || value.vehicleCount > 100 || !object(value.vehicles) || Object.keys(value.vehicles).length > 100) return null;
+  const vehicles: Record<string, VehicleSummary> = Object.create(null);
+  for (const [id, v] of Object.entries(value.vehicles)) {
+    if (!object(v) || typeof v.fuelType !== 'string' || !['95', '98', 'diesel', 'other'].includes(v.fuelType) ||
+        !count(v.fillups) || !number(v.trackedKm) || !number(v.liters) || !number(v.cost) || !count(v.segments) ||
+        !(v.kmPerLiter === null || number(v.kmPerLiter, 0.01, 1000)) || !(v.lastFillupAt === null || number(v.lastFillupAt, 0, 8.64e15)) || !number(v.updatedAt, 0, 8.64e15)) return null;
+    let ledger: LedgerSummary | undefined;
+    if (object(v.ledger)) {
+      const l = v.ledger, kinds = ['fuel', 'service', 'expense', 'odometer', 'tank', 'issue'] as const;
+      if (object(l.counts) && kinds.every(kind => count((l.counts as Record<string, unknown>)[kind])) && number(l.totalAgorot, -1e13, 1e13) && count(l.unknownCosts) && Array.isArray(l.months) && l.months.length <= 6 &&
+          l.months.every(m => object(m) && typeof m.month === 'string' && /^(19|20|21)\d{2}-(0[1-9]|1[0-2])$/.test(m.month) && number(m.totalAgorot, -1e13, 1e13) && count(m.unknownCosts)) && new Set(l.months.map(m => m.month)).size === l.months.length) {
+        ledger = { counts: Object.fromEntries(kinds.map(k => [k, (l.counts as Record<string, number>)[k]])) as LedgerSummary['counts'], totalAgorot: l.totalAgorot, unknownCosts: l.unknownCosts, months: l.months as LedgerSummary['months'] };
+      }
+    }
+    vehicles[id] = { fuelType: v.fuelType, fillups: v.fillups, trackedKm: v.trackedKm, liters: v.liters, cost: v.cost, kmPerLiter: v.kmPerLiter, segments: v.segments, lastFillupAt: v.lastFillupAt, updatedAt: v.updatedAt, ...(ledger ? { ledger } : {}) };
+  }
+  return { version: Number(value.version), vehicleCount: value.vehicleCount, vehicles, updatedAt: number(value.updatedAt, 0, 8.64e15) ? value.updatedAt : 0 };
+}
+
+export function aggregateLedgerSummaries(summaries: (UserSummary | null)[], now = Date.now()) {
+  const vehicles = summaries.flatMap(s => Object.values(s?.vehicles ?? {}));
+  const ledgers = vehicles.flatMap(v => v.ledger ? [v.ledger] : []);
+  const counts = { fuel: 0, service: 0, expense: 0, odometer: 0, tank: 0, issue: 0 };
+  for (const v of vehicles) {
+    if (!v.ledger) counts.fuel += v.fillups;
+    else for (const kind of Object.keys(counts) as (keyof typeof counts)[]) counts[kind] += v.ledger.counts[kind];
+  }
+  const months = summariseLedger([], now).months.map(({ month }) => {
+    const available = ledgers.flatMap(l => l.months.filter(m => m.month === month));
+    return { month, totalAgorot: available.reduce((s, m) => s + m.totalAgorot, 0), unknownCosts: available.reduce((s, m) => s + m.unknownCosts, 0), published: available.length };
+  });
+  return { counts, records: Object.values(counts).reduce((s, n) => s + n, 0), ledgerVehicles: ledgers.length,
+    missingLedgers: vehicles.length - ledgers.length, missingVehicles: summaries.reduce((s, u) => s + Math.max(0, (u?.vehicleCount ?? 0) - Object.keys(u?.vehicles ?? {}).length), 0),
+    unknownCosts: ledgers.reduce((s, l) => s + l.unknownCosts, 0), months };
 }
 
 /** Aggregate across users, for the dashboard's overview strip. */

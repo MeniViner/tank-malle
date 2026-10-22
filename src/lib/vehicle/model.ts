@@ -10,6 +10,8 @@ export interface VehicleIssue extends CareBase {
 }
 export interface NotificationState extends CareBase {
   occurrence: string; read: boolean; archived: boolean; snoozeUntilDay: string | null;
+  /** A tombstone for this occurrence; a new maintenance cycle gets a new identity. */
+  deleted?: boolean;
 }
 export type VehicleRecord = CareRecord | VehicleIssue | NotificationState;
 export interface ExtraData { vehicleIssues: VehicleIssue[]; notificationStates: NotificationState[] }
@@ -21,8 +23,8 @@ export function validVehicleRecord(name: VehicleCollection, value: unknown): val
   const string = (v: unknown, max: number) => typeof v === 'string' && v.length <= max;
   if (!string(r.id,64) || !r.id || String(r.id).includes('/') || r.schemaVersion !== 1 || !Number.isInteger(r.version) || Number(r.version)<1 || Number(r.version)>1e9) return false;
   const allowed = name === 'vehicleIssues' ? ['id','schemaVersion','version','day','title','symptoms','odometer','importance','status','notes','serviceEventIds','history'] : ['id','schemaVersion','version','occurrence','read','archived','snoozeUntilDay'];
-  if (Object.keys(r).some(k=>!allowed.includes(k)) || allowed.some(k=>!Object.hasOwn(r,k))) return false;
-  if (name === 'notificationStates') return string(r.occurrence,300) && !!r.occurrence && typeof r.read==='boolean' && typeof r.archived==='boolean' && (r.snoozeUntilDay===null || validDay(r.snoozeUntilDay));
+  if (Object.keys(r).some(k=>!allowed.includes(k) && !(name==='notificationStates'&&k==='deleted')) || allowed.some(k=>!Object.hasOwn(r,k))) return false;
+  if (name === 'notificationStates') return string(r.occurrence,300) && !!r.occurrence && typeof r.read==='boolean' && typeof r.archived==='boolean' && (!Object.hasOwn(r,'deleted') || typeof r.deleted==='boolean') && (r.snoozeUntilDay===null || validDay(r.snoozeUntilDay));
   return validDay(r.day) && string(r.title,120) && !!String(r.title).trim() && string(r.symptoms,2000) && string(r.notes,2000) &&
     (r.odometer===null || (Number.isInteger(r.odometer) && Number(r.odometer)>=0 && Number(r.odometer)<=9999999)) && ['normal','important'].includes(String(r.importance)) && ['open','watching','resolved'].includes(String(r.status)) &&
     Array.isArray(r.serviceEventIds) && r.serviceEventIds.length<=8 && r.serviceEventIds.every(id=>string(id,64) && !!id && !id.includes('/')) && new Set(r.serviceEventIds).size===r.serviceEventIds.length &&

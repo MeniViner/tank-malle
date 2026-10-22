@@ -1266,7 +1266,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!isAdmin) throw new Error("admin required");
     const path = "appConfig/fuelPrices";
     await submit({ kind: "adminPrice.update", path, vehicleId: null, payload, opType: "update" },
-      () => updateDoc(refFor(path), toFirestoreData(payload)));
+      () => updateDoc(refFor(path), toFirestoreData(payload)),
+      (operation, data) => genericPayloadMatches(operation.payload ?? {}, data));
   }, [user, isAdmin, submit, refFor]);
 
   const updateSettings = useCallback(

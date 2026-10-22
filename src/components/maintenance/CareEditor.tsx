@@ -14,8 +14,9 @@ const TITLES: Record<CareCollection,string> = { serviceEvents: 'טיפול שב�
 export function SelectField({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
   return <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted">{label}<select aria-label={label} className="min-h-12 w-full min-w-0 rounded-xl border border-line bg-surface p-3 text-base text-ink" value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>;
 }
-export function CareEditor({ uid, vehicleId, collection, record: currentRecord, plans, completePlan, onClose, onSave }: {
+export function CareEditor({ uid, vehicleId, collection, record: currentRecord, plans, completePlan, completionDefaults, onClose, onSave }: {
   uid: string; vehicleId: string; collection: CareCollection; record?: CareRecord; plans: MaintenancePlan[]; completePlan?: MaintenancePlan;
+  completionDefaults?: {costAgorot:number|null;garage:string;odometer:number|null;previousDay:string|null};
   onClose: () => void; onSave: (record: CareRecord, base?: CareRecord) => Promise<void>;
 }) {
   const draftKey = careDraftKey(uid, vehicleId, collection, currentRecord?.id ?? (completePlan ? `complete-${completePlan.id}` : 'new'));
@@ -32,10 +33,10 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const [title,setTitle] = useState(() => restore('title', record && 'title' in record ? record.title : completePlan?.title ?? ''));
   const [titleAuthored,setTitleAuthored] = useState(() => restore('titleAuthored',!!record || !!completePlan || !!restored?.fields.title));
   const [day,setDay] = useState(() => restore('day', record && 'day' in record ? record.day : localDay()));
-  const [odo,setOdo] = useState(() => restore('odo', record && 'odometer' in record && record.odometer !== null ? String(record.odometer) : ''));
-  const [cost,setCost] = useState(() => restore('cost', record && 'costAgorot' in record && record.costAgorot !== null ? String(record.costAgorot / 100) : ''));
+  const [odo,setOdo] = useState(() => restore('odo', record && 'odometer' in record ? record.odometer === null ? '' : String(record.odometer) : completionDefaults?.odometer != null ? String(completionDefaults.odometer) : ''));
+  const [cost,setCost] = useState(() => restore('cost', record && 'costAgorot' in record ? record.costAgorot === null ? '' : String(record.costAgorot / 100) : completionDefaults?.costAgorot != null ? String(completionDefaults.costAgorot / 100) : ''));
   const [notes,setNotes] = useState(() => restore('notes', record?.notes ?? ''));
-  const [garage,setGarage] = useState(() => restore('garage', service?.garage ?? ''));
+  const [garage,setGarage] = useState(() => restore('garage', service?.garage ?? completionDefaults?.garage ?? ''));
   const [jobs,setJobs] = useState<Job[]>(() => restore('jobs', service?.jobs ?? (completePlan ? [completePlan.job] : [])));
   const [completed,setCompleted] = useState(() => restore('completed', service?.completedPlanIds ?? (completePlan ? [completePlan.id] : [])));
   const [job,setJob] = useState<Job>(() => restore('job', plan?.job ?? 'periodic'));
@@ -93,7 +94,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
     if(serviceMode){const next=jobs.includes(value as Job)?jobs.filter(j=>j!==value):[...jobs,value as Job];setJobs(next);if(!titleAuthored)setTitle(next.map(j=>JOBS[j]).join(' · '));}
     else {if(expenseMode)setCategory(value as typeof category);else setJob(value as Job);if(!titleAuthored)setTitle(expenseMode?EXPENSES[value as keyof typeof EXPENSES]:JOBS[value as Job]);setStep(1);}
   };
-  return <><Sheet open onClose={close} title={<h2 className="text-lg font-bold">{record?'עריכת ':''}{TITLES[collection]}</h2>}>
+  return <><Sheet open onClose={close} title={<h2 className="font-display text-[26px] font-bold">{record?'עריכת ':''}{TITLES[collection]}</h2>}>
     <form className="care-editor" onSubmit={e=>{e.preventDefault();if(step===0)nextStep();else void save();}}>
       {restored ? <p role="status" className="care-restored"><CheckIcon size={17}/>הטיוטה שלך שוחזרה. אפשר להמשיך מאיפה שעצרת.</p>:null}
       {step===0 ? <>
@@ -109,8 +110,9 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
       </>:<>
         {collection!=='odometerReadings'?<button type="button" className="care-selection" aria-label="שינוי סוג הרשומה" onClick={()=>setStep(0)}><span className="care-selection-icon"><CareGlyph kind={expenseMode?category:planMode?job:jobs[0]}/></span><span><small>{expenseMode?'סוג ההוצאה':planMode?'הטיפול הבא':'מה בוצע'}</small><b>{selectedLabel}</b></span><ChevronStart size={18}/></button>:null}
         <div className="care-step-heading"><h3 ref={heading} tabIndex={-1}>{planMode?'מתי להזכיר לך?':collection==='odometerReadings'?'כמה קילומטרים הרכב עבר?':category==='refund'&&expenseMode?'כמה כסף חזר אליך?':serviceMode?'פרטי הטיפול':'פרטי ההוצאה'}</h3></div>
-        {serviceMode||expenseMode?<div className="care-amount"><Field label="עלות כוללת" big inputMode="decimal" value={cost} placeholder="לא ידוע" onChange={e=>setCost(e.target.value)} suffix="₪"/><p>{expenseMode&&category==='refund'?'סכום חיובי שהוחזר לך. נפחית אותו מסך ההוצאות.':'הסכום לכל החשבונית. אפשר להשאיר ריק, או להזין 0 אם לא שילמת.'}</p></div>:null}
-        {!planMode?<div className="care-details-group"><Field row type="date" label="תאריך ביצוע" value={day} max={localDay()} onChange={e=>setDay(e.target.value)}/>{serviceMode||collection==='odometerReadings'?<Field row label="קילומטראז׳ בעת הביצוע" inputMode="numeric" value={odo} onChange={e=>setOdo(e.target.value)} suffix="ק״מ" placeholder={serviceMode?'לא ידוע':'מד מרחק מצטבר'}/>:null}</div>:null}
+        {completePlan&&completionDefaults?.previousDay&&!restored&&!record?<p className="care-quiet-note">עלות ומוסך מוצעים מהטיפול הקודם ({completionDefaults.previousDay}). בדקו ועדכנו לפי הטיפול שבוצע עכשיו.</p>:null}
+        {!planMode?<div className="care-details-group">{serviceMode||expenseMode?<Field row label="עלות כוללת" inputMode="decimal" value={cost} placeholder="לא ידוע" onChange={e=>setCost(e.target.value)} suffix="₪"/>:null}<Field row type="date" label="תאריך ביצוע" value={day} max={localDay()} onChange={e=>setDay(e.target.value)}/>{serviceMode||collection==='odometerReadings'?<Field row label="קילומטראז׳ בעת הביצוע" inputMode="numeric" value={odo} onChange={e=>setOdo(e.target.value)} suffix="ק״מ" placeholder={serviceMode?'לא ידוע':'מד מרחק מצטבר'}/>:null}</div>:null}
+        {serviceMode||expenseMode?<p className="care-quiet-note">{expenseMode&&category==='refund'?'סכום חיובי שהוחזר לך. נפחית אותו מסך ההוצאות.':'הסכום לכל החשבונית. אפשר להשאיר ריק, או להזין 0 אם לא שילמת.'}</p>:null}
         {planMode?<>
           <div className="care-details-group"><Field row label="תאריך יעד" type="date" value={dueDay} onChange={e=>setDueDay(e.target.value)}/><Field row label="יעד קילומטראז׳" inputMode="numeric" value={dueOdo} onChange={e=>setDueOdo(e.target.value)} suffix="ק״מ" placeholder="למשל 180000"/></div>
           <p className="care-quiet-note">אפשר תאריך, קילומטרים או שניהם — המוקדם מביניהם. לפי הוראות היצרן או המוסך שלך.</p>

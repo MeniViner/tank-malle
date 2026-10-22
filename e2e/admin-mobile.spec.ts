@@ -4,7 +4,7 @@ import { getAuth } from 'firebase-admin/auth';
 import { ALICE, signIn, signOut, signedInWithData } from './helpers/app';
 import { PROJECT_ID, getDocument } from './helpers/emulator';
 
-async function admin(page: import('@playwright/test').Page) {
+async function admin(page: import('@playwright/test').Page, edit=true) {
   const account = await signedInWithData(page, { regulatedPrice: 7.31 });
   process.env.FIREBASE_AUTH_EMULATOR_HOST = `127.0.0.1:${process.env.CARE_AUTH_PORT??'9099'}`;
   const app = initializeApp({projectId:PROJECT_ID}, `admin-mobile-${Date.now()}`);
@@ -15,7 +15,7 @@ async function admin(page: import('@playwright/test').Page) {
   await page.goto('/admin');
   await page.getByRole('button', {name:'נתונים',exact:true}).click();
   await expect(page.getByRole('button', {name:'משיכת מחיר מהדפדפן'})).toBeVisible();
-  await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
+  if(edit)await page.getByRole('button',{name:'עריכת מחיר · בנזין 95',exact:true}).click();
   return account;
 }
 
@@ -25,14 +25,16 @@ for (const width of [320, 360, 393]) {
     const requests: string[] = [];
     await page.route('https://www.gov.il/**', route => { requests.push(route.request().url()); return route.abort('failed'); });
     await page.route('https://r.jina.ai/**', route => {requests.push(route.request().url()); return route.fulfill({body:'בשירות עצמי לא יעלה על 8.27 שקלים. באילת בשירות עצמי לא יעלה על 7.01 שקלים.',contentType:'text/plain'});});
-    await admin(page);
+    await admin(page,false);
     expect(requests).toHaveLength(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole('button', {name:'משיכת מחיר מהדפדפן'}).click();
     await expect(page.getByText('₪8.27', {exact:false}).first()).toBeVisible();
     const currentPrice = await page.getByText('₪8.27', {exact:false}).first().boundingBox();
     expect(currentPrice).not.toBeNull();
-    expect(currentPrice!.x + currentPrice!.width / 2).toBeGreaterThan(width / 2);
+    // The source uses an inline price column rather than a separate hero.
+    expect(currentPrice!.x).toBeGreaterThanOrEqual(0);
+    expect(currentPrice!.x+currentPrice!.width).toBeLessThanOrEqual(width);
     expect(requests).toHaveLength(4);
     if (width === 360) {
       await expect(page.getByText('המחיר אומת ונשלח לשמירה', {exact:true})).toHaveCount(0);
@@ -56,7 +58,7 @@ test('admin save survives backend-only outage and reload, then syncs to the fill
   await expect(page.getByText('נשמר במכשיר · ממתין לאישור השרת').first()).toBeVisible();
   await page.reload();
   await page.getByRole('button',{name:'נתונים',exact:true}).click();
-  await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
+  await page.getByRole('button',{name:'עריכת מחיר · בנזין 95',exact:true}).click();
   await expect(input).toHaveValue('8.19');
   await expect(page.getByText('נשמר במכשיר · ממתין לאישור השרת').first()).toBeVisible();
   await page.unroute(`**/127.0.0.1:${process.env.CARE_FIRESTORE_PORT??'8080'}/**`);
@@ -81,7 +83,7 @@ test('rejected admin save retains draft through reload and can be retried safely
     await expect(page.getByText('לא סונכרן · הקלט נשמר במכשיר')).toBeVisible();
     await page.reload();
     await page.getByRole('button',{name:'נתונים',exact:true}).click();
-    await page.getByText('עריכת מחירים ידנית', {exact:true}).click();
+    await page.getByRole('button',{name:'עריכת מחיר · בנזין 95',exact:true}).click();
     await expect(input).toHaveValue('8.11');
     await expect(page.getByText('לא סונכרן · הקלט נשמר במכשיר')).toBeVisible();
     await restoreRules();

@@ -19,6 +19,10 @@ export interface UserSettings {
   quickEntry?: boolean;
   reminderNotifications?: boolean;
   issueNotifications?: boolean;
+  syncNotifications?: boolean;
+  priceNotifications?: boolean;
+  reminderLeadDays?: number;
+  reminderLeadKm?: number;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {

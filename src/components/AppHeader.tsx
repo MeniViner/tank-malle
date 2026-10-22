@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useAuth } from "../context/AuthContext";
 import {
+  BellIcon,
   CarIcon,
   ChevronStart,
   CloudOffIcon,
@@ -105,7 +106,7 @@ export function AppHeader() {
             <CloudOffIcon size={17} />
           </span>
         ) : null}
-        <button type="button" aria-label={`התראות${unread?` · ${unread} חדשות`:''}`} onClick={()=>navigate('/notifications')} className="relative flex size-11 items-center justify-center rounded-full text-muted"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>{unread?<span className="notification-dot">{unread}</span>:null}</button>
+        <button type="button" aria-label="התראות" aria-description={unread?`${unread} התראות חדשות`:'אין התראות חדשות'} onClick={()=>navigate('/notifications')} className="relative flex size-11 items-center justify-center rounded-full text-muted"><BellIcon size={21}/>{unread?<span className="notification-dot" aria-hidden="true"/>:null}</button>
         <button
           type="button"
           onClick={() => setAccountOpen(true)}

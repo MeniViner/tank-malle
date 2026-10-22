@@ -129,6 +129,8 @@ function Shell() {
     !location.pathname.startsWith("/fillup/") &&
     !location.pathname.startsWith("/vehicles/new") &&
     !location.pathname.startsWith("/settings/import") &&
+    !location.pathname.startsWith("/admin") &&
+    !location.pathname.startsWith("/notifications") &&
     !location.pathname.startsWith("/legal");
 
   return (

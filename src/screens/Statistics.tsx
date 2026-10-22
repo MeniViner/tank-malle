@@ -249,7 +249,7 @@ export function Statistics() {
           scrolling — the old rail clipped its last tab off the edge. */}
       <nav
         aria-label="מדורי סטטיסטיקה"
-        className="mx-5 mb-4 grid flex-none grid-cols-4 gap-2"
+        className="admin-tabs stats-tabs"
       >
         {SECTIONS.map((entry) => (
           <button
@@ -257,11 +257,7 @@ export function Statistics() {
             type="button"
             aria-current={section === entry.value ? "page" : undefined}
             onClick={() => setSection(entry.value)}
-            className={`min-h-[44px] rounded-pill px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
-              section === entry.value
-                ? "bg-ink text-surface"
-                : "bg-surface text-muted"
-            }`}
+            aria-pressed={section === entry.value}
           >
             {entry.label}
           </button>

@@ -55,9 +55,9 @@ service cloud.firestore {
         && (history.size()<=8 || isString(history[8],4096)) && (history.size()<=9 || isString(history[9],4096));
     }
     function validNotificationState(d) {
-      return d.keys().hasOnly(['schemaVersion','version','occurrence','read','archived','snoozeUntilDay'])
+      return d.keys().hasOnly(['schemaVersion','version','occurrence','read','archived','snoozeUntilDay','deleted'])
         && d.schemaVersion==1 && careInt(d.version,1000000000) && d.version>0 && isString(d.occurrence,300) && d.occurrence.size()>0
-        && d.read is bool && d.archived is bool && (d.snoozeUntilDay==null || careDay(d.snoozeUntilDay));
+        && d.read is bool && d.archived is bool && (!('deleted' in d) || d.deleted is bool) && (d.snoozeUntilDay==null || careDay(d.snoozeUntilDay));
     }
 
     function isSignedIn() {

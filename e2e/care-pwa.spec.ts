@@ -1,10 +1,27 @@
 import { openCareHistory } from "./helpers/care";
 import {startCareEditor,setCareTitle} from './helpers/care';
 import {expect,test} from '@playwright/test';
-import {signedInWithData} from './helpers/app';
-import {listDocuments} from './helpers/emulator';
+import {ALICE,signIn,signOut,signedInWithData} from './helpers/app';
+import {PROJECT_ID,getDocument,listDocuments} from './helpers/emulator';
+import {initializeApp,deleteApp} from 'firebase-admin/app';
+import {getAuth} from 'firebase-admin/auth';
 import {waitForServiceWorkerControl,expectNetworkCut,outboxCount} from './helpers/pwa';
 import {holdFirestoreDisk,waitForDiskAttempt,releaseFirestoreDisk} from './helpers/disk';
+test('an admin price save remains protected until the SDK disk accepts it, then survives an offline restart',async({page,context})=>{
+  const scope=await signedInWithData(page,{fillups:[],regulatedPrice:7.31});
+  process.env.FIREBASE_AUTH_EMULATOR_HOST=`127.0.0.1:${process.env.CARE_AUTH_PORT??'9099'}`;
+  const app=initializeApp({projectId:PROJECT_ID},'admin-disk-'+Date.now());await getAuth(app).setCustomUserClaims(scope.uid,{admin:true});await deleteApp(app);
+  await signOut(page);await signIn(page,ALICE);await page.goto('/admin');await waitForServiceWorkerControl(page);
+  await page.getByRole('button',{name:'נתונים',exact:true}).click();await page.getByRole('button',{name:'עריכת מחיר · בנזין 95',exact:true}).click();
+  const dialog=page.getByRole('dialog');await dialog.getByLabel('מחיר חדש לליטר · בנזין 95').fill('8.16');await context.setOffline(true);
+  await holdFirestoreDisk(page);await dialog.getByRole('button',{name:'שמירה',exact:true}).click();await expect.poll(()=>outboxCount(page,scope.uid)).toBe(1);await waitForDiskAttempt(page);
+  // Outbox persistence alone must not unlock closing/reloading the editor.
+  await expect(dialog.getByRole('button',{name:'שמירה',exact:true})).toBeDisabled();await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await expect(dialog).toBeVisible();
+  await releaseFirestoreDisk(page);await expect(dialog.getByText('נשמר במכשיר · ממתין לאישור השרת',{exact:true})).toBeVisible();await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await expect(dialog).toHaveCount(0);
+  const response=await page.reload();expect(response?.fromServiceWorker()).toBe(true);await expectNetworkCut(page);await context.setOffline(false);
+  await expect.poll(async()=>((await getDocument('appConfig/fuelPrices'))?.byFuelType as Record<string,Record<string,Record<string,unknown>>>)?.['95']?.self?.current).toMatchObject({pricePerLiter:8.16});await expect.poll(()=>outboxCount(page,scope.uid)).toBe(0);
+  await page.goto('/fillup/new');await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('8.16');
+});
 test('maintenance survives two real offline PWA restarts and syncs exactly once',async({page,context})=>{
   const scope=await signedInWithData(page,{fillups:[]});const path=`users/${scope.uid}/vehicles/${scope.vehicleId}/vehicleExpenses`;
   await page.goto('/vehicle');await expect(page.getByRole('heading',{name:'הרכב שלי',exact:true})).toBeVisible();await expect(page.getByText('טוענים את נתוני הרכב…')).toHaveCount(0);

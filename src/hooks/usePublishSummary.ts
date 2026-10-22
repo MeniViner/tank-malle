@@ -3,9 +3,11 @@ import { doc, serverTimestamp, runTransaction } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
+import { useVehicleData } from '../context/VehicleDataContext';
 import {
   SUMMARY_VERSION,
   summariseVehicle,
+  summariseLedger,
   summaryChanged,
   type VehicleSummary,
 } from "../lib/summary";
@@ -29,13 +31,14 @@ import type { Stats } from "../lib/stats";
  */
 export function usePublishSummary(stats: Stats): void {
   const { user } = useAuth();
+  const vehicleData = useVehicleData();
   const { activeVehicle, activeVehicles, ready, loadingFillups, accountDeletionPending, loadVehicleCatalog } = useData();
   const lastWritten = useRef<Record<string, VehicleSummary>>({});
   const lastScope = useRef("");
 
   useEffect(() => {
-    if (!ready || !user || loadingFillups || accountDeletionPending) return;
-    const next = activeVehicle ? summariseVehicle(activeVehicle, stats) : null;
+    if (!ready || !user || loadingFillups || accountDeletionPending || (activeVehicle && vehicleData.incomplete)) return;
+    const next = activeVehicle ? { ...summariseVehicle(activeVehicle, stats), ledger: summariseLedger(vehicleData.ledger) } : null;
     const scope = JSON.stringify([user.uid, activeVehicles.map((v) => v.id).sort()]);
     const key = `${user.uid}/${activeVehicle?.id ?? "none"}`;
     if (scope === lastScope.current && (!next || !summaryChanged(lastWritten.current[key], next))) return;
@@ -53,5 +56,5 @@ export function usePublishSummary(stats: Stats): void {
       delete lastWritten.current[key];
       if (lastScope.current === scope) lastScope.current = "";
     });
-  }, [ready, user, activeVehicle, activeVehicles, stats, loadingFillups, accountDeletionPending, loadVehicleCatalog]);
+  }, [ready, user, activeVehicle, activeVehicles, stats, loadingFillups, accountDeletionPending, loadVehicleCatalog, vehicleData.incomplete, vehicleData.ledger]);
 }

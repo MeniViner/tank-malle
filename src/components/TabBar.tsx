@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { ChartIcon, ClockIcon, HomeIcon, PumpIcon, CarSideIcon } from "./icons";
+import { useVehicleData } from '../context/VehicleDataContext';
 
 const TABS = [
   { to: "/", label: "בית", Icon: HomeIcon, end: true },
@@ -14,6 +15,9 @@ const TABS = [
  */
 export function TabBar({ canAddFillup }: { canAddFillup: boolean }) {
   const navigate = useNavigate();
+  const v=useVehicleData();
+  const careCount=v.notifications.reminders?v.reminders.filter(r=>r.plan.active&&['due','soon'].includes(r.status)).length:0;
+  const issueCount=v.notifications.issues?v.extra.vehicleIssues.filter(i=>i.importance==='important'&&i.status!=='resolved').length:0;
 
   return (
     <nav className="app-shell fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[430px] flex-col border-t border-line bg-surface pb-safe">
@@ -36,7 +40,7 @@ export function TabBar({ canAddFillup }: { canAddFillup: boolean }) {
         </span>
 
         {TABS.slice(2).map((tab) => (
-          <Tab key={tab.to} {...tab} />
+          <Tab key={tab.to} {...tab} badge={tab.to==='/vehicle'?careCount+issueCount:0} />
         ))}
       </div>
     </nav>
@@ -48,11 +52,13 @@ function Tab({
   label,
   Icon,
   end,
+  badge=0,
 }: {
   to: string;
   label: string;
   Icon: (props: { size?: number }) => React.ReactElement;
   end: boolean;
+  badge?:number;
 }) {
   return (
     <NavLink
@@ -66,7 +72,7 @@ function Tab({
     >
       {({ isActive }) => (
         <>
-          <Icon size={23} />
+          <span className="relative"><Icon size={23} />{badge>0?<span data-testid="vehicle-alert-count" className="vehicle-alert-count">{badge}</span>:null}</span>
           <span className={`text-[11px] ${isActive ? "font-bold" : "font-semibold"}`}>
             {label}
           </span>

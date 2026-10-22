@@ -2,8 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
-  collectionGroup,
+  getCountFromServer,
   doc,
+  documentId,
   getDoc,
   getDocFromServer,
   getDocFromCache,
@@ -17,7 +18,7 @@ import {
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { useData } from "../context/DataContext";
-import { SERVER_TIMESTAMP } from "../lib/fillupSerializer";
+import { SERVER_TIMESTAMP, toEpochMillis } from "../lib/fillupSerializer";
 import { fetchBrowserPrice, type BrowserPriceReading } from "../lib/prices/browserFetch";
 import { priceTimeline } from '../lib/prices/publicSource';
 import type { OutboxOperation } from "../lib/outbox";
@@ -25,6 +26,8 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import {
   aggregateSummaries,
+  aggregateLedgerSummaries,
+  readUserSummary,
   type UserSummary,
   type VehicleSummary,
 } from "../lib/summary";
@@ -36,18 +39,18 @@ import { Avatar } from "../components/Avatar";
 import { Segmented } from "../components/Segmented";
 import { Button } from "../components/Button";
 import { Sheet } from "../components/Sheet";
+import { useAppUpdateBlocker } from '../hooks/useAppUpdateBlocker';
+import { AdminSpendChart } from '../components/admin/AdminSpendChart';
 import { InfoTip } from "../components/InfoTip";
 import { useToast } from "../context/ToastContext";
 import {
-  CarIcon,
-  ChartIcon,
   HeartIcon,
   LightbulbIcon,
-  PumpIcon,
   RefreshIcon,
   ShieldIcon,
-  UserIcon,
   WarningIcon,
+  ChevronStart,
+  SearchIcon,
 } from "../components/icons";
 import { dayMonthShort, num, parseDecimal, price, shekel, timeAgo } from "../lib/format";
 import { monthKey, type FuelType } from "../lib/stats";
@@ -86,7 +89,7 @@ interface AdminUser {
   lastFillup: number | null;
 }
 
-type SortKey = "recent" | "activity" | "joined";
+type SortKey = "activity" | "spend" | "joined";
 
 /** One page of users per request. */
 const PAGE_SIZE = 25;
@@ -115,7 +118,9 @@ export function Admin() {
 
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [sort, setSort] = useState<SortKey>("recent");
+  const [sort, setSort] = useState<SortKey>("activity");
+  const [search, setSearch] = useState('');
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [tab, setTab] = useState<AdminTab>("overview");
   const [pageCursor, setPageCursor] = useState<QueryDocumentSnapshot | null>(null);
   const [exhausted, setExhausted] = useState(false);
@@ -154,7 +159,9 @@ export function Admin() {
       setError(null);
       setLoadingMore(true);
       try {
-        const constraints = [orderBy("createdAt", "desc"), limit(PAGE_SIZE)];
+        // Older profiles can lack createdAt; ordering by that field silently
+        // omits them and falsely makes a partial page look like a census.
+        const constraints = [orderBy(documentId()), limit(PAGE_SIZE)];
         const usersSnapshot = await getDocs(
           cursor
             ? query(collection(db, "users"), ...constraints, startAfter(cursor))
@@ -164,11 +171,14 @@ export function Admin() {
         const rows = await Promise.all(
           usersSnapshot.docs.map(async (userDoc) => {
             const data = userDoc.data();
+            const text = (value: unknown, max: number) => typeof value === 'string' ? value.slice(0, max) : null;
+            const joinedAt = toEpochMillis(data.createdAt);
+            const photo = text(data.photoURL, 2048);
 
             let summary: UserSummary | null = null;
             try {
               const snapshot = await getDoc(doc(db, "userSummaries", userDoc.id));
-              if (snapshot.exists()) summary = snapshot.data() as UserSummary;
+              if (snapshot.exists()) summary = readUserSummary(snapshot.data());
             } catch {
               // A missing or unreadable summary leaves the row honest about
               // having none, rather than failing the whole page.
@@ -185,11 +195,11 @@ export function Admin() {
 
             return {
               uid: userDoc.id,
-              displayName: data.displayName ?? null,
-              email: data.email ?? null,
-              photoURL: data.photoURL ?? null,
-              createdAt: data.createdAt?.toMillis?.() ?? null,
-              isAdmin: Boolean(data.isAdmin),
+              displayName: text(data.displayName, 120),
+              email: text(data.email, 254),
+              photoURL: photo?.startsWith('https://') ? photo : null,
+              createdAt: joinedAt !== null && joinedAt >= 0 && joinedAt < 8.64e15 ? joinedAt : null,
+              isAdmin: data.isAdmin === true,
               summary,
               vehicles: summary?.vehicleCount ?? 0,
               fillups: vehicles.reduce((sum, entry) => sum + entry.fillups, 0),
@@ -225,12 +235,13 @@ export function Admin() {
 
   const sorted = useMemo(() => {
     if (!users) return [];
-    const copy = [...users];
-    if (sort === "recent") copy.sort((a, b) => (b.lastFillup ?? 0) - (a.lastFillup ?? 0));
+    const term = search.trim().toLocaleLowerCase();
+    const copy = users.filter(u => !term || `${u.displayName ?? ''} ${u.email ?? ''}`.toLocaleLowerCase().includes(term));
+    if (sort === "spend") copy.sort((a, b) => costOf(b.summary) - costOf(a.summary));
     else if (sort === "activity") copy.sort((a, b) => b.fillups - a.fillups);
     else copy.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
     return copy;
-  }, [users, sort]);
+  }, [users, sort, search]);
 
   /**
    * Totals across the users LOADED SO FAR.
@@ -247,6 +258,7 @@ export function Admin() {
       users.map((entry) => ({ uid: entry.uid, summary: entry.summary })),
     );
   }, [users]);
+  const ledger = useMemo(() => aggregateLedgerSummaries((users ?? []).map(u => u.summary)), [users]);
 
   if (!claimsLoaded) {
     return (
@@ -279,247 +291,56 @@ export function Admin() {
   }
 
   return (
-    <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-      <ScreenHeader
-        title="לוח בקרה"
-        onBack={() => navigate("/settings")}
-        trailing={
-          <span className="rounded-pill bg-accent-soft px-2.5 py-1 text-[13px] font-bold text-accent">
-            אדמין
-          </span>
-        }
-      />
-
-      {/* Four sections, one at a time. */}
-      <nav aria-label="מדורי ניהול" className="sticky top-0 z-10 mx-5 mb-4 grid flex-none grid-cols-4 gap-2 bg-bg py-2">
-        {ADMIN_TABS.map((entry) => (
-          <button
-            key={entry.value}
-            type="button"
-            aria-current={tab === entry.value ? "page" : undefined}
-            onClick={() => setTab(entry.value)}
-            className={`min-h-[44px] rounded-pill px-1 text-[14px] font-semibold transition-[background-color,color] duration-200 ${
-              tab === entry.value
-                ? "bg-ink text-surface"
-                : "bg-surface text-muted"
-            }`}
-          >
-            {entry.label}
-          </button>
-        ))}
+    <main className="tm-admin flex min-w-0 flex-1 flex-col pb-safe pt-safe">
+      <header className="admin-header"><button type="button" aria-label="חזרה להגדרות" onClick={() => navigate('/settings')}><ChevronStart size={22} className="rotate-180" /></button><h1>לוח בקרה</h1><span aria-hidden="true" /></header>
+      <nav aria-label="מדורי ניהול" className="admin-tabs">
+        {ADMIN_TABS.map(entry => <button key={entry.value} type="button" aria-current={tab === entry.value ? 'page' : undefined} aria-pressed={tab === entry.value} onClick={() => { setTab(entry.value); setSelectedUser(null); }}>{entry.label}</button>)}
       </nav>
-
-      <div className="flex min-w-0 flex-col gap-6 px-5">
-        {error ? (
-          <Card className="flex items-start gap-3 p-4">
-            <IconTile tone="danger">
-              <WarningIcon size={17} />
-            </IconTile>
-            <span className="flex-1 text-[14px] leading-relaxed text-danger-ink">
-              {error}
-            </span>
-          </Card>
-        ) : null}
-
-        {!users ? (
-          <>
-            <Skeleton className="h-[92px] rounded-card" />
-            <Skeleton className="h-[92px] rounded-card" />
-            <Skeleton className="h-[280px] rounded-card" />
-          </>
-        ) : (
-          <>
-            {tab === "overview" ? (
-              <>
-                <Panel
-                  title="סקירה"
-                  /* Scoped honestly: this is what has been loaded, not a census. */
-                  note={
-                    exhausted
-                      ? "כל המשתמשים נטענו"
-                      : "מבוסס על המשתמשים שנטענו עד כה"
-                  }
-                  bare
-                >
-                  <div className="tm-metrics grid grid-cols-2 overflow-hidden rounded-card bg-surface">
-                      <StatTile
-                        icon={<UserIcon size={17} />}
-                        label="משתמשים"
-                        value={num(totals?.users ?? 0, 0)}
-                        meta={`${num(totals?.active ?? 0, 0)} פעילים החודש`}
-                      />
-                      <StatTile
-                        icon={<CarIcon size={17} />}
-                        label="רכבים"
-                        value={num(totals?.vehicles ?? 0, 0)}
-                      />
-
-                      <StatTile
-                        icon={<PumpIcon size={17} />}
-                        label="תדלוקים"
-                        value={num(totals?.fillups ?? 0, 0)}
-                        meta={`${num(totals?.liters ?? 0, 0)} ליטר`}
-                      />
-                      <StatTile
-                        icon={<ChartIcon size={17} />}
-                        label="צריכה ממוצעת"
-                        value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : "—"}
-                        meta={
-                          totals && totals.withoutSummary > 0
-                            ? `קמ״ל · ${totals.withoutSummary} ללא סיכום`
-                            : "קמ״ל · משוקלל לפי מרחק"
-                        }
-                        accent
-                      />
-                  </div>
-                </Panel>
-
-                <Panel title="הוצאה מצטברת">
-                  <div className="flex items-center justify-between gap-3 p-4">
-                    <span className="flex flex-col">
-                      <span className="text-[14px] font-semibold text-ink">
-                        סך ההוצאה שתועדה
-                      </span>
-                      {totals && totals.withoutSummary > 0 ? (
-                        <span className="text-[13px] text-muted">
-                          <Num>{totals.withoutSummary}</Num> משתמשים עדיין ללא סיכום
-                        </span>
-                      ) : null}
-                    </span>
-                    <Num className="text-[19px] font-bold text-ink">
-                      {shekel(totals?.cost ?? 0)}
-                    </Num>
-                  </div>
-                </Panel>
-
-                <BenchmarkPool />
-
-                <p className="px-1 pb-2 text-[13px] leading-relaxed text-muted">
-                  המספרים מגיעים מסיכום שכל חשבון מפרסם בעצמו. לוח הניהול אינו קורא
-                  אף רשומת תדלוק, וגם אין לו הרשאה לעשות זאת.
-                </p>
-              </>
-            ) : null}
-
-            {tab === "users" ? (
-              <Panel
-                title="משתמשים"
-                trailing={
-                  <span className="text-[12px] font-semibold text-muted">
-                    <Num>{sorted.length}</Num>
-                  </span>
-                }
-                bare
-              >
-                <div className="flex flex-col gap-2">
-                  <Segmented
-                    size="sm"
-                    value={sort}
-                    onChange={setSort}
-                    ariaLabel="מיון משתמשים"
-                    options={[
-                      { value: "recent", label: "פעילות אחרונה" },
-                      { value: "activity", label: "הכי פעילים" },
-                      { value: "joined", label: "הצטרפות" },
-                    ]}
-                  />
-
-                  {sorted.length === 0 ? (
-                    <Card className="px-6 py-10 text-center text-[14px] text-muted">
-                      אין עדיין משתמשים
-                    </Card>
-                  ) : (
-                    <ListCard>
-                      {sorted.map((entry) => (
-                        <div key={entry.uid} className="flex flex-col gap-2 px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <Avatar
-                              name={entry.displayName}
-                              photoURL={entry.photoURL}
-                              size={38}
-                            />
-                            <div className="flex min-w-0 flex-1 flex-col">
-                              <span className="flex items-center gap-1.5">
-                                <span className="truncate text-[15px] font-semibold text-ink">
-                                  {entry.displayName ?? "ללא שם"}
-                                </span>
-                                {entry.isAdmin ? (
-                                  <span className="flex-none rounded-pill bg-accent-soft px-2 py-0.5 text-[10.5px] font-bold text-accent">
-                                    אדמין
-                                  </span>
-                                ) : null}
-                              </span>
-                              <span dir="ltr" className="truncate text-[12px] text-muted">
-                                {entry.email ?? "—"}
-                              </span>
-                            </div>
-                            <span className="flex-none text-[13px] text-muted">
-                              {entry.lastFillup ? timeAgo(entry.lastFillup) : "לא תדלק"}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-3 gap-x-4 gap-y-2 border-t border-[var(--hairline)] pt-3">
-                            <MiniStat label="רכבים" value={num(entry.vehicles, 0)} />
-                            <MiniStat label="תדלוקים" value={num(entry.fillups, 0)} />
-                            <MiniStat
-                              label="הצטרף"
-                              value={entry.createdAt ? dayMonthShort(entry.createdAt) : "—"}
-                            />
-
-                            {/* From the account's own published summary. The
-                                dashboard reads no fill-up records at all. */}
-                            {entry.summary ? (
-                              <>
-                                <MiniStat
-                                  label="קמ״ל"
-                                  value={consumptionOf(entry.summary)}
-                                />
-                                <MiniStat
-                                  label="הוצאה"
-                                  value={shekel(costOf(entry.summary))}
-                                />
-                              </>
-                            ) : (
-                              <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[13px] font-semibold text-muted">
-                                עדיין ללא סיכום
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </ListCard>
-                  )}
-
-                  {!exhausted ? (
-                    <button
-                      type="button"
-                      disabled={loadingMore}
-                      onClick={() => void load(pageCursor)}
-                      className="min-h-[44px] rounded-[12px] bg-surface-2 text-[14px] font-semibold text-accent disabled:opacity-50"
-                    >
-                      {loadingMore ? "טוען…" : `טעינת ${PAGE_SIZE} משתמשים נוספים`}
-                    </button>
-                  ) : null}
-                </div>
-              </Panel>
-            ) : null}
-
-            {tab === "data" ? (
-              <>
-                <FuelPriceEditor key={user?.uid} />
-                <StationDataPanel />
-              </>
-            ) : null}
-
-            {tab === "feedback" ? <FeedbackInbox /> : null}
-
-            <p className="pb-2 text-center text-[13px] leading-relaxed text-muted/80">
-              נתוני משתמשים הם לקריאה בלבד. חוקי האבטחה מעניקים לאדמין הרשאת קריאה —
-              אין אפשרות לשנות נתונים של משתמש אחר.
-            </p>
-          </>
-        )}
+      <div className="admin-page">
+        {error ? <div role="alert" className="admin-alert"><WarningIcon size={18} /><span>{error}</span><button type="button" onClick={() => void load(null)} className="admin-link">ניסיון נוסף</button></div> : null}
+        {!users ? <><Skeleton className="h-[170px] rounded-card" /><Skeleton className="h-[210px] rounded-card" /></> : <>
+          {tab === 'overview' ? <>
+            <section aria-label="סיכום המערכת">
+              <div className="admin-group-head"><h2>המערכת</h2><button type="button" disabled={loadingMore} className="admin-link" onClick={() => void load(null)}>{loadingMore ? 'טוענים…' : 'רענון'}</button></div>
+              <div className="admin-tiles">
+                <StatTile label="משתמשים" value={num(totals?.users ?? 0, 0)} />
+                <StatTile label="רכבים" value={num(totals?.vehicles ?? 0, 0)} />
+                <StatTile label="רשומות יומן" value={num(ledger.records, 0)} />
+                <StatTile label="צריכה ממוצעת · קמ״ל" value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : '—'} />
+              </div>
+              <div className="admin-kinds" aria-label="פילוח רשומות">{([['fuel', 'תדלוקים'], ['expense', 'הוצאות'], ['service', 'טיפולים'], ['odometer', 'עדכוני ק״מ']] as const).map(([kind, title]) => <span key={kind}>{title} <Num>{kind === 'fuel' || ledger.ledgerVehicles ? num(ledger.counts[kind], 0) : '—'}</Num></span>)}</div>
+              <p className="helper">{exhausted?'כל החשבונות נטענו. ':'נטענה רשימת חשבונות חלקית. '}{totals?.withoutSummary ? `${totals.withoutSummary} חשבונות ללא סיכום. ` : ''}{ledger.missingLedgers || ledger.missingVehicles ? 'חלק מהסיכומים עדיין כוללים תדלוקים בלבד. ' : ''}הספירות מסיכומים שפורסמו; הצריכה משוקללת לפי מרחק.</p>
+            </section>
+            <AdminSpendChart data={ledger} />
+            <BenchmarkPool />
+          </> : null}
+          {tab === 'users' ? <>
+            <label className="admin-search"><SearchIcon size={18} /><input type="search" aria-label="חיפוש משתמשים" placeholder="חיפוש לפי שם או מייל" value={search} onChange={e => setSearch(e.target.value)} /></label>
+            <Segmented size="sm" value={sort} onChange={setSort} ariaLabel="מיון משתמשים" options={[{ value: 'activity', label: 'תדלוקים' }, { value: 'spend', label: 'הוצאה' }, { value: 'joined', label: 'הצטרפות' }]} />
+            <div className="admin-group">{sorted.map(entry => <button className="admin-user-row" type="button" key={entry.uid} aria-haspopup="dialog" onClick={() => setSelectedUser(entry)}>
+              <Avatar name={entry.displayName} photoURL={entry.photoURL} size={36} />
+              <span className="admin-row-main"><strong>{entry.displayName ?? 'ללא שם'}</strong><small dir="ltr">{entry.email ?? 'ללא כתובת מייל'}</small></span>
+              <span className="admin-user-value"><Num>{entry.summary ? num(entry.fillups, 0) : '—'}</Num><small>תדלוקים</small></span><ChevronStart size={16} className="text-muted" />
+            </button>)}</div>
+            {!sorted.length ? <p className="admin-empty">{search ? 'לא נמצאו משתמשים בחשבונות שנטענו' : 'אין עדיין משתמשים'}</p> : null}
+            {!exhausted ? <button type="button" disabled={loadingMore} onClick={() => void load(pageCursor)} className="tm-text-action">{loadingMore ? 'טוענים…' : `טעינת ${PAGE_SIZE} משתמשים נוספים`}</button> : null}
+            <p className="helper">החיפוש והמיון חלים על {users.length} החשבונות שנטענו. נתוני משתמשים הם לקריאה בלבד.</p>
+          </> : null}
+          {tab === 'data' ? <><FuelPriceEditor key={user?.uid} /><StationDataPanel /></> : null}
+          {tab === 'feedback' ? <FeedbackInbox /> : null}
+        </>}
       </div>
+      <Sheet open={selectedUser !== null} onClose={() => setSelectedUser(null)} title={selectedUser?.displayName ?? 'פרטי משתמש'}>
+        {selectedUser ? <div className="flex flex-col gap-4"><p dir="ltr" className="text-right text-muted">{selectedUser.email ?? 'ללא כתובת מייל'}</p><div className="admin-group">
+          {[
+            ['רכבים', selectedUser.summary ? num(selectedUser.vehicles, 0) : '—'],
+            ['תדלוקים', selectedUser.summary ? num(selectedUser.fillups, 0) : '—'],
+            ['צריכה ממוצעת', selectedUser.summary ? consumptionOf(selectedUser.summary) + ' קמ״ל' : '—'],
+            ['הוצאה שפורסמה', selectedUser.summary ? shekel(costOf(selectedUser.summary)) : '—'],
+            ['הצטרפות', selectedUser.createdAt ? dayMonthShort(selectedUser.createdAt) : 'לא ידוע'],
+          ].map(([label, value]) => <div className="admin-data-row" key={label}><span>{label}</span><Num>{value}</Num></div>)}
+        </div><p className="helper">{selectedUser.summary ? 'הנתונים הם סיכומים שהחשבון פרסם. סיכום ישן עשוי לכלול תדלוקים בלבד.' : 'לא זמין סיכום תקין לחשבון הזה, ולכן אין עדיין ספירה מאומתת.'} אין אפשרות לערוך או למחוק נתונים של משתמש אחר.</p></div> : null}
+      </Sheet>
     </main>
   );
 }
@@ -543,13 +364,13 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-2">
-      <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-2">
+    <section className="flex min-w-0 flex-col gap-2">
+      <div className="admin-group-head">
         <Label>{title}</Label>
         {trailing}
       </div>
       {note ? <p className="-mt-1 text-[13px] text-muted">{note}</p> : null}
-      {bare ? children : <Card className="overflow-hidden">{children}</Card>}
+      {bare ? children : <div className="admin-group">{children}</div>}
     </section>
   );
 }
@@ -731,7 +552,7 @@ function FuelPriceEditor() {
     finally { setPulling(false); }
   }
 
-  /** Returns after durable journal acceptance; acknowledgement remains visible below. */
+  /** Returns after both journal and SDK disk acceptance; server acknowledgement remains visible below. */
   async function save(fuelType: FuelType, value: number) {
     const now = new Date();
     const month = monthKey(now.getTime());
@@ -804,81 +625,22 @@ function FuelPriceEditor() {
             .join(" · "),
         };
 
-  return (
-    <Panel
-      title="מחירי דלק רשמיים"
-      note={
-        readSource === "server"
-          ? "נקרא מהשרת"
-          : readSource === "cache"
-            ? "מוצג עותק מקומי"
-            : undefined
-      }
-      trailing={
-        <RefreshButton
-          busy={loading}
-          label="רענון מהשרת"
-          onClick={() =>
-            void load(true)
-              .then((source) =>
-                source === "server"
-                  ? showToast({ tone: "success", title: "נקרא מהשרת" })
-                  : showToast({ tone: "info", title: "השרת לא זמין — מוצג עותק מקומי" }),
-              )
-              .catch(() => showToast({ tone: "error", title: "הקריאה נכשלה" }))
-          }
-        />
-      }
-      bare
-    >
-      <Card className="flex min-w-0 flex-col gap-4 p-3 min-[400px]:p-4">
-        <div className="flex min-w-0 flex-col gap-2 border-b border-[var(--hairline)] pb-4">
-          <span className="text-[18px] font-semibold text-ink">בנזין 95 · שירות עצמי</span>
-          <Num className="self-start font-display text-[30px] font-bold leading-tight text-ink">{regulatedMaxPrice(config, '95', now).price != null ? price(regulatedMaxPrice(config, '95', now).price!) : '—'}</Num>
-          <span className="text-[14px] text-muted">{config?.byFuelType?.['95']?.self?.current?.effectiveFrom ? `בתוקף מ־${dayMonthShort(config.byFuelType['95'].self.current.effectiveFrom)}` : 'המחיר האחרון שנשמר'} · לליטר</span>
-          <Button variant="secondary" full loading={pulling} disabled={!isAdmin || !outboxReady || priceOps.some(op => op.status === "pending")} onClick={() => void pull()} aria-label="משיכת מחיר מהדפדפן">
-            <RefreshIcon size={17} /> משיכת מחיר עכשיו
-          </Button>
-
-          <div aria-live="polite" className="min-w-0">
-            {latest95Op ? <div className="text-[13px] leading-relaxed text-warning-ink">
-              {latest95Op.status === 'pending' ? 'המחיר נשמר במכשיר · ממתין לשרת' : 'המחיר טרם סונכרן לשרת'}
-              {latest95Op.status !== 'pending' ? <button type="button" className="block min-h-[44px] font-semibold text-accent" onClick={() => void retryOperation(latest95Op.opId).catch(() => showToast({tone:'error',title:'השמירה נכשלה. נסו שוב.'}))}>סנכרון המחיר הרשמי מחדש</button> : null}
-            </div> : readSource === 'server' && config?.byFuelType?.['95']?.self?.current ? <p className="text-[13px] text-success">המחיר מאושר בשרת</p> : null}
-            {pulling ? <p className="text-[13px] text-muted">מנסה לקרוא את המקור…</p> : null}
-            {pullError ? <p role="alert" className="text-[13px] leading-relaxed text-danger-ink">{pullError}</p> : null}
-            {reading?.url || config?.byFuelType?.['95']?.self?.sourceUrl ? <a href={reading?.url ?? config?.byFuelType?.['95']?.self?.sourceUrl ?? undefined} target="_blank" rel="noreferrer" className="flex min-h-[44px] items-center text-[14px] font-semibold text-accent">מקור: משרד האנרגיה</a> : null}
-          </div>
-        </div>
-        <DiagnosticRow title="עדכון אוטומטי (95)" ok={automatic.ok} value={automatic.value} detail={automatic.detail} />
-        <DiagnosticRow title="הרשאת כתיבה" ok={isAdmin} value={!claimsLoaded ? "בודק…" : isAdmin ? "מותרת" : "חסרה"} detail={isAdmin ? "אפשר לשמור מחירים. אישור השמירה מהשרת יוצג ליד המחיר." : "שמירה זמינה למנהלי מערכת בלבד."} />
-        <section className="flex min-w-0 flex-col gap-3">
-        <h3 className="text-[15.5px] font-semibold">עריכת מחירים ידנית</h3>
-        <div className="flex flex-col gap-3">
-        {EDITABLE_FUELS.map(({ fuelType, label }) => {
-          const series = config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE];
-          return (
-            <FuelPriceRow
-              key={fuelType}
-              label={label}
-              draftKey={`tm.adminPriceDraft.${user?.uid}.${fuelType}`}
-              writable={isAdmin && outboxReady}
-              serverConfirmed={readSource === "server"}
-              operation={priceOps.filter(op => Object.keys(op.payload ?? {}).some(key => key.startsWith(`byFuelType.${fuelType}.`))).at(-1)}
-              onRetry={(opId) => retryOperation(opId)}
-              lookup={regulatedMaxPrice(config, fuelType, now)}
-              series={series}
-              onSave={(value) => save(fuelType, value)}
-              onRestore={(month, scheduled) => restoreScheduled(fuelType, month, scheduled)}
-            />
-          );
-        })}
-        </div></section>
-
-
-      </Card>
+  return <>
+    <Panel title="מחירי דלק רשמיים" note={readSource === 'server' ? 'נקרא מהשרת' : readSource === 'cache' ? 'מוצג עותק מקומי' : undefined} bare trailing={<button type="button" className="admin-link" disabled={pulling || !isAdmin || !outboxReady || priceOps.some(op => op.status === 'pending')} aria-label="משיכת מחיר מהדפדפן" aria-busy={pulling || undefined} onClick={() => void pull()}><RefreshIcon size={15} />{pulling ? 'קוראים…' : 'משיכה עכשיו'}</button>}>
+      <div className="admin-group">{EDITABLE_FUELS.map(({ fuelType, label }) => <FuelPriceRow key={fuelType} label={label} draftKey={`tm.adminPriceDraft.${user?.uid}.${fuelType}`} writable={isAdmin && outboxReady} serverConfirmed={readSource === 'server'} operation={priceOps.filter(op => Object.keys(op.payload ?? {}).some(key => key.startsWith(`byFuelType.${fuelType}.`))).at(-1)} onRetry={opId => retryOperation(opId)} lookup={regulatedMaxPrice(config, fuelType, now)} series={config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE]} onSave={value => save(fuelType, value)} onRestore={(month, scheduled) => restoreScheduled(fuelType, month, scheduled)} />)}</div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 text-[12px] text-muted">
+        <span>95 בשירות עצמי · 98 וסולר אינם בפיקוח</span>
+        <RefreshButton busy={loading} label="רענון מהשרת" onClick={() => void load(true).then(source => showToast({ tone: source === 'server' ? 'success' : 'info', title: source === 'server' ? 'נקרא מהשרת' : 'השרת לא זמין — מוצג עותק מקומי' })).catch(() => showToast({ tone: 'error', title: 'הקריאה נכשלה' }))} />
+      </div>
+      {pullError ? <p role="alert" className="text-[13px] text-danger-ink">{pullError}</p> : null}
+      {reading ? <p className="helper">נקרא פרסום משרד האנרגיה לחודש {priceMonthLabel(reading.month, now)}. {latest95Op ? 'אישור השמירה מוצג ליד המחיר.' : readSource === 'server' ? 'המחיר מאושר בשרת.' : 'ממתינים לאישור השרת.'}</p> : null}
+      {config?.byFuelType?.['95']?.self?.sourceUrl ? <a href={config.byFuelType['95'].self.sourceUrl} target="_blank" rel="noopener noreferrer" className="admin-link self-start">מקור: משרד האנרגיה</a> : null}
     </Panel>
-  );
+    <Panel title="הרשאות ועדכונים">
+      <DiagnosticRow title="הרשאת כתיבה למחירים" ok={isAdmin} value={!claimsLoaded ? 'בודקים…' : isAdmin ? 'מותרת' : 'חסרה'} detail={isAdmin ? 'אפשר לשמור מחירים. אישור השרת מוצג ליד הערך שנשמר.' : 'שמירה זמינה למנהלי מערכת בלבד.'} />
+      <DiagnosticRow title="עדכון אוטומטי (95)" ok={automatic.ok} value={automatic.value} detail={automatic.detail} />
+    </Panel>
+  </>;
 }
 
 /** The one refresh control the console uses. */
@@ -931,9 +693,11 @@ function FuelPriceRow({
   const { showToast } = useToast();
   const [draft, setDraft] = useState(() => { try { return localStorage.getItem(draftKey) ?? ""; } catch { return ""; } });
   const [draftError, setDraftError] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  useAppUpdateBlocker(editing && (saving || restoring || draftError));
 
   const parsed = parseDecimal(draft);
   const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
@@ -974,75 +738,37 @@ function FuelPriceRow({
       : `הפעולה נכשלה (${typeof code === "string" ? code : "unknown"})`;
   }
 
-  return (
-    <div className="flex flex-col gap-2 border-b border-line pb-3 last:border-b-0 last:pb-0">
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_88px_auto] items-center gap-2">
-        <span className="text-[15.5px] font-semibold">{label}</span>
-        <label className="flex min-h-[44px] min-w-0 items-center gap-1 rounded-[10px] border border-line bg-surface px-3 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
-          <span className="text-[13px] text-muted">₪</span>
-          <input
-            inputMode="decimal"
-            aria-label={`מחיר חדש לליטר · ${label}`}
-            value={draft}
-            onChange={(event) => {
-              const value = event.target.value;
-              setDraft(value);
-              try { localStorage.setItem(draftKey, value); setDraftError(false); }
-              catch { setDraftError(true); }
-            }}
-            placeholder={lookup.price !== null ? String(lookup.price) : "—"}
-            dir="ltr"
-            className="num min-w-0 w-full flex-1 bg-transparent text-[16px] outline-none placeholder:text-muted"
-          />
-        </label>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={!changed || !writable || operation?.status === "pending"}
-          loading={saving}
-          onClick={() => {
-            setSaving(true);
-            // Retain the input until server acknowledgement, rejection and reload.
-            void onSave(parsed)
-              .catch((error: unknown) =>
-                showToast({ tone: "error", title: failureTitle(error) }),
-              )
-              .finally(() => setSaving(false));
-          }}
-        >
-          שמירה
-        </Button>
-      </div>
-
-      <p className={`text-[12px] leading-relaxed ${currentMonth ? "text-muted" : "text-warning-ink"}`}>{sourceText}</p>
-      {draftError ? <p role="alert" className="text-[12px] text-danger-ink">הטיוטה לא נשמרה באחסון המקומי. השאירו את המסך פתוח עד לשמירה.</p> : null}
-      {draft && !valid ? <p role="alert" className="text-[12px] text-danger-ink">הזינו מחיר מלא בין 0 ל־20 ₪.</p> : null}
-      <div aria-live="polite" className="text-[12px] leading-relaxed">
-        {operation ? <div className="flex flex-col gap-1">
-          <span className={operation.status === "pending" ? "text-muted" : "text-danger-ink"}>{operation.status === "pending" ? "נשמר במכשיר · ממתין לאישור השרת" : "לא סונכרן · הקלט נשמר במכשיר"}</span>
-          {operation.error ? <span className="text-danger-ink">{operation.error.message}</span> : null}
-          {operation.status !== "pending" ? <button type="button" disabled={!writable || saving} className="min-h-[44px] self-start rounded-pill bg-surface-2 px-3 font-semibold text-accent" onClick={() => { setSaving(true); void onRetry(operation.opId).catch(error => showToast({tone:"error",title:failureTitle(error)})).finally(() => setSaving(false)); }}>ניסיון שמירה נוסף</button> : null}
-        </div> : serverConfirmed && lookup.price !== null ? <span className="text-success">המחיר מאושר בשרת</span> : null}
-      </div>
-      {overrideActive && scheduledForMonth !== null && override ? (
-        <button
-          type="button"
-          disabled={restoring || !writable || operation?.status === "pending"}
-          onClick={() => {
-            setRestoring(true);
-            void onRestore(override.month, scheduledForMonth)
-              .catch((error: unknown) =>
-                showToast({ tone: "error", title: failureTitle(error) }),
-              )
-              .finally(() => setRestoring(false));
-          }}
-          className="min-h-[44px] self-start text-start text-[14px] font-semibold text-accent disabled:opacity-50"
-        >
-          {restoring ? "מחזיר…" : `החזרת הערך האוטומטי (${price(scheduledForMonth)})`}
-        </button>
-      ) : null}
-    </div>
-  );
+  const status = operation ? <div className="flex flex-col gap-1" role="status">
+    <span className={operation.status === 'pending' ? 'text-muted' : 'text-danger-ink'}>{operation.status === 'pending' ? 'נשמר במכשיר · ממתין לאישור השרת' : 'לא סונכרן · הקלט נשמר במכשיר'}</span>
+    {operation.error ? <span className="text-danger-ink">{operation.error.message}</span> : null}
+    {operation.status !== 'pending' ? <button type="button" disabled={!writable || saving} className="admin-link" onClick={() => { setSaving(true); void onRetry(operation.opId).catch(error => showToast({ tone: 'error', title: failureTitle(error) })).finally(() => setSaving(false)); }}>ניסיון שמירה נוסף</button> : null}
+  </div> : serverConfirmed && lookup.price !== null ? <span className="text-success">המחיר מאושר בשרת</span> : null;
+  function closeEditor() {
+    if (saving || restoring || draftError) return;
+    if (!changed && !operation) {
+      try { localStorage.removeItem(draftKey); } catch { /* No new input to lose. */ }
+      setDraft('');
+    }
+    setEditing(false);
+  }
+  return <div className="admin-price-entry">
+    <button type="button" className="admin-price-row" aria-label={`עריכת מחיר · ${label}`} aria-haspopup="dialog" onClick={() => { if (!draft && lookup.price !== null) setDraft(String(lookup.price)); setEditing(true); }}>
+      <span className="admin-row-main"><strong>{label}</strong><small className={currentMonth ? '' : 'text-warning-ink'}>{sourceText}</small>{changed && !operation ? <small className="text-accent">טיוטה ממתינה</small> : null}</span>
+      <Num className="text-[17px] font-semibold">{lookup.price === null ? '—' : price(lookup.price)}</Num><ChevronStart size={16} className="text-muted" />
+    </button>
+    {!editing && operation ? <div className="admin-price-status">{status}</div> : null}
+    <Sheet open={editing} onClose={closeEditor} title={`מחיר לליטר · ${label}`}>
+      <form className="admin-price-editor" onSubmit={event => { event.preventDefault(); if (!changed || !writable || saving || operation?.status === 'pending') return; setSaving(true); void onSave(parsed).catch(error => showToast({ tone: 'error', title: failureTitle(error) })).finally(() => setSaving(false)); }}>
+        <p className="helper">{label === 'בנזין 95' ? 'ערך ידני מחליף את המחיר האוטומטי לחודש הנוכחי. תדלוקים קיימים אינם משתנים.' : 'סוג דלק זה אינו בפיקוח. הערך הידני ישמש כברירת מחדל בתדלוקים חדשים.'}</p>
+        <label className="admin-price-field"><span>מחיר לליטר</span><input inputMode="decimal" aria-label={`מחיר חדש לליטר · ${label}`} value={draft} onChange={event => { const value = event.target.value; setDraft(value); try { localStorage.setItem(draftKey, value); setDraftError(false); } catch { setDraftError(true); } }} placeholder={lookup.price !== null ? String(lookup.price) : '—'} dir="ltr" className="num" /><span>₪</span></label>
+        {draftError ? <p role="alert" className="text-[13px] text-danger-ink">הטיוטה לא נשמרה באחסון המקומי. השאירו את המסך פתוח עד לשמירה.</p> : null}
+        {draft && !valid ? <p role="alert" className="text-[13px] text-danger-ink">הזינו מחיר מלא בין 0 ל־20 ₪.</p> : null}
+        <div className="text-[13px] leading-relaxed" aria-live="polite">{status}</div>
+        <Button type="submit" full disabled={!changed || !writable || operation?.status === 'pending'} loading={saving}>שמירה</Button>
+        {overrideActive && scheduledForMonth !== null && override ? <button type="button" disabled={restoring || !writable || operation?.status === 'pending'} onClick={() => { setRestoring(true); void onRestore(override.month, scheduledForMonth).catch(error => showToast({ tone: 'error', title: failureTitle(error) })).finally(() => setRestoring(false)); }} className="tm-text-action">{restoring ? 'מחזירים…' : `החזרת הערך האוטומטי (${price(scheduledForMonth)})`}</button> : null}
+      </form>
+    </Sheet>
+  </div>;
 }
 
 /**
@@ -1278,22 +1004,18 @@ function BenchmarkPool() {
   const [count, setCount] = useState<number | null>(null);
 
   useEffect(() => {
-    getDocs(query(collectionGroup(db, "benchmarks"), limit(500)))
-      .then((snapshot) => setCount(snapshot.size))
-      .catch(() =>
-        getDocs(query(collection(db, "benchmarks"), limit(500)))
-          .then((snapshot) => setCount(snapshot.size))
-          .catch(() => setCount(null)),
-      );
+    let current = true;
+    void getCountFromServer(collection(db, 'benchmarks')).then(snapshot => { if (current) setCount(snapshot.data().count); }).catch(() => { if (current) setCount(null); });
+    return () => { current = false; };
   }, []);
 
   return (
-    <Panel title="מאגר ההשוואה האנונימי">
+    <Panel title="מאגר ההשוואה">
       <div className="flex items-center justify-between gap-3 p-4">
         <span className="flex flex-col">
           <span className="text-[14px] font-semibold text-ink">רשומות משתתפות</span>
           <span className="text-[12px] text-muted">
-            סיכום צריכה אנונימי — ללא שם, מייל, מיקום או קילומטראז׳
+            סיכומי צריכה ללא שם או מייל. מזהי התרומות מקושרים לחשבון.
           </span>
         </span>
         <Num className="text-[19px] font-bold text-ink">{count ?? "—"}</Num>
@@ -1303,38 +1025,19 @@ function BenchmarkPool() {
 }
 
 function StatTile({
-  icon,
   label,
   value,
-  meta,
-  accent = false,
 }: {
-  icon: React.ReactNode;
   label: string;
   value: string;
-  meta?: string;
-  accent?: boolean;
 }) {
   return (
-    <Card className="flex flex-1 flex-col gap-1.5 p-[14px_16px]">
-      <span className="flex items-center gap-2 text-muted">
-        {icon}
-        <Label className="text-[14px]">{label}</Label>
-      </span>
-      <Num className={`self-start font-display text-[26px] font-bold leading-tight ${accent ? "text-accent" : "text-ink"}`}>
+    <div className="admin-tile">
+      <span className="text-[13px] text-muted">{label}</span>
+      <Num className="text-right text-[26px] font-bold leading-tight text-ink">
         {value}
       </Num>
-      {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
-    </Card>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <span className="flex flex-col gap-0.5 text-[13px]">
-      <span className="text-muted">{label}</span>
-      <Num className="self-start font-bold text-ink">{value}</Num>
-    </span>
+    </div>
   );
 }
 
@@ -1352,9 +1055,9 @@ function consumptionOf(summary: UserSummary): string {
   return liters > 0 ? num(km / liters, 1) : "—";
 }
 
-function costOf(summary: UserSummary): number {
-  return Object.values(summary.vehicles ?? {}).reduce(
-    (sum, vehicle) => sum + vehicle.cost,
+function costOf(summary: UserSummary | null): number {
+  return Object.values(summary?.vehicles ?? {}).reduce(
+    (sum, vehicle) => sum + (vehicle.ledger ? vehicle.ledger.totalAgorot / 100 : vehicle.cost),
     0,
   );
 }

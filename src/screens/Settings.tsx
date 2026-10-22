@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { useTheme } from "../context/ThemeContext";
 import { useToast } from "../context/ToastContext";
-import { Card, IconTile, Label, ListCard, Skeleton } from "../components/Card";
+import { Card, IconTile, Label, ListCard } from "../components/Card";
 import { Toggle } from "../components/Segmented";
 import { ChoiceList } from "../components/ChoiceList";
 import { RowButton } from "../components/Button";
@@ -15,7 +15,6 @@ import { Avatar } from "../components/Avatar";
 import { InfoTip } from "../components/InfoTip";
 import { Num } from "../components/Num";
 import {
-  CarIcon,
   CheckIcon,
   ChevronStart,
   DeviceIcon,
@@ -24,7 +23,6 @@ import {
   CopyIcon,
   MessageIcon,
   PhoneIcon,
-  PlusIcon,
   ShareIcon,
   ShieldIcon,
   SunIcon,
@@ -35,9 +33,7 @@ import {
   FUEL_TYPE_SHORT,
   dayMonthShort,
   price,
-  vehicleLabel,
 } from "../lib/format";
-import { TankPreferencesSection } from "../components/TankPreferencesSection";
 import {
   APP_SHARE_URL,
   browserShareDeps,
@@ -46,6 +42,7 @@ import {
 } from "../lib/share";
 import { APP_VERSION, BUILD_COMMIT, BUILD_DIRTY } from "../lib/version";
 import { UpdateCheckButton } from "../components/UpdateCheckButton";
+import { NotificationPreferences } from '../components/NotificationPreferences';
 import type { ThemeSetting, Units } from "../lib/types";
 
 const THEME_OPTIONS: { value: ThemeSetting; label: string; icon: React.ReactNode }[] = [
@@ -62,6 +59,7 @@ const UNIT_OPTIONS: { value: Units; label: string }[] = [
 
 /** Settings (designs 18 / 24). */
 export function Settings() {
+  const [notificationPreferencesOpen,setNotificationPreferencesOpen]=useState(false);
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { user, isAdmin } = useAuth();
@@ -69,11 +67,8 @@ export function Settings() {
   const {
     settings,
     updateSettings,
-    activeVehicles,
     activeVehicle,
-    setActiveVehicle,
     prices,
-    ready,
     benchmarkWithdrawal,
     retryBenchmarkWithdrawal,
   } = useData();
@@ -93,6 +88,7 @@ export function Settings() {
 
   return (
     <main className="flex flex-1 flex-col gap-5 pb-[104px] pt-safe">
+      <NotificationPreferences open={notificationPreferencesOpen} onClose={()=>setNotificationPreferencesOpen(false)}/>
       <header className="px-5 pb-1 pt-5">
         <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">הגדרות</h1>
       </header>
@@ -108,21 +104,6 @@ export function Settings() {
           </button>
           {isAdmin ? <RowButton icon={<ShieldIcon size={19} className="text-muted" />} title="לוח בקרה" subtitle="משתמשים, מחירי דלק ומשוב" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/admin")} /> : null}
         </ListCard>
-        <section className="flex flex-col gap-2">
-          <Label>רכב</Label>
-          <ListCard>
-            {!ready && !activeVehicles.length ? <div className="p-4"><Skeleton className="h-9 w-full" /></div> : null}
-            {activeVehicles.length > 1 ? activeVehicles.map((vehicle) => (
-              <RowButton key={vehicle.id} icon={<CarIcon size={18} className="text-muted" />} title={vehicleLabel(vehicle)} value={vehicle.id === activeVehicle?.id ? "פעיל" : FUEL_TYPE_SHORT[vehicle.fuelType]} onClick={() => void setActiveVehicle(vehicle.id)} />
-            )) : null}
-            <RowButton icon={<CarIcon size={19} className="text-muted" />} title="תחזוקת הרכב והוצאות" onClick={() => navigate("/vehicle")} />
-            <RowButton icon={<CarIcon size={19} className="text-muted" />} title="רכבים וארכיון" value={activeVehicle ? vehicleLabel(activeVehicle) : undefined} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/vehicles")} />
-            <RowButton icon={<PlusIcon size={19} className="text-muted" />} title="הוספת רכב" onClick={() => navigate("/vehicles/new")} />
-            <TankPreferencesSection embedded />
-            <div className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז מד־דרך. אפשר לחזור להזנה ידנית.</small></span><Toggle ariaLabel="פתח תמיד תדלוק מהיר" checked={settings.quickEntry===true} onChange={checked=>{void updateSettings({quickEntry:checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></div>
-            <button type="button" className="v-row" onClick={()=>navigate('/notifications')}>העדפות התראות ←</button>
-          </ListCard>
-        </section>
         {/* Fuel price */}
         <section className="flex flex-col gap-2">
           <Label>מחיר דלק</Label>
@@ -161,6 +142,8 @@ export function Settings() {
         <section className="flex flex-col gap-2">
           <Label>תצוגה</Label>
           <ListCard>
+            <div className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז מד־דרך. אפשר לחזור להזנה ידנית.</small></span><Toggle ariaLabel="פתח תמיד תדלוק מהיר" checked={settings.quickEntry===true} onChange={checked=>{void updateSettings({quickEntry:checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></div>
+            <button type="button" className="v-row" onClick={()=>setNotificationPreferencesOpen(true)}>העדפות התראות <ChevronStart size={17}/></button>
             <RowButton icon={<DeviceIcon size={19} className="text-muted" />} title="ערכת נושא" value={THEME_OPTIONS.find((option) => option.value === theme)?.label} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setThemeOpen(true)} />
             <RowButton icon={<PaletteIcon size={19} className="text-muted" />} title="צבע הדגשה" value={accent.label} trailing={<span className="size-4 flex-none rounded-full" style={{ background: "var(--accent)" }} />} onClick={() => setAccentSheetOpen(true)} />
             <RowButton title="יחידת צריכה" value={UNIT_OPTIONS.find((option) => option.value === settings.units)?.label} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setUnitsOpen(true)} />

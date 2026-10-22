@@ -7,6 +7,14 @@ beforeAll(async()=>{env=await initializeTestEnvironment({projectId:'demo-unified
 afterAll(async()=>{await env?.cleanup();});beforeEach(async()=>{await env.clearFirestore();await env.withSecurityRulesDisabled(async ctx=>{await setDoc(doc(ctx.firestore(),'users/alice/vehicles/v'),{make:'X',model:'Y',fuelType:'95',archived:false,priceAdjustment:0});});});
 const issue={schemaVersion:1,version:1,day:'2026-10-21',title:'Braking noise',symptoms:'Under braking',odometer:120000,importance:'important',status:'open',notes:'',serviceEventIds:['s'],history:[]};
 const state={schemaVersion:1,version:1,occurrence:'reminder:p:2026-10-01',read:true,archived:false,snoozeUntilDay:null};
+it('notification deletion remains an owner-only versioned occurrence marker',async()=>{
+  const path='users/alice/vehicles/v/notificationStates/deleted',ref=doc(env.authenticatedContext('alice').firestore(),path);
+  await assertSucceeds(setDoc(ref,{...state,archived:true}));await assertSucceeds(setDoc(ref,{...state,archived:true,version:2,deleted:true}));
+  await assertFails(setDoc(ref,{...state,version:3,deleted:'true'}));await assertFails(setDoc(ref,{...state,version:3,deleted:true,costAgorot:20}));
+  await assertFails(setDoc(doc(env.authenticatedContext('bob').firestore(),path),{...state,version:3,deleted:true}));
+  await assertFails(setDoc(doc(env.authenticatedContext('admin',{admin:true}).firestore(),path),{...state,version:3,deleted:true}));
+  await assertSucceeds(setDoc(ref,{...state,archived:true,version:3,deleted:false}));
+});
 for(const [name,value] of [['vehicleIssues',issue],['notificationStates',state]] as const){
   it(`${name} is private even from an administrator, versioned and bounded`,async()=>{const path=`users/alice/vehicles/v/${name}/r`,ref=doc(env.authenticatedContext('alice').firestore(),path);await assertSucceeds(setDoc(ref,value));
     await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),path)));await assertFails(getDoc(doc(env.authenticatedContext('bob').firestore(),path)));await assertFails(getDoc(doc(env.authenticatedContext('admin',{admin:true}).firestore(),path)));

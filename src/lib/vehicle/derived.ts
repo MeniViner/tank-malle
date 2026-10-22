@@ -45,9 +45,9 @@ export function periodSummary(rows: LedgerRow[], evidence: MileageEvidence[], fr
     fuelPerKm:ratiosKnown?covered.filter(r=>r.kind==='fuel').reduce((s,r)=>s+r.amountAgorot!,0)/100/distance!:null,
 };
 }
-export function reminderRows(care: CareData, evidence: MileageEvidence[], today: string) {
+export function reminderRows(care: CareData, evidence: MileageEvidence[], today: string, lead?:{days:number;km:number}) {
   const mileage=currentMileage(evidence,today);
-  return care.maintenancePlans.map(plan=>{const due=nextDue(plan,care.serviceEvents,today);const status=mileage?.ambiguous && due.odometer!==null && mileage.minimum<due.odometer && mileage.maximum>=due.odometer && !(due.day&&due.day<=today) ? 'unknown' : dueStatus(due,mileage,today);
+  return care.maintenancePlans.map(plan=>{const due=nextDue(plan,care.serviceEvents,today);const status=mileage?.ambiguous && due.odometer!==null && mileage.minimum<due.odometer && mileage.maximum>=due.odometer && !(due.day&&due.day<=today) ? 'unknown' : dueStatus(due,mileage,today,lead);
     // Completion identity is included even if manual recurrence keeps the same target.
     const last=care.serviceEvents.filter(e=>e.day<=today&&e.completedPlanIds.includes(plan.id)).sort((a,b)=>b.day.localeCompare(a.day)||(b.odometer??-1)-(a.odometer??-1)||a.id.localeCompare(b.id))[0];
     const cycle=last?`${last.id}:${last.day}:${last.odometer??'-'}`:'initial';

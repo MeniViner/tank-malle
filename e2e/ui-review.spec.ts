@@ -101,12 +101,14 @@ test('care is compact, has no duplicate mileage action and preserves several job
 
 test('every setting uses the same compact accessible switch and quick entry persists',async({page})=>{
   const {uid}=await signedInWithData(page,{vehicle:car});await page.goto('/settings');
-  const switches=page.getByRole('switch');await expect(switches).toHaveCount(3);
-  for(const sw of await switches.all()){
-    const target=await sw.boundingBox();expect(target!.width).toBe(40);expect(target!.height).toBe(40);
-    const track=await sw.locator('.tm-switch-track').boundingBox();expect(track!.width).toBe(34);expect(track!.height).toBe(20);
-  }
+  const checkSwitches=async(count:number)=>{const switches=page.getByRole('switch');await expect(switches).toHaveCount(count);for(const sw of await switches.all()){
+    const target=await sw.boundingBox();expect(target!.width).toBeCloseTo(40,3);expect(target!.height).toBeCloseTo(40,3);
+    const track=await sw.locator('.tm-switch-track').boundingBox();expect(track!.width).toBeCloseTo(34,3);expect(track!.height).toBeCloseTo(20,3);
+  }};
+  await checkSwitches(2);
   const quick=page.getByRole('switch',{name:'פתח תמיד תדלוק מהיר',exact:true});await quick.click();await expect(quick).toBeChecked();
   await expect(async()=>expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({quickEntry:true})).toPass();await page.reload();await expect(quick).toBeChecked();
-  await page.goto('/notifications');await expect(page.getByRole('switch')).toHaveCount(2);await expect(page.getByRole('checkbox')).toHaveCount(0);
+  await page.goto('/vehicle?tab=prefs');await checkSwitches(1);await expect(page.getByRole('switch',{name:'התאמה אישית אוטומטית',exact:true})).toBeVisible();
+  await page.goto('/settings');await page.getByRole('button',{name:/העדפות התראות/}).click();await checkSwitches(6);await expect(page.getByRole('dialog').getByRole('switch')).toHaveCount(4);await page.getByRole('dialog').getByRole('button',{name:'סגירה',exact:true}).click();
+  await page.goto('/notifications');await expect(page.getByRole('switch')).toHaveCount(0);await expect(page.getByRole('checkbox')).toHaveCount(0);
 });
