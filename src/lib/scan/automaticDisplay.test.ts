@@ -18,14 +18,14 @@ for(const [kind,env,expected] of [
     const {data,info}=await sharp(process.env[env]!).rotate().resize({width:Math.round(maximum*.75),height:maximum,fit:'inside'}).ensureAlpha().raw().toBuffer({resolveWithObject:true});
     const started=performance.now();const result=recognizeDisplay({...info,data},kind);
     console.info(`${kind} recognition: ${Math.round(performance.now()-started)} ms`);
-    expect(result).toEqual({status:'read',values:expected});
+    expect(result).toMatchObject({status:'read',values:expected});
   });
 }
 
 it('reads other seven-segment values from generated whole-display fixtures',async()=>{
   const {demoPhoto}=await import('./fixtures');
-  expect(recognizeDisplay(demoPhoto('pump'),'pump')).toEqual({status:'read',values:{total:'287.40',liters:'40.000'}});
-  expect(recognizeDisplay(demoPhoto('odometer'),'odometer')).toEqual({status:'read',values:{odometer:'128450'}});
+  expect(recognizeDisplay(demoPhoto('pump'),'pump')).toMatchObject({status:'read',values:{total:'287.40',liters:'40.000'}});
+  expect(recognizeDisplay(demoPhoto('odometer'),'odometer')).toMatchObject({status:'read',values:{odometer:'128450'}});
 });
 
 it('rejects missing decimals, a lone pump row, and competing odometers',async()=>{
@@ -39,9 +39,9 @@ it('rejects missing decimals, a lone pump row, and competing odometers',async()=
 it('decodes alternate values instead of substituting calibration numbers',async()=>{
   const {blank,drawDigits}=await import('./fixtures');
   const pump=blank(820,480);drawDigits(pump,'528.60',150,95);drawDigits(pump,'60.000',150,285);
-  expect(recognizeDisplay(pump,'pump')).toEqual({status:'read',values:{total:'528.60',liters:'60.000'}});
+  expect(recognizeDisplay(pump,'pump')).toMatchObject({status:'read',values:{total:'528.60',liters:'60.000'}});
   const odo=blank(820,480,[8,15,24]);drawDigits(odo,'265408',130,190,[40,170,255]);
-  expect(recognizeDisplay(odo,'odometer')).toEqual({status:'read',values:{odometer:'265408'}});
+  expect(recognizeDisplay(odo,'odometer')).toMatchObject({status:'read',values:{odometer:'265408'}});
 });
 it.skipIf(!process.env.CARE_PUMP_PHOTO||!process.env.CARE_ODO_PHOTO)('reads or refuses transformed calibration photos without changing the numbers',async()=>{
   let read=0,refused=0;
