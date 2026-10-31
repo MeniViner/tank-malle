@@ -1,8 +1,11 @@
 # Frozen evaluation protocol: automatic display scanning
 
-Frozen at commit that adds this file, before any tuning on TRODO and before any
-run on the `test` or `challenge` splits. Changing a rule below after that
+Version 1.0 was frozen in commit `602a098`, before any tuning on TRODO and
+before any run on the `test` or `challenge` splits. Changing a rule after that
 point requires a new protocol version and a note of which results it affects.
+Version 1.1 (section 4a) is the only change; it was made from tuning-split
+errors, before the new reader was run on `test` or `challenge`, and the 1.6.0
+baseline is re-scored under it.
 
 ## 1. Data
 
@@ -45,11 +48,28 @@ a second human annotator), before any recognition result existed:
 | `unscored-ambiguous-label` | digital with 3–4 digits: mostly trip meters with the decimal dropped by the annotator | Reported separately, not in the headline metrics |
 | `excluded-label-check` | digit boxes do not spell the label (rolling drums, tenths drum included inconsistently, missing boxes) | Reported separately, not in the headline metrics |
 
-Counts: eligible 1,958; negative 257; unscored 20; excluded 154.
+Counts under v1.0: eligible 1,958; negative 257; unscored 20; excluded 154.
 
 Known label limitation: on analog registers the white tenths drum is sometimes
 part of the label and sometimes not; where its digit box is present and spells
 the label, that label is taken as is.
+
+## 4a. Version 1.1: analog registers are reported separately
+
+Tuning-split errors showed that most analog registers end in a differently
+coloured drum, usually tenths, and that TRODO labels include that drum as a
+digit on most of them but not all (`00719`+white `3` is labelled `7193`; a
+neighbouring photo's white drum is left out). The label therefore does not
+define the integer the app records: storing `7193` for 719.3 would be a 10×
+error. Measuring the drum colour from the boxes did not separate the cases
+reliably, so every analog register is now `unscored-analog-register`, and
+every report gives its acceptances both ways (matching the label, and
+matching the label without its last digit). Analog negatives stay negatives.
+
+Counts under v1.1: eligible 1,223 (tuning 371, test 713, challenge 139);
+negative 257 (65, 51, 141); unscored analog 858; unscored digital 3–4 digits
+20; excluded label check 31. The headline therefore measures digital
+odometer displays only.
 
 ## 5. What is run
 

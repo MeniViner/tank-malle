@@ -7,7 +7,8 @@ import type { QualityHint } from './quality';
  * still photo). Each attempt is one recognition path on one frame: a
  * recogniser at a scale/ROI/preprocessing. The same path agreeing with itself
  * on near-identical frames is repetition, not corroboration, so acceptance
- * needs two different paths; a live session also needs two frames. Any
+ * needs two different paths agreeing within a frame; a live session needs
+ * that in two frames. Any
  * competing reading must be clearly outvoted. When the bound is reached the
  * session abstains with its reasons, and the person can still type the values.
  */
@@ -18,7 +19,8 @@ export type SessionDecision =
   | { status: 'accepted'; values: DisplayReading; frames: number; elapsedMs: number; paths: string[]; evidence: string[] }
   | { status: 'abstained'; reason: 'conflict' | 'implausible' | 'uncorroborated' | 'unreadable' | 'timeout'; reasons: Record<string, number>; frames: number; elapsedMs: number };
 
-type Tally = { values: DisplayReading; frames: Set<number>; paths: Set<string>; votes: number; evidence: Set<string>; plausible: boolean };
+/** `byFrame`: the paths that read this value in each frame. */
+type Tally = { values: DisplayReading; byFrame: Map<number, Set<string>>; paths: Set<string>; votes: number; evidence: Set<string>; plausible: boolean };
 
 export class CaptureSession {
   private readonly tallies = new Map<string, Tally>();
@@ -52,8 +54,8 @@ export class CaptureSession {
     const plausible = ('total' in result.values) === (this.kind === 'pump') && ('total' in result.values ? automaticPumpPlausible(result.values) : automaticOdometerPlausible(result.values.odometer));
     if (!plausible) this.count('implausible');
     const key = JSON.stringify(result.values);
-    const tally = this.tallies.get(key) ?? { values: result.values, frames: new Set(), paths: new Set(), votes: 0, evidence: new Set(), plausible };
-    tally.frames.add(frame); tally.paths.add(path); tally.votes++;
+    const tally = this.tallies.get(key) ?? { values: result.values, byFrame: new Map(), paths: new Set(), votes: 0, evidence: new Set(), plausible };
+    tally.byFrame.set(frame, (tally.byFrame.get(frame) ?? new Set()).add(path)); tally.paths.add(path); tally.votes++;
     for (const item of result.evidence) tally.evidence.add(item);
     this.tallies.set(key, tally);
   }
@@ -61,7 +63,11 @@ export class CaptureSession {
     if (this.final) return this.final;
     const frames = this.frameIds.size, ranked = [...this.tallies.values()].sort((a, b) => b.votes - a.votes);
     const [leader, ...others] = ranked, rivals = others.reduce((sum, t) => sum + t.votes, 0);
-    const corroborated = leader && leader.plausible && leader.paths.size >= 2 && (this.options.still || leader.frames.size >= 2);
+    // Corroborated frame: two different paths read the value in that frame. A
+    // still needs one such frame; a live session needs two, so it is never
+    // weaker than a single photo.
+    const corroboratedFrames = leader ? [...leader.byFrame.values()].filter(paths => paths.size >= 2).length : 0;
+    const corroborated = leader && leader.plausible && corroboratedFrames >= (this.options.still ? 1 : 2);
     // A still photo has nothing to outvote a disagreement with.
     const outvoted = this.options.still ? rivals === 0 : leader && leader.votes >= 2 * rivals + 2;
     if (corroborated && outvoted) {

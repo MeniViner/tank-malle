@@ -3,6 +3,11 @@
 //   node scripts/scan-benchmark/run.mjs --sessions benchmarks/scan/trodo-sessions.json \
 //     --root .scan-corpus --split test --reader current --text none --out run.json
 //
+// --live N simulates a camera session: N frames derived from the photo (small
+// seeded shifts, zoom and exposure changes) go through the live session rules.
+// Derived frames are not independent observations; this exercises the live
+// consensus path on real images, it does not add trials.
+//
 // Each session is recognised from the whole photograph through the same code
 // the app runs (src/lib/scan/pipeline.ts), never from an annotated crop. The
 // annotated crop is only used for the separate, diagnostic component metric.
@@ -40,7 +45,7 @@ if (isMainThread) {
   const started = Date.now(), rows = [];
   await Promise.all([...Array(workers)].map((_, w) => new Promise((done, fail) => {
     const share = runnable.filter((_, i) => i % workers === w);
-    const worker = new Worker(fileURLToPath(import.meta.url), { workerData: { sessions: share, root, reader, text, components: args.components === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} } });
+    const worker = new Worker(fileURLToPath(import.meta.url), { workerData: { sessions: share, root, reader, text, live: Number(args.live ?? 0), components: args.components === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} } });
     worker.on('message', row => { rows.push(row); if (rows.length % 100 === 0) process.stderr.write(`${rows.length}/${runnable.length}\n`); });
     worker.on('error', fail); worker.on('exit', code => code ? fail(new Error(`worker ${w} exited ${code}`)) : done());
   })));
@@ -51,7 +56,7 @@ if (isMainThread) {
   const summary = metrics.summarize(scored);
   const report = {
     format: 'tank-maleh-scan-run-v1', at: new Date().toISOString(), commit: (await import('node:child_process')).execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim(),
-    reader, text, splits, sessionsFile: sessionsFile.replace(repo + '/', ''), wallMs: Date.now() - started, workers, node: process.version,
+    reader, text, live: Number(args.live ?? 0) || null, splits, sessionsFile: sessionsFile.replace(repo + '/', ''), wallMs: Date.now() - started, workers, node: process.version,
     status: missing.length ? 'incomplete' : 'complete', missing,
     counts: { requested: sessions.length, run: rows.length, scored: scored.length, byRole: rows.reduce((m, r) => ({ ...m, [r.role]: (m[r.role] ?? 0) + 1 }), {}) },
     summary,
@@ -76,10 +81,10 @@ if (isMainThread) {
   console.log(JSON.stringify(brief, null, 1));
   if (missing.length) process.exitCode = 2;
 } else {
-  const { sessions, root, reader, text, components, readerOptions } = workerData;
+  const { sessions, root, reader, text, live, components, readerOptions } = workerData;
   const sharp = (await import('sharp')).default, { runnerImport } = await import('vite');
   const load = async file => (await runnerImport(join(repo, file))).module;
-  const pipeline = await load('src/lib/scan/pipeline.ts'), frames = await load('src/lib/scan/frame.ts');
+  const pipeline = await load('src/lib/scan/pipeline.ts'), frames = await load('src/lib/scan/frame.ts'), { CaptureSession } = await load('src/lib/scan/session.ts');
   const baseline = reader === 'baseline' ? await load('scripts/scan-benchmark/baseline-1.6.0/automaticDisplay.ts') : null;
   const segment = components ? await load('src/lib/scan/sevenSegment.ts') : null;
   const textReader = text === 'none' ? null : await (await import('./readers.mjs')).createTextReader(text, readerOptions);
@@ -102,6 +107,23 @@ if (isMainThread) {
           if (result.status === 'read') break;
         }
         Object.assign(row, result.status === 'read' ? { status: 'accepted', values: result.values, paths: ['baseline'] } : { status: 'abstained', reason: 'unreadable' });
+      } else if (live) {
+        let seed = [...session.id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261);
+        const random = () => ((seed = Math.imul(seed ^ (seed >>> 15), 1 | seed) + 0x6d2b79f5 | 0) >>> 0) / 4294967296;
+        const capture = new CaptureSession(session.kind, { maxFrames: live, maxMs: Infinity });
+        let decision = capture.decide(), frame = 0;
+        for (; frame < live && decision.status === 'scanning'; frame++) {
+          // A hand-held camera: the view drifts a few percent and zooms slightly.
+          const zoom = .9 + random() * .1, w = source.width * zoom, h = source.height * zoom;
+          const view = frames.resample(source, { x: random() * (source.width - w), y: random() * (source.height - h), w, h }, Math.round(w), Math.round(h));
+          const gain = .9 + random() * .2; for (let i = 0; i < view.data.length; i += 4) { view.data[i] *= gain; view.data[i + 1] *= gain; view.data[i + 2] *= gain; }
+          const analysis = await pipeline.analyzeFrame(view, session.kind, frame, { textReader });
+          capture.frame(frame, analysis.quality.hint);
+          for (const attempt of analysis.attempts) capture.attempt(attempt);
+          decision = capture.decide();
+        }
+        row.frames = frame;
+        Object.assign(row, decision.status === 'accepted' ? { status: 'accepted', values: decision.values, paths: decision.paths, evidence: decision.evidence } : { status: 'abstained', reason: decision.status === 'abstained' ? decision.reason : 'timeout', reasons: decision.reasons });
       } else {
         const { decision, analysis } = await pipeline.readStill(source, session.kind, { textReader });
         row.ms = analysis.ms; row.quality = { hint: analysis.quality.hint, sharpness: Math.round(analysis.quality.sharpness * 100) / 100 };
