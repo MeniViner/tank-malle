@@ -41,11 +41,14 @@ if (isMainThread) {
     if (digest !== frame.sha256) missing.push({ session: s.id, file: frame.file, problem: 'hash-mismatch' });
   })));
   const runnable = sessions.filter(s => !missing.some(m => m.session === s.id));
-  const workers = Math.max(1, Math.min(Number(args.workers ?? availableParallelism() - 1), runnable.length));
-  const started = Date.now(), rows = [];
-  await Promise.all([...Array(workers)].map((_, w) => new Promise((done, fail) => {
+  // --workers 0 runs in this process: tesseract.js cannot start its own
+  // workers from inside a worker thread.
+  const workers = args.workers === '0' ? 0 : Math.max(1, Math.min(Number(args.workers ?? availableParallelism() - 1), runnable.length));
+  const started = Date.now(), rows = [], options = { root, reader, text, live: Number(args.live ?? 0), components: args.components === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} };
+  if (workers === 0) await work({ ...options, sessions: runnable }, row => rows.push(row));
+  else await Promise.all([...Array(workers)].map((_, w) => new Promise((done, fail) => {
     const share = runnable.filter((_, i) => i % workers === w);
-    const worker = new Worker(fileURLToPath(import.meta.url), { workerData: { sessions: share, root, reader, text, live: Number(args.live ?? 0), components: args.components === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} } });
+    const worker = new Worker(fileURLToPath(import.meta.url), { workerData: { ...options, sessions: share } });
     worker.on('message', row => { rows.push(row); if (rows.length % 100 === 0) process.stderr.write(`${rows.length}/${runnable.length}\n`); });
     worker.on('error', fail); worker.on('exit', code => code ? fail(new Error(`worker ${w} exited ${code}`)) : done());
   })));
@@ -80,8 +83,9 @@ if (isMainThread) {
   const brief = { status: report.status, reader, text, splits, counts: report.counts, coverageEligible: summary.coverageEligible, acceptedPrecision: summary.acceptedPrecision, wrongAcceptanceAmongAll: summary.wrongAcceptanceAmongAll, latencyMs: summary.latencyMs, sessionReasons: summary.sessionReasons, targets: report.targets, missing: missing.length };
   console.log(JSON.stringify(brief, null, 1));
   if (missing.length) process.exitCode = 2;
-} else {
-  const { sessions, root, reader, text, live, components, readerOptions } = workerData;
+} else await work(workerData, row => parentPort.postMessage(row));
+
+async function work({ sessions, root, reader, text, live, components, readerOptions }, emit) {
   const sharp = (await import('sharp')).default, { runnerImport } = await import('vite');
   const load = async file => (await runnerImport(join(repo, file))).module;
   const pipeline = await load('src/lib/scan/pipeline.ts'), frames = await load('src/lib/scan/frame.ts'), { CaptureSession } = await load('src/lib/scan/session.ts');
@@ -140,6 +144,6 @@ if (isMainThread) {
     } catch (error) {
       Object.assign(row, { status: 'abstained', reason: 'runner-error', error: String(error), latencyMs: 0 });
     }
-    parentPort.postMessage(row);
+    emit(row);
   }
 }

@@ -35,6 +35,12 @@ describe('frame pipeline', () => {
       labels: [{ left: 100, right: 120, top: 0, height: 20, text: 'km' }, { left: 0, right: 30, top: 30, height: 10, text: 'ODO' }],
     });
   });
+  it('does not join neighbouring dial numbers into one long number', () => {
+    const item = (text: string) => ({ text, left: 0, right: 100, top: 0, height: 20, score: 1 });
+    expect(fromText([item('100 120')]).lines.map(l => l.text)).toEqual(['100', '120']);
+    expect(fromText([item('16 1563km')]).lines.map(l => l.text)).toEqual(['161563']);
+    expect(fromText([item('0023 1755')]).lines.map(l => l.text)).toEqual(['00231755']);
+  });
   it('skips unusable frames without reading them', async () => {
     const dark = blank(640, 480, [2, 2, 2]);
     expect(await analyzeFrame(dark, 'odometer', 0)).toMatchObject({ quality: { usable: false, hint: 'too-dark' }, attempts: [] });

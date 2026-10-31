@@ -32,8 +32,15 @@ export function fromText(items: TextItem[]) {
   const lines: NumericLine[] = [], labels: LabelToken[] = [];
   for (const item of items) {
     const box = { left: item.left, right: item.right, top: item.top, height: item.height };
-    // Spaces inside a number and thousands commas are layout; quote marks
-    // after it are detector noise.
+    // A detector box can hold neighbouring numbers of a dial ("100 120"):
+    // groups that are all round dial values are not one number.
+    const groups = item.text.trim().split(/\s+/);
+    if (groups.length > 1 && groups.every(group => /^\d{2,3}$/.test(group) && Number(group) % 10 === 0 && Number(group) <= 400)) {
+      for (const group of groups) lines.push({ ...box, text: group });
+      continue;
+    }
+    // Otherwise spaces inside a number and thousands commas are layout; quote
+    // marks after it are detector noise.
     const compact = item.text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').replace(/["'`]+$/, '');
     const match = NUMBER.exec(compact);
     if (match) {

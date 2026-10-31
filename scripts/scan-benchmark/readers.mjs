@@ -28,7 +28,7 @@ export async function createTextReader(name, options = {}) {
 async function createTesseract() {
   const { createWorker, PSM } = await import('tesseract.js');
   const worker = await createWorker('eng', 1, { cachePath: join(repo, '.scan-corpus/models/tesseract'), logger: () => {} });
-  await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+  await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT, user_defined_dpi: '300' });
   return {
     name: 'tesseract',
     read: async image => {
