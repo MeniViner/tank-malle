@@ -13,7 +13,7 @@ import type { QualityHint } from './quality';
  * session abstains with its reasons, and the person can still type the values.
  */
 export type Attempt = { frame: number; path: string; result: DisplayResult };
-export type SessionOptions = { still?: boolean; maxFrames?: number; maxMs?: number; now?: () => number };
+export type SessionOptions = { still?: boolean; maxFrames?: number; maxMs?: number; minFrames?: number; now?: () => number };
 export type SessionDecision =
   | { status: 'scanning'; frames: number; hint: QualityHint | null }
   | { status: 'accepted'; values: DisplayReading; frames: number; elapsedMs: number; paths: string[]; evidence: string[] }
@@ -73,7 +73,10 @@ export class CaptureSession {
     if (corroborated && outvoted) {
       return this.final = { status: 'accepted', values: leader.values, frames, elapsedMs: this.elapsed, paths: [...leader.paths].sort(), evidence: [...leader.evidence].sort() };
     }
-    const bounded = this.options.still || frames >= (this.options.maxFrames ?? 60) || this.elapsed >= (this.options.maxMs ?? 15000);
+    // The time bound waits for a few analysed frames, so a slow phone gets the
+    // same chances to corroborate; it is still hard-capped at three times over.
+    const maxMs = this.options.maxMs ?? 15000;
+    const bounded = this.options.still || frames >= (this.options.maxFrames ?? 60) || (this.elapsed >= maxMs && frames >= (this.options.minFrames ?? 3)) || this.elapsed >= maxMs * 3;
     if (bounded) {
       if (rivals) this.count('conflict');
       return this.final = { status: 'abstained', reason: rivals ? 'conflict' : leader ? (leader.plausible ? 'uncorroborated' : 'implausible') : this.options.still ? 'unreadable' : 'timeout', reasons: { ...this.reasons }, frames, elapsedMs: this.elapsed };

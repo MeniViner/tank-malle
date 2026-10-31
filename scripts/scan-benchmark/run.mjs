@@ -144,6 +144,7 @@ async function work({ sessions, root, reader, text, live, components, readerOpti
     } catch (error) {
       Object.assign(row, { status: 'abstained', reason: 'runner-error', error: String(error), latencyMs: 0 });
     }
+    if (textReader?.timeouts !== undefined) row.textReaderTimeouts = textReader.timeouts;
     emit(row);
   }
 }

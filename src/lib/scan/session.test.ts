@@ -47,6 +47,16 @@ describe('capture session consensus', () => {
     now = 1000;
     expect(session.decide()).toMatchObject({ status: 'abstained', reason: 'implausible', reasons: { implausible: 2, 'identity-ambiguous': 1, 'quality:blurred': 1 }, frames: 4 });
   });
+  it('lets a slow device analyse a few frames before the time bound applies', () => {
+    let now = 0;
+    const slow = new CaptureSession('odometer', { now: () => now, maxMs: 1000 });
+    slow.attempt({ frame: 0, path: 'a', result: none }); now = 1500;
+    expect(slow.decide().status).toBe('scanning');
+    slow.attempt({ frame: 1, path: 'a', result: none }); slow.attempt({ frame: 2, path: 'a', result: none });
+    expect(slow.decide()).toMatchObject({ status: 'abstained', reason: 'timeout', frames: 3 });
+    const stuck = new CaptureSession('odometer', { now: () => now, maxMs: 1000 }); now += 3000;
+    expect(stuck.decide()).toMatchObject({ status: 'abstained', reason: 'timeout', frames: 0 });
+  });
   it('counts an implausible reading of the same display as a disagreement', () => {
     const still = new CaptureSession('pump', { still: true });
     still.attempt({ frame: 0, path: 'segment@960', result: pump('287.40', '40.000') }); still.attempt({ frame: 0, path: 'segment@roi', result: pump('287.40', '40.000') });

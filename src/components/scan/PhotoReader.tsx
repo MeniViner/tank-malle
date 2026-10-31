@@ -43,7 +43,9 @@ export function PhotoReader({ kind,autoOpen=false,onRead }: { kind:DisplayKind;a
   async function frame(image:ImageData,isActive:()=>boolean,index:number) {
     const token=generation.current;
     if(!session.current){session.current=new CaptureSession(kind);if(recognizerState.current==='loading')session.current.restartClock();}
-    const analysis=await analyze(image,index,false,15000);
+    // Generous: a weak phone may need several seconds per frame, and a timeout
+    // replaces the worker (reloading the recogniser).
+    const analysis=await analyze(image,index,false,45000);
     if(token!==generation.current||!isActive()||!analysis||!session.current)return false;
     session.current.frame(index,analysis.quality.hint);
     for(const attempt of analysis.attempts)session.current.attempt(attempt);

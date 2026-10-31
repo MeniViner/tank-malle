@@ -27,16 +27,26 @@ export async function createTextReader(name, options = {}) {
 }
 async function createTesseract() {
   const { createWorker, PSM } = await import('tesseract.js');
-  const worker = await createWorker('eng', 1, { cachePath: join(repo, '.scan-corpus/models/tesseract'), logger: () => {} });
-  await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT, user_defined_dpi: '300' });
+  const sharp = (await import('sharp')).default;
+  const start = async () => {
+    const worker = await createWorker('eng', 1, { cachePath: join(repo, '.scan-corpus/models/tesseract'), logger: () => {} });
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT, user_defined_dpi: '300' });
+    return worker;
+  };
+  let worker = await start(), timeouts = 0;
   return {
     name: 'tesseract',
+    get timeouts() { return timeouts; },
     read: async image => {
       // Tesseract takes an encoded image; PNG keeps the pixels exact.
-      const sharp = (await import('sharp')).default;
       const png = await sharp(Buffer.from(image.data.buffer, image.data.byteOffset, image.data.length), { raw: { width: image.width, height: image.height, channels: 4 } }).png().toBuffer();
-      const { data } = await worker.recognize(png, {}, { blocks: true });
-      const words = (data.blocks ?? []).flatMap(b => b.paragraphs.flatMap(p => p.lines.flatMap(l => l.words)));
+      // Some inputs never return; such a read counts as "no text" and the
+      // Tesseract worker is replaced. Timeouts are reported with the run.
+      let timer;
+      const result = await Promise.race([worker.recognize(png, {}, { blocks: true }), new Promise(resolve => { timer = setTimeout(() => resolve(null), 20_000); })]);
+      clearTimeout(timer);
+      if (!result) { timeouts++; await worker.terminate().catch(() => {}); worker = await start(); return []; }
+      const words = (result.data.blocks ?? []).flatMap(b => b.paragraphs.flatMap(p => p.lines.flatMap(l => l.words)));
       return words.filter(w => w.confidence >= 50).map(w => ({ text: w.text, left: w.bbox.x0, right: w.bbox.x1, top: w.bbox.y0, height: w.bbox.y1 - w.bbox.y0, score: w.confidence / 100 }));
     },
   };
