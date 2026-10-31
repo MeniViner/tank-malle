@@ -1,5 +1,5 @@
 import { LiveCamera } from './LiveCamera';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '../Button';
 import { PumpIcon, GaugeIcon, UploadIcon } from '../icons';
 import type { DisplayKind, DisplayReading } from '../../lib/scan/automaticDisplay';
@@ -32,8 +32,10 @@ export function PhotoReader({ kind,autoOpen=false,onRead }: { kind:DisplayKind;a
       recognizerState.current=next;setRecognizer(next);
     });
     worker.current=handle;
-    return()=>{generation.current++;handle.release();worker.current=null;};
+    return()=>{handle.release();worker.current=null;};
   },[]);
+  // Any answer still in flight belongs to a reader that is gone.
+  useLayoutEffect(()=>()=>{generation.current++;},[]);
   const analyze=(image:ImageData,frame:number,wait:boolean,timeoutMs:number)=>worker.current?worker.current.analyze(image,frame,kind,wait,timeoutMs):Promise.resolve(null);
   function settle(decision:SessionDecision,live:boolean) {
     if(decision.status==='accepted'){onRead(decision.values,live);return true;}
