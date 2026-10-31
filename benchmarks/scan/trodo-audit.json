@@ -1,6 +1,7 @@
 {
   "format": "tank-maleh-trodo-audit-v1",
-  "at": "2026-10-31T21:07:27.937Z",
+  "protocol": "1.1",
+  "at": "2026-10-31T21:19:07.829Z",
   "source": "TRODO v2, doi:10.17632/6y8m379mkt.2, CC BY 4.0",
   "images": 2389,
   "groundTruthEntries": 2389,
@@ -69,29 +70,33 @@
   },
   "below1000": 287,
   "roles": {
-    "eligible": 1958,
-    "excluded-label-check": 154,
+    "unscored-analog-register": 858,
+    "eligible": 1223,
     "negative-trip-or-clock": 257,
-    "unscored-ambiguous-label": 20
+    "unscored-ambiguous-label": 20,
+    "excluded-label-check": 31
   },
   "rolesBySplit": {
     "tuning": {
-      "eligible": 652,
-      "excluded-label-check": 46,
+      "eligible": 371,
+      "unscored-analog-register": 315,
       "negative-trip-or-clock": 65,
-      "unscored-ambiguous-label": 11
+      "unscored-ambiguous-label": 11,
+      "excluded-label-check": 12
     },
     "test": {
-      "eligible": 1123,
-      "excluded-label-check": 101,
+      "eligible": 713,
+      "unscored-analog-register": 496,
       "negative-trip-or-clock": 51,
+      "excluded-label-check": 15,
       "unscored-ambiguous-label": 4
     },
     "challenge": {
-      "eligible": 183,
+      "unscored-analog-register": 47,
+      "eligible": 139,
       "negative-trip-or-clock": 141,
       "unscored-ambiguous-label": 5,
-      "excluded-label-check": 7
+      "excluded-label-check": 4
     }
   }
 }

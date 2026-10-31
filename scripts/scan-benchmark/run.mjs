@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url)), repo = resolve(here, '../..');
 const SCORED = new Set(['eligible', 'negative-trip-or-clock', 'negative-derived', 'unreadable-derived', 'synthetic']);
+const strip = text => String(text ?? '').replace(/^0+(?=\d)/, '');
 
 if (isMainThread) {
   const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, arg, i, all) => arg.startsWith('--') ? [...pairs, [arg.slice(2), all[i + 1]?.startsWith('--') || all[i + 1] === undefined ? 'true' : all[i + 1]]] : pairs, []));
@@ -39,7 +40,7 @@ if (isMainThread) {
   const started = Date.now(), rows = [];
   await Promise.all([...Array(workers)].map((_, w) => new Promise((done, fail) => {
     const share = runnable.filter((_, i) => i % workers === w);
-    const worker = new Worker(fileURLToPath(import.meta.url), { workerData: { sessions: share, root, reader, text, components: args.components === 'true' } });
+    const worker = new Worker(fileURLToPath(import.meta.url), { workerData: { sessions: share, root, reader, text, components: args.components === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} } });
     worker.on('message', row => { rows.push(row); if (rows.length % 100 === 0) process.stderr.write(`${rows.length}/${runnable.length}\n`); });
     worker.on('error', fail); worker.on('exit', code => code ? fail(new Error(`worker ${w} exited ${code}`)) : done());
   })));
@@ -58,9 +59,11 @@ if (isMainThread) {
       correctAutomaticCompletionEligible: { target: .95, verdict: metrics.verdict(summary.coverageEligible, .95) },
       acceptedPrecision: { target: .995, verdict: metrics.verdict(summary.acceptedPrecision, .995) },
     },
-    unscored: Object.fromEntries(['excluded-label-check', 'unscored-ambiguous-label'].map(role => {
-      const subset = rows.filter(r => r.role === role);
-      return [role, { sessions: subset.length, accepted: subset.filter(r => r.status === 'accepted').length, acceptedMatchingLabel: subset.filter(r => r.status === 'accepted' && metrics.sameValue('odometer', r.values?.odometer, r.label)).length }];
+    // Unscored roles, reported both ways: as labelled, and with the label's
+    // last digit taken as a tenths drum.
+    unscored: Object.fromEntries(['unscored-analog-register', 'excluded-label-check', 'unscored-ambiguous-label'].map(role => {
+      const subset = rows.filter(r => r.role === role), accepted = subset.filter(r => r.status === 'accepted');
+      return [role, { sessions: subset.length, accepted: accepted.length, acceptedMatchingLabel: accepted.filter(r => strip(r.values?.odometer) === strip(r.label)).length, acceptedMatchingLabelWithoutLastDigit: accepted.filter(r => strip(r.values?.odometer) === strip(String(r.label).slice(0, -1))).length }];
     })),
     byFamily: metrics.breakdown(scored, r => r.family), byRole: metrics.breakdown(scored, r => r.role), byDevice: metrics.breakdown(scored, r => r.device),
     acceptedPaths: scored.filter(r => r.status === 'accepted').reduce((m, r) => ({ ...m, [(r.paths ?? []).join('+') || 'single']: (m[(r.paths ?? []).join('+') || 'single'] ?? 0) + 1 }), {}),
@@ -73,13 +76,13 @@ if (isMainThread) {
   console.log(JSON.stringify(brief, null, 1));
   if (missing.length) process.exitCode = 2;
 } else {
-  const { sessions, root, reader, text, components } = workerData;
+  const { sessions, root, reader, text, components, readerOptions } = workerData;
   const sharp = (await import('sharp')).default, { runnerImport } = await import('vite');
   const load = async file => (await runnerImport(join(repo, file))).module;
   const pipeline = await load('src/lib/scan/pipeline.ts'), frames = await load('src/lib/scan/frame.ts');
   const baseline = reader === 'baseline' ? await load('scripts/scan-benchmark/baseline-1.6.0/automaticDisplay.ts') : null;
   const segment = components ? await load('src/lib/scan/sevenSegment.ts') : null;
-  const textReader = text === 'none' ? null : await (await import('./readers.mjs')).createTextReader(text);
+  const textReader = text === 'none' ? null : await (await import('./readers.mjs')).createTextReader(text, readerOptions);
   // The app decodes a chosen photo with EXIF orientation applied and keeps at
   // most 2560 px on the long side (see PhotoReader).
   const decode = async file => {

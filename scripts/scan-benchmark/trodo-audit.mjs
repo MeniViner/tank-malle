@@ -132,12 +132,17 @@ const count = (list, key) => list.reduce((m, r) => ({ ...m, [key(r)]: (m[key(r)]
 function role(r) {
   if (r.mileage === '0' || /\./.test(r.mileage) || r.mileage.length <= 2) return 'negative-trip-or-clock';
   if (r.type === 'digital' && r.mileage.length <= 4) return 'unscored-ambiguous-label';
+  // Protocol v1.1 (from tuning-split errors only): most analog registers end
+  // in a differently coloured drum that is usually tenths, and TRODO labels
+  // usually include it as a digit. The label then does not define the integer
+  // the app records, so registers are reported separately, both ways.
+  if (r.type === 'analog') return 'unscored-analog-register';
   if (r.issues.includes('digit-boxes-disagree') || r.issues.some(i => i.startsWith('odometer-boxes:'))) return 'excluded-label-check';
   return 'eligible';
 }
 const eligible = r => role(r) === 'eligible';
 const audit = {
-  format: 'tank-maleh-trodo-audit-v1', at: new Date().toISOString(), source: 'TRODO v2, doi:10.17632/6y8m379mkt.2, CC BY 4.0',
+  format: 'tank-maleh-trodo-audit-v1', protocol: '1.1', at: new Date().toISOString(), source: 'TRODO v2, doi:10.17632/6y8m379mkt.2, CC BY 4.0',
   images: rows.length, groundTruthEntries: truth.length, exclusions, byType: count(rows, r => r.type), byFamily: count(rows, r => r.family),
   bySplit: count(rows, r => r.split), groupsBySplit: Object.fromEntries(['tuning', 'test', 'challenge'].map(s => [s, new Set(rows.filter(r => r.split === s).map(r => r.group)).size])),
   groups: groups.size, largestGroup: Math.max(...[...groups.values()].map(g => g.length)), links, challengeFamilies,

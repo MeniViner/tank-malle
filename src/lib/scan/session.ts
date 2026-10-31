@@ -16,15 +16,15 @@ export type SessionOptions = { still?: boolean; maxFrames?: number; maxMs?: numb
 export type SessionDecision =
   | { status: 'scanning'; frames: number; hint: QualityHint | null }
   | { status: 'accepted'; values: DisplayReading; frames: number; elapsedMs: number; paths: string[]; evidence: string[] }
-  | { status: 'abstained'; reason: 'conflict' | 'uncorroborated' | 'unreadable' | 'timeout'; reasons: Record<string, number>; frames: number; elapsedMs: number };
+  | { status: 'abstained'; reason: 'conflict' | 'implausible' | 'uncorroborated' | 'unreadable' | 'timeout'; reasons: Record<string, number>; frames: number; elapsedMs: number };
 
-type Tally = { values: DisplayReading; frames: Set<number>; paths: Set<string>; votes: number; evidence: Set<string> };
+type Tally = { values: DisplayReading; frames: Set<number>; paths: Set<string>; votes: number; evidence: Set<string>; plausible: boolean };
 
 export class CaptureSession {
   private readonly tallies = new Map<string, Tally>();
   private readonly reasons: Record<string, number> = {};
   private readonly frameIds = new Set<number>();
-  private readonly started: number;
+  private started: number;
   private hint: QualityHint | null = null;
   private final: SessionDecision | null = null;
   private readonly kind: DisplayKind;
@@ -33,6 +33,9 @@ export class CaptureSession {
     this.kind = kind; this.options = options; this.started = (options.now ?? Date.now)();
   }
   private get elapsed() { return (this.options.now ?? Date.now)() - this.started; }
+  /** The bound starts when recognition can start: a one-time recogniser
+   * download is not counted against the person's scanning time. */
+  restartClock() { this.started = (this.options.now ?? Date.now)(); }
   private count(reason: string) { this.reasons[reason] = (this.reasons[reason] ?? 0) + 1; }
 
   /** A frame that was looked at, including one skipped for its quality. */
@@ -44,10 +47,12 @@ export class CaptureSession {
     if (this.final) return;
     this.frameIds.add(frame);
     if (result.status !== 'read') { this.count(result.reason ?? 'unreadable'); return; }
-    const plausible = 'total' in result.values ? automaticPumpPlausible(result.values) : automaticOdometerPlausible(result.values.odometer);
-    if (!plausible || ('total' in result.values) !== (this.kind === 'pump')) { this.count('implausible'); return; }
+    // An implausible reading is never accepted, but it is still a reading of
+    // this display that disagrees with any other: it counts against them.
+    const plausible = ('total' in result.values) === (this.kind === 'pump') && ('total' in result.values ? automaticPumpPlausible(result.values) : automaticOdometerPlausible(result.values.odometer));
+    if (!plausible) this.count('implausible');
     const key = JSON.stringify(result.values);
-    const tally = this.tallies.get(key) ?? { values: result.values, frames: new Set(), paths: new Set(), votes: 0, evidence: new Set() };
+    const tally = this.tallies.get(key) ?? { values: result.values, frames: new Set(), paths: new Set(), votes: 0, evidence: new Set(), plausible };
     tally.frames.add(frame); tally.paths.add(path); tally.votes++;
     for (const item of result.evidence) tally.evidence.add(item);
     this.tallies.set(key, tally);
@@ -56,7 +61,7 @@ export class CaptureSession {
     if (this.final) return this.final;
     const frames = this.frameIds.size, ranked = [...this.tallies.values()].sort((a, b) => b.votes - a.votes);
     const [leader, ...others] = ranked, rivals = others.reduce((sum, t) => sum + t.votes, 0);
-    const corroborated = leader && leader.paths.size >= 2 && (this.options.still || leader.frames.size >= 2);
+    const corroborated = leader && leader.plausible && leader.paths.size >= 2 && (this.options.still || leader.frames.size >= 2);
     // A still photo has nothing to outvote a disagreement with.
     const outvoted = this.options.still ? rivals === 0 : leader && leader.votes >= 2 * rivals + 2;
     if (corroborated && outvoted) {
@@ -65,7 +70,7 @@ export class CaptureSession {
     const bounded = this.options.still || frames >= (this.options.maxFrames ?? 60) || this.elapsed >= (this.options.maxMs ?? 15000);
     if (bounded) {
       if (rivals) this.count('conflict');
-      return this.final = { status: 'abstained', reason: rivals ? 'conflict' : leader ? 'uncorroborated' : this.options.still ? 'unreadable' : 'timeout', reasons: { ...this.reasons }, frames, elapsedMs: this.elapsed };
+      return this.final = { status: 'abstained', reason: rivals ? 'conflict' : leader ? (leader.plausible ? 'uncorroborated' : 'implausible') : this.options.still ? 'unreadable' : 'timeout', reasons: { ...this.reasons }, frames, elapsedMs: this.elapsed };
     }
     return { status: 'scanning', frames, hint: this.hint };
   }

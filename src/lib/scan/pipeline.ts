@@ -2,6 +2,7 @@ import { analyzeDisplay, decideDisplay, type DisplayKind, type PolarityLines } f
 import { crop, scaled, type Rect, type RgbaFrame } from './frame';
 import type { LabelToken, NumericLine } from './identity';
 import { assessQuality, type FrameQuality } from './quality';
+import { strayStroke } from './strokes';
 import { CaptureSession, type Attempt } from './session';
 
 /**
@@ -13,7 +14,9 @@ import { CaptureSession, type Attempt } from './session';
  * and is itself re-run on its own located number at higher resolution.
  * Every path reports its own attempt; the capture session decides.
  */
-export type TextItem = { text: string; left: number; right: number; top: number; height: number; score: number };
+export type TextItem = { text: string; left: number; right: number; top: number; height: number; score: number;
+  /** The second recogniser read a different number (kept for diagnosis). */
+  contested?: 'verifier'; verifierText?: string };
 type Pixels = { width: number; height: number; data: Uint8ClampedArray };
 /** Local text detection/recognition. Coordinates are in the image passed in. */
 export type TextReader = { name: string; read: (image: Pixels) => Promise<TextItem[]> };
@@ -21,19 +24,30 @@ export type FrameAnalysis = { quality: FrameQuality; attempts: Attempt[]; region
 export type PipelineOptions = { textReader?: TextReader | null; working?: number; fallback?: number; now?: () => number };
 type Box = { left: number; right: number; top: number; height: number };
 
-const NUMBER = /^(\d{1,7}(?:\.\d{1,3})?)(km|kms|mi|l|lt|ltr)?$/i;
+// A trailing unit read with the digits; a lone "m" is a "km" missing its k.
+// Registers may pad with zeros beyond seven digits ("00236096").
+const NUMBER = /^((?:0*\d{1,7})(?:\.\d{1,3})?)(km|kms|mi|m|l|lt|ltr)?$/i;
 /** Split recognised text boxes into numeric lines and labels. */
 export function fromText(items: TextItem[]) {
   const lines: NumericLine[] = [], labels: LabelToken[] = [];
   for (const item of items) {
     const box = { left: item.left, right: item.right, top: item.top, height: item.height };
-    const compact = item.text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '');
+    // Spaces inside a number and thousands commas are layout; quote marks
+    // after it are detector noise.
+    const compact = item.text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').replace(/["'`]+$/, '');
     const match = NUMBER.exec(compact);
     if (match) {
-      lines.push({ ...box, text: match[1] });
+      lines.push({ ...box, text: match[1], ...(item.contested ? { contested: item.contested } : {}) });
       // A unit printed in the same box is a label directly after the number.
-      if (match[2]) labels.push({ ...box, left: box.right, right: box.right + box.height, text: match[2] });
+      if (match[2] && match[2].toLowerCase() !== 'm') labels.push({ ...box, left: box.right, right: box.right + box.height, text: match[2] });
     } else labels.push({ ...box, text: item.text.trim() });
+  }
+  // Digits directly beside a number in its own band (a separate drum, a split
+  // box) make the number's extent uncertain: was it cut, or is it two values?
+  for (const line of lines) for (const item of items) {
+    if (item.left === line.left && item.top === line.top || !/^\d[\d.,]*(km|m)?$/i.test(item.text.replace(/\s+/g, ''))) continue;
+    const gap = Math.max(item.left - line.right, line.left - item.right), dy = Math.abs(item.top + item.height / 2 - line.top - line.height / 2), ratio = item.height / line.height;
+    if (gap < line.height * .45 && dy < line.height * .35 && ratio > .75 && ratio < 1.33) line.contested = 'adjacent';
   }
   return { lines, labels };
 }
@@ -65,16 +79,25 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
   const readText = async (rect: Rect | null, path: string) => {
     if (!reader) return null;
     try {
-      const cut = rect ? crop(source, rect, Math.min(2.5, 960 / Math.max(rect.w, rect.h))) : { image, rect: { x: 0, y: 0, w: source.width, h: source.height }, scale: ratio };
+      // A region is cut at the photo's own resolution (never enlarged): the
+      // recogniser sees real pixels, and small regions are scaled by detection.
+      const cut = rect ? crop(source, rect, Math.min(1, 960 / Math.max(rect.w, rect.h))) : { image, rect: { x: 0, y: 0, w: source.width, h: source.height }, scale: ratio };
       const found = fromText(await time(reader.name, () => reader.read(cut.image)));
+      for (const line of found.lines) if (!line.contested && strayStroke(cut.image, line)) line.contested = 'stroke';
       const scale = ratio / cut.scale, dx = cut.rect.x * ratio, dy = cut.rect.y * ratio;
       return { lines: mapBoxes(found.lines, scale, dx, dy), labels: mapBoxes(found.labels, scale, dx, dy), path };
     } catch { return null; }
   };
   if (reader) {
-    const first = await readText(region, `${reader.name}@${region ? 'roi' : working}`);
-    if (first) {
-      labels = first.labels;
+    // Whole frame (or the located display) first; when that yields no reading,
+    // the central region at a larger detection scale, where a small display
+    // aimed at by the camera usually is.
+    const centre = { x: source.width * .2, y: source.height * .2, w: source.width * .6, h: source.height * .6 };
+    for (const [rect, name] of [[region, region ? 'roi' : String(working)], [region ? null : centre, 'centre']] as const) {
+      if (name === 'centre' && (!rect || attempts.some(a => a.result.status === 'read'))) break;
+      const first = await readText(rect, `${reader.name}@${name}`);
+      if (!first) break;
+      labels = [...labels, ...first.labels];
       const result = decideDisplay(asPolarity(first.lines), kind, first.labels);
       if (first.lines.length) attempts.push({ frame, path: first.path, result });
       // Nothing segment-like was located but text was: read that text again,
@@ -82,8 +105,9 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
       if (!region && result.status === 'read') {
         const textRegion = regionOf(first.lines.filter(l => Object.values(result.values).includes(l.text)), ratio, source);
         const second = textRegion ? await readText(textRegion, `${reader.name}@roi`) : null;
-        if (second?.lines.length) attempts.push({ frame, path: second.path, result: decideDisplay(asPolarity(second.lines), kind, [...second.labels, ...labels]) });
+        if (second?.lines.length) attempts.push({ frame, path: second.path, result: decideDisplay(asPolarity(second.lines), kind, [...second.labels, ...first.labels]) });
         region = textRegion;
+        break;
       }
     }
   }

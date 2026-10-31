@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeFrame, fromText, readStill, type TextReader } from './pipeline';
 import { blank, demoPhoto, drawDigits } from './fixtures';
-import { resample } from './frame';
 
-const enlarge = (image: ReturnType<typeof blank>, factor: number) => resample(image, { x: 0, y: 0, w: image.width, h: image.height }, image.width * factor, image.height * factor);
+/** A crisp synthetic display photographed at a higher resolution. */
+function enlarge(image: ReturnType<typeof blank>, factor: number) {
+  const out = blank(image.width * factor, image.height * factor);
+  for (let y = 0; y < out.height; y++) for (let x = 0; x < out.width; x++) out.data.set(image.data.subarray(((Math.floor(y / factor) * image.width) + Math.floor(x / factor)) * 4, ((Math.floor(y / factor) * image.width) + Math.floor(x / factor)) * 4 + 4), (y * out.width + x) * 4);
+  return out;
+}
 
 describe('frame pipeline', () => {
   it('reads a whole display, then corroborates it from a full-resolution recrop', async () => {

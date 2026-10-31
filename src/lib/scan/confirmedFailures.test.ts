@@ -21,11 +21,20 @@ describe('confirmed scan failures', () => {
       const image = blank(820, 480, NIGHT); drawDigits(image, text, 130, 190, BLUE);
       expect(recognizeDisplay(image, 'odometer')).toMatchObject({ status: 'read', values: { odometer: text } });
     });
-  it('rejects mileage below 1,000 without identity evidence and accepts it with an ODO/km label', () => {
+  it('rejects mileage below 1,000 without identity evidence and accepts it with an ODO label beside it', () => {
     const image = blank(820, 480, NIGHT); drawDigits(image, '850', 250, 190, BLUE);
     expect(recognizeDisplay(image, 'odometer')).toEqual({ status: 'unreadable', reason: 'identity-ambiguous' });
-    expect(recognizeDisplay(image, 'odometer', [{ text: 'km', left: 500, right: 540, top: 250, height: 40 }])).toMatchObject({ status: 'read', values: { odometer: '850' } });
-    expect(resolveOdometer([line('42', 100)], [label('ODO', 60, 150)])).toMatchObject({ status: 'resolved', values: { odometer: '42' } });
+    expect(recognizeDisplay(image, 'odometer', [{ text: 'ODO', left: 500, right: 560, top: 250, height: 40 }])).toMatchObject({ status: 'read', values: { odometer: '850' } });
+    // "km" is also printed beside trips, ranges and speeds.
+    expect(recognizeDisplay(image, 'odometer', [{ text: 'km', left: 500, right: 540, top: 250, height: 40 }])).toMatchObject({ status: 'unreadable', reason: 'identity-ambiguous' });
+    expect(resolveOdometer([line('42', 100)], [label('ODO', 120, 400)])).toMatchObject({ status: 'resolved', values: { odometer: '42' } });
+    // A label above a short number may belong to something else on the dial.
+    expect(resolveOdometer([line('42', 100)], [label('ODO', 60, 150)])).toMatchObject({ status: 'abstain', reason: 'identity-ambiguous' });
+    expect(resolveOdometer([line('128450', 100)], [label('ODO', 60, 150)])).toMatchObject({ status: 'resolved', values: { odometer: '128450' } });
+    // Speedometer scale numbers next to a printed "km" are not an odometer.
+    expect(resolveOdometer(['160', '180', '200'].map((t, i) => line(t, 100 + i * 120)), [label('km', 360, 400)])).toMatchObject({ status: 'abstain' });
+    // An unsure long number blocks acceptance of anything else in the frame.
+    expect(resolveOdometer([line('128450', 60), { ...line('49028', 250), contested: 'edge' }])).toMatchObject({ status: 'abstain', reason: 'identity-ambiguous' });
   });
   it('does not assign pump fields by row order', () => {
     const swapped = blank(820, 480); drawDigits(swapped, '26.092', 150, 95); drawDigits(swapped, '202.73', 150, 285);

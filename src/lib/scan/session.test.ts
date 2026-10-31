@@ -40,7 +40,13 @@ describe('capture session consensus', () => {
     session.attempt({ frame: 2, path: 'a', result: none }); session.frame(3, 'blurred');
     expect(session.decide().status).toBe('scanning');
     now = 1000;
-    expect(session.decide()).toMatchObject({ status: 'abstained', reason: 'timeout', reasons: { implausible: 2, 'identity-ambiguous': 1, 'quality:blurred': 1 }, frames: 4 });
+    expect(session.decide()).toMatchObject({ status: 'abstained', reason: 'implausible', reasons: { implausible: 2, 'identity-ambiguous': 1, 'quality:blurred': 1 }, frames: 4 });
+  });
+  it('counts an implausible reading of the same display as a disagreement', () => {
+    const still = new CaptureSession('pump', { still: true });
+    still.attempt({ frame: 0, path: 'segment@960', result: pump('287.40', '40.000') }); still.attempt({ frame: 0, path: 'segment@roi', result: pump('287.40', '40.000') });
+    still.attempt({ frame: 0, path: 'text@roi', result: pump('1.40', '40.000') });
+    expect(still.decide()).toMatchObject({ status: 'abstained', reason: 'conflict' });
   });
   it('accepts a corroborated pump reading and keeps the decision final', () => {
     const session = new CaptureSession('pump');

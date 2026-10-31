@@ -8,9 +8,11 @@
  */
 export type PumpRole = 'total' | 'liters' | 'unitPrice';
 export type IdentityReason = 'no-reading' | 'identity-ambiguous' | 'trip-meter' | 'unit-miles' | 'format';
-/** A numeric line found in one frame, in that frame's pixel coordinates. */
-export type NumericLine = { text: string; left: number; right: number; top: number; height: number };
-export type LabelClass = PumpRole | 'odometer' | 'trip' | 'km' | 'miles';
+/** A numeric line found in one frame, in that frame's pixel coordinates.
+ * `contested`: the recognisers disagreed on it, or digits may be missing at
+ * its edges. It can never be accepted, and it blocks any reading it could be. */
+export type NumericLine = { text: string; left: number; right: number; top: number; height: number; contested?: string };
+export type LabelClass = PumpRole | 'odometer' | 'trip' | 'tripLetter' | 'km' | 'miles';
 /** Printed text recognised near the display (e.g. "LITRES", "ODO", "km"). */
 export type LabelToken = { text: string; left: number; right: number; top: number; height: number };
 export type PumpIdentity = { status: 'resolved'; values: { total: string; liters: string; unitPrice?: string }; evidence: string[] }
@@ -24,7 +26,8 @@ const PUMP_LABELS: [LabelClass, RegExp][] = [
   ['total', /^(total|sale|amount|amt|₪|nis|ils|ש"?ח|שח|סכום|לתשלום|סה"?כ|סהכ|tosale|topay)$/],
 ];
 const ODOMETER_LABELS: [LabelClass, RegExp][] = [
-  ['trip', /^(trip|trp|trip[ab12]|[ab])$/],
+  ['trip', /^(trip|trp|trip[ab12])$/],
+  ['tripLetter', /^[ab]$/],
   ['miles', /^(mi|mile|miles|mls)$/],
   ['km', /^(km|kms|ק"?מ|קמ)$/],
   ['odometer', /^(odo|odometer|total)$/],
@@ -37,12 +40,14 @@ export function classifyLabel(text: string, kind: 'pump' | 'odometer'): LabelCla
 export function decimals(text: string) { const match = /\.(\d+)$/.exec(text); return match ? match[1].length : 0; }
 
 /** Each label belongs to the single nearest line it shares a band with (or
- * sits directly above/below), never to a line more than a text height away. */
+ * sits directly above/below), never to a line more than a text height away.
+ * The attachment records whether the label is beside the number ('band') or
+ * above/below it ('stacked'). */
 function attachLabels(lines: NumericLine[], labels: LabelToken[], kind: 'pump' | 'odometer') {
-  const attached = lines.map(() => new Set<LabelClass>());
+  const attached = lines.map(() => new Map<LabelClass, 'band' | 'stacked'>());
   for (const label of labels) {
     const labelClass = classifyLabel(label.text, kind); if (!labelClass) continue;
-    let best = -1, bestDistance = Infinity;
+    let best = -1, bestDistance = Infinity, bestHow: 'band' | 'stacked' = 'band';
     lines.forEach((line, index) => {
       const dy = Math.abs(label.top + label.height / 2 - line.top - line.height / 2);
       const dx = label.left > line.right ? label.left - line.right : line.left > label.right ? line.left - label.right : 0;
@@ -50,9 +55,9 @@ function attachLabels(lines: NumericLine[], labels: LabelToken[], kind: 'pump' |
       const gap = Math.min(Math.abs(label.top + label.height - line.top), Math.abs(line.top + line.height - label.top));
       const stacked = dx < line.height && gap < line.height * .9;
       const distance = sameBand ? dx / line.height : stacked ? 1 + gap / line.height : Infinity;
-      if (distance < bestDistance) { best = index; bestDistance = distance; }
+      if (distance < bestDistance) { best = index; bestDistance = distance; bestHow = sameBand ? 'band' : 'stacked'; }
     });
-    if (best >= 0) attached[best].add(labelClass);
+    if (best >= 0 && attached[best].get(labelClass) !== 'band') attached[best].set(labelClass, bestHow);
   }
   return attached;
 }
@@ -73,11 +78,12 @@ function productHolds(total: string, liters: string, price: string) {
 export function resolvePump(lines: NumericLine[], labels: LabelToken[] = []): PumpIdentity {
   // Integer lines (pump number, clock) are not pump fields. Every decimal line
   // must be explained; an unexplained decimal line is a reason to abstain.
+  if (lines.some(line => line.contested && /\d\.\d/.test(line.text))) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'unsure row' };
   const rows = lines.filter(line => /^\d{1,6}\.\d{1,3}$/.test(line.text) && Number(line.text) > 0);
   if (rows.length < 2) return { status: 'abstain', reason: 'no-reading' };
   if (rows.length > 3) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'more than three decimal rows' };
   const attached = attachLabels(rows, labels, 'pump');
-  const tagged = rows.map((row, i) => ({ row, labels: [...attached[i]].filter((k): k is PumpRole => k === 'total' || k === 'liters' || k === 'unitPrice') }));
+  const tagged = rows.map((row, i) => ({ row, labels: [...attached[i].keys()].filter((k): k is PumpRole => k === 'total' || k === 'liters' || k === 'unitPrice') }));
   if (tagged.some(t => t.labels.length > 1)) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'conflicting labels' };
   const roles: PumpRole[] = ['total', 'liters', 'unitPrice'], solutions: { total: string; liters: string; unitPrice?: string; evidence: string[] }[] = [];
   const assign = (index: number, used: Map<PumpRole, number>) => {
@@ -117,11 +123,24 @@ export function resolveOdometer(lines: NumericLine[], labels: LabelToken[] = [],
   // Labels attach over every line, so a TRIP label beside a decimal trip meter
   // is not mistaken for a label of the odometer line above it.
   const attached = attachLabels(lines, labels, 'odometer');
-  const tagged = lines.map((line, i) => ({ line, labels: attached[i] })).filter(t => /^\d{1,7}$/.test(t.line.text));
+  // Round numbers repeated around a dial are a speedometer/rev-counter scale.
+  const scale = lines.filter(line => /^\d{2,3}$/.test(line.text) && Number(line.text) % 10 === 0 && Number(line.text) <= 400);
+  const all = lines.map((line, i) => ({ line, labels: attached[i] }))
+    .filter(t => /^\d{1,7}$/.test(t.line.text) && !(scale.length >= 3 && scale.includes(t.line)));
+  // An unsure long number, or an unsure number with an odometer label, could
+  // itself be the odometer: nothing is accepted beside it.
+  if (all.some(t => t.line.contested && (t.line.text.length >= minimumUnlabelledDigits || t.labels.get('odometer') === 'band')))
+    return { status: 'abstain', reason: 'identity-ambiguous', detail: 'unsure candidate' };
+  const tagged = all.filter(t => !t.line.contested);
   if (!tagged.length) return { status: 'abstain', reason: lines.length ? 'format' : 'no-reading' };
-  const odometers = tagged.filter(t => !t.labels.has('trip'));
+  // A single letter (A/B) marks a trip meter only when printed beside it.
+  const odometers = tagged.filter(t => !(t.labels.has('trip') || t.labels.get('tripLetter') === 'band'));
   if (!odometers.length) return { status: 'abstain', reason: 'trip-meter' };
-  const labelled = odometers.filter(t => t.labels.has('odometer') || t.labels.has('km'));
+  // A long register may take a label above or below it; a short number only
+  // counts as the odometer when ODO/km is printed beside it, on its own line.
+  // km is printed beside trips, ranges and speeds too, so a short number needs
+  // ODO/TOTAL beside it; a long register may take ODO or km above or below.
+  const labelled = odometers.filter(t => t.labels.get('odometer') === 'band' || (t.line.text.length >= minimumUnlabelledDigits && (t.labels.has('odometer') || t.labels.has('km'))));
   const pool = labelled.length ? labelled : odometers.filter(t => t.line.text.length >= minimumUnlabelledDigits && !t.labels.has('miles'));
   const texts = [...new Set(pool.map(t => t.line.text))];
   if (!texts.length) return odometers.some(t => t.labels.has('miles')) ? { status: 'abstain', reason: 'unit-miles' } : { status: 'abstain', reason: 'identity-ambiguous', detail: 'short unlabelled number' };
@@ -129,6 +148,6 @@ export function resolveOdometer(lines: NumericLine[], labels: LabelToken[] = [],
   const chosen = pool.filter(t => t.line.text === texts[0]);
   if (chosen.some(t => t.labels.has('miles'))) return { status: 'abstain', reason: 'unit-miles' };
   const km = chosen.some(t => t.labels.has('km'));
-  const evidence = labelled.length ? [...new Set(chosen.flatMap(t => [...t.labels].map(k => `label:${k}`)))] : ['long-integer'];
+  const evidence = labelled.length ? [...new Set(chosen.flatMap(t => [...t.labels.keys()].map(k => `label:${k}`)))] : ['long-integer'];
   return { status: 'resolved', values: { odometer: texts[0] }, unit: km ? 'km' : 'not-visible', evidence };
 }
