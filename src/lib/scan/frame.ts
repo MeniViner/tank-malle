@@ -49,9 +49,10 @@ export function scaled(source: RgbaFrame, maximum: number, rect: Rect = { x: 0, 
   const ratio = Math.min(1, maximum / Math.max(rect.w, rect.h));
   return { image: resample(source, rect, Math.max(1, Math.round(rect.w * ratio)), Math.max(1, Math.round(rect.h * ratio))), ratio };
 }
-/** A region enlarged or reduced to a target scale, bounded in pixels. */
-export function crop(source: RgbaFrame, rect: Rect, scale: number, maxPixels = 1_500_000) {
-  const clipped = clip(rect, source);
+/** A region enlarged or reduced to a target scale, bounded in pixels. With
+ * `beyond`, the region may extend past the frame; edge pixels are repeated. */
+export function crop(source: RgbaFrame, rect: Rect, scale: number, maxPixels = 1_500_000, beyond = false) {
+  const clipped = beyond ? rect : clip(rect, source);
   const bounded = Math.min(scale, Math.sqrt(maxPixels / Math.max(1, clipped.w * clipped.h)));
   return { image: resample(source, clipped, Math.max(1, Math.round(clipped.w * bounded)), Math.max(1, Math.round(clipped.h * bounded))), rect: clipped, scale: bounded };
 }

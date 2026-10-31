@@ -182,9 +182,12 @@ function findLines(mask:Uint8Array,channel:Float32Array,w:number,h:number,blue:b
       if(gaps.some(g=>g<pitch*.7||g>pitch*1.35))continue;
       // A bar at the next character position means the line may be truncated.
       // Do not accept a shorter number just because that last digit is unclear.
+      // So does a digit-height vertical stroke there (a 4, or a 1 or 7 that was
+      // not decoded), which has fewer than two bars.
       const hasUnresolvedEnd=[digits[0].cx-pitch,digits.at(-1)!.cx+pitch].some(x=>
         [.065,.5,.935].filter(y=>bars.some(b=>Math.abs(b.cx-x)<width*.4 && b.w/width>.6 && b.w/width<1.4 &&
-          Math.abs(b.cy-(top+(b.cx-cx)*slope+y*height))<height*.08)).length>=2);
+          Math.abs(b.cy-(top+(b.cx-cx)*slope+y*height))<height*.08)).length>=2 ||
+        posts.some(p=>Math.abs(p.cx-x)<width*.6 && p.h>=height*.3 && p.y>=top+(p.cx-cx)*slope-height*.1 && p.y+p.h<=top+(p.cx-cx)*slope+height*1.1));
       if(hasUnresolvedEnd)continue;
       let text='';
       for(let i=0;i<digits.length;i++) {

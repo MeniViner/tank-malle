@@ -1,5 +1,5 @@
 import { analyzeDisplay, decideDisplay, type DisplayKind, type PolarityLines } from './automaticDisplay';
-import { crop, scaled, type Rect, type RgbaFrame } from './frame';
+import { clip, crop, scaled, type Rect, type RgbaFrame } from './frame';
 import type { LabelToken, NumericLine } from './identity';
 import { assessQuality, type FrameQuality } from './quality';
 import { strayStroke } from './strokes';
@@ -120,8 +120,13 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
     // relative to image size, so a second size is a genuinely different read.
     const height = Math.max(...primary.flatMap(p => p.stable.map(l => l.height))) / ratio;
     let result: Attempt['result'] | null = null;
+    // The segment reader expects digits under a third of the image height:
+    // when the frame edge would leave less than 3.4 digit heights, the recrop
+    // extends past the edge (repeating edge pixels) instead.
+    const clipped = clip(segmentRegion, source), short = clipped.h < height * 3.4;
+    const tall = Math.max(segmentRegion.h, height * 3.4), recrop = short ? { ...segmentRegion, y: segmentRegion.y + segmentRegion.h / 2 - tall / 2, h: tall } : clipped;
     for (const target of [64, 96]) {
-      const cut = crop(source, segmentRegion, Math.max(.4, Math.min(3, target / height)));
+      const cut = crop(source, recrop, Math.max(.4, Math.min(3, target / height)), 1_500_000, short);
       const lines = await time('segment-roi', () => analyzeDisplay(cut.image, kind));
       if (lines) result = decideDisplay(lines, kind, mapBoxes(labels, cut.scale / ratio, -cut.rect.x * cut.scale, -cut.rect.y * cut.scale));
       if (result?.status === 'read') break;
