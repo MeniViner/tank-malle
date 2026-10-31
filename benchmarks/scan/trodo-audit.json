@@ -1,0 +1,97 @@
+{
+  "format": "tank-maleh-trodo-audit-v1",
+  "at": "2026-10-31T21:07:27.937Z",
+  "source": "TRODO v2, doi:10.17632/6y8m379mkt.2, CC BY 4.0",
+  "images": 2389,
+  "groundTruthEntries": 2389,
+  "exclusions": [],
+  "byType": {
+    "analog": 858,
+    "digital": 1531
+  },
+  "byFamily": {
+    "analog-light-on-dark-blue": 37,
+    "digital-light-on-dark-red": 225,
+    "analog-light-on-dark-neutral": 624,
+    "digital-light-on-dark-amber": 1045,
+    "digital-light-on-dark-blue": 121,
+    "digital-dark-on-light-neutral": 30,
+    "digital-light-on-dark-green": 49,
+    "analog-light-on-dark-green": 1,
+    "analog-light-on-dark-red": 97,
+    "digital-light-on-dark-neutral": 51,
+    "analog-dark-on-light-neutral": 2,
+    "analog-light-on-dark-amber": 95,
+    "digital-dark-on-light-red": 2,
+    "digital-dark-on-light-green": 3,
+    "digital-dark-on-light-amber": 1,
+    "analog-dark-on-light-red": 2,
+    "digital-dark-on-light-blue": 4
+  },
+  "bySplit": {
+    "challenge": 336,
+    "test": 1279,
+    "tuning": 774
+  },
+  "groupsBySplit": {
+    "tuning": 445,
+    "test": 851,
+    "challenge": 92
+  },
+  "groups": 1388,
+  "largestGroup": 194,
+  "links": {
+    "identical-mileage": 386,
+    "similar-display-close-mileage": 517,
+    "identical-file": 32,
+    "near-duplicate-image": 66
+  },
+  "challengeFamilies": [
+    "analog-light-on-dark-blue",
+    "digital-light-on-dark-green",
+    "digital-light-on-dark-neutral"
+  ],
+  "issues": {
+    "none": 811,
+    "non-mileage-characters": 1323,
+    "digit-boxes-disagree": 169,
+    "separator": 665,
+    "truncated-jpeg": 78,
+    "mileage-not-integer": 168
+  },
+  "mileageDigits": {
+    "1": 86,
+    "2": 3,
+    "3": 31,
+    "4": 308,
+    "5": 865,
+    "6": 1096
+  },
+  "below1000": 287,
+  "roles": {
+    "eligible": 1958,
+    "excluded-label-check": 154,
+    "negative-trip-or-clock": 257,
+    "unscored-ambiguous-label": 20
+  },
+  "rolesBySplit": {
+    "tuning": {
+      "eligible": 652,
+      "excluded-label-check": 46,
+      "negative-trip-or-clock": 65,
+      "unscored-ambiguous-label": 11
+    },
+    "test": {
+      "eligible": 1123,
+      "excluded-label-check": 101,
+      "negative-trip-or-clock": 51,
+      "unscored-ambiguous-label": 4
+    },
+    "challenge": {
+      "eligible": 183,
+      "negative-trip-or-clock": 141,
+      "unscored-ambiguous-label": 5,
+      "excluded-label-check": 7
+    }
+  }
+}

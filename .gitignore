@@ -58,3 +58,6 @@ playwright-report/
 
 # Isolated local integration demonstration; no real credentials.
 !.env.unified-preview
+
+# Benchmark images and model downloads; manifests with hashes are committed.
+.scan-corpus/
