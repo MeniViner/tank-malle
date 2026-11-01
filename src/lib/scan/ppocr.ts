@@ -17,7 +17,34 @@ export type PpocrModels = { det: OrtSession; rec: OrtSession; dictionary: string
   /** DB post-processing from the model's own inference.yml. */
   db: { thresh: number; boxThresh: number; unclip: number };
   /** An independently trained recogniser that must agree on every number. */
-  verifier?: { rec: OrtSession; dictionary: string[] } };
+  verifier?: { rec: OrtSession; dictionary: string[] };
+  /** Further checks that must also agree (benchmark experiments). */
+  verifiers?: Verify[] };
+/** A second reading of one detected box. */
+export type Verify = (image: Pixels, box: { left: number; top: number; right: number; bottom: number }, rotate: 0 | 90 | 270) => Promise<string>;
+/** The compact display-digit recogniser (scripts/scan-train): grey, 32 px high,
+ * values in [-1, 1]; classes blank, 0-9, '.', ','. */
+export function digitsVerifier(session: OrtSession, runtime: OrtRuntime): Verify {
+  const chars = '0123456789.,';
+  return async (image, box, rotate) => {
+    const bw = box.right - box.left, bh = box.bottom - box.top, aspect = rotate === 0 ? bw / bh : bh / bw;
+    const width = Math.max(8, Math.min(320, Math.round(32 * aspect))), data = new Float32Array(32 * width);
+    for (let y = 0; y < 32; y++) for (let x = 0; x < width; x++) {
+      const u = (x + .5) / width, v = (y + .5) / 32, [fx, fy] = rotate === 0 ? [u, v] : rotate === 90 ? [1 - v, u] : [v, 1 - u];
+      const sx = Math.min(image.width - 1, Math.max(0, Math.floor(box.left + fx * bw))), sy = Math.min(image.height - 1, Math.max(0, Math.floor(box.top + fy * bh))), i = (sy * image.width + sx) * 4;
+      data[y * width + x] = (.299 * image.data[i] + .587 * image.data[i + 1] + .114 * image.data[i + 2]) / 127.5 - 1;
+    }
+    const output = await session.run({ [session.inputNames[0]]: runtime.tensor(data, [1, 1, 32, width]) }), logits = floats(output[session.outputNames[0]]);
+    const [, classes, steps] = output[session.outputNames[0]].dims;
+    let text = '', previous = 0;
+    for (let t = 0; t < steps; t++) {
+      let best = 0; for (let c = 1; c < classes; c++) if (logits[c * steps + t] > logits[best * steps + t]) best = c;
+      if (best && best !== previous) text += chars[best - 1];
+      previous = best;
+    }
+    return text;
+  };
+}
 
 // Detector input: BGR, sides multiples of 32 (inference.yml). PaddleOCR applies
 // mean/std in listed order to the BGR planes, so B takes 0.485/0.229.
@@ -38,7 +65,7 @@ function detInput(image: Pixels, runtime: OrtRuntime, longSide: number) {
 /** DB post-processing: connected regions of the probability map above
  * `thresh`, scored by mean probability, expanded by the unclip distance. */
 export function dbBoxes(map: ArrayLike<number>, width: number, height: number, { thresh, boxThresh, unclip }: PpocrModels['db']) {
-  const seen = new Uint8Array(width * height), queue = new Int32Array(width * height), boxes: { left: number; top: number; right: number; bottom: number; score: number }[] = [];
+  const seen = new Uint8Array(width * height), queue = new Int32Array(width * height), boxes: { left: number; top: number; right: number; bottom: number; score: number; core: { left: number; top: number; right: number; bottom: number } }[] = [];
   for (let start = 0; start < width * height; start++) {
     if (seen[start] || map[start] <= thresh) continue;
     let head = 0, tail = 1, left = width, right = 0, top = height, bottom = 0, sum = 0; queue[0] = start; seen[start] = 1;
@@ -51,7 +78,8 @@ export function dbBoxes(map: ArrayLike<number>, width: number, height: number, {
     const w = right - left + 1, h = bottom - top + 1, score = sum / tail;
     if (Math.min(w, h) < 3 || score < boxThresh) continue;
     const distance = w * h * unclip / (2 * (w + h));
-    boxes.push({ left: Math.max(0, left - distance), top: Math.max(0, top - distance), right: Math.min(width, right + 1 + distance), bottom: Math.min(height, bottom + 1 + distance), score });
+    // `core`: the text region itself, before the unclip expansion.
+    boxes.push({ left: Math.max(0, left - distance), top: Math.max(0, top - distance), right: Math.min(width, right + 1 + distance), bottom: Math.min(height, bottom + 1 + distance), score, core: { left, top, right: right + 1, bottom: bottom + 1 } });
   }
   return boxes;
 }
@@ -69,25 +97,35 @@ function recCrop(image: Pixels, box: { left: number; top: number; right: number;
   }
   return { data, width };
 }
+/**
+ * Greedy CTC decoding. `doubts[i]` is, for the gap before emitted character i
+ * (the last entry: after the last character), the highest probability the
+ * model gave a digit at a blank step there: a digit it nearly read but did
+ * not emit, such as a narrow seven-segment "1" beside a number.
+ */
 export function ctcDecode(probabilities: ArrayLike<number>, steps: number, classes: number, dictionary: string[], offset = 0) {
   // Index 0 is the CTC blank; a final extra class, when present, is the space.
   const characters = classes === dictionary.length + 2 ? [...dictionary, ' '] : dictionary;
+  const digits = characters.flatMap((c, i) => (/^\d$/.test(c) ? [i + 1] : []));
   let text = '', confidence = 0, kept = 0, previous = -1;
+  const doubts = [0];
   for (let t = 0; t < steps; t++) {
     let best = 0, value = -Infinity;
     for (let c = 0; c < classes; c++) { const p = probabilities[offset + t * classes + c]; if (p > value) { value = p; best = c; } }
-    if (best !== 0 && best !== previous && characters[best - 1] !== undefined) { text += characters[best - 1]; confidence += value; kept++; }
+    if (best === 0) for (const d of digits) doubts[text.length] = Math.max(doubts[text.length], probabilities[offset + t * classes + d]);
+    if (best !== 0 && best !== previous && characters[best - 1] !== undefined) { text += characters[best - 1]; confidence += value; kept++; doubts.push(0); }
     previous = best;
   }
-  return { text, confidence: kept ? confidence / kept : 0 };
+  return { text, confidence: kept ? confidence / kept : 0, doubts: doubts.map(d => Math.round(d * 100) / 100) };
 }
-async function recognize(rec: OrtSession, dictionary: string[], runtime: OrtRuntime, image: Pixels, box: Parameters<typeof recCrop>[1], rotate: 0 | 90 | 270) {
+/** One box read by a recognition model (exported for the component benchmark). */
+export async function recognize(rec: OrtSession, dictionary: string[], runtime: OrtRuntime, image: Pixels, box: Parameters<typeof recCrop>[1], rotate: 0 | 90 | 270) {
   const crop = recCrop(image, box, rotate);
   const output = await rec.run({ [rec.inputNames[0]]: runtime.tensor(crop.data, [1, 3, 48, crop.width]) });
   const result = output[rec.outputNames[0]];
   return { ...ctcDecode(floats(result), result.dims[1], result.dims[2], dictionary), rotate };
 }
-const groups = (text: string) => text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').match(/\d+(?:\.\d+)?/g) ?? [];
+const groups = (text: string) => text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').replace(/(\d),(\d{1,2})(?!\d)/g, '$1.$2').match(/\d+(?:\.\d+)?/g) ?? [];
 // Only the verifier's reading is normalised: its wider alphabet writes some
 // digits as look-alike letters (I, l, O, o), and seven-segment digits as the
 // letters they are drawn like (S 5, B 8, Z 2, G/b 6, q/g 9, Y 4). The accepted
@@ -119,12 +157,14 @@ export function createPpocrReader(models: PpocrModels, runtime: OrtRuntime, { lo
         const best = readings.sort((a, b) => b.confidence - a.confidence)[0];
         if (!best.text.trim() || best.confidence < minConfidence) continue;
         let contested: TextItem['contested'], verifierText: string | undefined;
-        if (/\d/.test(best.text) && models.verifier) {
-          const check = await recognize(models.verifier.rec, models.verifier.dictionary, runtime, image, box, best.rotate);
-          if (!verifierAgrees(best.text, check.text)) { contested = 'verifier'; verifierText = check.text; }
+        const checks: Verify[] = [...(models.verifier ? [async (...args: Parameters<Verify>) => (await recognize(models.verifier!.rec, models.verifier!.dictionary, runtime, ...args)).text] : []), ...(models.verifiers ?? [])];
+        if (/\d/.test(best.text)) for (const check of checks) {
+          const text = await check(image, box, best.rotate);
+          if (!verifierAgrees(best.text, text)) { contested = 'verifier'; verifierText = text; break; }
         }
         // Report sideways boxes in the reading frame's terms: height is the short side.
-        items.push({ text: best.text, left: box.left, right: box.right, top: box.top, height: tall ? box.right - box.left : box.bottom - box.top, score: best.confidence * b.score, ...(contested ? { contested, verifierText } : {}) });
+        const core = { left: b.core.left * input.sx, right: b.core.right * input.sx, top: b.core.top * input.sy, height: (b.core.bottom - b.core.top) * input.sy };
+        items.push({ text: best.text, left: box.left, right: box.right, top: box.top, height: tall ? box.right - box.left : box.bottom - box.top, score: best.confidence * b.score, doubts: best.doubts, core, ...(contested ? { contested, verifierText } : {}) });
       }
       return items;
     },

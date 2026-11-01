@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { verifierAgrees } from './ppocr';
+import { ctcDecode, verifierAgrees } from './ppocr';
 
 describe('second recogniser agreement', () => {
   it('reads seven-segment digits the verifier wrote as letters as the digits they are drawn like', () => {
@@ -12,3 +12,14 @@ describe('second recogniser agreement', () => {
       expect(verifierAgrees(reading, verifier), `${reading} ~ ${verifier}`).toBe(false);
   });
 });
+
+describe('CTC decoding', () => {
+  it('reports a digit the model nearly emitted in each gap between characters', () => {
+    // Classes: blank, '1', '9', 'k'. Steps: 1, blank (1 at 0.35), 9, blank, k.
+    const p = [[.1, .8, .05, .05], [.6, .35, .03, .02], [.1, .05, .8, .05], [.9, .02, .03, .05], [.1, .05, .05, .8]];
+    const result = ctcDecode(p.flat(), p.length, 4, ['1', '9', 'k']);
+    expect(result.text).toBe('19k');
+    expect(result.doubts).toEqual([0, .35, .03, 0]);
+  });
+});
+

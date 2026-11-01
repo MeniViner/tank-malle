@@ -113,3 +113,57 @@ describe('text boxes that hold a label and a number', () => {
   });
 });
 
+describe('decimal commas, foreign currency and nearly-read digits', () => {
+  it('reads a comma before one or two final digits as a decimal comma, and leaves 1,109 ambiguous', () => {
+    expect(fromText([box('58,57'), box('52,81', 40), box('1,109', 80)], 'pump').lines.map(l => l.text)).toEqual(['58.57', '52.81', '1109']);
+    expect(fromText([box('128,450 km')], 'odometer').lines.map(l => l.text)).toEqual(['128450']);
+  });
+  it('never fills an amount shown in another currency as shekels', () => {
+    const { lines, labels } = fromText([box('58,57 €'), box('52,81 Litres', 40)], 'pump');
+    expect(resolvePump(lines, labels)).toEqual({ status: 'abstain', reason: 'foreign-currency' });
+    const shekels = fromText([box('58.57 ₪'), box('52.810 LITRES', 40)], 'pump');
+    expect(resolvePump(shekels.lines, shekels.labels)).toMatchObject({ status: 'resolved', values: { total: '58.57', liters: '52.810' } });
+  });
+  it('makes a number unsure when the recogniser nearly read a digit between it and a glued word', () => {
+    // "190061km" read as "19006km": a blank step between "6" and "k" where "1" had 0.25.
+    const doubts = [0, 0, 0, 0, 0, .25, 0, 0];
+    const [line] = fromText([{ ...box('19006km'), doubts }], 'odometer').lines;
+    expect(line).toMatchObject({ text: '19006', doubt: .25, contested: 'doubt' });
+    expect(fromText([{ ...box('19006km'), doubts: [0, 0, 0, 0, 0, .15, 0, 0] }], 'odometer').lines[0]).not.toHaveProperty('contested');
+    // With a space before the unit the gap is layout, not a glued edge.
+    expect(fromText([{ ...box('19006 km'), doubts: [0, 0, 0, 0, 0, .9, 0, 0, 0] }], 'odometer').lines[0].doubt).toBe(0);
+    expect(fromText([{ ...box('19006km'), doubts: [0, 0, 0, 0, 0, 0, 0, .9] }], 'odometer').lines[0].doubt).toBe(0);
+    expect(fromText([{ ...box('1 15605'), doubts: [0, 0, .6, 0, 0, 0, 0, 0] }], 'odometer').lines[0].doubt).toBe(0);
+  });
+});
+
+describe('printed words beside segment digits', () => {
+  /** A pump whose rows have printed words beside them, as SVG text. */
+  async function labelledPump() {
+    const sharp = (await import('sharp')).default, ink = [255, 196, 80], base = blank(1100, 600, [8, 15, 24]);
+    drawDigits(base, '287.40', 120, 60, ink); drawDigits(base, '40.000', 120, 250, ink);
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="600"><text x="620" y="135" font-family="Arial" font-size="52" fill="rgb(${ink})">SALE</text><text x="620" y="325" font-family="Arial" font-size="52" fill="rgb(${ink})">LITRES</text></svg>`;
+    const { data, info } = await sharp(Buffer.from(base.data), { raw: { width: 1100, height: 600, channels: 4 } }).composite([{ input: Buffer.from(svg) }]).raw().toBuffer({ resolveWithObject: true });
+    return { width: info.width, height: info.height, data: new Uint8ClampedArray(data) };
+  }
+  // A stub recogniser that reads only the printed words of the whole frame
+  // (as if it could not read the seven-segment digits).
+  const words = (found: { text: string; x: number; y: number; w: number }[]): TextReader => ({ name: 'stub', read: async pixels => {
+    if (pixels.width !== 960) return [];
+    const k = 960 / 1100;
+    return found.map(({ text, x, y, w }) => ({ text, left: (x - 20) * k, right: (x + w + 20) * k, top: (y - 20) * k, height: 80 * k, score: .9, core: { left: x * k, right: (x + w) * k, top: y * k, height: 40 * k } }));
+  } });
+  it('reads the rows again with the words painted over, and keeps the words as labels', async () => {
+    const image = await labelledPump();
+    expect((await readStill(image, 'pump')).decision).toMatchObject({ status: 'abstained' });
+    const { decision, analysis } = await readStill(image, 'pump', { textReader: words([{ text: 'SALE', x: 620, y: 97, w: 130 }, { text: 'LITRES', x: 620, y: 287, w: 175 }]) });
+    expect(decision).toMatchObject({ status: 'accepted', values: { total: '287.40', liters: '40.000' }, paths: ['segment-painted@960', 'segment-painted@roi'] });
+    expect(analysis.attempts.find(a => a.path === 'segment-painted@960')?.result).toMatchObject({ evidence: expect.arrayContaining(['label:total', 'label:liters']) });
+  });
+  it('never paints a word that could be a misread number', async () => {
+    const image = await labelledPump();
+    const { decision } = await readStill(image, 'pump', { textReader: words([{ text: 'SOB', x: 620, y: 97, w: 130 }, { text: 'IO', x: 620, y: 287, w: 175 }]) });
+    expect(decision.status).toBe('abstained');
+  });
+});
+

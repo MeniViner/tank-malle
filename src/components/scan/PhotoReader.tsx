@@ -13,6 +13,7 @@ const HINTS: Record<QualityHint, string> = { 'too-dark': 'חשוך מדי. הד�
 function abstention(decision: Extract<SessionDecision, { status: 'abstained' }>, kind: DisplayKind) {
   if (decision.reasons['trip-meter']) return 'נראה שזה מד טיול (TRIP), לא מד המרחק המצטבר (ODO). עברו לתצוגת ODO, או המשיכו ידנית.';
   if (decision.reasons['unit-miles']) return 'המד נראה במיילים. הטופס שומר קילומטרים, אז המשיכו ידנית.';
+  if (decision.reasons['foreign-currency']) return 'המשאבה מציגה מטבע אחר. הטופס שומר שקלים, אז המשיכו ידנית.';
   if (decision.reasons['recognizer-loading']) return 'הקורא המקומי עדיין נטען (החיבור איטי). נסו שוב בעוד רגע, או המשיכו ידנית.';
   if (decision.reason === 'conflict') return 'התקבלו קריאות סותרות, ולכן לא מילאנו דבר. נסו שוב קרוב יותר או המשיכו ידנית.';
   if (decision.reasons['identity-ambiguous']) return kind === 'pump' ? 'לא ברור איזה מספר הוא הסכום ואיזה הליטרים. כללו בתמונה את הכיתוב שליד המספרים, או המשיכו ידנית.' : 'לא ברור איזה מספר הוא מד המרחק המצטבר. כללו בתמונה את הכיתוב ODO/ק״מ, או המשיכו ידנית.';

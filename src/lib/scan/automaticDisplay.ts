@@ -246,7 +246,7 @@ function panels(lines:NumericLine[]) {
   lines.forEach((line,i)=>groups.set(find(i),[...(groups.get(find(i))??[]),line]));
   return [...groups.values()];
 }
-const SEVERITY:RejectReason[]=['no-reading','unstable','format','unit-miles','trip-meter','identity-ambiguous','conflict'];
+const SEVERITY:RejectReason[]=['no-reading','unstable','format','unit-miles','trip-meter','identity-ambiguous','foreign-currency','conflict'];
 /** Decide from the lines of every polarity plus any recognised labels. A
  * different reading in a second polarity is a conflict, not a fallback. */
 export function decideDisplay(polarities:PolarityLines[],kind:DisplayKind,labels:LabelToken[]=[]):DisplayResult {

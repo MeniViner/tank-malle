@@ -7,14 +7,16 @@
  * assignment survives, the result is an abstention, not the likeliest guess.
  */
 export type PumpRole = 'total' | 'liters' | 'unitPrice';
-export type IdentityReason = 'no-reading' | 'identity-ambiguous' | 'trip-meter' | 'unit-miles' | 'format';
+export type IdentityReason = 'no-reading' | 'identity-ambiguous' | 'trip-meter' | 'unit-miles' | 'format' | 'foreign-currency';
 /** A numeric line found in one frame, in that frame's pixel coordinates.
  * `contested`: the recognisers disagreed on it, or digits may be missing at
  * its edges. It can never be accepted, and it blocks any reading it could be. */
 export type NumericLine = { text: string; left: number; right: number; top: number; height: number; contested?: string;
   /** A known label was read in the same detector box directly on this side. */
-  beside?: { left: boolean; right: boolean } };
-export type LabelClass = PumpRole | 'odometer' | 'trip' | 'tripLetter' | 'km' | 'miles';
+  beside?: { left: boolean; right: boolean };
+  /** Diagnosis: how close the text recogniser came to a digit beside or inside the number (0–1). */
+  doubt?: number };
+export type LabelClass = PumpRole | 'odometer' | 'trip' | 'tripLetter' | 'km' | 'miles' | 'foreignCurrency';
 /** Printed text recognised near the display (e.g. "LITRES", "ODO", "km"). */
 export type LabelToken = { text: string; left: number; right: number; top: number; height: number };
 export type PumpIdentity = { status: 'resolved'; values: { total: string; liters: string; unitPrice?: string }; evidence: string[] }
@@ -23,6 +25,8 @@ export type OdometerIdentity = { status: 'resolved'; values: { odometer: string 
   | { status: 'abstain'; reason: IdentityReason; detail?: string };
 
 const PUMP_LABELS: [LabelClass, RegExp][] = [
+  // The form stores shekels: an amount shown in another currency is never filled in as ₪.
+  ['foreignCurrency', /^(€|eur|euro|euros|\$|usd|£|gbp|ft|huf|ft\/l|€\/l|zł|pln|kč|czk|₺|tl|₽|rub|chf)$/],
   ['unitPrice', /^(price|unitprice|pricel|price\/l|₪\/l|nis\/l|מחיר|מחירלליטר|לליטר)$/],
   ['liters', /^(l|lit|ltr|ltrs|litre|litres|liter|liters|volume|vol|ליטר|ליטרים|כמות)$/],
   ['total', /^(total|sale|amount|amt|₪|nis|ils|ש"?ח|שח|סכום|לתשלום|סה"?כ|סהכ|tosale|topay)$/],
@@ -80,6 +84,7 @@ function productHolds(total: string, liters: string, price: string) {
 export function resolvePump(lines: NumericLine[], labels: LabelToken[] = []): PumpIdentity {
   // Integer lines (pump number, clock) are not pump fields. Every decimal line
   // must be explained; an unexplained decimal line is a reason to abstain.
+  if (labels.some(label => classifyLabel(label.text, 'pump') === 'foreignCurrency')) return { status: 'abstain', reason: 'foreign-currency' };
   if (lines.some(line => line.contested && /\d\.\d/.test(line.text))) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'unsure row' };
   const rows = lines.filter(line => /^\d{1,6}\.\d{1,3}$/.test(line.text) && Number(line.text) > 0);
   if (rows.length < 2) return { status: 'abstain', reason: 'no-reading' };

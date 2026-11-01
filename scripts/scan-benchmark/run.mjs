@@ -37,6 +37,9 @@ if (isMainThread) {
   const manifest = JSON.parse(await readFile(sessionsFile, 'utf8'));
   let sessions = manifest.sessions.filter(s => splits.includes(s.split));
   if (args.limit) sessions = sessions.filter((_, i) => i % Math.ceil(sessions.length / Number(args.limit)) === 0);
+  // --subset tuning-val: the tuning groups held out from training the digit
+  // recogniser (scripts/scan-train/prepare.py: sha256(group) mod 100 < 20).
+  if (args.subset === 'tuning-val') sessions = sessions.filter(s => s.split === 'tuning' && Number(BigInt('0x' + createHash('sha256').update(s.group).digest('hex')) % 100n) < 20);
   // Integrity first: every frame must exist and match its recorded hash.
   const missing = [];
   await Promise.all(sessions.flatMap(s => s.frames.map(async frame => {
@@ -64,7 +67,7 @@ if (isMainThread) {
   const summary = metrics.summarize(scored);
   const report = {
     format: 'tank-maleh-scan-run-v1', at: new Date().toISOString(), commit: (await import('node:child_process')).execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim(),
-    reader, text, live: Number(args.live ?? 0) || null, diagnose: options.diagnose || undefined, splits, sessionsFile: sessionsFile.replace(repo + '/', ''), wallMs: Date.now() - started, workers, node: process.version,
+    reader, text, live: Number(args.live ?? 0) || null, diagnose: options.diagnose || undefined, subset: args.subset, splits, sessionsFile: sessionsFile.replace(repo + '/', ''), wallMs: Date.now() - started, workers, node: process.version,
     status: missing.length ? 'incomplete' : 'complete', missing,
     counts: { requested: sessions.length, run: rows.length, scored: scored.length, byRole: rows.reduce((m, r) => ({ ...m, [r.role]: (m[r.role] ?? 0) + 1 }), {}) },
     summary,
@@ -139,7 +142,7 @@ async function work({ sessions, root, reader, text, live, components, diagnose, 
         const trace = [];
         const { decision, analysis } = await pipeline.readStill(source, session.kind, { textReader, ...(diagnose ? { trace: event => trace.push(event) } : {}) });
         if (diagnose) {
-          row.trace = trace.map(e => ({ path: e.path, items: e.items?.map(i => ({ text: i.text, ...box(i), ...(i.contested ? { contested: i.contested, verifierText: i.verifierText } : {}) })), lines: e.lines.map(l => ({ text: l.text, ...box(l), ...(l.contested ? { contested: l.contested } : {}) })), labels: e.labels.map(l => ({ text: l.text, ...box(l) })) }));
+          row.trace = trace.map(e => ({ path: e.path, items: e.items?.map(i => ({ text: i.text, ...box(i), ...(i.doubts ? { doubts: i.doubts } : {}), ...(i.contested ? { contested: i.contested, verifierText: i.verifierText } : {}) })), lines: e.lines.map(l => ({ text: l.text, ...box(l), ...(l.doubt !== undefined ? { doubt: l.doubt } : {}), ...(l.contested ? { contested: l.contested } : {}) })), labels: e.labels.map(l => ({ text: l.text, ...box(l) })) }));
           row.attempts = analysis.attempts.map(a => ({ path: a.path, result: a.result }));
           row.size = { width: source.width, height: source.height };
           if (session.odometerBox && textReader) {
