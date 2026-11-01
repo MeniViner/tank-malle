@@ -124,6 +124,9 @@ describe('decimal commas, foreign currency and nearly-read digits', () => {
     // Frozen fixture set (fixtures-frozen-2026-11-02): the sign read in one box with its word.
     for (const sale of ['SALE €', 'TOTAL EUR', 'Ft fizetendő'])
       expect(resolvePump(fromText([box('146.33'), box('19.33', 40)], 'pump').lines, [{ text: sale, left: 200, right: 300, top: 0, height: 20 }]), sale).toEqual({ status: 'abstain', reason: 'foreign-currency' });
+    // Moroccan pump (Commons): DIRHAMS / LITRES, litres to two places.
+    const dirhams = fromText([box('300.00'), box('19.62', 40)], 'pump');
+    expect(resolvePump(dirhams.lines, [{ text: 'DIRHAMS', left: 200, right: 300, top: 0, height: 20 }])).toEqual({ status: 'abstain', reason: 'foreign-currency' });
     const shekels = fromText([box('58.57 ₪'), box('52.810 LITRES', 40)], 'pump');
     expect(resolvePump(shekels.lines, shekels.labels)).toMatchObject({ status: 'resolved', values: { total: '58.57', liters: '52.810' } });
   });

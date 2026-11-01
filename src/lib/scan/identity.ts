@@ -35,7 +35,7 @@ export type OdometerIdentity = { status: 'resolved'; values: { odometer: string 
 
 const PUMP_LABELS: [LabelClass, RegExp][] = [
   // The form stores shekels: an amount shown in another currency is never filled in as ₪.
-  ['foreignCurrency', /^(€|eur|euro|euros|\$|usd|£|gbp|ft|huf|ft\/l|€\/l|zł|pln|kč|czk|₺|tl|₽|rub|chf)$/],
+  ['foreignCurrency', /^(€|eur|euro|euros|\$|usd|£|gbp|ft|huf|forint|ft\/l|€\/l|zł|pln|zloty|kč|czk|₺|tl|lira|₽|rub|chf|¥|dirham|dirhams|dh|mad|aed|dinar|dinars|jod|egp|riyal|sar|ron|lei|bgn|lev|kr|sek|nok|dkk)$/],
   ['unitPrice', /^(price|unitprice|pricel|price\/l|₪\/l|nis\/l|מחיר|מחירלליטר|לליטר)$/],
   ['liters', /^(l|lit|ltr|ltrs|litre|litres|liter|liters|volume|vol|ליטר|ליטרים|כמות)$/],
   ['total', /^(total|sale|amount|amt|₪|nis|ils|ש"?ח|שח|סכום|לתשלום|סה"?כ|סהכ|tosale|topay)$/],
@@ -95,7 +95,7 @@ export function resolvePump(lines: NumericLine[], labels: LabelToken[] = []): Pu
   // must be explained; an unexplained decimal line is a reason to abstain.
   // A currency is often read in one box with its word ("SALE €"): every word
   // and every currency sign of a label counts.
-  if (labels.some(label => /[€$£₺₽]/.test(label.text) || label.text.split(/\s+/).some(word => classifyLabel(word, 'pump') === 'foreignCurrency'))) return { status: 'abstain', reason: 'foreign-currency' };
+  if (labels.some(label => /[€$£₺₽¥]/.test(label.text) || label.text.split(/\s+/).some(word => classifyLabel(word, 'pump') === 'foreignCurrency'))) return { status: 'abstain', reason: 'foreign-currency' };
   if (lines.some(line => line.contested && /\d\.\d/.test(line.text))) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'unsure row' };
   const rows = lines.filter(line => /^\d{1,6}\.\d{1,3}$/.test(line.text) && Number(line.text) > 0);
   if (rows.length < 2) return { status: 'abstain', reason: 'no-reading' };
