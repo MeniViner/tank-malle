@@ -186,10 +186,14 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
     // found may hold only one of them, so the text reader starts from the
     // whole frame instead.
     const from = kind === 'pump' && region && decideDisplay(primary, kind).status !== 'read' ? null : region;
+    let sawDecimals = false;
     for (const [rect, name] of [[from, from ? 'roi' : String(working)], [from ? null : centre, 'centre']] as const) {
-      if (name === 'centre' && (!rect || attempts.some(a => a.result.status === 'read'))) break;
+      // A pump whose whole frame already showed decimal rows is not retried on
+      // the central region: that crop can cut off its amount row.
+      if (name === 'centre' && (!rect || attempts.some(a => a.result.status === 'read') || (kind === 'pump' && sawDecimals))) break;
       const first = await readText(rect, `${reader.name}@${name}`);
       if (!first) break;
+      sawDecimals ||= first.lines.some(l => l.text.includes('.'));
       labels = [...labels, ...first.labels];
       const result = decideDisplay(asPolarity(first.lines), kind, first.labels);
       if (first.lines.length) attempts.push({ frame, path: first.path, result });

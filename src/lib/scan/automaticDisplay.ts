@@ -259,6 +259,12 @@ export function decideDisplay(polarities:PolarityLines[],kind:DisplayKind,labels
       if(groups.length>1){worse('identity-ambiguous');continue;}
       const [group]=groups;
       if(conflicts.some(c=>panels([...group,c]).length===1)){worse('conflict');continue;}
+      // A decimal row left out of the panel but in its column (a row cut by
+      // the crop, a misread amount) is unexplained: the panel may be missing
+      // the amount, and a 2-place volume beside a 3-place price would then
+      // look like an amount and a volume.
+      const size=Math.max(...group.map(l=>l.height)),left=Math.min(...group.map(l=>l.left)),right=Math.max(...group.map(l=>l.right)),top=Math.min(...group.map(l=>l.top)),bottom=Math.max(...group.map(l=>l.top+l.height));
+      if(stable.some(l=>l.text.includes('.')&&!group.includes(l)&&Math.min(l.right,right)-Math.max(l.left,left)>.3*(l.right-l.left)&&l.top<bottom+size*3&&l.top+l.height>top-size*3)){worse('identity-ambiguous');continue;}
       const identity=resolvePump(group,labels);
       if(identity.status==='resolved')outcomes.push({values:{total:identity.values.total,liters:identity.values.liters},evidence:[...identity.evidence,...(identity.values.unitPrice?[`observed-unit-price:${identity.values.unitPrice}`]:[]),`polarity:${polarity}`]});
       else worse(identity.reason);

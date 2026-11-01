@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { recognizeDisplay } from './automaticDisplay';
+import { decideDisplay, recognizeDisplay } from './automaticDisplay';
+import { readStill, type TextReader } from './pipeline';
+import { rect } from './fixtures';
 import { blank, drawDigits } from './fixtures';
 import { resolveOdometer, resolvePump, type LabelToken, type NumericLine } from './identity';
 import { automaticPumpPlausible } from './acceptance';
@@ -45,6 +47,25 @@ describe('confirmed scan failures', () => {
     // The displayed zeros still count as the register's length; more than seven significant digits do not parse.
     expect(resolveOdometer([line('000000123', 100)])).toMatchObject({ status: 'resolved', values: { odometer: '123' } });
     expect(resolveOdometer([line('012345678', 100)])).toMatchObject({ status: 'abstain' });
+  });
+  // Frozen fixture set (fixtures-frozen-2026-11-01, g016): amount 233.83, volume
+  // 34.91, price 6.698. The amount row was lost from a crop, and 34.91 / 6.698
+  // looked like a 2-place amount beside a 3-place volume.
+  it('never reads a pump whose amount row is missing from the panel it decided on', async () => {
+    const rows = (...texts: [string, number][]) => [{ polarity: 'light' as const, stable: texts.map(([text, top]) => ({ ...line(text, top, 150, 60), polarity: 'light' as const, support: 2 })), conflicts: [] }];
+    expect(decideDisplay(rows(['34.91', 200], ['6.698', 300]), 'pump')).toMatchObject({ status: 'read', values: { total: '34.91', liters: '6.698' } });
+    // A cut row above, in the same column, too small to join the panel.
+    expect(decideDisplay([{ ...rows(['34.91', 200], ['6.698', 300])[0], stable: [...rows(['34.91', 200], ['6.698', 300])[0].stable, { ...line('205.05', 40, 150, 20), polarity: 'light', support: 2 }] }], 'pump')).toEqual({ status: 'unreadable', reason: 'identity-ambiguous' });
+    // In the pipeline: the whole frame shows three rows (the amount unsure);
+    // the central region, which holds only the lower two, is not read.
+    const image = blank(1600, 1000);
+    for (let y = 0; y < 1000; y += 40) for (let x = (y / 40) % 2 * 40; x < 1600; x += 80) rect(image, x, y, 40, 40, [90, 100, 95]);
+    const reader: TextReader = { name: 'stub', read: async pixels => pixels.width === 960
+      ? [{ text: '233.83', left: 300, right: 520, top: 120, height: 60, score: .9, contested: 'verifier', verifierText: '205.05' }, { text: '34.91', left: 300, right: 500, top: 280, height: 60, score: .9 }, { text: '6.698', left: 300, right: 500, top: 440, height: 60, score: .9 }]
+      : [{ text: '34.91', left: pixels.width * .3, right: pixels.width * .6, top: pixels.height * .3, height: pixels.height * .1, score: .9 }, { text: '6.698', left: pixels.width * .3, right: pixels.width * .6, top: pixels.height * .6, height: pixels.height * .1, score: .9 }] };
+    const { decision, analysis } = await readStill(image, 'pump', { textReader: reader });
+    expect(analysis.attempts.map(a => a.path)).not.toContain('stub@centre');
+    expect(decision.status).toBe('abstained');
   });
   it('does not assign pump fields by row order', () => {
     const swapped = blank(820, 480); drawDigits(swapped, '26.092', 150, 95); drawDigits(swapped, '202.73', 150, 285);
