@@ -1,0 +1,156 @@
+{
+ "format": "tank-maleh-scan-digit-model-v1",
+ "note": "Compact display-digit recogniser experiment. Trained on TRODO tuning-split rows (train groups) and synthetic displays; evaluated on held-out tuning groups. Not part of the shipped app unless stated in the README.",
+ "python": "3.12.13 (uv)",
+ "packages": "scripts/scan-train/requirements.lock",
+ "device": "mps",
+ "steps": 4000,
+ "batch": 64,
+ "seed": 20261101,
+ "trainRows": 1209,
+ "valRows": 178,
+ "params": 433197,
+ "trainLog": [
+  {
+   "step": 500,
+   "loss": 0.2763,
+   "valExact": 91,
+   "val": 178,
+   "seconds": 47
+  },
+  {
+   "step": 1000,
+   "loss": 0.0756,
+   "valExact": 105,
+   "val": 178,
+   "seconds": 109
+  },
+  {
+   "step": 1500,
+   "loss": 0.0128,
+   "valExact": 111,
+   "val": 178,
+   "seconds": 167
+  },
+  {
+   "step": 2000,
+   "loss": 0.0368,
+   "valExact": 115,
+   "val": 178,
+   "seconds": 221
+  },
+  {
+   "step": 2500,
+   "loss": 0.009,
+   "valExact": 109,
+   "val": 178,
+   "seconds": 268
+  },
+  {
+   "step": 3000,
+   "loss": 0.0024,
+   "valExact": 114,
+   "val": 178,
+   "seconds": 311
+  },
+  {
+   "step": 3500,
+   "loss": 0.0091,
+   "valExact": 115,
+   "val": 178,
+   "seconds": 355
+  },
+  {
+   "step": 4000,
+   "loss": 0.01,
+   "valExact": 114,
+   "val": 178,
+   "seconds": 396
+  }
+ ],
+ "onnx": {
+  "bytes": 1735338,
+  "sha256": "ac547e43c689d7dce68841cbcb037d1f687016653c90368325a18913f9577bc4",
+  "opset": 17
+ },
+ "parity": {
+  "cpuOnnxruntimeMaxAbsDiff": 0.0000267,
+  "browserWasm": {
+   "engine": "chromium 156.0.8078.4",
+   "backend": "onnxruntime-web 1.30.0 wasm, 1 thread",
+   "samples": 24,
+   "maxAbsLogitDiff": 0.0000424,
+   "sameGreedyPath": 24
+  }
+ },
+ "componentHeldOutRows": {
+  "note": "Held-out tuning groups (never used for training); whole annotated row crops; digits compared exactly. Diagnostic only.",
+  "rows": 178,
+  "digitsModel": ".scan-corpus/train/digits/digits.onnx",
+  "v5": 95,
+  "v6": 75,
+  "v6lookalikes": 75,
+  "digits": 111,
+  "v5AndDigitsAgreeCorrect": 84,
+  "v5AndDigitsAgreeWrong": 3,
+  "v5AndV6AgreeCorrect": 72,
+  "v5AndV6AgreeWrong": 22
+ },
+ "pipelineHeldOutTuning": {
+  "ppocr-v5+v6 (shipped)": {
+   "commit": "11b448a5ca220a55fb9f1a5bde1ebccfdd7bfbed",
+   "sessions": 108,
+   "eligible": 40,
+   "correct": 15,
+   "accepted": 15,
+   "wrong": 0,
+   "scored": 46,
+   "latencyMs": {
+    "p50": 1537,
+    "p95": 2311
+   },
+   "sessionReasons": {
+    "unreadable": 26,
+    "uncorroborated": 4,
+    "implausible": 1
+   }
+  },
+  "ppocr-v5+digits": {
+   "commit": "11b448a5ca220a55fb9f1a5bde1ebccfdd7bfbed",
+   "sessions": 108,
+   "eligible": 40,
+   "correct": 15,
+   "accepted": 15,
+   "wrong": 0,
+   "scored": 46,
+   "latencyMs": {
+    "p50": 1541,
+    "p95": 2401
+   },
+   "sessionReasons": {
+    "unreadable": 21,
+    "uncorroborated": 8,
+    "implausible": 1,
+    "conflict": 1
+   }
+  },
+  "ppocr-v5+v6+digits": {
+   "commit": "11b448a5ca220a55fb9f1a5bde1ebccfdd7bfbed",
+   "sessions": 108,
+   "eligible": 40,
+   "correct": 13,
+   "accepted": 13,
+   "wrong": 0,
+   "scored": 46,
+   "latencyMs": {
+    "p50": 2147,
+    "p95": 3203
+   },
+   "sessionReasons": {
+    "unreadable": 26,
+    "uncorroborated": 6,
+    "implausible": 1
+   }
+  }
+ }
+}
