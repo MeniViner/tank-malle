@@ -73,11 +73,13 @@ describe('confirmed scan failures', () => {
   // where it read each character; the pixels decide.
   const traced = async (image: ReturnType<typeof blank>, item: TextItem) => checkPixels(image, fromText([item], 'odometer').lines)[0];
   const cellsAt = (text: string, x: number) => [...text].map((_, i) => x + 78 * i + 28);
-  it('makes a number unsure when some of its digits are unlit segments that still show', async () => {
+  it('measures unlit segments read as digits as faint, without acting on it (still an open failure)', async () => {
     const image = blank(960, 540, NIGHT); drawDigits(image, '888', 200, 200, [50, 54, 60]); drawDigits(image, '849', 200 + 3 * 78, 200, [240, 240, 240]);
-    expect(await traced(image, { text: '888849', left: 190, right: 680, top: 180, height: 140, score: .9, doubts: [0, 0, 0, 0, 0, 0, 0], centres: cellsAt('888849', 200) })).toMatchObject({ text: '888849', contested: 'faint' });
-    const lit = blank(960, 540, NIGHT); drawDigits(lit, '888849', 200, 200, [240, 240, 240]);
-    expect(await traced(lit, { text: '888849', left: 190, right: 680, top: 180, height: 140, score: .9, doubts: [0, 0, 0, 0, 0, 0, 0], centres: cellsAt('888849', 200) })).not.toHaveProperty('contested');
+    const ghost = await traced(image, { text: '888849', left: 190, right: 680, top: 180, height: 140, score: .9, doubts: [0, 0, 0, 0, 0, 0, 0], centres: cellsAt('888849', 200) });
+    expect(ghost.faint).toBeLessThan(.2);
+    // FAINT_DIGIT is 0: on real displays the measure did not separate unlit
+    // segments from unevenly lit digits (paired-failures.json).
+    expect(ghost).not.toHaveProperty('contested');
   });
   it('makes a number unsure when a digit stroke in its box went unread and a digit was nearly read there', async () => {
     const image = blank(960, 540, NIGHT); drawDigits(image, '151771', 200, 200, BLUE);

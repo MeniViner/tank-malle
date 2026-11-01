@@ -49,12 +49,13 @@ type Run = { text: string; start: number; end: number; valid: boolean };
  * that digit, as a narrow "1" between the digits and "km" ("190061km" read as
  * "19006km"). Chosen on the tuning split, where it costs no correct reading. */
 export const DIGIT_DOUBT = .2;
-/** A digit with less than this share of its number's strongest contrast is
- * an unlit segment group that still shows ("888" before "84.9": 0.13 on the
- * whole frame): the number is unsure. Chosen on the tuning split, where it
- * costs no correct reading (the faintest line with a true value is 0.21: a
- * thin margin). */
-export const FAINT_DIGIT = .2;
+/** A digit with less than this share of its number's strongest contrast
+ * may be an unlit segment group that still shows ("888" before "84.9").
+ * Not used: on the tuning split 0.2 cost nothing, but the failure it was for
+ * measured 0.13, 0.20 and 0.20 on its three paths (still accepted), and two
+ * correctly read neighbours of the same families measured 0.09 and 0.19
+ * (paired-failures.json). Measured for diagnosis only. */
+export const FAINT_DIGIT = 0;
 /** A "1" whose ink reaches this many digit pitches further across the top of
  * the digits than through their middle may be a "7" with a short bar. Not
  * used: on the tuning split any threshold that catches the "279890" display
