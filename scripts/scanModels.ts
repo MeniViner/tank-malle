@@ -22,6 +22,7 @@ async function verified(file: ScanModelFile): Promise<Uint8Array> {
   }
   const bytes = file.source.startsWith("npm:")
     ? await readFile(resolve("node_modules", file.source.slice(4).replace(/@[^/]+/, "")))
+    : file.source.startsWith("repo:") ? await readFile(resolve(file.source.slice(5)))
     : new Uint8Array(await (await fetch(file.source)).arrayBuffer());
   if (sha256(bytes) !== file.sha256 || bytes.length !== file.bytes) throw new Error(`Scan model ${file.name} does not match its pinned sha256`);
   await mkdir(cache, { recursive: true });

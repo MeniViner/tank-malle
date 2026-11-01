@@ -35,18 +35,17 @@ async function verifiedBytes(file: ScanModelFile & { url: string }) {
 }
 async function loadReader(): Promise<TextReader> {
   if ('caches' in self) for (const key of await caches.keys()) if (key.startsWith('tank-maleh-scan-') && key !== SCAN_MODEL_CACHE) await caches.delete(key);
-  const [wasm, det, rec, verify] = await Promise.all([{ ...SCAN_RUNTIME, url: ortWasm }, ...SCAN_MODEL_FILES.map(file => ({ ...file, url: scanModelPath(file.name) }))].map(verifiedBytes));
-  const [ort, { createPpocrReader }, english, tiny] = await Promise.all([
-    import('onnxruntime-web/wasm'), import('./ppocr'), import('./dictionaries/en-ppocr-v5'), import('./dictionaries/ppocr-v6-tiny'),
+  const [wasm, det, rec, digits] = await Promise.all([{ ...SCAN_RUNTIME, url: ortWasm }, ...SCAN_MODEL_FILES.map(file => ({ ...file, url: scanModelPath(file.name) }))].map(verifiedBytes));
+  const [ort, { createPpocrReader, digitsVerifier }, english] = await Promise.all([
+    import('onnxruntime-web/wasm'), import('./ppocr'), import('./dictionaries/en-ppocr-v5'),
   ]);
   // One thread: the app is not cross-origin isolated (Firebase sign-in
   // popups need that), and a single thread needs no SharedArrayBuffer.
   ort.env.wasm.numThreads = 1; ort.env.wasm.proxy = false; ort.env.wasm.wasmBinary = wasm;
   const session = (bytes: Uint8Array) => ort.InferenceSession.create(bytes, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
-  return createPpocrReader(
-    { name: 'ppocr', det: await session(det), rec: await session(rec), dictionary: english.default, db: SCAN_DETECTION, verifier: { rec: await session(verify), dictionary: tiny.default } },
-    { tensor: (data, dims) => new ort.Tensor('float32', data, dims) },
-  );
+  const runtime = { tensor: (data: Float32Array, dims: number[]) => new ort.Tensor('float32', data, dims) };
+  // Every number must also be read the same by the display-digit recogniser.
+  return createPpocrReader({ name: 'ppocr', det: await session(det), rec: await session(rec), dictionary: english.default, db: SCAN_DETECTION, verifiers: [digitsVerifier(await session(digits), runtime)] }, runtime);
 }
 
 let reader: TextReader | null = null, state: RecognizerState = 'loading';

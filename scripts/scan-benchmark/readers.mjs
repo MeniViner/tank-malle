@@ -12,8 +12,8 @@ const VARIANTS = {
   // v5 detection and recognition; every number must be read the same by the
   // independently trained v6-tiny recogniser.
   'ppocr-v5+v6': { det: 'PP-OCRv5_mobile_det_onnx', rec: 'en_PP-OCRv5_mobile_rec_onnx', verifier: 'PP-OCRv6_tiny_rec_onnx' },
-  // Experiments: the compact display-digit recogniser (scripts/scan-train) as
-  // the verifier, or as a further check beside PP-OCRv6-tiny.
+  // The shipped configuration since cycle 3: the display-digit recogniser
+  // (models/display-digits-v1.onnx, scripts/scan-train) verifies every number.
   'ppocr-v5+digits': { det: 'PP-OCRv5_mobile_det_onnx', rec: 'en_PP-OCRv5_mobile_rec_onnx', digits: true },
   'ppocr-v5+v6+digits': { det: 'PP-OCRv5_mobile_det_onnx', rec: 'en_PP-OCRv5_mobile_rec_onnx', verifier: 'PP-OCRv6_tiny_rec_onnx', digits: true },
 };
@@ -28,7 +28,7 @@ export async function createTextReader(name, options = {}) {
   const detYaml = await readFile(join(models, variant.det, 'inference.yml'), 'utf8'), recYaml = await readFile(join(models, variant.rec, 'inference.yml'), 'utf8');
   const verifier = variant.verifier ? { rec: await session(variant.verifier), dictionary: ppocr.dictionaryFromYaml(await readFile(join(models, variant.verifier, 'inference.yml'), 'utf8')) } : undefined;
   const runtime = { tensor: (data, dims) => new ort.Tensor('float32', data, dims) };
-  const verifiers = variant.digits ? [ppocr.digitsVerifier(await ort.InferenceSession.create(await readFile(process.env.CARE_DIGITS_ONNX ?? join(repo, '.scan-corpus/train/digits/digits.onnx')), { executionProviders: ['wasm'] }), runtime)] : [];
+  const verifiers = variant.digits ? [ppocr.digitsVerifier(await ort.InferenceSession.create(await readFile(process.env.CARE_DIGITS_ONNX ?? join(repo, 'models/display-digits-v1.onnx')), { executionProviders: ['wasm'] }), runtime)] : [];
   return ppocr.createPpocrReader({ name, det: await session(variant.det), rec: await session(variant.rec), dictionary: ppocr.dictionaryFromYaml(recYaml), db: ppocr.dbFromYaml(detYaml), verifier, verifiers }, runtime, options);
 }
 async function createTesseract() {
