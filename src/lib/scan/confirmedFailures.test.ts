@@ -88,6 +88,18 @@ describe('confirmed scan failures', () => {
     const read = blank(960, 540, NIGHT); drawDigits(read, '15177', 200, 200, BLUE);
     expect(await traced(read, { ...item, doubts: [0, .01, .01, .01, 0, .01, 0, .43] })).not.toHaveProperty('contested');
   });
+  // Camera replay of the seven-segment pump: after 4:2:0 colour subsampling
+  // the gray channel found only the volume row and the value channel only the
+  // amount row, so neither formed a panel.
+  it('reads a pump from the light and value channels together when they agree where they overlap', () => {
+    const rows = (polarity: 'light' | 'value', ...texts: [string, number][]) => ({ polarity, stable: texts.map(([text, top]) => ({ ...line(text, top, 150, 60), polarity, support: 2 })), conflicts: [] });
+    expect(decideDisplay([rows('light', ['40.000', 300]), rows('value', ['287.40', 120])], 'pump')).toMatchObject({ status: 'read', values: { total: '287.40', liters: '40.000' } });
+    // Each alone: no panel.
+    expect(decideDisplay([rows('light', ['40.000', 300])], 'pump')).toEqual({ status: 'unreadable', reason: 'format' });
+    // Channels that read an overlapping row differently are not merged: no
+    // reading takes one channel's volume beside the other's amount.
+    expect(decideDisplay([rows('light', ['40.000', 300]), rows('value', ['287.40', 120], ['40.008', 300])], 'pump')).not.toMatchObject({ values: { liters: '40.000' } });
+  });
   it('does not assign pump fields by row order', () => {
     const swapped = blank(820, 480); drawDigits(swapped, '26.092', 150, 95); drawDigits(swapped, '202.73', 150, 285);
     expect(recognizeDisplay(swapped, 'pump')).toMatchObject({ status: 'read', values: { total: '202.73', liters: '26.092' } });

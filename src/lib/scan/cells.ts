@@ -20,15 +20,19 @@ const luminance = (frame: RgbaFrame, x: number, y: number) => { const i = (y * f
  * as digits the display does not show; they are much fainter than the rest.
  */
 export function faintest(frame: RgbaFrame, band: Band, cells: Cell[]) {
-  const digits = digitsOf(cells);
-  if (digits.length < 2) return 1;
+  const digits = digitsOf(cells), found = inkOf(frame, band);
+  if (digits.length < 2 || !found) return 1;
   const pitch = pitchOf(digits, band), [top, bottom] = rows(frame, band);
+  // Contrast: the ink side's 2% tail (thin strokes are few pixels) against
+  // the cell's median, which is background.
   const contrast = digits.map(cell => {
     const values: number[] = [];
-    for (let y = top; y < bottom; y++) for (let x = Math.max(0, Math.round(cell.x - pitch / 2)); x < Math.min(frame.width, Math.round(cell.x + pitch / 2)); x++) values.push(luminance(frame, x, y));
+    // A little wider than the cell: a character's position is approximate.
+    for (let y = top; y < bottom; y++) for (let x = Math.max(0, Math.round(cell.x - pitch * .6)); x < Math.min(frame.width, Math.round(cell.x + pitch * .6)); x++) values.push(luminance(frame, x, y));
     if (values.length < 4) return NaN;
     values.sort((a, b) => a - b);
-    return values[Math.floor((values.length - 1) * .98)] - values[Math.floor((values.length - 1) * .1)];
+    const at = (p: number) => values[Math.floor((values.length - 1) * p)];
+    return found.lightInk ? at(.98) - at(.5) : at(.5) - at(.02);
   }).filter(c => !Number.isNaN(c));
   const strongest = Math.max(...contrast);
   return contrast.length > 1 && strongest > 0 ? Math.round(Math.min(...contrast) / strongest * 100) / 100 : 1;
@@ -54,7 +58,7 @@ function inkOf(frame: RgbaFrame, band: Band) {
   let gTop = Math.round((top + bottom) / 2), gBottom = gTop;
   while (gTop > top && rowInk(gTop - 1) >= .04) gTop--;
   while (gBottom < bottom && rowInk(gBottom) >= .04) gBottom++;
-  return gBottom - gTop < 8 ? null : { ink, left, right, gTop, gBottom };
+  return gBottom - gTop < 8 ? null : { ink, lightInk, left, right, gTop, gBottom };
 }
 
 /**

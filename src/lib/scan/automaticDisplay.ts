@@ -247,12 +247,24 @@ function panels(lines:NumericLine[]) {
   return [...groups.values()];
 }
 const SEVERITY:RejectReason[]=['no-reading','unstable','format','unit-miles','trip-meter','identity-ambiguous','foreign-currency','conflict'];
+/** The light and value channels see the same bright digits on a dark
+ * panel; a camera's colour subsampling (4:2:0 video) can leave each with only
+ * some of a pump's rows (gray: the volume, value: the amount). Their rows
+ * together are one more candidate, when they agree wherever they overlap. */
+function bothChannels(polarities:PolarityLines[]):PolarityLines[] {
+  const light=polarities.find(p=>p.polarity==='light'),value=polarities.find(p=>p.polarity==='value');
+  if(!light?.stable.length||!value?.stable.length)return [];
+  const same=(a:NumericLine,b:NumericLine)=>Math.min(a.top+a.height,b.top+b.height)-Math.max(a.top,b.top)>.5*Math.min(a.height,b.height)&&overlapX(a,b)>0;
+  if(value.stable.some(v=>light.stable.some(l=>same(l,v)&&l.text!==v.text)))return [];
+  const extra=value.stable.filter(v=>!light.stable.some(l=>same(l,v)));
+  return extra.length?[{polarity:'light',stable:[...light.stable,...extra],conflicts:[...light.conflicts,...value.conflicts]}]:[];
+}
 /** Decide from the lines of every polarity plus any recognised labels. A
  * different reading in a second polarity is a conflict, not a fallback. */
 export function decideDisplay(polarities:PolarityLines[],kind:DisplayKind,labels:LabelToken[]=[]):DisplayResult {
   const outcomes:{values:DisplayReading;evidence:string[]}[]=[];let reason:RejectReason='no-reading';
   const worse=(next:RejectReason)=>{if(SEVERITY.indexOf(next)>SEVERITY.indexOf(reason))reason=next;};
-  for(const {polarity,stable,conflicts} of polarities) {
+  for(const {polarity,stable,conflicts} of kind==='pump'?[...polarities,...bothChannels(polarities)]:polarities) {
     if(kind==='pump') {
       const groups=panels(stable.filter(line=>line.text.includes('.'))).filter(group=>group.length>=2);
       if(!groups.length){if(stable.length)worse('format');continue;}

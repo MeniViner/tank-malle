@@ -13,6 +13,11 @@ describe('a digit much fainter than its number', () => {
     drawDigits(image, '888', 40, 60, DIM); drawDigits(image, '849', 40 + 3 * 78, 60, BRIGHT);
     expect(faintest(image, band, cells('888849'))).toBeLessThan(.35);
   });
+  it('measures thin dark strokes on a light LCD as even (the ink side is the dark tail)', () => {
+    const image = blank(560, 220, [203, 217, 201]);
+    for (const [i, x] of [40, 118, 196, 274, 352, 430].entries()) for (let y = 60; y < 160; y++) for (let k = 0; k < (i % 2 ? 3 : 6); k++) image.data.set([15, 29, 23, 255], (y * 560 + x + 26 + k) * 4);
+    expect(faintest(image, band, cells('118948'))).toBeGreaterThan(.85);
+  });
   it('measures a number lit alike, narrow "1"s included, as even', () => {
     const image = blank(560, 220, NIGHT);
     drawDigits(image, '118948', 40, 60, BRIGHT);
