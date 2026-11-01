@@ -20,11 +20,9 @@
     "liters": "52,81",
     "unitPrice": "1,109"
    },
-   "expected": {
-    "total": "58.57",
-    "liters": "52.81"
-   },
-   "notes": "Decimal commas. 52.81 x 1.109 = 58.566, rounds to the displayed 58.57."
+   "expected": null,
+   "notes": "Complete display in euros (decimal commas): 52.81 x 1.109 = 58.566, shown as 58,57. The form stores shekels, so the correct outcome is to fill nothing; the digits are kept in displayed for diagnosis.",
+   "currency": "EUR"
   },
   {
    "id": "commons:שגיאת מחשב בתחנת דלק 2",
@@ -64,6 +62,45 @@
    },
    "expected": null,
    "notes": "The pump shows zeros (no sale): the correct outcome is to fill nothing."
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "file": "commons-pumps/more/9.jpg",
+   "sha256": "b732869ec73a8e61b357113a32c6e1ce34a82189747fe49515ee4c9d9f34cba2",
+   "bytes": 3112985,
+   "source": "https://commons.wikimedia.org/wiki/File:Fuel_limit_notice_(closeup),_Lukoil,_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27,_2022.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/9/98/Fuel_limit_notice_%28closeup%29%2C_Lukoil%2C_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27%2C_2022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Xbspiro",
+   "country": "HU",
+   "labels": "Hungarian (Ft, L, Ft/L)",
+   "displayed": {
+    "total": "0",
+    "liters": "0.00"
+   },
+   "expected": null,
+   "notes": "The pump shows zeros and the right edge of the display is outside the photograph: the correct outcome is to fill nothing."
+  },
+  {
+   "id": "commons:TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser",
+   "kind": "pump",
+   "file": "commons-pumps/more/19.png",
+   "sha256": "8ca641c3c33e85350520576d970b98f3c2ae79823475a0e77ba74bf7d2fca664",
+   "bytes": 3395730,
+   "source": "https://commons.wikimedia.org/wiki/File:TATSUNO_Corporation,_SUNNY-X(Fuel_Dispenser)_and_AdBlue_Dispenser.png",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/4/49/TATSUNO_Corporation%2C_SUNNY-X%28Fuel_Dispenser%29_and_AdBlue_Dispenser.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Mj-bird",
+   "country": "JP",
+   "labels": "Japanese; two volume-only displays",
+   "displayed": {
+    "liters": "35.36 and 32.50 (two hoses; legible at full size)"
+   },
+   "expected": null,
+   "notes": "Showroom dispenser: volumes only, no amount: the correct outcome is to fill nothing."
   }
  ]
 }

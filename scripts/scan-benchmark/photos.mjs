@@ -22,7 +22,7 @@ for (const session of manifest.sessions) {
   const trace = [];
   const { decision, analysis } = await readStill({ width: info.width, height: info.height, data: new Uint8ClampedArray(data) }, session.kind, { textReader, trace: e => trace.push(e) });
   const accepted = decision.status === 'accepted', correct = accepted && !!session.expected && Object.entries(session.expected).every(([k, v]) => Number(decision.values[k]) === Number(v));
-  rows.push({ id: session.id, expected: session.expected, status: decision.status, outcome: !accepted ? (session.expected ? 'abstained' : 'correctly-empty') : correct ? 'correct' : 'wrong', values: decision.values ?? null, reason: decision.reason ?? null, reasons: decision.reasons ?? null, paths: decision.paths ?? null,
+  rows.push({ id: session.id, kind: session.kind, group: session.group ?? session.id, ...(session.labels ? { labels: session.labels, font: session.font } : {}), expected: session.expected, ...(session.displayed ? { displayed: session.displayed } : {}), status: decision.status, outcome: !accepted ? (session.expected ? 'abstained' : 'correctly-empty') : correct ? 'correct' : 'wrong', values: decision.values ?? null, reason: decision.reason ?? null, reasons: decision.reasons ?? null, paths: decision.paths ?? null,
     ms: Object.fromEntries(Object.entries(analysis.ms).map(([k, v]) => [k, Math.round(v)])), seen: trace.map(e => ({ path: e.path, text: (e.items ?? []).map(i => i.text + (i.contested ? `~${i.verifierText}` : '')), lines: e.lines.map(l => l.text + (l.contested ? `?${l.contested}` : '')) })), attempts: analysis.attempts });
 }
 await textReader?.close?.();
