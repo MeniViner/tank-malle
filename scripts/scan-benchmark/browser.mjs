@@ -11,7 +11,8 @@
 // Desktop engines on this machine are not phones: these numbers bound the
 // code's cost; they are not Samsung Galaxy S25 or iPhone measurements.
 import { execFileSync, spawn } from 'node:child_process';
-import { readFile, readdir, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium, webkit } from '@playwright/test';
 import { runnerImport } from 'vite';
@@ -29,8 +30,13 @@ const scenes = test.filter((_, i) => i % Math.ceil(test.length / Number(count)) 
 
 const server = spawn('npx', ['--no-install', 'vite', 'preview', '--outDir', 'dist', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], { stdio: 'ignore' });
 for (let i = 0; i < 60; i++) { try { await fetch(origin); break; } catch { await new Promise(r => setTimeout(r, 500)); } }
-const browser = await (engine === 'webkit' ? webkit.launch({ executablePath: process.env.CARE_WEBKIT_PATH }) : chromium.launch());
-const page = await (await browser.newContext()).newPage();
+// A fresh persistent profile, as an installed PWA has. An ephemeral WebKit
+// context drops Cache Storage entries a worker wrote once that worker is
+// terminated (unless the page read them first), which a real profile does not.
+const launcher = engine === 'webkit' ? webkit : chromium, options = engine === 'webkit' ? { executablePath: process.env.CARE_WEBKIT_PATH } : {};
+const probe = await launcher.launch(options), browserVersion = probe.version(); await probe.close();
+const profile = await mkdtemp(join(tmpdir(), 'tank-maleh-scan-bench-')), context = await launcher.launchPersistentContext(profile, options);
+const page = context.pages()[0] ?? await context.newPage();
 // Photos are decoded as the Node runner decodes them (78 TRODO JPEGs are
 // truncated, which browsers refuse) and served as lossless PNG; decoding is
 // outside the timed interval.
@@ -39,9 +45,10 @@ await page.route(`${origin}/bench-image/**`, async route => route.fulfill({ body
 const [mbps, rtt] = (process.env.CARE_THROTTLE ?? '').split(',').map(Number);
 if (mbps) {
   if (engine !== 'chromium') throw new Error('CARE_THROTTLE needs chromium');
-  await (await page.context().newCDPSession(page)).send('Network.emulateNetworkConditions', { offline: false, latency: rtt || 0, downloadThroughput: mbps * 125_000, uploadThroughput: mbps * 125_000 });
+  await (await context.newCDPSession(page)).send('Network.emulateNetworkConditions', { offline: false, latency: rtt || 0, downloadThroughput: mbps * 125_000, uploadThroughput: mbps * 125_000 });
 }
-let downloads = {};
+let downloads = {}, requests = 0;
+page.on('request', request => { if (/scan-models|ort-wasm/.test(request.url())) requests++; });
 page.on('response', async response => { if (/scan-models|ort-wasm/.test(response.url())) downloads[new URL(response.url()).pathname.split('/').pop()] = (await response.body().catch(() => Buffer.alloc(0))).length; });
 await page.goto(`${origin}/favicon.svg`);
 const rss = () => {
@@ -75,11 +82,12 @@ const scan = (files, phase) => page.evaluate(async ({ worker, files, phase }) =>
 
 const before = rss();
 const first = await scan(scenes.map(s => s.frames[0].file), 'cold');
-const coldDownloads = downloads; downloads = {};
+const coldDownloads = downloads, coldRequests = requests; downloads = {}; requests = 0;
 const after = rss();
+const cached = await page.evaluate(async () => { const out = {}; for (const key of await caches.keys()) out[key] = (await (await caches.open(key)).keys()).length; return out; });
 // Reopening the app: a new worker; the recogniser comes from Cache Storage.
 const reopen = await scan([scenes[0].frames[0].file], 'reopen');
-const reopenDownloads = downloads;
+const reopenDownloads = downloads, reopenRequests = requests;
 
 const rows = [...first.rows, ...reopen.rows].map(row => {
   const scene = scenes.find(s => s.frames[0].file === row.file), session = new CaptureSession('odometer', { still: true });
@@ -96,11 +104,11 @@ const stats = list => {
 const warm = rows.filter(r => r.phase === 'warm'), cold = rows.find(r => r.phase === 'cold'), again = rows.find(r => r.phase === 'reopen');
 const bytes = d => Object.values(d).reduce((a, b) => a + b, 0);
 const report = {
-  format: 'tank-maleh-scan-browser-v2', at: new Date().toISOString(), commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), engine, browserVersion: browser.version(), machine: execFileSync('sysctl', ['-n', 'machdep.cpu.brand_string'], { encoding: 'utf8' }).trim(),
+  format: 'tank-maleh-scan-browser-v2', at: new Date().toISOString(), commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), engine, browserVersion, profile: 'fresh persistent profile', machine: execFileSync('sysctl', ['-n', 'machdep.cpu.brand_string'], { encoding: 'utf8' }).trim(),
   network: mbps ? { downloadMbps: mbps, roundTripMs: rtt || 0, method: 'Chromium DevTools Network.emulateNetworkConditions' } : 'local preview server, no throttling',
   scenes: first.rows.length, recognizer: [...new Set(rows.map(r => r.recognizer))],
-  coldStart: { firstScanMs: Math.round(cold.ms), recognizerReadyMs: Math.round(first.readyMs), outcome: cold.outcome, downloadedBytes: bytes(coldDownloads), downloads: coldDownloads, note: 'First scan after install: local preview server, no network throttling. Includes download, sha256 verification, Cache Storage write, session creation and reading the photo.' },
-  reopen: { firstScanMs: Math.round(again.ms), recognizerReadyMs: Math.round(reopen.readyMs), outcome: again.outcome, downloadedBytes: bytes(reopenDownloads), note: 'A new worker after the first: recogniser read from Cache Storage, verified, sessions created, then the same photo as the cold scan.' },
+  coldStart: { firstScanMs: Math.round(cold.ms), recognizerReadyMs: Math.round(first.readyMs), outcome: cold.outcome, requests: coldRequests, downloadedBytes: bytes(coldDownloads), downloads: coldDownloads, note: 'First scan after install: local preview server, no network throttling. Includes download, sha256 verification, Cache Storage write, session creation and reading the photo.' },
+  reopen: { firstScanMs: Math.round(again.ms), recognizerReadyMs: Math.round(reopen.readyMs), outcome: again.outcome, cacheEntriesBefore: cached, requests: reopenRequests, downloadedBytes: bytes(reopenDownloads), note: 'A new worker after the first: recogniser read from Cache Storage, verified, sessions created, then the same photo as the cold scan.' },
   warmMs: { all: stats(warm), accepted: stats(warm.filter(r => r.outcome === 'correct' || r.outcome === 'wrong')), abstained: stats(warm.filter(r => r.outcome === 'abstained')) },
   outcomes: { correct: warm.filter(r => r.outcome === 'correct').length, wrong: warm.filter(r => r.outcome === 'wrong').length, abstained: warm.filter(r => r.outcome === 'abstained').length, error: warm.filter(r => r.outcome === 'error').length, reasons: warm.filter(r => r.reason).reduce((m, r) => ({ ...m, [r.reason]: (m[r.reason] ?? 0) + 1 }), {}) },
   rendererRssMb: { before, after, note: 'Sum of renderer/web-content processes; includes the page and the worker.' },
@@ -109,5 +117,5 @@ const report = {
 if (out) await writeFile(resolve(out), JSON.stringify(report, null, 1) + '\n');
 const { rows: _, ...brief } = report;
 console.log(JSON.stringify(brief, null, 1));
-await browser.close(); server.kill();
+await context.close(); await rm(profile, { recursive: true, force: true }); server.kill();
 process.exit(0);
