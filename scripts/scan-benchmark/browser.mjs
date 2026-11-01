@@ -7,6 +7,8 @@
 //
 //   npx vite build && node scripts/scan-benchmark/browser.mjs [chromium|webkit] [scenes] [out.json]
 //   CARE_THROTTLE=10,150 (Mbit/s down, ms round trip; Chromium only) emulates a network for the cold start.
+//   CARE_CYCLES=5 instead measures memory over repeated open / scan / cancel /
+//   teardown cycles: renderer memory after each step, garbage collected first.
 //
 // Desktop engines on this machine are not phones: these numbers bound the
 // code's cost; they are not Samsung Galaxy S25 or iPhone measurements.
@@ -80,6 +82,44 @@ const scan = (files, phase) => page.evaluate(async ({ worker, files, phase }) =>
   return { rows, readyMs };
 }, { worker, files, phase });
 
+if (process.env.CARE_CYCLES) {
+  // Step by step, so memory is sampled from outside between steps.
+  await page.evaluate(worker => {
+    let w = null, id = 0; const pending = new Map();
+    const pixels = async file => {
+      const bitmap = await createImageBitmap(await (await fetch(`/bench-image/${encodeURIComponent(file)}`)).blob());
+      const ratio = Math.min(1, 2560 / Math.max(bitmap.width, bitmap.height)), canvas = new OffscreenCanvas(Math.round(bitmap.width * ratio), Math.round(bitmap.height * ratio));
+      const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height); return ctx.getImageData(0, 0, canvas.width, canvas.height);
+    };
+    const post = (image, request) => w.postMessage({ type: 'frame', id: request, frame: 0, kind: 'odometer', width: image.width, height: image.height, data: image.data.buffer, wait: true }, [image.data.buffer]);
+    window.__bench = {
+      open: () => new Promise(resolve => {
+        const created = performance.now(); w = new Worker(`/assets/${worker}`, { type: 'module' });
+        w.onmessage = e => { if (e.data.type === 'state') { if (e.data.recognizer !== 'loading') resolve({ readyMs: performance.now() - created, recognizer: e.data.recognizer }); return; } pending.get(e.data.id)?.(e.data); pending.delete(e.data.id); };
+      }),
+      scan: async file => { const image = await pixels(file), started = performance.now(), request = ++id; const reply = await new Promise(resolve => { pending.set(request, resolve); post(image, request); }); return { ms: performance.now() - started, error: reply.type === 'error' }; },
+      // A person closing the camera while a frame is being read.
+      cancel: async file => { const image = await pixels(file); post(image, ++id); await new Promise(r => setTimeout(r, 150)); w.terminate(); w = null; pending.clear(); },
+    };
+  }, worker);
+  const cycles = Number(process.env.CARE_CYCLES), perCycle = 8, samples = [], opens = [];
+  const sample = async (cycle, step) => { await page.requestGC(); samples.push({ cycle, step, rssMb: rss() }); };
+  await sample(0, 'page open');
+  for (let cycle = 1; cycle <= cycles; cycle++) {
+    opens.push({ cycle, ...(await page.evaluate(() => window.__bench.open())), downloadedBytes: Object.values(downloads).reduce((a, b) => a + b, 0) }); downloads = {};
+    await sample(cycle, 'recogniser ready');
+    for (let i = 0; i < perCycle; i++) { await page.evaluate(file => window.__bench.scan(file), scenes[i].frames[0].file); if (i % 4 === 3) await sample(cycle, `${i + 1} photos read`); }
+    await page.evaluate(file => window.__bench.cancel(file), scenes[perCycle].frames[0].file);
+    await new Promise(r => setTimeout(r, 1500)); await sample(cycle, 'cancelled; worker terminated');
+  }
+  await new Promise(r => setTimeout(r, 10_000)); await sample(cycles, 'idle 10 s after the last teardown');
+  const report = { format: 'tank-maleh-scan-memory-v1', at: new Date().toISOString(), commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), engine, browserVersion, profile: 'fresh persistent profile', machine: execFileSync('sysctl', ['-n', 'machdep.cpu.brand_string'], { encoding: 'utf8' }).trim(),
+    note: 'Resident memory of the renderer / web-content processes (page + worker), sampled after a requested garbage collection. Each cycle opens a recogniser worker, reads 8 photos, cancels a 9th mid-read by terminating the worker.', photosPerCycle: perCycle, opens, samples };
+  if (out) await writeFile(resolve(out), JSON.stringify(report, null, 1) + '\n');
+  console.log(JSON.stringify(report, null, 1));
+  await context.close(); await rm(profile, { recursive: true, force: true }); server.kill();
+  process.exit(0);
+}
 const before = rss();
 const first = await scan(scenes.map(s => s.frames[0].file), 'cold');
 const coldDownloads = downloads, coldRequests = requests; downloads = {}; requests = 0;

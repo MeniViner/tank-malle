@@ -1,0 +1,69 @@
+{
+ "format": "tank-maleh-scan-photo-sessions-v1",
+ "transcription": "Read by eye from the full-resolution photographs by one annotator (this work), checked against amount = volume x price where all three are shown. Not independently double-checked.",
+ "sessions": [
+  {
+   "id": "commons:Defective Gas Station Pump Screen",
+   "kind": "pump",
+   "file": "commons-pumps/12.jpg",
+   "sha256": "e05fd70a2663bc65d0afe9d34e79bb31337612af74c752e3ec0aaf70d4c9df6a",
+   "bytes": 1534183,
+   "source": "https://commons.wikimedia.org/wiki/File:Defective_Gas_Station_Pump_Screen.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Defective_Gas_Station_Pump_Screen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Lionel Allorge",
+   "country": "FR",
+   "labels": "French (Prix, Volume, Litres, Prix par litre)",
+   "displayed": {
+    "total": "58,57",
+    "liters": "52,81",
+    "unitPrice": "1,109"
+   },
+   "expected": {
+    "total": "58.57",
+    "liters": "52.81"
+   },
+   "notes": "Decimal commas. 52.81 x 1.109 = 58.566, rounds to the displayed 58.57."
+  },
+  {
+   "id": "commons:שגיאת מחשב בתחנת דלק 2",
+   "kind": "pump",
+   "file": "commons-pumps/32.jpg",
+   "sha256": "be997d3dc1d2eac19a20ef3118128984d304a8592e6f8b93babf16f523fac6ed",
+   "bytes": 1478861,
+   "source": "https://commons.wikimedia.org/wiki/File:%D7%A9%D7%92%D7%99%D7%90%D7%AA_%D7%9E%D7%97%D7%A9%D7%91_%D7%91%D7%AA%D7%97%D7%A0%D7%AA_%D7%93%D7%9C%D7%A7_2.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/d/d7/%D7%A9%D7%92%D7%99%D7%90%D7%AA_%D7%9E%D7%97%D7%A9%D7%91_%D7%91%D7%AA%D7%97%D7%A0%D7%AA_%D7%93%D7%9C%D7%A7_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "טבעת-זרם",
+   "country": "IL",
+   "labels": "Gilbarco Veeder-Root console; only the price per litre is visible",
+   "displayed": {
+    "unitPrice": "6.03"
+   },
+   "expected": null,
+   "notes": "No amount or volume is shown: the correct outcome is to fill nothing."
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "file": "commons-pumps/13.jpg",
+   "sha256": "a39cb29d307e4f66acb4505ea8c2896f7382e01bced8c06799823399a19265de",
+   "bytes": 3421364,
+   "source": "https://commons.wikimedia.org/wiki/File:Fuel_limit_notice_(closeup),_Mobil_Petrol,_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27,_2022.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Fuel_limit_notice_%28closeup%29%2C_Mobil_Petrol%2C_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27%2C_2022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Xbspiro",
+   "country": "HU",
+   "labels": "Hungarian (Forint, Liter, Ft/L)",
+   "displayed": {
+    "total": "000000",
+    "liters": "0000,00"
+   },
+   "expected": null,
+   "notes": "The pump shows zeros (no sale): the correct outcome is to fill nothing."
+  }
+ ]
+}
