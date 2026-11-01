@@ -89,11 +89,16 @@ async function recognize(rec: OrtSession, dictionary: string[], runtime: OrtRunt
 }
 const groups = (text: string) => text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').match(/\d+(?:\.\d+)?/g) ?? [];
 // Only the verifier's reading is normalised: its wider alphabet writes some
-// digits as look-alike letters (I, l, O, o). The accepted value is never altered.
-const LOOKALIKE: Record<string, string> = { I: '1', l: '1', i: '1', '|': '1', O: '0', o: '0', D: '0' };
-/** Every digit group of the reading must appear, whole, in the verifier's. */
+// digits as look-alike letters (I, l, O, o), and seven-segment digits as the
+// letters they are drawn like (S 5, B 8, Z 2, G/b 6, q/g 9, Y 4). The accepted
+// value is never altered, and a verifier that drops or adds a digit still
+// disagrees.
+const LOOKALIKE: Record<string, string> = { I: '1', l: '1', i: '1', '|': '1', O: '0', o: '0', D: '0', Q: '0', S: '5', s: '5', B: '8', Z: '2', z: '2', G: '6', b: '6', q: '9', g: '9', Y: '4', y: '4' };
+/** Every digit group of the reading must appear, whole, in the verifier's,
+ * read either as written or with look-alikes as digits (a unit misread as
+ * "im" after the number is not a "1"). */
 export function verifierAgrees(reading: string, verifier: string) {
-  const checked = new Set(groups([...verifier].map(c => LOOKALIKE[c] ?? c).join('')));
+  const checked = new Set([...groups(verifier), ...groups([...verifier].map(c => LOOKALIKE[c] ?? c).join(''))]);
   return groups(reading).every(group => checked.has(group));
 }
 export function createPpocrReader(models: PpocrModels, runtime: OrtRuntime, { longSide = 960, minConfidence = .5 } = {}): TextReader {
