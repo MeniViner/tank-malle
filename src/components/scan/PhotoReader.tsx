@@ -13,6 +13,7 @@ const HINTS: Record<QualityHint, string> = { 'too-dark': 'חשוך מדי. הד�
 function abstention(decision: Extract<SessionDecision, { status: 'abstained' }>, kind: DisplayKind) {
   if (decision.reasons['trip-meter']) return 'נראה שזה מד טיול (TRIP), לא מד המרחק המצטבר (ODO). עברו לתצוגת ODO, או המשיכו ידנית.';
   if (decision.reasons['unit-miles']) return 'המד נראה במיילים. הטופס שומר קילומטרים, אז המשיכו ידנית.';
+  if (decision.reasons['recognizer-loading']) return 'הקורא המקומי עדיין נטען (החיבור איטי). נסו שוב בעוד רגע, או המשיכו ידנית.';
   if (decision.reason === 'conflict') return 'התקבלו קריאות סותרות, ולכן לא מילאנו דבר. נסו שוב קרוב יותר או המשיכו ידנית.';
   if (decision.reasons['identity-ambiguous']) return kind === 'pump' ? 'לא ברור איזה מספר הוא הסכום ואיזה הליטרים. כללו בתמונה את הכיתוב שליד המספרים, או המשיכו ידנית.' : 'לא ברור איזה מספר הוא מד המרחק המצטבר. כללו בתמונה את הכיתוב ODO/ק״מ, או המשיכו ידנית.';
   return 'הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית.';
@@ -28,7 +29,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead }: { kind:DisplayKind;a
   useEffect(()=>{
     const handle=acquireScanWorker(next=>{
       // The scanning bound starts once recognition can start.
-      if(recognizerState.current==='loading'&&next!=='loading')session.current?.restartClock();
+      if(next!=='loading')session.current?.recognizerSettled();
       recognizerState.current=next;setRecognizer(next);
     });
     worker.current=handle;
@@ -44,7 +45,10 @@ export function PhotoReader({ kind,autoOpen=false,onRead }: { kind:DisplayKind;a
   }
   async function frame(image:ImageData,isActive:()=>boolean,index:number) {
     const token=generation.current;
-    if(!session.current){session.current=new CaptureSession(kind);if(recognizerState.current==='loading')session.current.restartClock();}
+    // On first use the recogniser may still be downloading: frames are read
+    // meanwhile (the segment reader can already succeed), but the session's
+    // time bound waits for the recogniser, up to its own loading bound.
+    session.current??=new CaptureSession(kind,{loading:recognizerState.current==='loading'});
     // Generous: a weak phone may need several seconds per frame, and a timeout
     // replaces the worker (reloading the recogniser).
     const analysis=await analyze(image,index,false,45000);

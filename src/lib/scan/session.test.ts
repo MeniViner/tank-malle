@@ -71,4 +71,34 @@ describe('capture session consensus', () => {
     session.attempt({ frame: 2, path: 'x', result: pump('999.99', '99.99') });
     expect(session.decide()).toBe(decision);
   });
+  it('does not time out while the recogniser is still loading, within the loading bound', () => {
+    let now = 0;
+    const session = new CaptureSession('odometer', { now: () => now, maxMs: 1000, loadMs: 5000, loading: true });
+    // Segment-only frames while the models download: nothing to read yet.
+    for (let frame = 0; frame < 80; frame++) { now += 50; session.frame(frame); session.attempt({ frame, path: 'segment@960', result: none }); }
+    expect(session.decide().status).toBe('scanning');
+    now = 4000; session.recognizerSettled();
+    session.attempt({ frame: 80, path: 'ppocr@960', result: read('128450') }); session.attempt({ frame: 80, path: 'ppocr@roi', result: read('128450') });
+    now = 4600; session.attempt({ frame: 81, path: 'ppocr@960', result: read('128450') }); session.attempt({ frame: 81, path: 'ppocr@roi', result: read('128450') });
+    // The person waited 4.6 s in all, 4 s of it for the recogniser.
+    expect(session.decide()).toMatchObject({ status: 'accepted', values: { odometer: '128450' }, elapsedMs: 4600, waitedMs: 4000 });
+  });
+  it('bounds the loading wait itself, and says the recogniser was still loading', () => {
+    let now = 0;
+    const session = new CaptureSession('odometer', { now: () => now, maxMs: 1000, loadMs: 5000, loading: true });
+    for (let frame = 0; frame < 3; frame++) { now += 1000; session.frame(frame); }
+    expect(session.decide().status).toBe('scanning');
+    // Loading took its whole bound; then the ordinary scanning bound applies.
+    now = 5500; for (let frame = 3; frame < 6; frame++) session.frame(frame);
+    expect(session.decide().status).toBe('scanning');
+    now = 6000;
+    expect(session.decide()).toMatchObject({ status: 'abstained', reason: 'timeout', reasons: { 'recognizer-loading': 1 }, elapsedMs: 6000, waitedMs: 5000 });
+  });
+  it('still accepts a corroborated segment reading before the recogniser has loaded', () => {
+    let now = 0;
+    const session = new CaptureSession('pump', { now: () => now, loading: true });
+    for (const frame of [0, 1]) { now += 300; for (const path of ['segment@960', 'segment@roi']) session.attempt({ frame, path, result: pump('287.40', '40.000') }); }
+    expect(session.decide()).toMatchObject({ status: 'accepted', values: { total: '287.40' }, elapsedMs: 600, waitedMs: 600 });
+  });
 });
+
