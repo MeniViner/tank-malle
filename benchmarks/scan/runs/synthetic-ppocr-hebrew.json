@@ -1,7 +1,7 @@
 {
  "format": "tank-maleh-scan-synthetic-v1",
  "note": "Synthetic mechanism suite; not real-world accuracy.",
- "commit": "67288b8868f2c3653b798b0ecc132a11199620ab",
+ "commit": "9265b1372f8e28abef300123675c3612a4fa5ce2",
  "seed": 20261101,
  "count": 200,
  "reader": "current",
@@ -102,7 +102,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -149,7 +148,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -239,8 +238,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3,
-    "format": 1
+    "identity-ambiguous": 3
    }
   },
   {
@@ -286,7 +284,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -330,7 +328,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -374,8 +372,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 5,
-    "format": 1
+    "identity-ambiguous": 5
    }
   },
   {
@@ -461,7 +458,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -639,7 +635,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -683,7 +679,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -775,7 +770,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -864,7 +858,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 5
+    "format": 4
    }
   },
   {
@@ -907,7 +901,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3
+    "format": 2
    }
   },
   {
@@ -951,7 +945,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -995,7 +988,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 5
+    "format": 2
    }
   },
   {
@@ -1039,7 +1032,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 2
    }
   },
@@ -1134,7 +1126,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3,
+    "format": 2,
     "no-reading": 2
    }
   },
@@ -1222,7 +1214,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -1315,7 +1306,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -1452,7 +1443,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -1497,7 +1488,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -1541,7 +1532,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -1586,7 +1577,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -1632,7 +1622,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 2
    }
   },
@@ -1677,7 +1666,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -1722,7 +1711,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "conflict": 2
    }
   },
@@ -1766,9 +1754,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3,
-    "format": 1,
-    "no-reading": 2
+    "identity-ambiguous": 2,
+    "no-reading": 1
    }
   },
   {
@@ -1903,7 +1890,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -1947,8 +1933,8 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3,
-    "no-reading": 2
+    "format": 1,
+    "no-reading": 1
    }
   },
   {
@@ -1991,7 +1977,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -2082,7 +2067,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -2128,7 +2113,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3
+    "format": 2
    }
   },
   {
@@ -2171,7 +2156,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -2216,7 +2201,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3,
+    "format": 2,
     "no-reading": 1
    }
   },
@@ -2309,7 +2294,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -2396,7 +2381,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -2442,7 +2426,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 2
    }
   },
@@ -2485,8 +2468,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3,
-    "format": 1
+    "identity-ambiguous": 3
    }
   },
   {
@@ -2528,8 +2510,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3,
-    "format": 3
+    "identity-ambiguous": 2,
+    "format": 1
    }
   },
   {
@@ -2619,7 +2601,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3
+    "format": 2
    }
   },
   {
@@ -2663,7 +2645,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -2894,7 +2876,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -2986,8 +2968,8 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
-    "conflict": 1
+    "conflict": 1,
+    "format": 1
    }
   },
   {
@@ -3033,7 +3015,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -3077,8 +3058,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
-    "format": 3,
-    "no-reading": 1
+    "format": 1
    }
   },
   {
@@ -3123,7 +3103,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3,
+    "format": 2,
     "no-reading": 2
    }
   },
@@ -3167,7 +3147,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 5
+    "format": 4
    }
   },
   {
@@ -3259,7 +3239,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 2,
+    "identity-ambiguous": 1,
     "format": 2
    }
   },
@@ -3304,7 +3284,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -3443,7 +3423,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -3486,7 +3465,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3,
+    "identity-ambiguous": 2,
     "format": 1
    }
   },
@@ -3672,7 +3651,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3
+    "format": 2
    }
   },
   {
@@ -3717,7 +3696,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -3764,7 +3742,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -3809,7 +3787,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -3855,7 +3833,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 3
+    "format": 2
    }
   },
   {
@@ -3901,7 +3879,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -3945,7 +3923,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -4036,7 +4013,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
-    "format": 2
+    "format": 1
    }
   },
   {
@@ -4259,7 +4236,6 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -4394,7 +4370,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 2,
+    "format": 1,
     "no-reading": 1
    }
   },
@@ -4484,7 +4460,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 2,
+    "identity-ambiguous": 1,
     "no-reading": 1
    }
   },
@@ -4528,7 +4504,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
-    "format": 2
+    "format": 1
    }
   },
   {

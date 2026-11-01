@@ -1,0 +1,2468 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T14:37:41.944Z",
+ "commit": "afd6b5b33e2f40e9c4a04ef43ed60932b0141e6b",
+ "sessionsFile": "benchmarks/scan/fixtures-dev.json",
+ "text": "ppocr-v5+v6",
+ "note": "Development fixtures (used while changing the pipeline). Synthetic.",
+ "outcomes": {
+  "abstained": 50,
+  "correct": 60,
+  "correctly-empty": 10
+ },
+ "rows": [
+  {
+   "id": "dev-g000-clean",
+   "kind": "pump",
+   "group": "dev-g000",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "395.78",
+    "liters": "58.34"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g000-blur",
+   "kind": "pump",
+   "group": "dev-g000",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "395.78",
+    "liters": "58.34"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g001-clean",
+   "kind": "odometer",
+   "group": "dev-g001",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "70274"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "70274"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g001-jpeg",
+   "kind": "odometer",
+   "group": "dev-g001",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "70274"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "70274"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g002-clean",
+   "kind": "pump",
+   "group": "dev-g002",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g002-blur",
+   "kind": "pump",
+   "group": "dev-g002",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g003-clean",
+   "kind": "odometer",
+   "group": "dev-g003",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "89661"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "89661"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g003-jpeg",
+   "kind": "odometer",
+   "group": "dev-g003",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "89661"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "89661"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g004-clean",
+   "kind": "pump",
+   "group": "dev-g004",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "total": "232.26",
+    "liters": "34.661"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g004-tilt",
+   "kind": "pump",
+   "group": "dev-g004",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "total": "232.26",
+    "liters": "34.661"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g005-clean",
+   "kind": "odometer",
+   "group": "dev-g005",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "137972"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "137972"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g005-jpeg",
+   "kind": "odometer",
+   "group": "dev-g005",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "137972"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "137972"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g006-clean",
+   "kind": "pump",
+   "group": "dev-g006",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g006-blur",
+   "kind": "pump",
+   "group": "dev-g006",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g007-clean",
+   "kind": "odometer",
+   "group": "dev-g007",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "145264"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "145264"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g007-blur",
+   "kind": "odometer",
+   "group": "dev-g007",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "145264"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g008-clean",
+   "kind": "pump",
+   "group": "dev-g008",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g008-noise",
+   "kind": "pump",
+   "group": "dev-g008",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g009-clean",
+   "kind": "odometer",
+   "group": "dev-g009",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "197221"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "197221"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g009-jpeg",
+   "kind": "odometer",
+   "group": "dev-g009",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "197221"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "197221"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g010-clean",
+   "kind": "pump",
+   "group": "dev-g010",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g010-tilt",
+   "kind": "pump",
+   "group": "dev-g010",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g011-clean",
+   "kind": "odometer",
+   "group": "dev-g011",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "118342"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "118342"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g011-noise",
+   "kind": "odometer",
+   "group": "dev-g011",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "118342"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g012-clean",
+   "kind": "pump",
+   "group": "dev-g012",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g012-jpeg",
+   "kind": "pump",
+   "group": "dev-g012",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g013-clean",
+   "kind": "odometer",
+   "group": "dev-g013",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "191311"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g013-blur",
+   "kind": "odometer",
+   "group": "dev-g013",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "191311"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "191311"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g014-clean",
+   "kind": "pump",
+   "group": "dev-g014",
+   "labels": "none",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g014-tilt",
+   "kind": "pump",
+   "group": "dev-g014",
+   "labels": "none",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g015-clean",
+   "kind": "odometer",
+   "group": "dev-g015",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "168921"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "168921"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g015-tilt",
+   "kind": "odometer",
+   "group": "dev-g015",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "168921"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "168921"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g016-clean",
+   "kind": "pump",
+   "group": "dev-g016",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "285.37",
+    "liters": "36.409"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g016-blur",
+   "kind": "pump",
+   "group": "dev-g016",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "285.37",
+    "liters": "36.409"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g017-clean",
+   "kind": "odometer",
+   "group": "dev-g017",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "odometer": "51041"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "51041"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g017-blur",
+   "kind": "odometer",
+   "group": "dev-g017",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "odometer": "51041"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "51041"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g018-clean",
+   "kind": "pump",
+   "group": "dev-g018",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g018-tilt",
+   "kind": "pump",
+   "group": "dev-g018",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g019-clean",
+   "kind": "odometer",
+   "group": "dev-g019",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "263091"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g019-jpeg",
+   "kind": "odometer",
+   "group": "dev-g019",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "263091"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "263091"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ]
+  },
+  {
+   "id": "dev-g020-clean",
+   "kind": "pump",
+   "group": "dev-g020",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g020-tilt",
+   "kind": "pump",
+   "group": "dev-g020",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g021-clean",
+   "kind": "odometer",
+   "group": "dev-g021",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "82381"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g021-tilt",
+   "kind": "odometer",
+   "group": "dev-g021",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "82381"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g022-clean",
+   "kind": "pump",
+   "group": "dev-g022",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g022-blur",
+   "kind": "pump",
+   "group": "dev-g022",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g023-clean",
+   "kind": "odometer",
+   "group": "dev-g023",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "101699"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g023-tilt",
+   "kind": "odometer",
+   "group": "dev-g023",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "101699"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "conflict",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g024-clean",
+   "kind": "pump",
+   "group": "dev-g024",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "470.91",
+    "liters": "64.42"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g024-jpeg",
+   "kind": "pump",
+   "group": "dev-g024",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "470.91",
+    "liters": "64.42"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g025-clean",
+   "kind": "odometer",
+   "group": "dev-g025",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "231941"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "conflict": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g025-jpeg",
+   "kind": "odometer",
+   "group": "dev-g025",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "231941"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g026-clean",
+   "kind": "pump",
+   "group": "dev-g026",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "94.46",
+    "liters": "12.236"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g026-noise",
+   "kind": "pump",
+   "group": "dev-g026",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "94.46",
+    "liters": "12.236"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "conflict": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g027-clean",
+   "kind": "odometer",
+   "group": "dev-g027",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "12111"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "12111"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g027-blur",
+   "kind": "odometer",
+   "group": "dev-g027",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "12111"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "12111"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g028-clean",
+   "kind": "pump",
+   "group": "dev-g028",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "212.27",
+    "liters": "31.17"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g028-noise",
+   "kind": "pump",
+   "group": "dev-g028",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "212.27",
+    "liters": "31.17"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g029-clean",
+   "kind": "odometer",
+   "group": "dev-g029",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "140796"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g029-tilt",
+   "kind": "odometer",
+   "group": "dev-g029",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "140796"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "140796"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g030-clean",
+   "kind": "pump",
+   "group": "dev-g030",
+   "labels": "none",
+   "font": "Arial",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g030-tilt",
+   "kind": "pump",
+   "group": "dev-g030",
+   "labels": "none",
+   "font": "Arial",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g031-clean",
+   "kind": "odometer",
+   "group": "dev-g031",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "162963"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g031-tilt",
+   "kind": "odometer",
+   "group": "dev-g031",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "162963"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "162963"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g032-clean",
+   "kind": "pump",
+   "group": "dev-g032",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g032-tilt",
+   "kind": "pump",
+   "group": "dev-g032",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g033-clean",
+   "kind": "odometer",
+   "group": "dev-g033",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "164250"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "164250"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g033-jpeg",
+   "kind": "odometer",
+   "group": "dev-g033",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "164250"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "164250"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g034-clean",
+   "kind": "pump",
+   "group": "dev-g034",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "total": "382.91",
+    "liters": "56.98"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g034-noise",
+   "kind": "pump",
+   "group": "dev-g034",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "total": "382.91",
+    "liters": "56.98"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g035-clean",
+   "kind": "odometer",
+   "group": "dev-g035",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "136694"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "136694"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g035-jpeg",
+   "kind": "odometer",
+   "group": "dev-g035",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "136694"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "136694"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g036-clean",
+   "kind": "pump",
+   "group": "dev-g036",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "410.03",
+    "liters": "59.27"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g036-jpeg",
+   "kind": "pump",
+   "group": "dev-g036",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "410.03",
+    "liters": "59.27"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g037-clean",
+   "kind": "odometer",
+   "group": "dev-g037",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "262862"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "conflict",
+   "reasons": {
+    "conflict": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g037-noise",
+   "kind": "odometer",
+   "group": "dev-g037",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "262862"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g038-clean",
+   "kind": "pump",
+   "group": "dev-g038",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g038-noise",
+   "kind": "pump",
+   "group": "dev-g038",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 4,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g039-clean",
+   "kind": "odometer",
+   "group": "dev-g039",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "11051"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g039-tilt",
+   "kind": "odometer",
+   "group": "dev-g039",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "11051"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "11051"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g040-clean",
+   "kind": "pump",
+   "group": "dev-g040",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g040-jpeg",
+   "kind": "pump",
+   "group": "dev-g040",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g041-clean",
+   "kind": "odometer",
+   "group": "dev-g041",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "14939"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "14939"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g041-jpeg",
+   "kind": "odometer",
+   "group": "dev-g041",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "14939"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "14939"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g042-clean",
+   "kind": "pump",
+   "group": "dev-g042",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g042-noise",
+   "kind": "pump",
+   "group": "dev-g042",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g043-clean",
+   "kind": "odometer",
+   "group": "dev-g043",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "117711"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "117711"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g043-blur",
+   "kind": "odometer",
+   "group": "dev-g043",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "117711"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "117711"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ]
+  },
+  {
+   "id": "dev-g044-clean",
+   "kind": "pump",
+   "group": "dev-g044",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 3,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g044-blur",
+   "kind": "pump",
+   "group": "dev-g044",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g045-clean",
+   "kind": "odometer",
+   "group": "dev-g045",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "255140"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g045-noise",
+   "kind": "odometer",
+   "group": "dev-g045",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "255140"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g046-clean",
+   "kind": "pump",
+   "group": "dev-g046",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "total": "238.20",
+    "liters": "35.82"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g046-blur",
+   "kind": "pump",
+   "group": "dev-g046",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "total": "238.20",
+    "liters": "35.82"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g047-clean",
+   "kind": "odometer",
+   "group": "dev-g047",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "38860"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g047-jpeg",
+   "kind": "odometer",
+   "group": "dev-g047",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "38860"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "38860"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g048-clean",
+   "kind": "pump",
+   "group": "dev-g048",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g048-blur",
+   "kind": "pump",
+   "group": "dev-g048",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 3
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g049-clean",
+   "kind": "odometer",
+   "group": "dev-g049",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "113611"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "113611"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ]
+  },
+  {
+   "id": "dev-g049-blur",
+   "kind": "odometer",
+   "group": "dev-g049",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "113611"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "113611"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ]
+  },
+  {
+   "id": "dev-g050-clean",
+   "kind": "pump",
+   "group": "dev-g050",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g050-tilt",
+   "kind": "pump",
+   "group": "dev-g050",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g051-clean",
+   "kind": "odometer",
+   "group": "dev-g051",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "154091"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "154091"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g051-tilt",
+   "kind": "odometer",
+   "group": "dev-g051",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "154091"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "154091"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g052-clean",
+   "kind": "pump",
+   "group": "dev-g052",
+   "labels": "hebrew",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "185.56",
+    "liters": "24.193"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g052-jpeg",
+   "kind": "pump",
+   "group": "dev-g052",
+   "labels": "hebrew",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "185.56",
+    "liters": "24.193"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g053-clean",
+   "kind": "odometer",
+   "group": "dev-g053",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "111071"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "trip-meter": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g053-blur",
+   "kind": "odometer",
+   "group": "dev-g053",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "111071"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "111071"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g054-clean",
+   "kind": "pump",
+   "group": "dev-g054",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g054-blur",
+   "kind": "pump",
+   "group": "dev-g054",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g055-clean",
+   "kind": "odometer",
+   "group": "dev-g055",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "227731"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "227731"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ]
+  },
+  {
+   "id": "dev-g055-tilt",
+   "kind": "odometer",
+   "group": "dev-g055",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "227731"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "227731"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ]
+  },
+  {
+   "id": "dev-g056-clean",
+   "kind": "pump",
+   "group": "dev-g056",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "195.80",
+    "liters": "28.625"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g056-tilt",
+   "kind": "pump",
+   "group": "dev-g056",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "195.80",
+    "liters": "28.625"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g057-clean",
+   "kind": "odometer",
+   "group": "dev-g057",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "135356"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "135356"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g057-tilt",
+   "kind": "odometer",
+   "group": "dev-g057",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "135356"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "135356"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g058-clean",
+   "kind": "pump",
+   "group": "dev-g058",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g058-blur",
+   "kind": "pump",
+   "group": "dev-g058",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "dev-g059-clean",
+   "kind": "odometer",
+   "group": "dev-g059",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "252324"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "dev-g059-jpeg",
+   "kind": "odometer",
+   "group": "dev-g059",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "252324"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "252324"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ]
+  }
+ ]
+}

@@ -520,21 +520,23 @@ Seed 20261101, 200 generated seven-segment scenes. "Decidable" means image evide
 | --- | --- | --- | --- | --- |
 | 1.6.0 reader | 3/19 / 7 | 34/81 (21 match the truth) | 19/72 / 0 | 0/28 |
 | New reader (segment path) | 11/19 / 0 | 0/81 | 44/72 / 0 | 0/28 |
-| Complete pipeline with the recogniser, no printed labels (`67288b8`) | 17/19 / 0 | 1/81 (1 match the truth) | 62/72 / 0 | 0/28 |
-| Complete pipeline, English labels (SALE / LITRES / PRICE, ODO) (`67288b8`) | 7/19 / 0 | 28/81 (28 match the truth) | 44/72 / 0 | 6/28 |
-| Complete pipeline, Hebrew labels (סה״כ לתשלום / ליטרים / מחיר לליטר, ק״מ) (`67288b8`) | 15/19 / 0 | 5/81 (5 match the truth) | 39/72 / 0 | 0/28 |
+| Complete pipeline with the recogniser, no printed labels (`9265b13`) | 17/19 / 0 | 0/81 | 62/72 / 0 | 0/28 |
+| Complete pipeline, English labels (SALE / LITRES / PRICE, ODO) (`9265b13`) | 7/19 / 0 | 28/81 (28 match the truth) | 44/72 / 0 | 6/28 |
+| Complete pipeline, Hebrew labels (סה״כ לתשלום / ליטרים / מחיר לליטר, ק״מ) (`9265b13`) | 15/19 / 0 | 5/81 (5 match the truth) | 39/72 / 0 | 0/28 |
 
 With printed English labels an undecidable layout can be settled by its labels, so those acceptances are legitimate; all of them match the truth. The English recogniser cannot read Hebrew labels. Printed labels in the digit row also break the segment reader's row parsing (its paths report format / no-reading), which is why labelled decidable pumps drop from 12 to 2. No synthetic scene was filled wrongly in any configuration.
 
 ## Real pump photographs (complete pipeline; too few for an accuracy estimate)
 
-3 CC BY-SA photographs from Wikimedia Commons, transcribed by eye; none is an Israeli display with amount and volume, and the one complete display shows euros, which the form must not take as shekels (see `benchmarks/scan/commons-pump-sessions.json`), read at `c482b26`. Outcomes: correctly-empty 2, abstained 1.
+5 CC BY-SA photographs from Wikimedia Commons, transcribed by eye; none is an Israeli display with amount and volume, and the one complete display shows euros, which the form must not take as shekels (see `benchmarks/scan/commons-pump-sessions.json`), read at `afd6b5b`. Outcomes: correctly-empty 5.
 
 | Photograph | Displayed | Outcome | Reason |
 | --- | --- | --- | --- |
-| Defective Gas Station Pump Screen | total 58.57, liters 52.81 | abstained | unreadable (format 3) |
-| שגיאת מחשב בתחנת דלק 2 | — (fill nothing) | correctly-empty | unreadable (format 2, no-reading 2) |
-| Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022 | — (fill nothing) | correctly-empty | unreadable (format 2, no-reading 2) |
+| Defective Gas Station Pump Screen | total 58,57, liters 52,81, unitPrice 1,109 (fill nothing) | correctly-empty | unreadable (format 4, no-reading 1) |
+| שגיאת מחשב בתחנת דלק 2 | unitPrice 6.03 (fill nothing) | correctly-empty | unreadable (no-reading 2, format 1) |
+| Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022 | total 000000, liters 0000,00 (fill nothing) | correctly-empty | unreadable (no-reading 2, format 1) |
+| Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022 | total 0, liters 0.00 (fill nothing) | correctly-empty | unreadable (no-reading 2, format 1) |
+| TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser | liters 35.36 and 32.50 (two hoses; legible at full size) (fill nothing) | correctly-empty | unreadable (format 2, no-reading 2) |
 
 ## Simulated live sessions (derived frames; not independent trials)
 
@@ -550,16 +552,107 @@ The built worker from `vite preview`, a fresh persistent browser profile, photos
 
 | Engine | Network | First scan after install (download, verify, load, read) | …of which recogniser ready | Downloaded | Reopen: first scan / recogniser ready / downloaded | Renderer RSS before → after |
 | --- | --- | --- | --- | --- | --- | --- |
-| chromium 156.0.8078.4 | local, unthrottled | 1498 ms | 493 ms | 31.4 MB in 4 requests | 1224 ms / 193 ms / 0.0 MB | 80 → 462 MB |
-| webkit 27.2 | local, unthrottled | 1428 ms | 445 ms | 31.4 MB in 4 requests | 1145 ms / 163 ms / 0.0 MB | 105 → 1105 MB |
-| chromium 156.0.8078.4 | 10 Mbit/s, 150 ms RTT (emulated) | 25867 ms | 24825 ms | 31.4 MB in 4 requests | 1418 ms / 411 ms / 0.0 MB | 80 → 555 MB |
+| chromium 156.0.8078.4 | local, unthrottled | 1814 ms | 617 ms | 31.4 MB in 4 requests | 1602 ms / 227 ms / 0.0 MB | 77 → 285 MB |
+| webkit 27.2 | local, unthrottled | 1405 ms | 1585 ms | 31.4 MB in 4 requests | 1541 ms / 210 ms / 0.0 MB | 105 → 869 MB |
+| chromium 156.0.8078.4 | 10 Mbit/s, 150 ms RTT (emulated) | 26236 ms | 24889 ms | 31.4 MB in 4 requests | 2061 ms / 446 ms / 0.0 MB | 80 → 525 MB |
+| chromium 156.0.8078.4 | local; macOS background QoS (taskpolicy -c background): efficiency cores only; a CPU stress test, not a phone | 4365 ms | 1454 ms | 31.4 MB in 4 requests | 7651 ms / 2170 ms / 0.0 MB | 80 → 215 MB |
 
 | Engine | Warm photos | Warm, all p50 / p95 | Warm, accepted p50 / p95 | Warm, abstained p50 / p95 | Outcomes (warm) |
 | --- | --- | --- | --- | --- | --- |
-| chromium 156.0.8078.4 | 39 | 766 ms / 1067 ms (n = 39) | 744 ms / 992 ms (n = 16) | 816 ms / 996 ms (n = 23) | correct 16, wrong 0, abstained 23 (unreadable 19, uncorroborated 4), errors 0 |
-| webkit 27.2 | 39 | 702 ms / 954 ms (n = 39) | 683 ms / 952 ms (n = 16) | 735 ms / 897 ms (n = 23) | correct 16, wrong 0, abstained 23 (unreadable 19, uncorroborated 4), errors 0 |
+| chromium 156.0.8078.4 | 39 | 942 ms / 1325 ms (n = 39) | 932 ms / 1215 ms (n = 17) | 944 ms / 1325 ms (n = 22) | correct 17, wrong 0, abstained 22 (unreadable 18, uncorroborated 4), errors 0 |
+| webkit 27.2 | 39 | 871 ms / 1950 ms (n = 39) | 871 ms / 1997 ms (n = 17) | 839 ms / 1906 ms (n = 22) | correct 17, wrong 0, abstained 22 (unreadable 18, uncorroborated 4), errors 0 |
+| chromium 156.0.8078.4, efficiency cores only | 19 | 3039 ms / 4677 ms (n = 19) | 2829 ms / 4121 ms (n = 7) | 3039 ms / 4677 ms (n = 12) | correct 7, wrong 0, abstained 12 (unreadable 9, uncorroborated 3), errors 0 |
 
 The local preview server sends the WASM runtime uncompressed and the `.onnx` files gzip-compressed, so the throttled run transfers roughly 30 MB; whether Firebase Hosting compresses these types is unverified. Each still photo is one decision, so abstention latency equals one photo's analysis; a live session that abstains runs until its frame and time bounds. Ephemeral (private-mode-like) WebKit contexts drop Cache Storage entries a worker wrote once the worker is terminated; with a persistent profile the reopen downloads nothing (reproduced both ways). In Safari private browsing the models would therefore be fetched again after each idle stop (unverified on iOS).
+
+## Development fixtures (used while changing the pipeline)
+
+120 synthetic images in 60 groups (a scene and its degraded copy), read at `afd6b5b` through the complete still-photo pipeline. Development fixtures (used while changing the pipeline). Synthetic. Synthetic: rendering generalisation, not real-world accuracy. Outcomes: correct 60, abstained 50, correctly-empty 10.
+
+| Kind / labels / font | Correct | Wrong | Abstained | Correctly empty (foreign currency) |
+| --- | --- | --- | --- | --- |
+| odometer / english / printed font | 16 | 0 | 2 | 0 |
+| odometer / english / seven-segment | 5 | 0 | 7 | 0 |
+| odometer / hebrew / printed font | 7 | 0 | 1 | 0 |
+| odometer / hebrew / seven-segment | 1 | 0 | 5 | 0 |
+| odometer / none / printed font | 5 | 0 | 1 | 0 |
+| odometer / none / seven-segment | 6 | 0 | 4 | 0 |
+| pump / english / printed font | 17 | 0 | 9 | 2 |
+| pump / english / seven-segment | 1 | 0 | 1 | 0 |
+| pump / hebrew / printed font | 0 | 0 | 8 | 0 |
+| pump / hebrew / seven-segment | 1 | 0 | 3 | 2 |
+| pump / none / printed font | 1 | 0 | 5 | 4 |
+| pump / none / seven-segment | 0 | 0 | 4 | 2 |
+
+## First frozen fixture set, read once (generator flaw: 19 distinct scenes in 120 groups)
+
+240 synthetic images in 120 groups (a scene and its degraded copy), read at `c35d402` through the complete still-photo pipeline. First frozen set, read once on the cycle-3 code before its pump fixes. Its generator had fallen into a short random cycle (19 distinct scenes in 120 groups); the 26 wrong fills are one scene repeated. Synthetic: rendering generalisation, not real-world accuracy. Outcomes: correct 116, abstained 98, wrong 26.
+
+| Kind / labels / font | Correct | Wrong | Abstained | Correctly empty (foreign currency) |
+| --- | --- | --- | --- | --- |
+| odometer / english / printed font | 53 | 0 | 1 | 0 |
+| odometer / english / seven-segment | 0 | 0 | 6 | 0 |
+| odometer / hebrew / printed font | 0 | 0 | 2 | 0 |
+| odometer / none / printed font | 30 | 0 | 28 | 0 |
+| pump / english / printed font | 31 | 0 | 27 | 0 |
+| pump / english / seven-segment | 0 | 0 | 2 | 0 |
+| pump / hebrew / printed font | 2 | 26 | 28 | 0 |
+| pump / hebrew / seven-segment | 0 | 0 | 2 | 0 |
+| pump / none / seven-segment | 0 | 0 | 2 | 0 |
+
+## First frozen set after the fix it exposed (regression evidence)
+
+240 synthetic images in 120 groups (a scene and its degraded copy), read at `9265b13` through the complete still-photo pipeline. First frozen set after the missing-amount-row fix: regression evidence. Synthetic: rendering generalisation, not real-world accuracy. Outcomes: abstained 124, correct 116.
+
+| Kind / labels / font | Correct | Wrong | Abstained | Correctly empty (foreign currency) |
+| --- | --- | --- | --- | --- |
+| odometer / english / printed font | 53 | 0 | 1 | 0 |
+| odometer / english / seven-segment | 0 | 0 | 6 | 0 |
+| odometer / hebrew / printed font | 0 | 0 | 2 | 0 |
+| odometer / none / printed font | 30 | 0 | 28 | 0 |
+| pump / english / printed font | 31 | 0 | 27 | 0 |
+| pump / english / seven-segment | 0 | 0 | 2 | 0 |
+| pump / hebrew / printed font | 2 | 0 | 54 | 0 |
+| pump / hebrew / seven-segment | 0 | 0 | 2 | 0 |
+| pump / none / seven-segment | 0 | 0 | 2 | 0 |
+
+## Second frozen fixture set: committed before evaluation, read once on the final code (the independent synthetic result)
+
+240 synthetic images in 120 groups (a scene and its degraded copy), read at `9265b13` through the complete still-photo pipeline. Second frozen set (120 distinct scenes), committed before evaluation and read once on the final cycle-3 code: the independent synthetic result. Synthetic: rendering generalisation, not real-world accuracy. Outcomes: abstained 130, correct 90, correctly-empty 16, wrong 4.
+
+| Kind / labels / font | Correct | Wrong | Abstained | Correctly empty (foreign currency) |
+| --- | --- | --- | --- | --- |
+| odometer / english / printed font | 21 | 0 | 17 | 0 |
+| odometer / english / seven-segment | 4 | 0 | 14 | 0 |
+| odometer / hebrew / printed font | 18 | 0 | 4 | 0 |
+| odometer / hebrew / seven-segment | 4 | 0 | 6 | 0 |
+| odometer / none / printed font | 17 | 0 | 7 | 0 |
+| odometer / none / seven-segment | 4 | 0 | 4 | 0 |
+| pump / english / printed font | 16 | 3 | 8 | 3 |
+| pump / english / seven-segment | 1 | 1 | 15 | 3 |
+| pump / hebrew / printed font | 2 | 0 | 16 | 2 |
+| pump / hebrew / seven-segment | 0 | 0 | 8 | 2 |
+| pump / none / printed font | 3 | 0 | 25 | 6 |
+| pump / none / seven-segment | 0 | 0 | 6 | 0 |
+
+## Second frozen set after the fix it exposed (regression evidence)
+
+240 synthetic images in 120 groups (a scene and its degraded copy), read at `afd6b5b` through the complete still-photo pipeline. Second frozen set after the combined-label currency fix it exposed: regression evidence. Synthetic: rendering generalisation, not real-world accuracy. Outcomes: abstained 130, correct 90, correctly-empty 20.
+
+| Kind / labels / font | Correct | Wrong | Abstained | Correctly empty (foreign currency) |
+| --- | --- | --- | --- | --- |
+| odometer / english / printed font | 21 | 0 | 17 | 0 |
+| odometer / english / seven-segment | 4 | 0 | 14 | 0 |
+| odometer / hebrew / printed font | 18 | 0 | 4 | 0 |
+| odometer / hebrew / seven-segment | 4 | 0 | 6 | 0 |
+| odometer / none / printed font | 17 | 0 | 7 | 0 |
+| odometer / none / seven-segment | 4 | 0 | 4 | 0 |
+| pump / english / printed font | 16 | 0 | 8 | 6 |
+| pump / english / seven-segment | 1 | 0 | 15 | 4 |
+| pump / hebrew / printed font | 2 | 0 | 16 | 2 |
+| pump / hebrew / seven-segment | 0 | 0 | 8 | 2 |
+| pump / none / printed font | 3 | 0 | 25 | 6 |
+| pump / none / seven-segment | 0 | 0 | 6 | 0 |
 
 ## Compact display-digit recogniser (experiment; not shipped)
 
@@ -573,61 +666,81 @@ Held-out tuning rows (178 annotated crops; diagnostic): exact digits PP-OCRv5 95
 | ppocr-v5+digits | 15/40 | 0/46 | 1541 ms / 2401 ms |
 | ppocr-v5+v6+digits | 13/40 | 0/46 | 2147 ms / 3203 ms |
 
+## Camera replay of the live scan (Chromium fake camera; software, not phones)
+
+Chromium fake capture device playing rendered 1280x720 displays at 3 fps; the built app with the pinned models, emulators for data. Times are camera-open to reading on a desktop CPU, one test at a time; they are not phone measurements. Run at `afd6b5b`: 13 passed, 0 failed.
+
+| Scene | Test | Result | Measured |
+| --- | --- | --- | --- |
+| pump | a cold live pump scan fills the form; the saved fill-up survives a reload | passed | time to pump reading (cold, models downloaded in this test): 4715 ms; 4 model requests |
+| pump | reopening reads again from the cached recogniser without downloading | passed | time to pump reading (warm reopen): 4213 ms, 4211 ms, 4226 ms |
+| pump | on a slow network the first live scan waits for the recogniser and fills | passed | time to pump reading (cold, 10 Mbit/s emulated): 28872 ms |
+| pump | closing the camera while the recogniser loads fills nothing; reopening fills | passed | — |
+| pump | a frame still being read when the camera closes fills nothing afterwards | passed | — |
+| pump | a recogniser file that fails its integrity check fills nothing wrong and leaves manual entry | passed | — |
+| odometer | a cold live odometer scan fills the form and saves | passed | time to filled odometer (cold): 4341 ms |
+| blur-to-clear | a cold live pump scan fills the form; the saved fill-up survives a reload | passed | time to pump reading (cold, models downloaded in this test): 4218 ms; 4 model requests |
+| movement | a cold live odometer scan fills the form and saves | passed | time to filled odometer (cold): 3839 ms |
+| counting-pump | a counting pump is filled only with its final values, or not at all | passed | outcome: filled the final values after 15068 ms |
+| trip-and-odo | with a trip meter and a clock above the odometer, the trip is never filled | passed | outcome: abstained after 16729 ms: לא ברור איזה מספר הוא מד המרחק המצטבר. כללו בתמונה את הכיתוב ODO/ק״מ, או המשיכו ידנית. |
+| labelled-pump | a cold live pump scan fills the form; the saved fill-up survives a reload | passed | time to pump reading (cold, models downloaded in this test): 5230 ms; 4 model requests |
+| offline | after one online scan, the installed app reads offline after a restart | passed | time to pump reading (offline restart, models from Cache Storage): 4209 ms |
+
 ## Memory over repeated scan / cancel / reopen cycles (desktop engines)
 
 Resident memory of the renderer / web-content processes (page + worker), sampled after a requested garbage collection. Each cycle opens a recogniser worker, reads 8 photos, cancels a 9th mid-read by terminating the worker.
 
-**chromium 156.0.8078.4** (`c482b26`): recogniser ready in 521 ms (31.4 MB downloaded), 194 ms, 190 ms, 187 ms, 192 ms.
+**chromium 156.0.8078.4** (`c35d402`): recogniser ready in 560 ms (31.4 MB downloaded), 224 ms, 222 ms, 224 ms, 216 ms.
 
 | Cycle | Step | Renderer RSS |
 | --- | --- | --- |
 | 0 | page open | 85 MB |
-| 1 | recogniser ready | 382 MB |
-| 1 | 4 photos read | 551 MB |
-| 1 | 8 photos read | 557 MB |
-| 1 | cancelled; worker terminated | 311 MB |
-| 2 | recogniser ready | 442 MB |
-| 2 | 4 photos read | 542 MB |
-| 2 | 8 photos read | 595 MB |
-| 2 | cancelled; worker terminated | 363 MB |
-| 3 | recogniser ready | 473 MB |
-| 3 | 4 photos read | 564 MB |
-| 3 | 8 photos read | 580 MB |
-| 3 | cancelled; worker terminated | 343 MB |
-| 4 | recogniser ready | 474 MB |
-| 4 | 4 photos read | 593 MB |
-| 4 | 8 photos read | 585 MB |
-| 4 | cancelled; worker terminated | 344 MB |
-| 5 | recogniser ready | 470 MB |
-| 5 | 4 photos read | 556 MB |
-| 5 | 8 photos read | 597 MB |
-| 5 | cancelled; worker terminated | 369 MB |
-| 5 | idle 10 s after the last teardown | 347 MB |
+| 1 | recogniser ready | 389 MB |
+| 1 | 4 photos read | 602 MB |
+| 1 | 8 photos read | 429 MB |
+| 1 | cancelled; worker terminated | 176 MB |
+| 2 | recogniser ready | 373 MB |
+| 2 | 4 photos read | 502 MB |
+| 2 | 8 photos read | 580 MB |
+| 2 | cancelled; worker terminated | 355 MB |
+| 3 | recogniser ready | 463 MB |
+| 3 | 4 photos read | 559 MB |
+| 3 | 8 photos read | 598 MB |
+| 3 | cancelled; worker terminated | 366 MB |
+| 4 | recogniser ready | 470 MB |
+| 4 | 4 photos read | 617 MB |
+| 4 | 8 photos read | 602 MB |
+| 4 | cancelled; worker terminated | 357 MB |
+| 5 | recogniser ready | 462 MB |
+| 5 | 4 photos read | 518 MB |
+| 5 | 8 photos read | 487 MB |
+| 5 | cancelled; worker terminated | 244 MB |
+| 5 | idle 10 s after the last teardown | 244 MB |
 
-**webkit 27.2** (`c482b26`): recogniser ready in 432 ms (31.4 MB downloaded), 159 ms, 184 ms, 157 ms, 157 ms.
+**webkit 27.2** (`c35d402`): recogniser ready in 511 ms (31.4 MB downloaded), 202 ms, 182 ms, 172 ms, 163 ms.
 
 | Cycle | Step | Renderer RSS |
 | --- | --- | --- |
 | 0 | page open | 106 MB |
-| 1 | recogniser ready | 434 MB |
-| 1 | 4 photos read | 784 MB |
-| 1 | 8 photos read | 948 MB |
-| 1 | cancelled; worker terminated | 950 MB |
-| 2 | recogniser ready | 920 MB |
-| 2 | 4 photos read | 1063 MB |
-| 2 | 8 photos read | 1091 MB |
-| 2 | cancelled; worker terminated | 1035 MB |
-| 3 | recogniser ready | 854 MB |
-| 3 | 4 photos read | 910 MB |
-| 3 | 8 photos read | 1006 MB |
-| 3 | cancelled; worker terminated | 1006 MB |
-| 4 | recogniser ready | 944 MB |
-| 4 | 4 photos read | 1074 MB |
-| 4 | 8 photos read | 1137 MB |
-| 4 | cancelled; worker terminated | 1124 MB |
-| 5 | recogniser ready | 1032 MB |
-| 5 | 4 photos read | 1095 MB |
-| 5 | 8 photos read | 1122 MB |
-| 5 | cancelled; worker terminated | 1122 MB |
-| 5 | idle 10 s after the last teardown | 1081 MB |
+| 1 | recogniser ready | 435 MB |
+| 1 | 4 photos read | 826 MB |
+| 1 | 8 photos read | 990 MB |
+| 1 | cancelled; worker terminated | 916 MB |
+| 2 | recogniser ready | 839 MB |
+| 2 | 4 photos read | 1031 MB |
+| 2 | 8 photos read | 1093 MB |
+| 2 | cancelled; worker terminated | 1090 MB |
+| 3 | recogniser ready | 970 MB |
+| 3 | 4 photos read | 994 MB |
+| 3 | 8 photos read | 1018 MB |
+| 3 | cancelled; worker terminated | 1020 MB |
+| 4 | recogniser ready | 949 MB |
+| 4 | 4 photos read | 1027 MB |
+| 4 | 8 photos read | 1015 MB |
+| 4 | cancelled; worker terminated | 961 MB |
+| 5 | recogniser ready | 939 MB |
+| 5 | 4 photos read | 1044 MB |
+| 5 | 8 photos read | 970 MB |
+| 5 | cancelled; worker terminated | 958 MB |
+| 5 | idle 10 s after the last teardown | 707 MB |
 

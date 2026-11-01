@@ -1,7 +1,7 @@
 {
  "format": "tank-maleh-scan-browser-v2",
- "at": "2026-11-01T04:12:31.557Z",
- "commit": "be3d1d88ff3bebb5f3a46e37eb5f65da8f1d5e77",
+ "at": "2026-11-01T14:07:50.674Z",
+ "commit": "c35d40286d9ab5dd913afec900a51bf19566f05c",
  "engine": "webkit",
  "browserVersion": "27.2",
  "profile": "fresh persistent profile",
@@ -12,8 +12,8 @@
   "ready"
  ],
  "coldStart": {
-  "firstScanMs": 1428,
-  "recognizerReadyMs": 445,
+  "firstScanMs": 1405,
+  "recognizerReadyMs": 1585,
   "outcome": "correct",
   "requests": 4,
   "downloadedBytes": 31377477,
@@ -26,8 +26,8 @@
   "note": "First scan after install: local preview server, no network throttling. Includes download, sha256 verification, Cache Storage write, session creation and reading the photo."
  },
  "reopen": {
-  "firstScanMs": 1145,
-  "recognizerReadyMs": 163,
+  "firstScanMs": 1541,
+  "recognizerReadyMs": 210,
   "outcome": "correct",
   "cacheEntriesBefore": {
    "tank-maleh-scan-ppocr5-v6tiny-ort1.30.0": 4
@@ -39,50 +39,50 @@
  "warmMs": {
   "all": {
    "n": 39,
-   "p50": 702,
-   "p95": 954,
-   "max": 1126
+   "p50": 871,
+   "p95": 1950,
+   "max": 2297
   },
   "accepted": {
-   "n": 16,
-   "p50": 683,
-   "p95": 952,
-   "max": 954
+   "n": 17,
+   "p50": 871,
+   "p95": 1997,
+   "max": 2297
   },
   "abstained": {
-   "n": 23,
-   "p50": 735,
-   "p95": 897,
-   "max": 1126
+   "n": 22,
+   "p50": 839,
+   "p95": 1906,
+   "max": 1948
   }
  },
  "outcomes": {
-  "correct": 16,
+  "correct": 17,
   "wrong": 0,
-  "abstained": 23,
+  "abstained": 22,
   "error": 0,
   "reasons": {
-   "unreadable": 19,
+   "unreadable": 18,
    "uncorroborated": 4
   }
  },
  "rendererRssMb": {
   "before": 105,
-  "after": 1105,
+  "after": 869,
   "note": "Sum of renderer/web-content processes; includes the page and the worker."
  },
  "rows": [
   {
    "file": "trodo-v2/trodo-v01/images/00000003-PHOTO-2020-11-20-11-21-23.jpg",
    "phase": "cold",
-   "ms": 1428,
+   "ms": 1405,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 15,
-    "segment": 132,
-    "ppocr": 886
+    "resample": 14,
+    "segment": 137,
+    "ppocr": 976
    },
    "id": "trodo:00000003-PHOTO-2020-11-20-11-21-23",
    "label": "64750",
@@ -97,14 +97,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000057-PHOTO-2020-11-21-10-19-56.jpg",
    "phase": "warm",
-   "ms": 834,
+   "ms": 924,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 26,
-    "segment": 223,
-    "ppocr": 582
+    "resample": 28,
+    "segment": 265,
+    "ppocr": 628
    },
    "id": "trodo:00000057-PHOTO-2020-11-21-10-19-56",
    "label": "25287",
@@ -119,14 +119,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000127-PHOTO-2020-11-22-10-58-08.jpg",
    "phase": "warm",
-   "ms": 702,
+   "ms": 824,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 11,
-    "segment": 178,
-    "ppocr": 512
+    "resample": 14,
+    "segment": 183,
+    "ppocr": 627
    },
    "id": "trodo:00000127-PHOTO-2020-11-22-10-58-08",
    "label": "25357",
@@ -141,14 +141,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000182-PHOTO-2020-11-23-08-21-25.jpg",
    "phase": "warm",
-   "ms": 1126,
+   "ms": 1267,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 18,
-    "segment": 257,
-    "ppocr": 848
+    "resample": 20,
+    "segment": 288,
+    "ppocr": 954
    },
    "id": "trodo:00000182-PHOTO-2020-11-23-08-21-25",
    "label": "189568",
@@ -159,14 +159,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000240-PHOTO-2020-11-24-08-54-09.jpg",
    "phase": "warm",
-   "ms": 619,
+   "ms": 636,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 6,
-    "segment": 123,
-    "ppocr": 490
+    "resample": 5,
+    "segment": 111,
+    "ppocr": 517
    },
    "id": "trodo:00000240-PHOTO-2020-11-24-08-54-09",
    "label": "115586",
@@ -177,14 +177,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000280-PHOTO-2020-12-26-16-58-04.jpg",
    "phase": "warm",
-   "ms": 712,
+   "ms": 802,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 17,
-    "segment": 196,
-    "ppocr": 494
+    "resample": 19,
+    "segment": 193,
+    "ppocr": 586
    },
    "id": "trodo:00000280-PHOTO-2020-12-26-16-58-04",
    "label": "319186",
@@ -195,14 +195,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000306-PHOTO-2020-12-16-20-40-41.jpg",
    "phase": "warm",
-   "ms": 775,
+   "ms": 838,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 18,
-    "segment": 208,
-    "ppocr": 545
+    "resample": 19,
+    "segment": 223,
+    "ppocr": 591
    },
    "id": "trodo:00000306-PHOTO-2020-12-16-20-40-41",
    "label": "163887",
@@ -213,14 +213,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000343-PHOTO-2020-12-29-21-00-59.jpg",
    "phase": "warm",
-   "ms": 557,
+   "ms": 609,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 16,
-    "segment": 157,
-    "ppocr": 381
+    "resample": 20,
+    "segment": 172,
+    "ppocr": 416
    },
    "id": "trodo:00000343-PHOTO-2020-12-29-21-00-59",
    "label": "319549",
@@ -235,14 +235,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000405-PHOTO-2020-11-27-13-56-50.jpg",
    "phase": "warm",
-   "ms": 600,
+   "ms": 691,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 5,
-    "segment": 93,
-    "ppocr": 499
+    "resample": 6,
+    "segment": 74,
+    "ppocr": 608
    },
    "id": "trodo:00000405-PHOTO-2020-11-27-13-56-50",
    "label": "316298",
@@ -257,14 +257,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000461-PHOTO-2020-12-17-10-33-29.jpg",
    "phase": "warm",
-   "ms": 952,
+   "ms": 1000,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 17,
-    "segment": 222,
-    "ppocr": 711
+    "resample": 20,
+    "segment": 221,
+    "ppocr": 756
    },
    "id": "trodo:00000461-PHOTO-2020-12-17-10-33-29",
    "label": "161120",
@@ -279,14 +279,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000509-PHOTO-2020-11-28-21-01-29.jpg",
    "phase": "warm",
-   "ms": 460,
+   "ms": 474,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
     "resample": 3,
-    "segment": 42,
-    "ppocr": 411
+    "segment": 43,
+    "ppocr": 427
    },
    "id": "trodo:00000509-PHOTO-2020-11-28-21-01-29",
    "label": "26351",
@@ -297,14 +297,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000586-PHOTO-2020-11-30-13-26-03.jpg",
    "phase": "warm",
-   "ms": 841,
+   "ms": 904,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 5,
-    "segment": 64,
-    "ppocr": 767
+    "resample": 6,
+    "segment": 66,
+    "ppocr": 827
    },
    "id": "trodo:00000586-PHOTO-2020-11-30-13-26-03",
    "label": "116165",
@@ -315,14 +315,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000653-PHOTO-2020-12-02-10-25-33.jpg",
    "phase": "warm",
-   "ms": 735,
+   "ms": 941,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 5,
-    "segment": 87,
-    "ppocr": 640
+    "resample": 6,
+    "segment": 100,
+    "ppocr": 831
    },
    "id": "trodo:00000653-PHOTO-2020-12-02-10-25-33",
    "label": "240696",
@@ -333,32 +333,36 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000702-PHOTO-2020-12-02-17-32-04.jpg",
    "phase": "warm",
-   "ms": 836,
+   "ms": 646,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 7,
+    "segment": 75,
+    "ppocr": 562
+   },
+   "id": "trodo:00000702-PHOTO-2020-12-02-17-32-04",
+   "label": "167385",
+   "attempts": 3,
+   "outcome": "correct",
+   "odometer": "167385",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000756-PHOTO-2020-12-02-23-38-11.jpg",
+   "phase": "warm",
+   "ms": 825,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
     "resample": 5,
-    "segment": 65,
-    "ppocr": 762
-   },
-   "id": "trodo:00000702-PHOTO-2020-12-02-17-32-04",
-   "label": "167385",
-   "attempts": 3,
-   "outcome": "abstained",
-   "reason": "unreadable"
-  },
-  {
-   "file": "trodo-v2/trodo-v01/images/00000756-PHOTO-2020-12-02-23-38-11.jpg",
-   "phase": "warm",
-   "ms": 685,
-   "recognizer": "ready",
-   "error": false,
-   "hint": null,
-   "stages": {
-    "resample": 4,
-    "segment": 72,
-    "ppocr": 604
+    "segment": 80,
+    "ppocr": 736
    },
    "id": "trodo:00000756-PHOTO-2020-12-02-23-38-11",
    "label": "162929",
@@ -369,14 +373,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000817-PHOTO-2020-12-03-22-13-36.jpg",
    "phase": "warm",
-   "ms": 406,
+   "ms": 464,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
     "resample": 4,
-    "segment": 41,
-    "ppocr": 359
+    "segment": 47,
+    "ppocr": 411
    },
    "id": "trodo:00000817-PHOTO-2020-12-03-22-13-36",
    "label": "17152",
@@ -387,14 +391,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000882-PHOTO-2020-12-18-10-37-41.jpg",
    "phase": "warm",
-   "ms": 954,
+   "ms": 1042,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 12,
-    "segment": 389,
-    "ppocr": 549
+    "resample": 15,
+    "segment": 402,
+    "ppocr": 620
    },
    "id": "trodo:00000882-PHOTO-2020-12-18-10-37-41",
    "label": "75806",
@@ -409,14 +413,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000940-PHOTO-2020-12-09-20-30-13.jpg",
    "phase": "warm",
-   "ms": 683,
+   "ms": 724,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 8,
-    "segment": 109,
-    "ppocr": 564
+    "resample": 7,
+    "segment": 110,
+    "ppocr": 605
    },
    "id": "trodo:00000940-PHOTO-2020-12-09-20-30-13",
    "label": "117259",
@@ -431,14 +435,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00000993-PHOTO-2020-12-09-20-35-01.jpg",
    "phase": "warm",
-   "ms": 503,
+   "ms": 536,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
     "resample": 4,
-    "segment": 47,
-    "ppocr": 451
+    "segment": 49,
+    "ppocr": 481
    },
    "id": "trodo:00000993-PHOTO-2020-12-09-20-35-01",
    "label": "231165",
@@ -453,36 +457,36 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001042-PHOTO-2020-12-09-20-36-47.jpg",
    "phase": "warm",
-   "ms": 446,
+   "ms": 871,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 4,
-    "segment": 61,
-    "ppocr": 378
+    "resample": 5,
+    "segment": 67,
+    "ppocr": 796
    },
    "id": "trodo:00001042-PHOTO-2020-12-09-20-36-47",
    "label": "117412",
-   "attempts": 3,
+   "attempts": 4,
    "outcome": "correct",
    "odometer": "117412",
    "paths": [
-    "ppocr@960",
+    "ppocr@centre",
     "ppocr@roi"
    ]
   },
   {
    "file": "trodo-v2/trodo-v01/images/00001110-PHOTO-2020-12-10-11-16-56.jpg",
    "phase": "warm",
-   "ms": 583,
+   "ms": 809,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 5,
-    "segment": 75,
-    "ppocr": 501
+    "resample": 7,
+    "segment": 100,
+    "ppocr": 700
    },
    "id": "trodo:00001110-PHOTO-2020-12-10-11-16-56",
    "label": "119602",
@@ -497,14 +501,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001166-PHOTO-2020-12-10-11-45-07.jpg",
    "phase": "warm",
-   "ms": 593,
+   "ms": 687,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 4,
-    "segment": 53,
-    "ppocr": 533
+    "resample": 5,
+    "segment": 69,
+    "ppocr": 611
    },
    "id": "trodo:00001166-PHOTO-2020-12-10-11-45-07",
    "label": "119494",
@@ -519,14 +523,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001227-PHOTO-2020-12-10-11-48-31.jpg",
    "phase": "warm",
-   "ms": 441,
+   "ms": 457,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
     "resample": 4,
-    "segment": 45,
-    "ppocr": 391
+    "segment": 49,
+    "ppocr": 400
    },
    "id": "trodo:00001227-PHOTO-2020-12-10-11-48-31",
    "label": "231350",
@@ -537,14 +541,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001276-PHOTO-2020-12-10-20-01-32.jpg",
    "phase": "warm",
-   "ms": 676,
+   "ms": 699,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 6,
-    "segment": 64,
-    "ppocr": 605
+    "resample": 5,
+    "segment": 66,
+    "ppocr": 625
    },
    "id": "trodo:00001276-PHOTO-2020-12-10-20-01-32",
    "label": "66534",
@@ -555,14 +559,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001316-PHOTO-2020-12-19-09-47-25.jpg",
    "phase": "warm",
-   "ms": 897,
+   "ms": 1029,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 15,
-    "segment": 200,
-    "ppocr": 679
+    "resample": 17,
+    "segment": 228,
+    "ppocr": 781
    },
    "id": "trodo:00001316-PHOTO-2020-12-19-09-47-25",
    "label": "28973",
@@ -573,14 +577,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001355-PHOTO-2020-12-12-10-58-41.jpg",
    "phase": "warm",
-   "ms": 487,
+   "ms": 623,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
     "resample": 4,
-    "segment": 47,
-    "ppocr": 435
+    "segment": 54,
+    "ppocr": 564
    },
    "id": "trodo:00001355-PHOTO-2020-12-12-10-58-41",
    "label": "27771",
@@ -591,14 +595,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001413-PHOTO-2020-12-15-22-16-38.jpg",
    "phase": "warm",
-   "ms": 1032,
+   "ms": 1338,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 10,
+    "resample": 14,
     "segment": 158,
-    "ppocr": 860
+    "ppocr": 1161
    },
    "id": "trodo:00001413-PHOTO-2020-12-15-22-16-38",
    "label": "28457",
@@ -609,14 +613,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001474-PHOTO-2020-12-15-22-18-44.jpg",
    "phase": "warm",
-   "ms": 943,
+   "ms": 2297,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 3,
-    "segment": 51,
-    "ppocr": 887
+    "resample": 12,
+    "segment": 57,
+    "ppocr": 1261
    },
    "id": "trodo:00001474-PHOTO-2020-12-15-22-18-44",
    "label": "28546",
@@ -631,14 +635,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001538-PHOTO-2020-12-15-22-22-35.jpg",
    "phase": "warm",
-   "ms": 663,
+   "ms": 1948,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 6,
-    "segment": 90,
-    "ppocr": 564
+    "resample": 16,
+    "segment": 174,
+    "ppocr": 789
    },
    "id": "trodo:00001538-PHOTO-2020-12-15-22-22-35",
    "label": "117767",
@@ -649,32 +653,32 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001579-PHOTO-2020-12-15-22-23-28.jpg",
    "phase": "warm",
-   "ms": 625,
+   "ms": 839,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 5,
-    "segment": 92,
-    "ppocr": 526
+    "resample": 9,
+    "segment": 134,
+    "ppocr": 694
    },
    "id": "trodo:00001579-PHOTO-2020-12-15-22-23-28",
    "label": "242144",
-   "attempts": 1,
+   "attempts": 3,
    "outcome": "abstained",
    "reason": "unreadable"
   },
   {
    "file": "trodo-v2/trodo-v01/images/00001651-PHOTO-2020-12-15-22-26-43.jpg",
    "phase": "warm",
-   "ms": 394,
+   "ms": 508,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 4,
-    "segment": 50,
-    "ppocr": 339
+    "resample": 6,
+    "segment": 68,
+    "ppocr": 433
    },
    "id": "trodo:00001651-PHOTO-2020-12-15-22-26-43",
    "label": "119363",
@@ -685,14 +689,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00001906-PHOTO-2020-12-20-10-17-40.jpg",
    "phase": "warm",
-   "ms": 638,
+   "ms": 1104,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 11,
-    "segment": 237,
-    "ppocr": 389
+    "resample": 16,
+    "segment": 414,
+    "ppocr": 673
    },
    "id": "trodo:00001906-PHOTO-2020-12-20-10-17-40",
    "label": "153023",
@@ -707,14 +711,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00002529-PHOTO-2020-12-21-11-29-24.jpg",
    "phase": "warm",
-   "ms": 687,
+   "ms": 1805,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 15,
-    "segment": 145,
-    "ppocr": 526
+    "resample": 28,
+    "segment": 182,
+    "ppocr": 660
    },
    "id": "trodo:00002529-PHOTO-2020-12-21-11-29-24",
    "label": "164239",
@@ -729,14 +733,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00002999-PHOTO-2020-12-22-10-29-34.jpg",
    "phase": "warm",
-   "ms": 804,
+   "ms": 1036,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 18,
-    "segment": 227,
-    "ppocr": 556
+    "resample": 22,
+    "segment": 284,
+    "ppocr": 724
    },
    "id": "trodo:00002999-PHOTO-2020-12-22-10-29-34",
    "label": "76078",
@@ -747,14 +751,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00003584-PHOTO-2020-12-23-20-12-17.jpg",
    "phase": "warm",
-   "ms": 804,
+   "ms": 1938,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 12,
-    "segment": 155,
-    "ppocr": 633
+    "resample": 28,
+    "segment": 191,
+    "ppocr": 758
    },
    "id": "trodo:00003584-PHOTO-2020-12-23-20-12-17",
    "label": "192699",
@@ -765,14 +769,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00003985-PHOTO-2020-12-24-19-08-00.jpg",
    "phase": "warm",
-   "ms": 890,
+   "ms": 1434,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 11,
-    "segment": 120,
-    "ppocr": 757
+    "resample": 15,
+    "segment": 175,
+    "ppocr": 1239
    },
    "id": "trodo:00003985-PHOTO-2020-12-24-19-08-00",
    "label": "29639",
@@ -783,14 +787,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00004613-PHOTO-2020-12-25-20-42-40.jpg",
    "phase": "warm",
-   "ms": 882,
+   "ms": 1401,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 16,
-    "segment": 256,
-    "ppocr": 605
+    "resample": 30,
+    "segment": 399,
+    "ppocr": 966
    },
    "id": "trodo:00004613-PHOTO-2020-12-25-20-42-40",
    "label": "243215",
@@ -801,14 +805,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00005354-PHOTO-2020-12-27-10-08-12.jpg",
    "phase": "warm",
-   "ms": 787,
+   "ms": 1997,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 18,
-    "segment": 196,
-    "ppocr": 572
+    "resample": 35,
+    "segment": 266,
+    "ppocr": 796
    },
    "id": "trodo:00005354-PHOTO-2020-12-27-10-08-12",
    "label": "84437",
@@ -823,14 +827,14 @@
   {
    "file": "trodo-v2/trodo-v01/images/00005780-PHOTO-2020-12-28-09-46-51.jpg",
    "phase": "warm",
-   "ms": 760,
+   "ms": 1950,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 14,
-    "segment": 184,
-    "ppocr": 561
+    "resample": 31,
+    "segment": 248,
+    "ppocr": 811
    },
    "id": "trodo:00005780-PHOTO-2020-12-28-09-46-51",
    "label": "29899",
@@ -845,32 +849,32 @@
   {
    "file": "trodo-v2/trodo-v01/images/00006200-PHOTO-2020-12-29-11-53-44.jpg",
    "phase": "warm",
-   "ms": 864,
+   "ms": 1906,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 18,
-    "segment": 249,
-    "ppocr": 594
+    "resample": 33,
+    "segment": 295,
+    "ppocr": 678
    },
    "id": "trodo:00006200-PHOTO-2020-12-29-11-53-44",
    "label": "243582",
-   "attempts": 3,
+   "attempts": 4,
    "outcome": "abstained",
    "reason": "unreadable"
   },
   {
    "file": "trodo-v2/trodo-v01/images/00000003-PHOTO-2020-11-20-11-21-23.jpg",
    "phase": "reopen",
-   "ms": 1145,
+   "ms": 1541,
    "recognizer": "ready",
    "error": false,
    "hint": null,
    "stages": {
-    "resample": 11,
-    "segment": 126,
-    "ppocr": 854
+    "resample": 14,
+    "segment": 153,
+    "ppocr": 1177
    },
    "id": "trodo:00000003-PHOTO-2020-11-20-11-21-23",
    "label": "64750",

@@ -1,0 +1,123 @@
+{
+ "format": "tank-maleh-scan-replay-v1",
+ "at": "2026-11-01T14:38:14.839Z",
+ "commit": "afd6b5b33e2f40e9c4a04ef43ed60932b0141e6b",
+ "playwright": "Version 1.64.1",
+ "machine": "Apple M5",
+ "note": "Chromium fake capture device playing rendered 1280x720 displays at 3 fps; the built app with the pinned models, emulators for data. Times are camera-open to reading on a desktop CPU, one test at a time; they are not phone measurements.",
+ "passed": 13,
+ "failed": 0,
+ "tests": [
+  {
+   "project": "replay-pump",
+   "title": "a cold live pump scan fills the form; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 7049,
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 4715 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-pump",
+   "title": "reopening reads again from the cached recogniser without downloading",
+   "status": "passed",
+   "ms": 19420,
+   "notes": [
+    "time to pump reading (warm reopen): 4213 ms, 4211 ms, 4226 ms"
+   ]
+  },
+  {
+   "project": "replay-pump",
+   "title": "on a slow network the first live scan waits for the recogniser and fills",
+   "status": "passed",
+   "ms": 30607,
+   "notes": [
+    "time to pump reading (cold, 10 Mbit/s emulated): 28872 ms"
+   ]
+  },
+  {
+   "project": "replay-pump",
+   "title": "closing the camera while the recogniser loads fills nothing; reopening fills",
+   "status": "passed",
+   "ms": 9713,
+   "notes": []
+  },
+  {
+   "project": "replay-pump",
+   "title": "a frame still being read when the camera closes fills nothing afterwards",
+   "status": "passed",
+   "ms": 11943,
+   "notes": []
+  },
+  {
+   "project": "replay-pump",
+   "title": "a recogniser file that fails its integrity check fills nothing wrong and leaves manual entry",
+   "status": "passed",
+   "ms": 18047,
+   "notes": []
+  },
+  {
+   "project": "replay-odometer",
+   "title": "a cold live odometer scan fills the form and saves",
+   "status": "passed",
+   "ms": 6674,
+   "notes": [
+    "time to filled odometer (cold): 4341 ms"
+   ]
+  },
+  {
+   "project": "replay-blur-to-clear",
+   "title": "a cold live pump scan fills the form; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 5893,
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 4218 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-movement",
+   "title": "a cold live odometer scan fills the form and saves",
+   "status": "passed",
+   "ms": 6108,
+   "notes": [
+    "time to filled odometer (cold): 3839 ms"
+   ]
+  },
+  {
+   "project": "replay-counting-pump",
+   "title": "a counting pump is filled only with its final values, or not at all",
+   "status": "passed",
+   "ms": 16820,
+   "notes": [
+    "outcome: filled the final values after 15068 ms"
+   ]
+  },
+  {
+   "project": "replay-trip-and-odo",
+   "title": "with a trip meter and a clock above the odometer, the trip is never filled",
+   "status": "passed",
+   "ms": 18907,
+   "notes": [
+    "outcome: abstained after 16729 ms: לא ברור איזה מספר הוא מד המרחק המצטבר. כללו בתמונה את הכיתוב ODO/ק״מ, או המשיכו ידנית."
+   ]
+  },
+  {
+   "project": "replay-labelled-pump",
+   "title": "a cold live pump scan fills the form; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 6867,
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 5230 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-offline",
+   "title": "after one online scan, the installed app reads offline after a restart",
+   "status": "passed",
+   "ms": 11213,
+   "notes": [
+    "time to pump reading (offline restart, models from Cache Storage): 4209 ms"
+   ]
+  }
+ ]
+}

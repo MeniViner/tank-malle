@@ -1,7 +1,7 @@
 {
  "format": "tank-maleh-scan-memory-v1",
- "at": "2026-11-01T11:22:43.441Z",
- "commit": "c482b26d8a6829505396d1fd8a6e120265a8a523",
+ "at": "2026-11-01T14:10:42.063Z",
+ "commit": "c35d40286d9ab5dd913afec900a51bf19566f05c",
  "engine": "chromium",
  "browserVersion": "156.0.8078.4",
  "profile": "fresh persistent profile",
@@ -11,31 +11,31 @@
  "opens": [
   {
    "cycle": 1,
-   "readyMs": 520.8999998569489,
+   "readyMs": 559.5999999046326,
    "recognizer": "ready",
    "downloadedBytes": 31377477
   },
   {
    "cycle": 2,
-   "readyMs": 194.10000014305115,
+   "readyMs": 224.30000019073486,
    "recognizer": "ready",
    "downloadedBytes": 0
   },
   {
    "cycle": 3,
-   "readyMs": 190.30000019073486,
+   "readyMs": 221.5,
    "recognizer": "ready",
    "downloadedBytes": 0
   },
   {
    "cycle": 4,
-   "readyMs": 187.40000009536743,
+   "readyMs": 223.5,
    "recognizer": "ready",
    "downloadedBytes": 0
   },
   {
    "cycle": 5,
-   "readyMs": 191.70000004768372,
+   "readyMs": 216,
    "recognizer": "ready",
    "downloadedBytes": 0
   }
@@ -49,107 +49,107 @@
   {
    "cycle": 1,
    "step": "recogniser ready",
-   "rssMb": 382
+   "rssMb": 389
   },
   {
    "cycle": 1,
    "step": "4 photos read",
-   "rssMb": 551
+   "rssMb": 602
   },
   {
    "cycle": 1,
    "step": "8 photos read",
-   "rssMb": 557
+   "rssMb": 429
   },
   {
    "cycle": 1,
    "step": "cancelled; worker terminated",
-   "rssMb": 311
+   "rssMb": 176
   },
   {
    "cycle": 2,
    "step": "recogniser ready",
-   "rssMb": 442
+   "rssMb": 373
   },
   {
    "cycle": 2,
    "step": "4 photos read",
-   "rssMb": 542
+   "rssMb": 502
   },
   {
    "cycle": 2,
-   "step": "8 photos read",
-   "rssMb": 595
-  },
-  {
-   "cycle": 2,
-   "step": "cancelled; worker terminated",
-   "rssMb": 363
-  },
-  {
-   "cycle": 3,
-   "step": "recogniser ready",
-   "rssMb": 473
-  },
-  {
-   "cycle": 3,
-   "step": "4 photos read",
-   "rssMb": 564
-  },
-  {
-   "cycle": 3,
    "step": "8 photos read",
    "rssMb": 580
   },
   {
+   "cycle": 2,
+   "step": "cancelled; worker terminated",
+   "rssMb": 355
+  },
+  {
+   "cycle": 3,
+   "step": "recogniser ready",
+   "rssMb": 463
+  },
+  {
+   "cycle": 3,
+   "step": "4 photos read",
+   "rssMb": 559
+  },
+  {
+   "cycle": 3,
+   "step": "8 photos read",
+   "rssMb": 598
+  },
+  {
    "cycle": 3,
    "step": "cancelled; worker terminated",
-   "rssMb": 343
+   "rssMb": 366
   },
   {
    "cycle": 4,
-   "step": "recogniser ready",
-   "rssMb": 474
-  },
-  {
-   "cycle": 4,
-   "step": "4 photos read",
-   "rssMb": 593
-  },
-  {
-   "cycle": 4,
-   "step": "8 photos read",
-   "rssMb": 585
-  },
-  {
-   "cycle": 4,
-   "step": "cancelled; worker terminated",
-   "rssMb": 344
-  },
-  {
-   "cycle": 5,
    "step": "recogniser ready",
    "rssMb": 470
   },
   {
+   "cycle": 4,
+   "step": "4 photos read",
+   "rssMb": 617
+  },
+  {
+   "cycle": 4,
+   "step": "8 photos read",
+   "rssMb": 602
+  },
+  {
+   "cycle": 4,
+   "step": "cancelled; worker terminated",
+   "rssMb": 357
+  },
+  {
+   "cycle": 5,
+   "step": "recogniser ready",
+   "rssMb": 462
+  },
+  {
    "cycle": 5,
    "step": "4 photos read",
-   "rssMb": 556
+   "rssMb": 518
   },
   {
    "cycle": 5,
    "step": "8 photos read",
-   "rssMb": 597
+   "rssMb": 487
   },
   {
    "cycle": 5,
    "step": "cancelled; worker terminated",
-   "rssMb": 369
+   "rssMb": 244
   },
   {
    "cycle": 5,
    "step": "idle 10 s after the last teardown",
-   "rssMb": 347
+   "rssMb": 244
   }
  ]
 }

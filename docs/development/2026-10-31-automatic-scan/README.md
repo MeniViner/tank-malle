@@ -59,6 +59,10 @@ success. Accepted precision is a different metric: correct among accepted.
 | Cycle 2 rerun, test split (`c482b26`, **regression evidence**, not independent) | 310/713 = 43.5% [39.9, 47.1] | 310/313 = 99.0% [97.2, 99.7] | 3/764 (0 on negatives) |
 | Cycle 2 rerun, challenge split (regression evidence) | 49/139 = 35.3% | 49/53 = 92.5% | 4/280 |
 | Cycle 2, tuning split (development data) | 198/371 = 53.4% (before: 176/371) | 198/200 = 99.0% | 2/436 |
+| Cycle 3 rerun, test split (`c046880` pipeline, **regression evidence**) | 309/713 = 43.3% | 309/311 = 99.4% | 2/764 (0 on negatives) |
+| Cycle 3 rerun, challenge split | 49/139 = 35.3% | 49/53 = 92.5% | 4/280 |
+| Cycle 3, tuning split (development data) | 198/371 = 53.4% | 198/200 = 99.0% | 2/436 |
+| Cycle 3, **second frozen synthetic set** (independent; read once, `9265b13`) | odometers 68/120, pumps 22/120 (+16 correctly empty) | 90/94 = 95.7% | 4/240 (euro pumps filled as ₪; fixed afterwards: 0/240 on rerun) |
 
 The cycle-2 test rerun has one wrong acceptance the post-hoc run did not
 (`190061` read as `19006`). Both text paths dropped the last narrow "1"
@@ -92,8 +96,8 @@ Chromium 521 / 187–194 ms, WebKit 432 / 157–184 ms.
 
 | Criterion | Status |
 | --- | --- |
-| ≥ 95% correct automatic completion on readable, unambiguous sessions | **Not met**: 39.0% frozen; cycle-2 rerun 43.5% [39.9, 47.1] (regression evidence) |
-| ≥ 99.5% correctness among accepted readings | **Not met** frozen (97.9%); post-hoc 99.3% and cycle-2 99.0% [97.2, 99.7] are **unproven** |
+| ≥ 95% correct automatic completion on readable, unambiguous sessions | **Not met**: 39.0% frozen; cycle-3 rerun 43.3% (regression evidence); second frozen synthetic set 90/240 |
+| ≥ 99.5% correctness among accepted readings | **Not met** frozen (97.9%); cycle-3 rerun 99.4% is **unproven**; second frozen synthetic set 95.7% (4 euro pumps), fixed afterwards |
 | Warm p95 ≤ 6 s per scene on Samsung Galaxy S25 | **Unverified**: no phone. Desktop Chromium p95 is 1.1 s |
 | Denominators and confidence intervals published, frozen and post-hoc kept apart | Met |
 | Field/session correctness, precision, wrong acceptance, coverage (eligible and all), rejection reasons, display-family breakdown, p50/p95, cold-start bytes, memory | Met for odometers. TRODO publishes no device identity, so there is no device breakdown. Pump field correctness was not measured (no photographs) |
@@ -309,6 +313,31 @@ digits read poorly with the recogniser loaded (unit and synthetic suites cover
 them), and the full-resolution recrop of large, crisp seven-segment digits
 detects only the unit. These are software replays, not phone validation.
 
+**Frozen sets.** The first frozen set (`fixtures-frozen-2026-11-01`) was
+read once on the cycle-3 code. Its generator had fallen into a short random
+cycle (19 distinct scenes in 120 groups). It exposed a real wrong fill, 26
+times over the same scene. On a Hebrew-labelled pump, the central-region
+retry cut off the amount row; 34.91 L and 6.698 ₪/L then read as amount and
+volume, and the recrop's half-cut amount row was ignored. Fixed: a pump
+whose whole frame showed decimal rows is not retried on the centre, and an
+unexplained decimal row in the panel's column blocks the reading. Rerun:
+116 correct, 26 → 0 wrong.
+
+The generator now uses mulberry32. The second frozen set
+(`fixtures-frozen-2026-11-02`, 120 distinct scenes, 240 images) was
+committed before evaluation and read once on the final code; this is the
+independent result:
+
+| Kind | Correct | Wrong | Abstained | Correctly empty |
+| --- | --- | --- | --- | --- |
+| Odometers | 68 | 0 | 52 | — |
+| Pumps | 22 | 4 | 78 | 16 |
+
+All 4 wrong fills were euro pumps with correct digits: the sign was read as
+"SALE €" in one box, and the currency guard only matched it alone. Fixed;
+that set is now regression evidence (90 correct, 0 wrong, 130 abstained, 20
+correctly empty).
+
 **Evaluation data.**
 - `fixture-set.mjs` renders labelled displays: fonts, polarities, layouts,
   `.`/`,`, English or Hebrew labels, euros, TRIP and clocks, edge "1"s, and a
@@ -388,6 +417,22 @@ Model files are served at `/scan-models/<version>/` with immutable caching
 versioned Cache Storage entry, and old versions are deleted on upgrade. The
 production build fetches them from their pinned URLs and fails if a hash does
 not match.
+
+Cycle 3, the built app at `c35d402` (PP-OCRv6-tiny verifier; the pump-only
+fixes after it do not change this odometer sample):
+
+| Cycle 3 (desktop, Apple M5; RESULTS.md) | Chromium 156 | WebKit 27.2 |
+| --- | --- | --- |
+| First scan after install, 31.4 MB | 1,814 ms (ready 617 ms) | 1,405 ms |
+| Same at an emulated 10 Mbit/s, 150 ms | 26,236 ms | — |
+| Reopen (0 bytes) | 1,602 ms | 1,541 ms |
+| Warm p50 / p95, 39 photos (17 correct, 0 wrong, 22 abstained) | 942 / 1,325 ms | 871 / 1,950 ms |
+| …abstention (failure) p50 | 944 ms | 839 ms |
+| Efficiency cores only (macOS background QoS; CPU stress, not a phone): warm p50 / p95 | 3,039 / 4,677 ms | — |
+| Memory, 5 open / read / cancel / teardown cycles: after teardown, 10 s idle | 176–366 MB, 244 MB | 916–1,090 MB, 707 MB |
+| Live camera replay, time to the pump reading: cold, warm, offline restart | 4.7 s, 4.2 s, 4.2 s | — |
+
+Earlier measurements:
 
 | Measured (desktop, Apple M5; RESULTS.md) | Chromium 156 | WebKit 27.2 |
 | --- | --- | --- |

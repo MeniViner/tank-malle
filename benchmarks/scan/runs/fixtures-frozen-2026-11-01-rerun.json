@@ -1,0 +1,4933 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T14:25:16.630Z",
+ "commit": "9265b1372f8e28abef300123675c3612a4fa5ce2",
+ "sessionsFile": "benchmarks/scan/fixtures-frozen-2026-11-01.json",
+ "text": "ppocr-v5+v6",
+ "note": "First frozen set after the missing-amount-row fix: regression evidence.",
+ "outcomes": {
+  "abstained": 124,
+  "correct": 116
+ },
+ "rows": [
+  {
+   "id": "frozen-2026-11-01-g000-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g000",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "142.72",
+    "liters": "21.79"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g000-tilt",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g000",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "142.72",
+    "liters": "21.79"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g001-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g001",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "18815"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "18815"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g001-blur",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g001",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "18815"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "trip-meter": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g002-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g002",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "257.66",
+    "liters": "35.891"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "257.66",
+    "liters": "35.891"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g002-blur",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g002",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "257.66",
+    "liters": "35.891"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "257.66",
+    "liters": "35.891"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g003-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g003",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "151317"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "151317"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g003-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g003",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "151317"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g004-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g004",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "total": "164.77",
+    "liters": "21.51"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g004-tilt",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g004",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "total": "164.77",
+    "liters": "21.51"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g005-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g005",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "121111"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "121111"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g005-jpeg",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g005",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "121111"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "121111"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g006-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g006",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "319.84",
+    "liters": "50.64"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g006-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g006",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "319.84",
+    "liters": "50.64"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g007-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g007",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "178486"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g007-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g007",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "178486"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g008-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g008",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "52.65",
+    "liters": "7.99"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "52.65",
+    "liters": "7.99"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g008-tilt",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g008",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "52.65",
+    "liters": "7.99"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "52.65",
+    "liters": "7.99"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g009-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g009",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "141111"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g009-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g009",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "141111"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g010-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g010",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "130.00",
+    "liters": "19.54"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "130.00",
+    "liters": "19.54"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g010-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g010",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "130.00",
+    "liters": "19.54"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "130.00",
+    "liters": "19.54"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g011-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g011",
+   "labels": "hebrew",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "111124"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "trip-meter": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g011-jpeg",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g011",
+   "labels": "hebrew",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "111124"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "trip-meter": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g012-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g012",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "207.26",
+    "liters": "29.596"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "207.26",
+    "liters": "29.596"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g012-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g012",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "207.26",
+    "liters": "29.596"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g013-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g013",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "11131"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g013-blur",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g013",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "11131"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "conflict",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g014-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g014",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "220.67",
+    "liters": "35.25"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g014-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g014",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "220.67",
+    "liters": "35.25"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g015-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g015",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g015-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g015",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g016-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g016",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g016-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g016",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g017-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g017",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g017-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g017",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g018-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g018",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g018-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g018",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g019-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g019",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g019-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g019",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g020-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g020",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g020-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g020",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g021-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g021",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g021-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g021",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g022-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g022",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g022-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g022",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g023-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g023",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g023-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g023",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g024-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g024",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g024-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g024",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g025-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g025",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g025-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g025",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g026-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g026",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g026-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g026",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g027-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g027",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g027-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g027",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g028-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g028",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g028-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g028",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g029-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g029",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g029-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g029",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g030-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g030",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g030-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g030",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g031-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g031",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g031-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g031",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g032-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g032",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g032-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g032",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g033-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g033",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g033-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g033",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g034-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g034",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g034-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g034",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g035-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g035",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g035-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g035",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g036-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g036",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g036-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g036",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g037-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g037",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g037-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g037",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g038-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g038",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g038-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g038",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g039-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g039",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g039-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g039",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g040-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g040",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g040-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g040",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g041-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g041",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g041-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g041",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g042-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g042",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g042-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g042",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g043-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g043",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g043-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g043",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g044-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g044",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g044-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g044",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g045-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g045",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g045-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g045",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g046-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g046",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g046-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g046",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g047-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g047",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g047-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g047",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g048-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g048",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g048-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g048",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g049-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g049",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g049-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g049",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g050-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g050",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g050-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g050",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g051-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g051",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g051-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g051",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g052-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g052",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g052-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g052",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g053-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g053",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g053-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g053",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g054-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g054",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g054-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g054",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g055-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g055",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g055-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g055",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g056-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g056",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g056-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g056",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g057-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g057",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g057-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g057",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g058-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g058",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g058-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g058",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g059-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g059",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g059-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g059",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g060-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g060",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g060-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g060",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g061-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g061",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g061-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g061",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g062-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g062",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g062-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g062",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g063-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g063",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g063-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g063",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g064-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g064",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g064-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g064",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g065-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g065",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g065-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g065",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g066-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g066",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g066-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g066",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g067-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g067",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g067-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g067",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g068-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g068",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g068-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g068",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g069-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g069",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g069-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g069",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g070-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g070",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g070-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g070",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g071-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g071",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g071-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g071",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g072-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g072",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g072-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g072",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g073-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g073",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g073-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g073",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g074-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g074",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g074-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g074",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g075-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g075",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g075-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g075",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g076-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g076",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g076-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g076",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g077-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g077",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g077-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g077",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g078-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g078",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g078-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g078",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g079-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g079",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g079-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g079",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g080-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g080",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g080-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g080",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g081-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g081",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g081-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g081",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g082-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g082",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g082-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g082",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g083-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g083",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g083-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g083",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g084-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g084",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g084-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g084",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g085-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g085",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g085-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g085",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g086-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g086",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g086-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g086",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g087-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g087",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g087-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g087",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g088-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g088",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g088-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g088",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g089-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g089",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g089-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g089",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g090-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g090",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g090-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g090",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g091-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g091",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g091-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g091",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g092-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g092",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g092-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g092",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g093-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g093",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g093-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g093",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g094-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g094",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g094-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g094",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g095-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g095",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g095-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g095",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g096-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g096",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g096-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g096",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g097-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g097",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g097-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g097",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g098-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g098",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g098-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g098",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g099-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g099",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g099-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g099",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g100-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g100",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g100-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g100",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g101-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g101",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g101-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g101",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g102-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g102",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g102-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g102",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g103-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g103",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g103-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g103",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g104-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g104",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g104-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g104",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g105-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g105",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g105-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g105",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g106-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g106",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g106-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g106",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g107-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g107",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g107-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g107",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g108-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g108",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g108-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g108",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g109-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g109",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g109-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g109",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g110-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g110",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g110-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g110",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g111-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g111",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g111-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g111",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g112-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g112",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g112-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g112",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g113-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g113",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g113-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g113",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g114-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g114",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g114-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g114",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g115-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g115",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g115-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g115",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g116-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g116",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g116-noise",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g116",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "total": "233.83",
+    "liters": "34.91"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g117-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g117",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g117-tilt",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g117",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "108167"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "108167"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g118-clean",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g118",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "frozen-2026-11-01-g118-jpeg",
+   "kind": "pump",
+   "group": "frozen-2026-11-01-g118",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "44.98",
+    "liters": "6.985"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g119-clean",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g119",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "147601"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ]
+  },
+  {
+   "id": "frozen-2026-11-01-g119-noise",
+   "kind": "odometer",
+   "group": "frozen-2026-11-01-g119",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "147601"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null
+  }
+ ]
+}
