@@ -23,16 +23,25 @@ export type PpocrModels = { det: OrtSession; rec: OrtSession; dictionary: string
 /** A second reading of one detected box. */
 export type Verify = (image: Pixels, box: { left: number; top: number; right: number; bottom: number }, rotate: 0 | 90 | 270) => Promise<string>;
 /** The compact display-digit recogniser (scripts/scan-train): grey, 32 px high,
- * values in [-1, 1]; classes blank, 0-9, '.', ','. */
+ * values in [-1, 1]; classes blank, 0-9, '.', ','. Each input pixel averages
+ * the source pixels it covers, as training resized its crops: picking single
+ * pixels loses the thin strokes of large digits. It reports a separator as
+ * '.', since it confuses a decimal point with a comma. */
 export function digitsVerifier(session: OrtSession, runtime: OrtRuntime): Verify {
-  const chars = '0123456789.,';
+  const chars = '0123456789..';
   return async (image, box, rotate) => {
     const bw = box.right - box.left, bh = box.bottom - box.top, aspect = rotate === 0 ? bw / bh : bh / bw;
     const width = Math.max(8, Math.min(320, Math.round(32 * aspect))), data = new Float32Array(32 * width);
+    const grey = (x: number, y: number) => { const i = (Math.min(image.height - 1, Math.max(0, y)) * image.width + Math.min(image.width - 1, Math.max(0, x))) * 4; return .299 * image.data[i] + .587 * image.data[i + 1] + .114 * image.data[i + 2]; };
+    // Source footprint of one input pixel along the box, sampled on a small grid.
+    const grid = Math.max(1, Math.min(6, Math.ceil(Math.max(bw, bh) / Math.max(width, 32))));
     for (let y = 0; y < 32; y++) for (let x = 0; x < width; x++) {
-      const u = (x + .5) / width, v = (y + .5) / 32, [fx, fy] = rotate === 0 ? [u, v] : rotate === 90 ? [1 - v, u] : [v, 1 - u];
-      const sx = Math.min(image.width - 1, Math.max(0, Math.floor(box.left + fx * bw))), sy = Math.min(image.height - 1, Math.max(0, Math.floor(box.top + fy * bh))), i = (sy * image.width + sx) * 4;
-      data[y * width + x] = (.299 * image.data[i] + .587 * image.data[i + 1] + .114 * image.data[i + 2]) / 127.5 - 1;
+      let sum = 0;
+      for (let j = 0; j < grid; j++) for (let k = 0; k < grid; k++) {
+        const u = (x + (k + .5) / grid) / width, v = (y + (j + .5) / grid) / 32, [fx, fy] = rotate === 0 ? [u, v] : rotate === 90 ? [1 - v, u] : [v, 1 - u];
+        sum += grey(Math.floor(box.left + fx * bw), Math.floor(box.top + fy * bh));
+      }
+      data[y * width + x] = sum / (grid * grid) / 127.5 - 1;
     }
     const output = await session.run({ [session.inputNames[0]]: runtime.tensor(data, [1, 1, 32, width]) }), logits = floats(output[session.outputNames[0]]);
     const [, classes, steps] = output[session.outputNames[0]].dims;

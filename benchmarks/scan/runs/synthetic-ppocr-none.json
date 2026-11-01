@@ -1,7 +1,7 @@
 {
  "format": "tank-maleh-scan-synthetic-v1",
  "note": "Synthetic mechanism suite; not real-world accuracy.",
- "commit": "c482b26d8a6829505396d1fd8a6e120265a8a523",
+ "commit": "67288b8868f2c3653b798b0ecc132a11199620ab",
  "seed": 20261101,
  "count": 200,
  "reader": "current",
@@ -10,14 +10,14 @@
  "pump": {
   "decidable": {
    "scenes": 19,
-   "accepted": 12,
-   "correct": 12,
+   "accepted": 17,
+   "correct": 17,
    "wrong": 0
   },
   "undecidable": {
    "scenes": 81,
-   "accepted": 0,
-   "correct": 0,
+   "accepted": 1,
+   "correct": 1,
    "wrong": 0
   }
  },
@@ -44,14 +44,14 @@
   },
   "blur": {
    "scenes": 37,
-   "accepted": 19,
-   "correct": 19,
+   "accepted": 20,
+   "correct": 20,
    "wrong": 0
   },
   "tilt": {
    "scenes": 45,
-   "accepted": 15,
-   "correct": 15,
+   "accepted": 20,
+   "correct": 20,
    "wrong": 0
   },
   "jpeg": {
@@ -70,14 +70,14 @@
   },
   "night": {
    "scenes": 61,
-   "accepted": 19,
-   "correct": 19,
+   "accepted": 23,
+   "correct": 23,
    "wrong": 0
   },
   "blue": {
    "scenes": 63,
-   "accepted": 23,
-   "correct": 23,
+   "accepted": 25,
+   "correct": 25,
    "wrong": 0
   }
  },
@@ -101,7 +101,8 @@
    "wrong": false,
    "reason": "uncorroborated",
    "frameReasons": {
-    "identity-ambiguous": 2
+    "identity-ambiguous": 2,
+    "format": 1
    }
   },
   {
@@ -146,7 +147,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 2
+    "identity-ambiguous": 3,
+    "format": 2
    }
   },
   {
@@ -234,7 +236,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
-    "format": 1
+    "format": 2
    }
   },
   {
@@ -279,7 +281,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
+    "identity-ambiguous": 2,
     "format": 1
    }
   },
@@ -324,8 +326,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "identity-ambiguous": 1,
+    "identity-ambiguous": 2,
     "no-reading": 1
    }
   },
@@ -368,6 +369,7 @@
    "reason": "implausible",
    "frameReasons": {
     "identity-ambiguous": 2,
+    "format": 1,
     "implausible": 1
    }
   },
@@ -412,8 +414,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "format": 1
+    "format": 2,
+    "identity-ambiguous": 1
    }
   },
   {
@@ -456,8 +458,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 2,
-    "identity-ambiguous": 1
+    "identity-ambiguous": 2,
+    "format": 1
    }
   },
   {
@@ -498,8 +500,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "format": 1
+    "format": 2,
+    "identity-ambiguous": 1
    }
   },
   {
@@ -672,8 +674,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "format": 1
+    "identity-ambiguous": 2,
+    "format": 2
    }
   },
   {
@@ -718,7 +720,6 @@
    "wrong": false,
    "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
     "identity-ambiguous": 1
    }
   },
@@ -808,6 +809,7 @@
    "wrong": false,
    "reason": "uncorroborated",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 1
    }
   },
@@ -895,6 +897,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2,
     "no-reading": 1
    }
@@ -938,6 +941,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 3
    }
   },
@@ -982,6 +986,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2,
     "no-reading": 1
    }
@@ -1060,18 +1065,22 @@
     "total": "343.58",
     "liters": "48.735"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "343.58",
+    "liters": "48.735"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1157,8 +1166,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "format": 1
+    "format": 3,
+    "identity-ambiguous": 2
    }
   },
   {
@@ -1203,7 +1212,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "format": 1,
-    "identity-ambiguous": 2
+    "identity-ambiguous": 4
    }
   },
   {
@@ -1294,6 +1303,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 1,
     "no-reading": 1
    }
@@ -1514,7 +1524,7 @@
    "wrong": false,
    "reason": "implausible",
    "frameReasons": {
-    "format": 1,
+    "format": 2,
     "implausible": 1
    }
   },
@@ -1645,8 +1655,8 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "conflict": 1,
-    "format": 1
+    "format": 2,
+    "conflict": 1
    }
   },
   {
@@ -1689,6 +1699,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
+    "format": 1,
     "conflict": 1
    }
   },
@@ -1731,8 +1742,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "no-reading": 1
+    "format": 1,
+    "identity-ambiguous": 2,
+    "no-reading": 2
    }
   },
   {
@@ -1812,18 +1824,22 @@
     "total": "348.58",
     "liters": "53.219"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "348.58",
+    "liters": "53.219"
+   },
+   "paths": [
+    "segment-painted@960",
+    "segment-painted@roi"
+   ],
    "polarity": "blue",
    "degradation": "blur",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "identity-ambiguous": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1866,6 +1882,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 1,
     "no-reading": 1
    }
@@ -1911,8 +1928,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "identity-ambiguous": 1,
+    "identity-ambiguous": 2,
     "no-reading": 1
    }
   },
@@ -1955,7 +1971,7 @@
    "reason": "unreadable",
    "frameReasons": {
     "identity-ambiguous": 2,
-    "format": 1
+    "format": 2
    }
   },
   {
@@ -2217,18 +2233,22 @@
     "total": "459.78",
     "liters": "58.399"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "459.78",
+    "liters": "58.399"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -2272,6 +2292,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 1,
     "no-reading": 1
    }
@@ -2454,7 +2475,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3
+    "identity-ambiguous": 5,
+    "format": 1
    }
   },
   {
@@ -2495,7 +2517,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3
+    "identity-ambiguous": 3,
+    "format": 1
    }
   },
   {
@@ -2540,6 +2563,7 @@
    "wrong": false,
    "reason": "uncorroborated",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 1
    }
   },
@@ -2585,6 +2609,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2
    }
   },
@@ -2671,6 +2696,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 3
    }
   },
@@ -2752,18 +2778,22 @@
     "total": "411.07",
     "liters": "59.575"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "411.07",
+    "liters": "59.575"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -2805,10 +2835,11 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
+    "format": 2,
     "identity-ambiguous": 1,
-    "format": 1
+    "no-reading": 1
    }
   },
   {
@@ -2940,7 +2971,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3
+    "identity-ambiguous": 1,
+    "format": 2
    }
   },
   {
@@ -2985,6 +3017,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 2
    }
   },
@@ -3027,6 +3060,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 1,
     "no-reading": 1
    }
@@ -3072,8 +3106,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "format": 1
+    "format": 2,
+    "identity-ambiguous": 1
    }
   },
   {
@@ -3115,7 +3149,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3
+    "identity-ambiguous": 1,
+    "format": 5
    }
   },
   {
@@ -3147,18 +3182,22 @@
     "total": "197.62",
     "liters": "29.452"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "197.62",
+    "liters": "29.452"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3199,7 +3238,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3
+    "identity-ambiguous": 4
    }
   },
   {
@@ -3379,7 +3418,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 2
+    "identity-ambiguous": 1,
+    "format": 3
    }
   },
   {
@@ -3518,6 +3558,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2
    }
   },
@@ -3610,7 +3651,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3
+    "identity-ambiguous": 1,
+    "format": 4
    }
   },
   {
@@ -3654,7 +3696,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3
+    "identity-ambiguous": 3,
+    "format": 1
    }
   },
   {
@@ -3696,7 +3739,7 @@
    "wrong": false,
    "reason": "implausible",
    "frameReasons": {
-    "format": 1,
+    "identity-ambiguous": 1,
     "implausible": 2
    }
   },
@@ -3739,8 +3782,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "format": 1
+    "format": 2,
+    "identity-ambiguous": 1
    }
   },
   {
@@ -3785,7 +3828,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3
+    "identity-ambiguous": 1,
+    "format": 2
    }
   },
   {
@@ -3830,7 +3874,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
+    "identity-ambiguous": 1,
+    "format": 2,
     "no-reading": 1
    }
   },
@@ -3875,7 +3920,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 3
+    "identity-ambiguous": 3,
+    "format": 1
    }
   },
   {
@@ -3908,18 +3954,22 @@
     "total": "504.28",
     "liters": "64.166"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "504.28",
+    "liters": "64.166"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "blue",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3963,8 +4013,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 2,
-    "format": 1
+    "identity-ambiguous": 3,
+    "format": 3
    }
   },
   {
@@ -4053,8 +4103,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "no-reading": 1
+    "format": 1,
+    "identity-ambiguous": 2,
+    "no-reading": 2
    }
   },
   {
@@ -4146,8 +4197,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "identity-ambiguous": 2
+    "identity-ambiguous": 3
    }
   },
   {
@@ -4275,6 +4325,7 @@
    "wrong": false,
    "reason": "implausible",
    "frameReasons": {
+    "format": 1,
     "identity-ambiguous": 1,
     "implausible": 1
    }
@@ -4407,7 +4458,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "identity-ambiguous": 2,
+    "identity-ambiguous": 3,
     "format": 1
    }
   },
@@ -4452,7 +4503,7 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
+    "format": 3,
     "no-reading": 1
    }
   },

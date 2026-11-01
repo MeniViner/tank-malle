@@ -1,7 +1,7 @@
 {
  "format": "tank-maleh-scan-synthetic-v1",
  "note": "Synthetic mechanism suite; not real-world accuracy.",
- "commit": "c482b26d8a6829505396d1fd8a6e120265a8a523",
+ "commit": "67288b8868f2c3653b798b0ecc132a11199620ab",
  "seed": 20261101,
  "count": 200,
  "reader": "current",
@@ -10,14 +10,14 @@
  "pump": {
   "decidable": {
    "scenes": 19,
-   "accepted": 2,
-   "correct": 2,
+   "accepted": 7,
+   "correct": 7,
    "wrong": 0
   },
   "undecidable": {
    "scenes": 81,
-   "accepted": 11,
-   "correct": 11,
+   "accepted": 28,
+   "correct": 28,
    "wrong": 0
   }
  },
@@ -44,40 +44,40 @@
   },
   "blur": {
    "scenes": 37,
-   "accepted": 24,
-   "correct": 24,
+   "accepted": 29,
+   "correct": 29,
    "wrong": 0
   },
   "tilt": {
    "scenes": 45,
-   "accepted": 18,
-   "correct": 18,
+   "accepted": 26,
+   "correct": 26,
    "wrong": 0
   },
   "jpeg": {
    "scenes": 30,
-   "accepted": 8,
-   "correct": 8,
+   "accepted": 17,
+   "correct": 17,
    "wrong": 0
   }
  },
  "byPolarity": {
   "lcd": {
    "scenes": 76,
-   "accepted": 22,
-   "correct": 22,
+   "accepted": 32,
+   "correct": 32,
    "wrong": 0
   },
   "night": {
    "scenes": 61,
-   "accepted": 21,
-   "correct": 21,
+   "accepted": 27,
+   "correct": 27,
    "wrong": 0
   },
   "blue": {
    "scenes": 63,
-   "accepted": 20,
-   "correct": 20,
+   "accepted": 26,
+   "correct": 26,
    "wrong": 0
   }
  },
@@ -91,19 +91,22 @@
     "total": "486.88",
     "liters": "64.19"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "486.88",
+    "liters": "64.19"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "uncorroborated",
-   "frameReasons": {
-    "format": 1,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -143,8 +146,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -188,8 +192,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -225,6 +230,7 @@
     "liters": "32.07"
    },
    "paths": [
+    "ppocr-v5+v6@960",
     "ppocr-v5+v6@roi",
     "segment@960",
     "segment@roi"
@@ -276,8 +282,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2,
-    "no-reading": 1
+    "no-reading": 2
    }
   },
   {
@@ -318,8 +325,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -356,6 +364,7 @@
     "liters": "32.911"
    },
    "paths": [
+    "ppocr-v5+v6@960",
     "ppocr-v5+v6@roi",
     "segment@960",
     "segment@roi"
@@ -535,10 +544,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -628,8 +637,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -715,8 +725,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -748,19 +758,22 @@
     "total": "482.09",
     "liters": "62.69"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "482.09",
+    "liters": "62.69"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "uncorroborated",
-   "frameReasons": {
-    "identity-ambiguous": 1,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -838,18 +851,22 @@
     "total": "82.39",
     "liters": "12.54"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "82.39",
+    "liters": "12.54"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "blur",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -879,18 +896,22 @@
     "total": "232.98",
     "liters": "32.86"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "232.98",
+    "liters": "32.86"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "tilt",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -979,7 +1000,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3
+    "identity-ambiguous": 1,
+    "format": 5
    }
   },
   {
@@ -1056,18 +1078,22 @@
     "total": "343.58",
     "liters": "48.735"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "343.58",
+    "liters": "48.735"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1100,19 +1126,22 @@
     "total": "237.39",
     "liters": "35.984"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "237.39",
+    "liters": "35.984"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "blue",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1151,10 +1180,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -1196,7 +1225,7 @@
    "wrong": false,
    "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
+    "identity-ambiguous": 1,
     "no-reading": 1
    }
   },
@@ -1231,19 +1260,22 @@
     "total": "94.32",
     "liters": "13.714"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "94.32",
+    "liters": "13.714"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "blue",
    "degradation": "blur",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1284,10 +1316,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -1374,8 +1406,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -1417,8 +1450,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -1462,8 +1496,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -1505,8 +1540,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2,
-    "no-reading": 1
+    "no-reading": 2
    }
   },
   {
@@ -1540,19 +1576,22 @@
     "total": "438.39",
     "liters": "55.005"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "438.39",
+    "liters": "55.005"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "uncorroborated",
-   "frameReasons": {
-    "identity-ambiguous": 1,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1627,19 +1666,22 @@
     "total": "409.80",
     "liters": "53.780"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "409.80",
+    "liters": "53.780"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "blue",
    "degradation": "blur",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1677,9 +1719,11 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "uncorroborated",
+   "reason": "unreadable",
    "frameReasons": {
-    "conflict": 2
+    "identity-ambiguous": 1,
+    "format": 1,
+    "conflict": 4
    }
   },
   {
@@ -1718,10 +1762,11 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "conflict",
    "frameReasons": {
-    "identity-ambiguous": 1,
-    "no-reading": 1
+    "implausible": 1,
+    "no-reading": 1,
+    "conflict": 1
    }
   },
   {
@@ -1853,9 +1898,8 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -1890,19 +1934,22 @@
     "total": "227.35",
     "liters": "28.44"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "227.35",
+    "liters": "28.44"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 1,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -1988,9 +2035,9 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 2
+    "format": 4
    }
   },
   {
@@ -2021,19 +2068,22 @@
     "total": "176.16",
     "liters": "25.30"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "176.16",
+    "liters": "25.30"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 1,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -2074,9 +2124,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 2
+    "identity-ambiguous": 1,
+    "format": 4
    }
   },
   {
@@ -2118,8 +2169,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -2164,8 +2216,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -2200,18 +2252,22 @@
     "total": "459.78",
     "liters": "58.399"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "459.78",
+    "liters": "58.399"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -2252,10 +2308,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -2297,7 +2353,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 2
+    "identity-ambiguous": 1,
+    "format": 4
    }
   },
   {
@@ -2426,7 +2483,7 @@
     "liters": "41.56"
    },
    "paths": [
-    "ppocr-v5+v6@roi",
+    "ppocr-v5+v6@960",
     "segment@960",
     "segment@roi"
    ],
@@ -2479,7 +2536,7 @@
    "reason": "uncorroborated",
    "frameReasons": {
     "identity-ambiguous": 1,
-    "format": 1
+    "format": 2
    }
   },
   {
@@ -2566,9 +2623,9 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 3
+    "format": 4
    }
   },
   {
@@ -2610,8 +2667,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -2748,9 +2806,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 2
+    "identity-ambiguous": 1,
+    "format": 4
    }
   },
   {
@@ -2836,8 +2895,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -2916,19 +2976,22 @@
     "total": "97.34",
     "liters": "13.52"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "97.34",
+    "liters": "13.52"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "tilt",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "conflict": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -2969,9 +3032,8 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
     "no-reading": 1
    }
   },
@@ -3004,18 +3066,22 @@
     "total": "431.12",
     "liters": "57.56"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "431.12",
+    "liters": "57.56"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "tilt",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "uncorroborated",
-   "frameReasons": {
-    "format": 2
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3057,10 +3123,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -3102,7 +3168,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 3
+    "identity-ambiguous": 1,
+    "format": 5
    }
   },
   {
@@ -3137,18 +3204,22 @@
     "total": "197.62",
     "liters": "29.452"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "197.62",
+    "liters": "29.452"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "tilt",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3178,18 +3249,22 @@
     "total": "294.26",
     "liters": "40.644"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "294.26",
+    "liters": "40.644"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "blur",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3271,10 +3346,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -3316,10 +3391,11 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
+    "identity-ambiguous": 1,
     "format": 2,
-    "no-reading": 1
+    "no-reading": 2
    }
   },
   {
@@ -3353,19 +3429,22 @@
     "total": "441.10",
     "liters": "62.63"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "441.10",
+    "liters": "62.63"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "night",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3401,6 +3480,7 @@
     "liters": "62.24"
    },
    "paths": [
+    "ppocr-v5+v6@960",
     "ppocr-v5+v6@roi",
     "segment@960"
    ],
@@ -3444,18 +3524,22 @@
     "total": "464.53",
     "liters": "60.802"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "464.53",
+    "liters": "60.802"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "blur",
    "decidable": true,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3498,7 +3582,8 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 2
+    "identity-ambiguous": 1,
+    "format": 4
    }
   },
   {
@@ -3540,10 +3625,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -3575,18 +3660,22 @@
     "total": "152.72",
     "liters": "22.592"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "152.72",
+    "liters": "22.592"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "lcd",
    "degradation": "tilt",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 3
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3619,19 +3708,22 @@
     "total": "215.75",
     "liters": "30.69"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "215.75",
+    "liters": "30.69"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "blue",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -3674,8 +3766,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -3716,8 +3809,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -3759,9 +3853,9 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 2
+    "format": 5
    }
   },
   {
@@ -3806,8 +3900,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
@@ -3893,9 +3988,9 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 2
+    "format": 5
    }
   },
   {
@@ -3932,6 +4027,7 @@
     "liters": "56.06"
    },
    "paths": [
+    "ppocr-v5+v6@960",
     "ppocr-v5+v6@roi",
     "segment@960"
    ],
@@ -3980,10 +4076,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -4067,10 +4163,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
     "format": 2,
-    "no-reading": 1
+    "no-reading": 2
    }
   },
   {
@@ -4112,8 +4208,9 @@
    "wrong": false,
    "reason": "unreadable",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -4193,10 +4290,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 1,
-    "no-reading": 1
+    "format": 2,
+    "no-reading": 2
    }
   },
   {
@@ -4275,19 +4372,22 @@
     "total": "298.37",
     "liters": "43.08"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "298.37",
+    "liters": "43.08"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
    "polarity": "blue",
    "degradation": "jpeg",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "unreadable",
-   "frameReasons": {
-    "format": 2,
-    "no-reading": 1
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -4408,18 +4508,22 @@
     "total": "171.99",
     "liters": "22.78"
    },
-   "read": null,
-   "paths": null,
+   "read": {
+    "total": "171.99",
+    "liters": "22.78"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "segment@960"
+   ],
    "polarity": "blue",
    "degradation": "tilt",
    "decidable": false,
-   "status": "abstained",
-   "correct": false,
+   "status": "accepted",
+   "correct": true,
    "wrong": false,
-   "reason": "uncorroborated",
-   "frameReasons": {
-    "format": 2
-   }
+   "reason": null,
+   "frameReasons": null
   },
   {
    "kind": "odometer",
@@ -4460,10 +4564,10 @@
    "status": "abstained",
    "correct": false,
    "wrong": false,
-   "reason": "unreadable",
+   "reason": "uncorroborated",
    "frameReasons": {
-    "format": 2,
-    "no-reading": 1
+    "format": 3,
+    "no-reading": 2
    }
   },
   {
