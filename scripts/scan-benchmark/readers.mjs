@@ -37,6 +37,8 @@ async function createTesseract() {
   return {
     name: 'tesseract',
     get timeouts() { return timeouts; },
+    // The Tesseract worker keeps the event loop alive until it is terminated.
+    close: () => worker.terminate(),
     read: async image => {
       // Tesseract takes an encoded image; PNG keeps the pixels exact.
       const png = await sharp(Buffer.from(image.data.buffer, image.data.byteOffset, image.data.length), { raw: { width: image.width, height: image.height, channels: 4 } }).png().toBuffer();

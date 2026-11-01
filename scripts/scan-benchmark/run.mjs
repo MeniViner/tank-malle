@@ -147,4 +147,5 @@ async function work({ sessions, root, reader, text, live, components, readerOpti
     if (textReader?.timeouts !== undefined) row.textReaderTimeouts = textReader.timeouts;
     emit(row);
   }
+  await textReader?.close?.();
 }

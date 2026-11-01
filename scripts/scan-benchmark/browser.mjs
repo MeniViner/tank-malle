@@ -1,9 +1,12 @@
 // Runtime budget of the shipped recogniser in real browser engines: cold start
-// (bytes and time until the first decided frame), warm per-scene latency and
-// renderer memory. It loads the BUILT worker (dist/assets/display.worker-*.js)
-// from a `vite preview` server, exactly as the PWA does.
+// (bytes and time until the first decided photo), reopening with the models in
+// Cache Storage, warm per-photo latency split by outcome, and renderer memory.
+// It loads the BUILT worker (dist/assets/display.worker-*.js) from a
+// `vite preview` server, exactly as the PWA does, and decides each photo with
+// the app's own still-photo session rule.
 //
 //   npx vite build && node scripts/scan-benchmark/browser.mjs [chromium|webkit] [scenes] [out.json]
+//   CARE_THROTTLE=10,150 (Mbit/s down, ms round trip; Chromium only) emulates a network for the cold start.
 //
 // Desktop engines on this machine are not phones: these numbers bound the
 // code's cost; they are not Samsung Galaxy S25 or iPhone measurements.
@@ -11,11 +14,14 @@ import { execFileSync, spawn } from 'node:child_process';
 import { readFile, readdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { chromium, webkit } from '@playwright/test';
+import { runnerImport } from 'vite';
+import sharp from 'sharp';
 
 const [engine = 'chromium', count = '40', out] = process.argv.slice(2);
 const root = resolve('.'), port = 5291, origin = `http://127.0.0.1:${port}`;
 const worker = (await readdir('dist/assets')).find(f => /^display\.worker-.*\.js$/.test(f));
 if (!worker) throw new Error('Build first: npx vite build');
+const { CaptureSession } = (await runnerImport(join(root, 'src/lib/scan/session.ts'))).module;
 const manifest = JSON.parse(await readFile('benchmarks/scan/trodo-sessions.json', 'utf8'));
 // A fixed, deterministic sample of test-split photographs (every k-th one).
 const test = manifest.sessions.filter(s => s.split === 'test' && s.role === 'eligible');
@@ -25,8 +31,17 @@ const server = spawn('npx', ['--no-install', 'vite', 'preview', '--outDir', 'dis
 for (let i = 0; i < 60; i++) { try { await fetch(origin); break; } catch { await new Promise(r => setTimeout(r, 500)); } }
 const browser = await (engine === 'webkit' ? webkit.launch({ executablePath: process.env.CARE_WEBKIT_PATH }) : chromium.launch());
 const page = await (await browser.newContext()).newPage();
-await page.route(`${origin}/bench-image/**`, async route => route.fulfill({ body: await readFile(join(root, '.scan-corpus', decodeURIComponent(new URL(route.request().url()).pathname.slice('/bench-image/'.length)))), contentType: 'image/jpeg' }));
-const downloads = {};
+// Photos are decoded as the Node runner decodes them (78 TRODO JPEGs are
+// truncated, which browsers refuse) and served as lossless PNG; decoding is
+// outside the timed interval.
+const decoded = file => sharp(join(root, '.scan-corpus', file), { failOn: 'none', limitInputPixels: 60_000_000 }).rotate().resize({ width: 2560, height: 2560, fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 1 }).toBuffer();
+await page.route(`${origin}/bench-image/**`, async route => route.fulfill({ body: await decoded(decodeURIComponent(new URL(route.request().url()).pathname.slice('/bench-image/'.length))), contentType: 'image/png' }));
+const [mbps, rtt] = (process.env.CARE_THROTTLE ?? '').split(',').map(Number);
+if (mbps) {
+  if (engine !== 'chromium') throw new Error('CARE_THROTTLE needs chromium');
+  await (await page.context().newCDPSession(page)).send('Network.emulateNetworkConditions', { offline: false, latency: rtt || 0, downloadThroughput: mbps * 125_000, uploadThroughput: mbps * 125_000 });
+}
+let downloads = {};
 page.on('response', async response => { if (/scan-models|ort-wasm/.test(response.url())) downloads[new URL(response.url()).pathname.split('/').pop()] = (await response.body().catch(() => Buffer.alloc(0))).length; });
 await page.goto(`${origin}/favicon.svg`);
 const rss = () => {
@@ -34,11 +49,15 @@ const rss = () => {
   const ps = execFileSync('ps', ['-axo', 'rss=,command='], { encoding: 'utf8' }).split('\n');
   return Math.round(ps.filter(l => engine === 'webkit' ? /WebKitWebProcess|com\.apple\.WebKit\.WebContent|WebContent/i.test(l) && /ms-playwright/.test(l) : /--type=renderer/.test(l) && /ms-playwright/.test(l)).reduce((s, l) => s + Number(l.trim().split(/\s+/)[0]), 0) / 1024);
 };
-const before = rss();
-const results = await page.evaluate(async ({ worker, files }) => {
-  const w = new Worker(`/assets/${worker}`, { type: 'module' });
-  let id = 0; const pending = new Map(); let state = 'loading';
-  w.onmessage = e => { if (e.data.type === 'state') { state = e.data.recognizer; return; } pending.get(e.data.id)?.(e.data); pending.delete(e.data.id); };
+// One worker, as the app creates it (the recogniser starts loading at
+// creation); each photo is timed from posting the pixels to the reply.
+const scan = (files, phase) => page.evaluate(async ({ worker, files, phase }) => {
+  const w = new Worker(`/assets/${worker}`, { type: 'module' }), created = performance.now(), pending = new Map();
+  let id = 0, state = 'loading', readyMs = null;
+  w.onmessage = e => {
+    if (e.data.type === 'state') { state = e.data.recognizer; if (state !== 'loading') readyMs ??= performance.now() - created; return; }
+    pending.get(e.data.id)?.(e.data); pending.delete(e.data.id);
+  };
   const pixels = async file => {
     const bitmap = await createImageBitmap(await (await fetch(`/bench-image/${encodeURIComponent(file)}`)).blob());
     const ratio = Math.min(1, 2560 / Math.max(bitmap.width, bitmap.height)), canvas = new OffscreenCanvas(Math.round(bitmap.width * ratio), Math.round(bitmap.height * ratio));
@@ -48,22 +67,47 @@ const results = await page.evaluate(async ({ worker, files }) => {
   const rows = [];
   for (const [index, file] of files.entries()) {
     const image = await pixels(file), started = performance.now(), reply = await post(image);
-    rows.push({ file, cold: index === 0, ms: performance.now() - started, recognizer: reply.recognizer ?? state, attempts: reply.analysis?.attempts?.length ?? 0, stages: reply.analysis?.ms ?? {} });
+    rows.push({ file, phase: index === 0 ? phase : 'warm', ms: performance.now() - started, recognizer: reply.recognizer ?? state, error: reply.type === 'error', hint: reply.analysis?.quality?.hint ?? null, attempts: reply.analysis?.attempts ?? [], stages: reply.analysis?.ms ?? {} });
   }
   w.terminate();
-  return rows;
-}, { worker, files: scenes.map(s => s.frames[0].file) });
+  return { rows, readyMs };
+}, { worker, files, phase });
+
+const before = rss();
+const first = await scan(scenes.map(s => s.frames[0].file), 'cold');
+const coldDownloads = downloads; downloads = {};
 const after = rss();
-const warm = results.filter(r => !r.cold).map(r => r.ms).sort((a, b) => a - b), q = p => warm[Math.min(warm.length - 1, Math.floor((warm.length - 1) * p))];
+// Reopening the app: a new worker; the recogniser comes from Cache Storage.
+const reopen = await scan([scenes[0].frames[0].file], 'reopen');
+const reopenDownloads = downloads;
+
+const rows = [...first.rows, ...reopen.rows].map(row => {
+  const scene = scenes.find(s => s.frames[0].file === row.file), session = new CaptureSession('odometer', { still: true });
+  session.frame(0, row.hint);
+  for (const attempt of row.attempts) session.attempt(attempt);
+  const d = session.decide(), { attempts, ...kept } = row;
+  const outcome = row.error ? 'error' : d.status !== 'accepted' ? 'abstained' : scene.expected && BigInt(d.values.odometer) === BigInt(scene.expected.odometer) ? 'correct' : 'wrong';
+  return { ...kept, id: scene.id, label: scene.label ?? null, attempts: attempts.length, outcome, ...(d.status === 'accepted' ? { odometer: d.values.odometer, paths: d.paths } : { reason: d.reason ?? null }) };
+});
+const stats = list => {
+  const v = list.map(r => r.ms).sort((a, b) => a - b), q = p => v.length ? Math.round(v[Math.min(v.length - 1, Math.floor((v.length - 1) * p))]) : null;
+  return { n: v.length, p50: q(.5), p95: q(.95), max: v.length ? Math.round(v.at(-1)) : null };
+};
+const warm = rows.filter(r => r.phase === 'warm'), cold = rows.find(r => r.phase === 'cold'), again = rows.find(r => r.phase === 'reopen');
+const bytes = d => Object.values(d).reduce((a, b) => a + b, 0);
 const report = {
-  format: 'tank-maleh-scan-browser-v1', at: new Date().toISOString(), engine, browserVersion: browser.version(), machine: execFileSync('sysctl', ['-n', 'machdep.cpu.brand_string'], { encoding: 'utf8' }).trim(),
-  scenes: results.length, recognizer: [...new Set(results.map(r => r.recognizer))],
-  coldStart: { firstSceneMs: Math.round(results[0].ms), downloadedBytes: Object.values(downloads).reduce((a, b) => a + b, 0), downloads, note: 'Local preview server, no network throttling; includes download, sha256 verification, Cache Storage write and session creation.' },
-  warmMs: { p50: Math.round(q(.5)), p95: Math.round(q(.95)), max: Math.round(warm.at(-1)) },
+  format: 'tank-maleh-scan-browser-v2', at: new Date().toISOString(), commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), engine, browserVersion: browser.version(), machine: execFileSync('sysctl', ['-n', 'machdep.cpu.brand_string'], { encoding: 'utf8' }).trim(),
+  network: mbps ? { downloadMbps: mbps, roundTripMs: rtt || 0, method: 'Chromium DevTools Network.emulateNetworkConditions' } : 'local preview server, no throttling',
+  scenes: first.rows.length, recognizer: [...new Set(rows.map(r => r.recognizer))],
+  coldStart: { firstScanMs: Math.round(cold.ms), recognizerReadyMs: Math.round(first.readyMs), outcome: cold.outcome, downloadedBytes: bytes(coldDownloads), downloads: coldDownloads, note: 'First scan after install: local preview server, no network throttling. Includes download, sha256 verification, Cache Storage write, session creation and reading the photo.' },
+  reopen: { firstScanMs: Math.round(again.ms), recognizerReadyMs: Math.round(reopen.readyMs), outcome: again.outcome, downloadedBytes: bytes(reopenDownloads), note: 'A new worker after the first: recogniser read from Cache Storage, verified, sessions created, then the same photo as the cold scan.' },
+  warmMs: { all: stats(warm), accepted: stats(warm.filter(r => r.outcome === 'correct' || r.outcome === 'wrong')), abstained: stats(warm.filter(r => r.outcome === 'abstained')) },
+  outcomes: { correct: warm.filter(r => r.outcome === 'correct').length, wrong: warm.filter(r => r.outcome === 'wrong').length, abstained: warm.filter(r => r.outcome === 'abstained').length, error: warm.filter(r => r.outcome === 'error').length, reasons: warm.filter(r => r.reason).reduce((m, r) => ({ ...m, [r.reason]: (m[r.reason] ?? 0) + 1 }), {}) },
   rendererRssMb: { before, after, note: 'Sum of renderer/web-content processes; includes the page and the worker.' },
-  rows: results,
+  rows,
 };
 if (out) await writeFile(resolve(out), JSON.stringify(report, null, 1) + '\n');
-console.log(JSON.stringify({ engine, browser: report.browserVersion, machine: report.machine, scenes: report.scenes, recognizer: report.recognizer, coldStart: report.coldStart, warmMs: report.warmMs, rendererRssMb: report.rendererRssMb }, null, 1));
+const { rows: _, ...brief } = report;
+console.log(JSON.stringify(brief, null, 1));
 await browser.close(); server.kill();
 process.exit(0);
