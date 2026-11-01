@@ -7,6 +7,14 @@ import {vehicleDay} from '../src/lib/vehicle/format';
 const expense={schemaVersion:1,version:1,day:'2026-10-01',category:'insurance',title:'ביטוח לדוגמה',costAgorot:10000,notes:''};
 const service={schemaVersion:1,version:1,day:'2026-10-05',title:'בלמים ושמן',jobs:['oil','brakes'],odometer:120100,costAgorot:50000,garage:'מוסך לדוגמה',notes:'',completedPlanIds:[]};
 const plan={schemaVersion:1,version:1,title:'טיפול שמן הבא',job:'oil',dueDay:'2026-10-01',dueOdometer:130000,intervalMonths:1,intervalKm:10000,basis:'completion',source:'owner',notes:'',active:true};
+// "This month" is the browser's real month in the project's zone: the expense falls on its first
+// day and the service today, never in the future. A test that could straddle a month's last
+// midnight waits for it first, so every month and year boundary gives the same totals.
+test.beforeEach(async()=>{
+  const info=test.info(),margin=info.timeout,zone=info.project.use.timezoneId??'Asia/Jerusalem',day=(at:number)=>new Intl.DateTimeFormat('en-CA',{timeZone:zone}).format(at);
+  if(day(Date.now()).slice(0,7)!==day(Date.now()+margin).slice(0,7)){info.setTimeout(info.timeout+margin);while(day(Date.now()).slice(0,7)!==day(Date.now()+margin).slice(0,7))await new Promise(r=>setTimeout(r,1000));}
+  const today=day(Date.now());expense.day=today.slice(0,8)+'01';service.day=today;
+});
 async function seed(page:Parameters<typeof signedInWithData>[0]){const scope=await signedInWithData(page,{fillups:[]});return {...scope,base:`users/${scope.uid}/vehicles/${scope.vehicleId}`};}
 test('known monthly running costs agree across Home, ledger, vehicle, insights and profile',async({page})=>{
   const {base}=await seed(page);await setDocument(base+'/vehicleExpenses/insurance',expense);await setDocument(base+'/serviceEvents/s',service);await setDocument(base+'/vehicleExpenses/refund',{...expense,title:'החזר',category:'refund',costAgorot:1000});await setDocument(base+'/vehicleExpenses/unknown',{...expense,title:'עלות חסרה',category:'other',costAgorot:null});
