@@ -44,7 +44,7 @@ async function save(page: Page, path: string, expected: Record<string, number>) 
 }
 
 test('a cold live pump scan fills the form; the saved fill-up survives a reload', async ({ page }) => {
-  only('replay-pump', 'replay-blur-to-clear', 'replay-labelled-pump');
+  only('replay-pump', 'replay-blur-to-clear');
   const downloads: string[] = []; page.on('request', r => { if (MODELS.test(r.url())) downloads.push(r.url()); });
   const scope = await signedInWithData(page, { fillups: [] }); await openWizard(page);
   const ms = await scanPump(page);
@@ -141,6 +141,22 @@ test('a counting pump is filled only with its final values, or not at all', asyn
     const banner = dialog(page).getByRole('status').filter({ hasText: 'המשאבה נקראה' });
     await expect(banner).toContainText('₪287.40'); await expect(banner).toContainText('40.000');
     note('outcome', `filled the final values after ${Date.now() - opened} ms`);
+  } else note('outcome', `abstained after ${Date.now() - opened} ms: ${await abstained.first().textContent()}`);
+});
+
+test('a pump with printed words beside its rows is filled correctly or not at all', async ({ page }) => {
+  // The scene's words and digits are drawn with system fonts, which differ
+  // between machines (macOS, the CI's Linux): the outcome is recorded, and
+  // only a wrong value fails.
+  only('replay-labelled-pump');
+  await signedInWithData(page, { fillups: [] }); await openWizard(page);
+  const opened = Date.now(); await openCamera(page);
+  const abstained = dialog(page).getByText(/סותרות|לא ברורות|לא ברור/);
+  await outcome(abstained, async () => (await pumpRead(page).count()) > 0);
+  if (await pumpRead(page).count()) {
+    const banner = dialog(page).getByRole('status').filter({ hasText: 'המשאבה נקראה' });
+    await expect(banner).toContainText('₪287.40'); await expect(banner).toContainText('40.000');
+    note('outcome', `filled 287.40 / 40.000 after ${Date.now() - opened} ms`);
   } else note('outcome', `abstained after ${Date.now() - opened} ms: ${await abstained.first().textContent()}`);
 });
 

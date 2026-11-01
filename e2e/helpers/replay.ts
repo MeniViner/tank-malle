@@ -15,7 +15,9 @@ import { resample } from '../../src/lib/scan/frame';
  *
  * One file per browser launch: a pump scene drives the pump step (the
  * odometer is then typed in the normal form) and an odometer scene drives the
- * odometer step (the pump step is skipped and its values typed).
+ * odometer step (the pump step is skipped and its values typed). Words and
+ * printed digits use system fonts (DIN Condensed on macOS; a fallback such as
+ * DejaVu on the CI's Linux), so a scene can read differently per machine.
  */
 export const REPLAY_DIR = resolve('.care-device/replay');
 const W = 1280, H = 720, FPS = 3;
