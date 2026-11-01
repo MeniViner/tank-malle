@@ -28,3 +28,23 @@ describe('stray seven-segment strokes beside a recognised number', () => {
     expect(strayStroke(image, { ...box(170, 570), beside: { left: false, right: true } })).toBe(true);
   });
 });
+
+describe('strokes inside the box beyond the digits read (with the recogniser\'s character positions)', () => {
+  // Digit i of text drawn at x = 100 + 78 i is read at its cell's middle, x + 28.
+  const at = (text: string, from = 0) => [...text].map((char, i) => ({ char, x: 100 + 78 * (i + from) + 28 }));
+  it('finds a last "1" dropped inside the box ("151771" read as "15177")', () => {
+    const image = blank(900, 480, [8, 15, 24]); drawDigits(image, '151771', 100, 200, [255, 200, 90]);
+    const line = { ...box(90, 580), text: '15177' };
+    expect(strayStroke(image, line)).toBe(false);
+    expect(strayStroke(image, line, at('15177'))).toBe(true);
+  });
+  it('finds a lone "1" between two digits read', () => {
+    const image = blank(900, 480, [8, 15, 24]); drawDigits(image, '191', 100, 200, [255, 200, 90]); drawDigits(image, '462', 100 + 4 * 78, 200, [255, 200, 90]);
+    drawDigits(image, '1', 100 + 3 * 78 - 20, 200, [255, 200, 90]);
+    expect(strayStroke(image, { ...box(90, 570), text: '191462' }, [...at('191'), ...at('462', 4)])).toBe(true);
+  });
+  it('ignores a number whose every digit was read, "1"s included', () => {
+    const image = blank(900, 480, [8, 15, 24]); drawDigits(image, '119461', 100, 200, [255, 200, 90]);
+    expect(strayStroke(image, { ...box(90, 580), text: '119461' }, at('119461'))).toBe(false);
+  });
+});

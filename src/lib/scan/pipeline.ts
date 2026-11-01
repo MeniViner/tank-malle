@@ -3,6 +3,7 @@ import { clip, crop, scaled, type Rect, type RgbaFrame } from './frame';
 import { classifyLabel, type LabelToken, type NumericLine } from './identity';
 import { assessQuality, type FrameQuality } from './quality';
 import { strayStroke } from './strokes';
+import { faintest, topBar } from './cells';
 import { CaptureSession, type Attempt } from './session';
 
 /**
@@ -15,14 +16,18 @@ import { CaptureSession, type Attempt } from './session';
  * Every path reports its own attempt; the capture session decides.
  */
 export type TextItem = { text: string; left: number; right: number; top: number; height: number; score: number;
-  /** The second recogniser read a different number (kept for diagnosis). */
-  contested?: 'verifier'; verifierText?: string;
+  /** The second recogniser read a different number, or the number changed
+   * when its box was widened to a glyph it cut (the other reading is kept
+   * for diagnosis). */
+  contested?: 'verifier' | 'edge'; verifierText?: string;
   /** Per gap between characters of `text` (see ctcDecode): how close the
    * recogniser came to reading a digit it did not emit there. */
   doubts?: number[];
   /** The detected text region itself, in image coordinates, before the
    * detector's margin (left/right/top/height as above). */
-  core?: Box };
+  core?: Box;
+  /** Where each character of `text` was read (x, image coordinates). */
+  centres?: number[] };
 type Pixels = { width: number; height: number; data: Uint8ClampedArray };
 /** Local text detection/recognition. Coordinates are in the image passed in. */
 export type TextReader = { name: string; read: (image: Pixels) => Promise<TextItem[]> };
@@ -44,6 +49,21 @@ type Run = { text: string; start: number; end: number; valid: boolean };
  * that digit, as a narrow "1" between the digits and "km" ("190061km" read as
  * "19006km"). Chosen on the tuning split, where it costs no correct reading. */
 export const DIGIT_DOUBT = .2;
+/** A digit with less than this share of its number's strongest contrast is
+ * an unlit segment group that still shows ("888" before "84.9", 0.20): the
+ * number is unsure. Chosen on the tuning split, where it costs no correct
+ * reading (the faintest correct one is 0.28). */
+export const FAINT_DIGIT = .25;
+/** A "1" whose ink reaches this many digit pitches further across the top of
+ * the digits than through their middle may be a "7" with a short bar. Not
+ * used: on the tuning split any threshold that catches the "279890" display
+ * (0.22–0.32) costs 9–12 correct readings. Measured for diagnosis only. */
+export const TOP_BAR = Infinity;
+/** A digit stroke in the number's box beyond the digits read (strokes.ts with
+ * cells), where the recogniser also nearly read a digit at the number's edge
+ * ("151771" read as "15177": 0.43 after the last "7"), makes it unsure. Either
+ * alone costs correct readings on the tuning split; together, at 0.3, none. */
+export const UNREAD_DOUBT = .3;
 /** "58,57" → "58.57". A comma before three digits is a thousands separator
  * ("1,109" stays ambiguous and is not read as a decimal). */
 export const decimalComma = (text: string) => text.replace(/^(\d+),(\d{1,2})$/, '$1.$2');
@@ -96,8 +116,12 @@ export function fromText(items: TextItem[], kind?: DisplayKind) {
         const beside = { left: word(prev) && known(prev.text, kind), right: word(next) && known(next.text, kind) };
         const offset = item.text.length - item.text.trimStart().length, glued = (t?: typeof token) => word(t) && (t.end === run.start || t.start === run.end);
         const doubt = item.doubts ? Math.max(glued(prev) ? item.doubts[offset + run.start] ?? 0 : 0, glued(next) ? item.doubts[offset + run.end] ?? 0 : 0) : 0;
+        // Either edge's gap reaches over spaces the recogniser emitted there ("15 177 ").
+        const gaps = (from: number, step: number) => { const out = [item.doubts![offset + from] ?? 0]; for (let k = from; /\s/.test(item.text[offset + k + (step < 0 ? -1 : 0)] ?? ''); k += step) out.push(item.doubts![offset + k + step] ?? 0); return out; };
+        const edge = item.doubts ? Math.max(...gaps(run.start, -1), ...gaps(run.end, 1)) : 0;
         const contested = item.contested ?? ([prev, next].some(t => word(t) && !known(t.text, kind)) ? 'text' : doubt >= DIGIT_DOUBT ? 'doubt' : undefined);
-        found.push({ line: { ...place(run), text: run.text, ...(contested ? { contested } : {}), ...(beside.left || beside.right ? { beside } : {}), ...(item.doubts ? { doubt } : {}) }, item: index });
+        const cells = item.centres ? [...text.slice(run.start, run.end)].flatMap((char, k) => (/[\d.,]/.test(char) && item.centres![offset + run.start + k] !== undefined ? [{ char, x: item.centres![offset + run.start + k] }] : [])) : [];
+        found.push({ line: { ...place(run), text: run.text, ...(contested ? { contested } : {}), ...(beside.left || beside.right ? { beside } : {}), ...(item.doubts ? { doubt, edge } : {}), ...(cells.length ? { cells } : {}) }, item: index });
       } else if (WORD.test(token.text)) {
         const before = runs.findLast(r => r.end <= token.start), after = runs.find(r => r.start >= token.end);
         for (const run of [before, after]) if (run?.valid) labels.push({ ...place(run), text: token.text });
@@ -117,6 +141,20 @@ export function fromText(items: TextItem[], kind?: DisplayKind) {
 // them is not a misread number.
 const NOT_DIGIT = /[\p{L}]/u, LOOKS_LIKE_DIGIT = new Set([...'IlOoDQSsBZzGbqgYyi|']);
 const paintable = (text: string) => !/\d/.test(text) && [...text].filter(c => NOT_DIGIT.test(c) && !LOOKS_LIKE_DIGIT.has(c)).length >= 2;
+/** Marks numbers the pixels around them make unsure: a stray digit stroke
+ * (strokes.ts), and, where the recogniser placed each digit, a faint digit
+ * or an unread stroke beside a near-missed digit (cells.ts). */
+export function checkPixels(image: RgbaFrame, lines: NumericLine[]) {
+  for (const line of lines) {
+    if (!line.contested && strayStroke(image, line)) line.contested = 'stroke';
+    if (!line.cells) continue;
+    line.faint = faintest(image, line, line.cells); line.bar = topBar(image, line, line.cells); line.unread = strayStroke(image, line, line.cells);
+    if (!line.contested && line.faint < FAINT_DIGIT) line.contested = 'faint';
+    if (!line.contested && line.bar > TOP_BAR) line.contested = 'top-bar';
+    if (!line.contested && line.unread && (line.edge ?? 0) >= UNREAD_DOUBT) line.contested = 'stroke';
+  }
+  return lines;
+}
 /** A copy of the frame with each box (and a margin of a tenth of its height)
  * filled with the median colour of the pixels around it. */
 function paint(source: RgbaFrame, boxes: Box[]): RgbaFrame {
@@ -169,7 +207,7 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
       const cut = rect ? crop(source, rect, Math.min(1, 960 / Math.max(rect.w, rect.h))) : { image, rect: { x: 0, y: 0, w: source.width, h: source.height }, scale: ratio };
       if (!rect) readWhole = true;
       const items = await time(reader.name, () => reader.read(cut.image)), found = fromText(items, kind);
-      for (const line of found.lines) if (!line.contested && strayStroke(cut.image, line)) line.contested = 'stroke';
+      checkPixels(cut.image, found.lines);
       const scale = ratio / cut.scale, dx = cut.rect.x * ratio, dy = cut.rect.y * ratio;
       words.push(...mapBoxes(items.filter(i => i.core && paintable(i.text)).map(i => i.core!), 1 / cut.scale, cut.rect.x, cut.rect.y));
       options.trace?.({ path, items: mapBoxes(items, 1 / cut.scale, cut.rect.x, cut.rect.y), lines: mapBoxes(found.lines, 1 / cut.scale, cut.rect.x, cut.rect.y), labels: mapBoxes(found.labels, 1 / cut.scale, cut.rect.x, cut.rect.y) });

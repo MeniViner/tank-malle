@@ -9,8 +9,14 @@ import type { NumericLine } from './identity';
  * either end. Finding one makes the reading unsure; it never adds a digit.
  * (A "1" merged into its neighbour by display bloom is not detectable this
  * way; see the documented failure cases.)
+ *
+ * With `cells` (where the recogniser read each character), the search also
+ * covers the box itself beyond the first and last digit read: two narrow
+ * "1"s read as one ("118948" as "18948"), a last "1" dropped inside the box
+ * ("151771" as "15177"). Each digit read keeps half a pitch either side,
+ * the room the recogniser's character positions need.
  */
-export function strayStroke(frame: RgbaFrame, line: NumericLine) {
+export function strayStroke(frame: RgbaFrame, line: NumericLine, cells?: { char: string; x: number }[]) {
   const { width, height, data } = frame;
   const top = Math.max(0, Math.round(line.top)), bottom = Math.min(height, Math.round(line.top + line.height));
   const left = Math.max(0, Math.round(line.left)), right = Math.min(width, Math.round(line.right));
@@ -54,6 +60,23 @@ export function strayStroke(frame: RgbaFrame, line: NumericLine) {
   };
   // A side where a label was read in the same box holds that label's letters,
   // and the recogniser saw past the number there.
-  const reach = Math.round(glyph * 1.4);
-  return (!line.beside?.left && search(left - reach, left - 1)) || (!line.beside?.right && search(right + 1, right + reach));
+  const reach = Math.round(glyph * 1.4), digits = cells?.filter(c => /\d/.test(c.char)) ?? [];
+  let inner = left, outer = right, between = false;
+  if (digits.length > 1) {
+    const pitch = (digits[digits.length - 1].x - digits[0].x) / (digits.length - 1), half = pitch * .5;
+    inner = Math.min(right, Math.max(left, Math.round(digits[0].x - half))); outer = Math.max(left, Math.min(right, Math.round(digits[digits.length - 1].x + half)));
+    // Between two digits read, a stroke counts only standing alone: blank
+    // columns on both sides, so it is no part of either neighbour.
+    const blank = (x: number) => columnInk(x, gTop, gBottom) < .05;
+    between = digits.slice(1).some((next, i) => {
+      const from = Math.round(digits[i].x + half), to = Math.round(next.x - half);
+      for (let x = from + 1, run = 0; x < to; x++) {
+        if (isStroke(x)) { run++; continue; }
+        if (run >= 1 && run <= glyph * .3 && blank(x) && blank(x - run - 1)) return true;
+        run = 0;
+      }
+      return false;
+    });
+  }
+  return between || (!line.beside?.left && search(left - reach, inner - 1)) || (!line.beside?.right && search(outer + 1, right + reach));
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decideDisplay, recognizeDisplay } from './automaticDisplay';
-import { readStill, type TextReader } from './pipeline';
+import { checkPixels, fromText, readStill, type TextItem, type TextReader } from './pipeline';
 import { rect } from './fixtures';
 import { blank, drawDigits } from './fixtures';
 import { resolveOdometer, resolvePump, type LabelToken, type NumericLine } from './identity';
@@ -66,6 +66,27 @@ describe('confirmed scan failures', () => {
     const { decision, analysis } = await readStill(image, 'pump', { textReader: reader });
     expect(analysis.attempts.map(a => a.path)).not.toContain('stub@centre');
     expect(decision.status).toBe('abstained');
+  });
+  // TRODO challenge 00000170 (a trip "84.9" with unlit "888" before it, read
+  // as 888849) and test 00001307 ("151771" read as "15177", a "1" at 0.43
+  // after the last "7"). The stub reader answers as the recogniser did, with
+  // where it read each character; the pixels decide.
+  const traced = async (image: ReturnType<typeof blank>, item: TextItem) => checkPixels(image, fromText([item], 'odometer').lines)[0];
+  const cellsAt = (text: string, x: number) => [...text].map((_, i) => x + 78 * i + 28);
+  it('makes a number unsure when some of its digits are unlit segments that still show', async () => {
+    const image = blank(960, 540, NIGHT); drawDigits(image, '888', 200, 200, [50, 54, 60]); drawDigits(image, '849', 200 + 3 * 78, 200, [240, 240, 240]);
+    expect(await traced(image, { text: '888849', left: 190, right: 680, top: 180, height: 140, score: .9, doubts: [0, 0, 0, 0, 0, 0, 0], centres: cellsAt('888849', 200) })).toMatchObject({ text: '888849', contested: 'faint' });
+    const lit = blank(960, 540, NIGHT); drawDigits(lit, '888849', 200, 200, [240, 240, 240]);
+    expect(await traced(lit, { text: '888849', left: 190, right: 680, top: 180, height: 140, score: .9, doubts: [0, 0, 0, 0, 0, 0, 0], centres: cellsAt('888849', 200) })).not.toHaveProperty('contested');
+  });
+  it('makes a number unsure when a digit stroke in its box went unread and a digit was nearly read there', async () => {
+    const image = blank(960, 540, NIGHT); drawDigits(image, '151771', 200, 200, BLUE);
+    const item = { text: '15 177 ', left: 190, right: 690, top: 180, height: 140, score: .9, centres: [228, 306, 345, 384, 462, 540, 600] };
+    expect(await traced(image, { ...item, doubts: [0, .01, .01, .01, 0, .01, 0, .43] })).toMatchObject({ text: '15177', contested: 'stroke' });
+    // The same stroke without the near-miss, or the near-miss without a stroke, is not enough.
+    expect(await traced(image, { ...item, doubts: [0, .01, .01, .01, 0, .01, 0, .1] })).not.toHaveProperty('contested');
+    const read = blank(960, 540, NIGHT); drawDigits(read, '15177', 200, 200, BLUE);
+    expect(await traced(read, { ...item, doubts: [0, .01, .01, .01, 0, .01, 0, .43] })).not.toHaveProperty('contested');
   });
   it('does not assign pump fields by row order', () => {
     const swapped = blank(820, 480); drawDigits(swapped, '26.092', 150, 95); drawDigits(swapped, '202.73', 150, 285);

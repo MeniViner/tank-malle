@@ -15,7 +15,16 @@ export type NumericLine = { text: string; left: number; right: number; top: numb
   /** A known label was read in the same detector box directly on this side. */
   beside?: { left: boolean; right: boolean };
   /** Diagnosis: how close the text recogniser came to a digit beside or inside the number (0–1). */
-  doubt?: number };
+  doubt?: number;
+  /** The same at either edge of the number, glued to a word or not. */
+  edge?: number;
+  /** Where the recogniser read each digit and separator (x, image coordinates). */
+  cells?: { char: string; x: number }[];
+  /** Diagnosis (cells.ts): the faintest digit's share of the strongest one's
+   * contrast, and how far a "1"'s ink reaches across the top of the digits. */
+  faint?: number; bar?: number;
+  /** Diagnosis (strokes.ts with cells): a digit stroke beyond the digits read. */
+  unread?: boolean };
 export type LabelClass = PumpRole | 'odometer' | 'trip' | 'tripLetter' | 'km' | 'miles' | 'foreignCurrency';
 /** Printed text recognised near the display (e.g. "LITRES", "ODO", "km"). */
 export type LabelToken = { text: string; left: number; right: number; top: number; height: number };

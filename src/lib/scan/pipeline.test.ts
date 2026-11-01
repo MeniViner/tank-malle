@@ -138,6 +138,13 @@ describe('decimal commas, foreign currency and nearly-read digits', () => {
     expect(fromText([{ ...box('19006km'), doubts: [0, 0, 0, 0, 0, 0, 0, .9] }], 'odometer').lines[0].doubt).toBe(0);
     expect(fromText([{ ...box('1 15605'), doubts: [0, 0, .6, 0, 0, 0, 0, 0] }], 'odometer').lines[0].doubt).toBe(0);
   });
+  it('records the near-miss at either edge, over spaces the recogniser emitted there, and where each digit was read', () => {
+    // "151771" read as "15 177 ": a "1" at 0.43 after the trailing space.
+    const [line] = fromText([{ ...box('15 177 '), doubts: [0, .01, .01, .01, 0, .01, 0, .43], centres: [10, 20, 30, 40, 50, 60, 70] }], 'odometer').lines;
+    expect(line).toMatchObject({ text: '15177', edge: .43, doubt: 0 });
+    expect(line).not.toHaveProperty('contested');
+    expect(line.cells).toEqual([{ char: '1', x: 10 }, { char: '5', x: 20 }, { char: '1', x: 40 }, { char: '7', x: 50 }, { char: '7', x: 60 }]);
+  });
 });
 
 describe('printed words beside segment digits', () => {
