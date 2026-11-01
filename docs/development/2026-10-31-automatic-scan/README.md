@@ -510,8 +510,8 @@ Commons photos remain correctly empty.
 
 ## User-test version (preview channel, not production)
 
-- **URL:** https://tank-malle--scan-test-0764a2e-3jrcfs0r.web.app (Firebase Hosting preview channel `scan-test-0764a2e`, expires 2026-11-15).
-- **Version:** app 1.6.0, build `0764a2e` (production mode, clean). Settings shows "גרסה 1.6.0 · 0764a2e40c". `/build-info.json` returns the same.
+- **URL:** https://tank-malle--scan-test-0764a2e-3jrcfs0r.web.app (Firebase Hosting preview channel `scan-test-0764a2e`; the channel keeps its cycle-3 name; updated in cycle 4, expires 2026-11-16).
+- **Version:** app 1.6.0, build `45d7b34` (production mode, clean; the cycle-4 code). Settings shows "גרסה 1.6.0 · 45d7b34521". `/build-info.json` returns the same. Later commits change documentation only.
 - **Backend:** the real `tank-malle` project, with the same deployed Firestore rules; this branch changes none. A fill-up saved there is a real record in the signed-in account.
 - **Sign-in:** the Firebase CLI added the channel's domain to Firebase Auth's authorized domains when it deployed the channel.
 - **Removal:** `firebase hosting:channel:delete scan-test-0764a2e --project tank-malle`. If the domain is still listed afterwards, remove it in the console.
