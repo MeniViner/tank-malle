@@ -84,7 +84,9 @@ function productHolds(total: string, liters: string, price: string) {
 export function resolvePump(lines: NumericLine[], labels: LabelToken[] = []): PumpIdentity {
   // Integer lines (pump number, clock) are not pump fields. Every decimal line
   // must be explained; an unexplained decimal line is a reason to abstain.
-  if (labels.some(label => classifyLabel(label.text, 'pump') === 'foreignCurrency')) return { status: 'abstain', reason: 'foreign-currency' };
+  // A currency is often read in one box with its word ("SALE €"): every word
+  // and every currency sign of a label counts.
+  if (labels.some(label => /[€$£₺₽]/.test(label.text) || label.text.split(/\s+/).some(word => classifyLabel(word, 'pump') === 'foreignCurrency'))) return { status: 'abstain', reason: 'foreign-currency' };
   if (lines.some(line => line.contested && /\d\.\d/.test(line.text))) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'unsure row' };
   const rows = lines.filter(line => /^\d{1,6}\.\d{1,3}$/.test(line.text) && Number(line.text) > 0);
   if (rows.length < 2) return { status: 'abstain', reason: 'no-reading' };
