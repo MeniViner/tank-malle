@@ -142,7 +142,7 @@ async function work({ sessions, root, reader, text, live, components, diagnose, 
         const trace = [];
         const { decision, analysis } = await pipeline.readStill(source, session.kind, { textReader, ...(diagnose ? { trace: event => trace.push(event) } : {}) });
         if (diagnose) {
-          row.trace = trace.map(e => ({ path: e.path, items: e.items?.map(i => ({ text: i.text, ...box(i), ...(i.doubts ? { doubts: i.doubts } : {}), ...(i.contested ? { contested: i.contested, verifierText: i.verifierText } : {}) })), lines: e.lines.map(l => ({ text: l.text, ...box(l), ...(l.doubt !== undefined ? { doubt: l.doubt } : {}), ...(l.contested ? { contested: l.contested } : {}) })), labels: e.labels.map(l => ({ text: l.text, ...box(l) })) }));
+          row.trace = trace.map(e => ({ path: e.path, items: e.items?.map(i => ({ text: i.text, ...box(i), ...(i.doubts ? { doubts: i.doubts } : {}), ...(i.contested ? { contested: i.contested, verifierText: i.verifierText } : {}) })), lines: e.lines.map(l => ({ text: l.text, ...box(l), ...(l.doubt !== undefined ? { doubt: l.doubt } : {}), ...(l.faint !== undefined ? { faint: l.faint, bar: l.bar, unread: l.unread, edge: l.edge } : {}), ...(l.contested ? { contested: l.contested } : {}) })), labels: e.labels.map(l => ({ text: l.text, ...box(l) })) }));
           row.attempts = analysis.attempts.map(a => ({ path: a.path, result: a.result }));
           row.size = { width: source.width, height: source.height };
           if (session.odometerBox && textReader) {

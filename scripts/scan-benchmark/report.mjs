@@ -130,12 +130,16 @@ if (digitModel) {
   for (const [k, v] of Object.entries(p)) lines.push(`| ${k} | ${v.correct}/${v.eligible} | ${v.wrong}/${v.scored} | ${ms(v.latencyMs.p50)} / ${ms(v.latencyMs.p95)} |`);
   lines.push('');
 }
-const replay = await load('replay-chromium');
-if (replay) {
-  lines.push('## Camera replay of the live scan (Chromium fake camera; software, not phones)', '', `${replay.note} Run at ${sha(replay)}: ${replay.passed} passed, ${replay.failed} failed.`, '', '| Scene | Test | Result | Measured |', '| --- | --- | --- | --- |');
-  for (const t of replay.tests) lines.push(`| ${t.project.replace('replay-', '')} | ${t.title} | ${t.status} | ${t.notes.join('; ') || '—'} |`);
+for (const name of ['replay-chromium', 'replay-chromium-ci']) {
+  const replay = await load(name); if (!replay) continue;
+  // v2: scan outcomes counted apart from test results.
+  lines.push(`## Camera replay of the live scan${name.endsWith('-ci') ? ', CI (Linux)' : ''} (Chromium fake camera; software, not phones)`, '', `${replay.note} Machine: ${replay.machine}. Run at ${sha(replay)}.`, '',
+    `Scans: ${replay.scans.correct} correct, ${replay.scans.wrong} wrong, ${replay.scans.abstained} abstained on a readable scene, ${replay.scans['correctly-empty']} correctly empty (negative scenes). Tests: ${replay.tests.passed} passed, ${replay.tests.failed} failed, ${replay.tests.expectedFailures} expected failures (open recognition failures kept in the suite).`, '', '| Scene | Test | Result | Scan outcomes | Measured |', '| --- | --- | --- | --- | --- |');
+  for (const t of replay.results) lines.push(`| ${t.project.replace('replay-', '')} | ${t.title} | ${t.status} | ${t.outcomes.join('; ') || '—'} | ${t.notes.join('; ') || '—'} |`);
   lines.push('');
 }
+const oldReplay = await load('replay-chromium-cycle3');
+if (oldReplay) lines.push('## Camera replay, cycle 3 (superseded)', '', `Run at ${sha(oldReplay)}: ${oldReplay.passed} passed, ${oldReplay.failed} failed. Its scenes used system fonts (macOS DIN Condensed; a different fallback on Linux), and its labelled-pump, counting-pump and trip tests passed on abstention. Replaced by pinned scenes with exact assertions.`, '');
 const memory = (await Promise.all(['chromium', 'webkit'].map(name => load(`memory-${name}`)))).filter(Boolean);
 if (memory.length) {
   lines.push('## Memory over repeated scan / cancel / reopen cycles (desktop engines)', '', memory[0].note, '');
