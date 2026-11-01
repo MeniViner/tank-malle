@@ -19,7 +19,10 @@ import { runnerImport } from 'vite';
 
 const [name = 'varied', seedArg = '1', countArg = '120'] = process.argv.slice(2);
 const { blank, drawDigits } = (await runnerImport(resolve('src/lib/scan/fixtures.ts'))).module;
-let seed = Number(seedArg); const random = () => ((seed = Math.imul(seed ^ (seed >>> 15), 1 | seed) + 0x6d2b79f5 | 0) >>> 0) / 4294967296;
+// mulberry32. (The first frozen set used a variant whose sequence fell into a
+// short cycle for seed 20261102: 19 distinct scenes in 120 groups.)
+let seed = Number(seedArg) >>> 0;
+const random = () => { seed = (seed + 0x6d2b79f5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 const pick = list => list[Math.floor(random() * list.length)];
 const FONTS = ['seven-segment', 'seven-segment', 'DIN Condensed', 'Andale Mono', 'Courier New', 'Arial'];
 const LABELS = { english: { total: 'SALE', liters: 'LITRES', unitPrice: 'PRICE/L', odometer: 'ODO', trip: 'TRIP', km: 'km' }, hebrew: { total: 'סה״כ לתשלום', liters: 'ליטרים', unitPrice: 'מחיר לליטר', odometer: 'ODO', trip: 'TRIP', km: 'ק״מ' } };
