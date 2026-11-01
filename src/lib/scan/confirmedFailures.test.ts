@@ -36,6 +36,16 @@ describe('confirmed scan failures', () => {
     // An unsure long number blocks acceptance of anything else in the frame.
     expect(resolveOdometer([line('128450', 60), { ...line('49028', 250), contested: 'edge' }])).toMatchObject({ status: 'abstain', reason: 'identity-ambiguous' });
   });
+  // TRODO tuning photographs (00000171, 00000215, …): the recogniser read the
+  // register correctly with its padding zeros, and identity refused eight characters.
+  it('reads a zero-padded register as the number it pads, never as a second reading', () => {
+    expect(resolveOdometer([line('00236096', 100)])).toMatchObject({ status: 'resolved', values: { odometer: '236096' } });
+    expect(resolveOdometer([line('00236096', 100), line('236096', 300)])).toMatchObject({ status: 'resolved', values: { odometer: '236096' } });
+    expect(resolveOdometer([line('00236096', 100), line('236090', 300)])).toMatchObject({ status: 'abstain', reason: 'identity-ambiguous' });
+    // The displayed zeros still count as the register's length; more than seven significant digits do not parse.
+    expect(resolveOdometer([line('000000123', 100)])).toMatchObject({ status: 'resolved', values: { odometer: '123' } });
+    expect(resolveOdometer([line('012345678', 100)])).toMatchObject({ status: 'abstain' });
+  });
   it('does not assign pump fields by row order', () => {
     const swapped = blank(820, 480); drawDigits(swapped, '26.092', 150, 95); drawDigits(swapped, '202.73', 150, 285);
     expect(recognizeDisplay(swapped, 'pump')).toMatchObject({ status: 'read', values: { total: '202.73', liters: '26.092' } });

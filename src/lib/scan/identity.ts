@@ -127,8 +127,10 @@ export function resolveOdometer(lines: NumericLine[], labels: LabelToken[] = [],
   const attached = attachLabels(lines, labels, 'odometer');
   // Round numbers repeated around a dial are a speedometer/rev-counter scale.
   const scale = lines.filter(line => /^\d{2,3}$/.test(line.text) && Number(line.text) % 10 === 0 && Number(line.text) <= 400);
-  const all = lines.map((line, i) => ({ line, labels: attached[i] }))
-    .filter(t => /^\d{1,7}$/.test(t.line.text) && !(scale.length >= 3 && scale.includes(t.line)));
+  // A fixed register may pad with zeros beyond seven digits ("00236096"); the
+  // reading is the number they pad.
+  const all = lines.map((line, i) => ({ line, labels: attached[i], value: line.text.replace(/^0+(?=\d)/, '') }))
+    .filter(t => /^0*\d{1,7}$/.test(t.line.text) && !(scale.length >= 3 && scale.includes(t.line)));
   // An unsure long number, or an unsure number with an odometer label, could
   // itself be the odometer: nothing is accepted beside it.
   if (all.some(t => t.line.contested && (t.line.text.length >= minimumUnlabelledDigits || t.labels.get('odometer') === 'band')))
@@ -144,10 +146,10 @@ export function resolveOdometer(lines: NumericLine[], labels: LabelToken[] = [],
   // ODO/TOTAL beside it; a long register may take ODO or km above or below.
   const labelled = odometers.filter(t => t.labels.get('odometer') === 'band' || (t.line.text.length >= minimumUnlabelledDigits && (t.labels.has('odometer') || t.labels.has('km'))));
   const pool = labelled.length ? labelled : odometers.filter(t => t.line.text.length >= minimumUnlabelledDigits && !t.labels.has('miles'));
-  const texts = [...new Set(pool.map(t => t.line.text))];
+  const texts = [...new Set(pool.map(t => t.value))];
   if (!texts.length) return odometers.some(t => t.labels.has('miles')) ? { status: 'abstain', reason: 'unit-miles' } : { status: 'abstain', reason: 'identity-ambiguous', detail: 'short unlabelled number' };
   if (texts.length > 1) return { status: 'abstain', reason: 'identity-ambiguous', detail: 'competing odometer readings' };
-  const chosen = pool.filter(t => t.line.text === texts[0]);
+  const chosen = pool.filter(t => t.value === texts[0]);
   if (chosen.some(t => t.labels.has('miles'))) return { status: 'abstain', reason: 'unit-miles' };
   const km = chosen.some(t => t.labels.has('km'));
   const evidence = labelled.length ? [...new Set(chosen.flatMap(t => [...t.labels.keys()].map(k => `label:${k}`)))] : ['long-integer'];
