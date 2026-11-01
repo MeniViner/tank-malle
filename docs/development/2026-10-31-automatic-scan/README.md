@@ -156,7 +156,7 @@ annotated box only locates the odometer and gives an oracle crop):
 | Correct number read, line marked unsure | 61 | verifier disagreement 40 (+8 combined), adjacent digits 10 |
 | Raw recognition wrong | 54 | one digit dropped 24, substituted 8, two off 10, other number 10, inserted 2. The oracle crop has the right digits in only 9 |
 | Read by one path only (uncorroborated) | 50 | the full-resolution recrop did not resolve: identity-ambiguous 41 (mostly a line marked unsure), format 8; in 9 the recrop read the number without a "1" |
-| Identity | 28 | 13+ were zero-padded registers (`00236096`) that identity refused |
+| Identity | 28 | mostly zero-padded registers (`00236096`) that identity refused; 10 remain after the cycle-2 fixes |
 | Conflict / localisation / wrong accepted | 3 / 3 / 2 | two of the conflicts are a dropped "1" in one path (`188331`/`18833`, `118323`/`18323`) |
 
 Variants recomputed from the same recorded paths (all 436 decisions
