@@ -1,0 +1,10981 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T22:32:20.676Z",
+ "commit": "b01d609f2e593836f1380fe8ebbe97d0f62f8337",
+ "sessionsFile": "benchmarks/scan/fixtures-dev.json",
+ "text": "ppocr-v5+v6",
+ "note": "Individual real photographs; too few for an accuracy estimate.",
+ "outcomes": {
+  "abstained": 50,
+  "correct": 60,
+  "correctly-empty": 10
+ },
+ "rows": [
+  {
+   "id": "dev-g000-clean",
+   "kind": "pump",
+   "group": "dev-g000",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "395.78",
+    "liters": "58.34"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 16,
+    "segment": 429,
+    "ppocr-v5+v6": 401,
+    "segment-roi": 79
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "58.34",
+      "395.78",
+      "n 5\"o~D17Un7 ⊃\"no1",
+      "n"
+     ],
+     "lines": [
+      "58.34",
+      "395.78",
+      "5?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "395",
+      "395"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g000-blur",
+   "kind": "pump",
+   "group": "dev-g000",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "395.78",
+    "liters": "58.34"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 16,
+    "segment": 269,
+    "ppocr-v5+v6": 423,
+    "segment-roi": 74
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "58.34",
+      "D'70'7~0'707",
+      "395.78",
+      "Di7un7 5\"no~017un7 ⊃\"no",
+      "n"
+     ],
+     "lines": [
+      "58.34",
+      "395.78",
+      "7?verifier",
+      "75?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "395",
+      "395"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g001-clean",
+   "kind": "odometer",
+   "group": "dev-g001",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "70274"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "70274"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 10,
+    "segment": 246,
+    "ppocr-v5+v6": 1621
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "10:24",
+      "70274",
+      "km"
+     ],
+     "lines": [
+      "70274"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "1U:24~T0:24",
+      "70274"
+     ],
+     "lines": [
+      "1?verifier",
+      "24?verifier",
+      "70274"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "70274"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "70274"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g001-jpeg",
+   "kind": "odometer",
+   "group": "dev-g001",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "70274"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "70274"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 19,
+    "segment": 214,
+    "ppocr-v5+v6": 1110
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "10:24",
+      "70274",
+      "km"
+     ],
+     "lines": [
+      "70274"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "10:24~T0:Z4",
+      "70274"
+     ],
+     "lines": [
+      "70274"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "70274"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "70274"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g002-clean",
+   "kind": "pump",
+   "group": "dev-g002",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 18,
+    "segment": 216,
+    "ppocr-v5+v6": 404
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "310,44",
+      "€",
+      "48,811~48.811",
+      "6,36"
+     ],
+     "lines": [
+      "310.44",
+      "48811?verifier",
+      "6.36"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g002-blur",
+   "kind": "pump",
+   "group": "dev-g002",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 15,
+    "segment": 204,
+    "ppocr-v5+v6": 496
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "310,44",
+      "€",
+      "48,811~48.811",
+      "6,36"
+     ],
+     "lines": [
+      "310.44",
+      "48811?verifier",
+      "6.36"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g003-clean",
+   "kind": "odometer",
+   "group": "dev-g003",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "89661"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "89661"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 10,
+    "segment": 122,
+    "ppocr-v5+v6": 588
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "89661",
+      "ODO"
+     ],
+     "lines": [
+      "89661"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "89661"
+     ],
+     "lines": [
+      "89661"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "89661"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "89661"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g003-jpeg",
+   "kind": "odometer",
+   "group": "dev-g003",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "89661"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "89661"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 6,
+    "segment": 69,
+    "ppocr-v5+v6": 378
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "89661",
+      "ODO"
+     ],
+     "lines": [
+      "89661"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "89661"
+     ],
+     "lines": [
+      "89661"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "89661"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "89661"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g004-clean",
+   "kind": "pump",
+   "group": "dev-g004",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "total": "232.26",
+    "liters": "34.661"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 75,
+    "ppocr-v5+v6": 200
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "232,26",
+      "34,661"
+     ],
+     "lines": [
+      "232.26",
+      "34661"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g004-tilt",
+   "kind": "pump",
+   "group": "dev-g004",
+   "labels": "none",
+   "font": "Courier New",
+   "expected": {
+    "total": "232.26",
+    "liters": "34.661"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 13,
+    "segment": 197,
+    "ppocr-v5+v6": 197
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "232,26",
+      "34,661"
+     ],
+     "lines": [
+      "232.26",
+      "34661"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g005-clean",
+   "kind": "odometer",
+   "group": "dev-g005",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "137972"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "137972"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 4,
+    "segment": 49,
+    "ppocr-v5+v6": 301
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "137972"
+     ],
+     "lines": [
+      "137972"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "137972"
+     ],
+     "lines": [
+      "137972"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "137972"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "137972"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g005-jpeg",
+   "kind": "odometer",
+   "group": "dev-g005",
+   "labels": "none",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "137972"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "137972"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 6,
+    "segment": 57,
+    "ppocr-v5+v6": 343
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "137972",
+      "km"
+     ],
+     "lines": [
+      "137972"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "137972"
+     ],
+     "lines": [
+      "137972"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "137972"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "137972"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g006-clean",
+   "kind": "pump",
+   "group": "dev-g006",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 8,
+    "segment": 91,
+    "ppocr-v5+v6": 558
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "191.49",
+      "SALE",
+      "N",
+      "29.325",
+      "LITRES"
+     ],
+     "lines": [
+      "191.49",
+      "29.325"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "191.49",
+      "29.325"
+     ],
+     "lines": [
+      "191.49",
+      "29.325"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "191.49",
+       "liters": "29.325"
+      },
+      "evidence": [
+       "label:total",
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "191.49",
+       "liters": "29.325"
+      },
+      "evidence": [
+       "label:total",
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g006-blur",
+   "kind": "pump",
+   "group": "dev-g006",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 79,
+    "ppocr-v5+v6": 526
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "191.49",
+      "SALE",
+      "29.325",
+      "LITRES"
+     ],
+     "lines": [
+      "191.49",
+      "29.325"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "191.49",
+      "SA",
+      "29.325",
+      "LIT"
+     ],
+     "lines": [
+      "191.49",
+      "29.325"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "191.49",
+       "liters": "29.325"
+      },
+      "evidence": [
+       "label:total",
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "191.49",
+       "liters": "29.325"
+      },
+      "evidence": [
+       "label:total",
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g007-clean",
+   "kind": "odometer",
+   "group": "dev-g007",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "145264"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "145264"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 204,
+    "ppocr-v5+v6": 611
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "909.3",
+      "TRIP",
+      "145264",
+      "km"
+     ],
+     "lines": [
+      "909.3",
+      "145264"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "909.3",
+      "TRIP",
+      "145264",
+      "km"
+     ],
+     "lines": [
+      "909.3",
+      "145264"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "145264"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "145264"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g007-blur",
+   "kind": "odometer",
+   "group": "dev-g007",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "145264"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 167,
+    "ppocr-v5+v6": 181,
+    "segment-roi": 90
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "909.3"
+     ],
+     "lines": [
+      "909.3"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "909.3"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g008-clean",
+   "kind": "pump",
+   "group": "dev-g008",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 10,
+    "segment": 155,
+    "ppocr-v5+v6": 673
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "244.88",
+      "SALE m",
+      "32.87",
+      "LITRES",
+      "7.45",
+      "PRICE/L"
+     ],
+     "lines": [
+      "244.88",
+      "32.87",
+      "7.45"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "244.88",
+      "32.87",
+      "LITE",
+      "7.45",
+      "PRICE"
+     ],
+     "lines": [
+      "244.88",
+      "32.87",
+      "7.45"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "244.88",
+       "liters": "32.87"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:7.45",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "244.88",
+       "liters": "32.87"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:7.45",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g008-noise",
+   "kind": "pump",
+   "group": "dev-g008",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 9,
+    "segment": 194,
+    "ppocr-v5+v6": 948
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "c ",
+      "\""
+     ],
+     "lines": []
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g009-clean",
+   "kind": "odometer",
+   "group": "dev-g009",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "197221"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "197221"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 8,
+    "segment": 87,
+    "ppocr-v5+v6": 401
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "11:05",
+      "197221",
+      "km"
+     ],
+     "lines": [
+      "197221"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "197221",
+      "km"
+     ],
+     "lines": [
+      "197221"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "197221"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "197221"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g009-jpeg",
+   "kind": "odometer",
+   "group": "dev-g009",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "197221"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "197221"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 79,
+    "ppocr-v5+v6": 515
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "11:05",
+      "197221",
+      "km"
+     ],
+     "lines": [
+      "197221"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "197221",
+      "km"
+     ],
+     "lines": [
+      "197221"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "197221"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "197221"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g010-clean",
+   "kind": "pump",
+   "group": "dev-g010",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 87,
+    "ppocr-v5+v6": 323
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "60,54",
+      "LITRES",
+      "38849~388,49",
+      "SALE D"
+     ],
+     "lines": [
+      "60.54",
+      "38849?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g010-tilt",
+   "kind": "pump",
+   "group": "dev-g010",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 30,
+    "segment": 507,
+    "ppocr-v5+v6": 1544
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "60,54",
+      "LITRES",
+      "388,49",
+      "SALE D"
+     ],
+     "lines": [
+      "60.54",
+      "388.49"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "60,54",
+      "LITRES",
+      "388,49",
+      "SALE m"
+     ],
+     "lines": [
+      "60.54",
+      "388.49"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "388.49",
+       "liters": "60.54"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "388.49",
+       "liters": "60.54"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g011-clean",
+   "kind": "odometer",
+   "group": "dev-g011",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "118342"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "118342"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 146,
+    "ppocr-v5+v6": 891
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "118342",
+      "km"
+     ],
+     "lines": [
+      "118342"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "118342",
+      "km"
+     ],
+     "lines": [
+      "118342"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "118342"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "118342"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g011-noise",
+   "kind": "odometer",
+   "group": "dev-g011",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "118342"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 12,
+    "segment": 130,
+    "ppocr-v5+v6": 743
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "118342",
+      "ODO"
+     ],
+     "lines": [
+      "118342"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "118342"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g012-clean",
+   "kind": "pump",
+   "group": "dev-g012",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 19,
+    "segment": 153,
+    "ppocr-v5+v6": 1199
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "292.33",
+      "SALE m",
+      "44.36",
+      "LITRES",
+      "6.59",
+      "PRICE/L"
+     ],
+     "lines": [
+      "292.33",
+      "44.36",
+      "6.59"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "292.33",
+      "44.36",
+      "6.59",
+      "PRICI"
+     ],
+     "lines": [
+      "292.33",
+      "44.36",
+      "6.59"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.33",
+       "liters": "44.36"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.59",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.33",
+       "liters": "44.36"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.59",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g012-jpeg",
+   "kind": "pump",
+   "group": "dev-g012",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 16,
+    "segment": 169,
+    "ppocr-v5+v6": 1319
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "292.33",
+      "Sale d",
+      "44.36",
+      "LITRES",
+      "6.59",
+      "PRICE/L"
+     ],
+     "lines": [
+      "292.33",
+      "44.36",
+      "6.59"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "292.33",
+      "44.36",
+      "6.59",
+      "PRICE/L"
+     ],
+     "lines": [
+      "292.33",
+      "44.36",
+      "6.59"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.33",
+       "liters": "44.36"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.59",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.33",
+       "liters": "44.36"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.59",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g013-clean",
+   "kind": "odometer",
+   "group": "dev-g013",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "191311"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 12,
+    "segment": 245,
+    "ppocr-v5+v6": 557
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "19 13 11",
+      "ODO"
+     ],
+     "lines": [
+      "191311"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "19 13 1 I oDo~191311 oD0"
+     ],
+     "lines": [
+      "19131?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "191311"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g013-blur",
+   "kind": "odometer",
+   "group": "dev-g013",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "191311"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "191311"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 10,
+    "segment": 243,
+    "ppocr-v5+v6": 665
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "19 13 1 1",
+      "km"
+     ],
+     "lines": [
+      "191311"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "19 13 11",
+      "km"
+     ],
+     "lines": [
+      "191311"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "191311"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "191311"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g014-clean",
+   "kind": "pump",
+   "group": "dev-g014",
+   "labels": "none",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 213,
+    "ppocr-v5+v6": 682
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "76.87",
+      "10.819",
+      "105",
+      "•"
+     ],
+     "lines": [
+      "76.87",
+      "10.819",
+      "105"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "76.87",
+      "10.819",
+      "105",
+      "•"
+     ],
+     "lines": [
+      "76.87",
+      "10.819",
+      "105"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "76.87",
+       "liters": "10.819"
+      },
+      "evidence": [
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "76.87",
+       "liters": "10.819"
+      },
+      "evidence": [
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g014-tilt",
+   "kind": "pump",
+   "group": "dev-g014",
+   "labels": "none",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 28,
+    "segment": 1135,
+    "ppocr-v5+v6": 475
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "76.87",
+      "10.819",
+      "7.105"
+     ],
+     "lines": [
+      "76.87",
+      "10.819",
+      "7.105"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g015-clean",
+   "kind": "odometer",
+   "group": "dev-g015",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "168921"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "168921"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 9,
+    "segment": 211,
+    "ppocr-v5+v6": 509
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "168921",
+      "km"
+     ],
+     "lines": [
+      "168921"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "168921",
+      "km"
+     ],
+     "lines": [
+      "168921"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "168921"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "168921"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g015-tilt",
+   "kind": "odometer",
+   "group": "dev-g015",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "168921"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "168921"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 348,
+    "ppocr-v5+v6": 493
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "168921",
+      "ODO"
+     ],
+     "lines": [
+      "168921"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "168921",
+      "ODO"
+     ],
+     "lines": [
+      "168921"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "168921"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "168921"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g016-clean",
+   "kind": "pump",
+   "group": "dev-g016",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "285.37",
+    "liters": "36.409"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 11,
+    "segment": 266,
+    "ppocr-v5+v6": 373
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "285.37",
+      "Di7wn7 5\"no n~017un7 ⊃\"no d",
+      "36.409",
+      "7.838",
+      "70'77 o'nn~0177 7'nn"
+     ],
+     "lines": [
+      "285.37",
+      "7?verifier",
+      "75?verifier",
+      "36.409",
+      "7.838"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g016-blur",
+   "kind": "pump",
+   "group": "dev-g016",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "285.37",
+    "liters": "36.409"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 9,
+    "segment": 229,
+    "ppocr-v5+v6": 332
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "285.37",
+      "Di70n7 5\"no m~017Un7 ⊃\"no g",
+      "36.409",
+      "7.838",
+      "70'77 o'0n~70177 7'nn"
+     ],
+     "lines": [
+      "285.37",
+      "70?verifier",
+      "75?verifier",
+      "36.409",
+      "7.838",
+      "0?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g017-clean",
+   "kind": "odometer",
+   "group": "dev-g017",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "odometer": "51041"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "51041"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 84,
+    "ppocr-v5+v6": 407
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "69971",
+      "TRIP",
+      "51041",
+      "ODO"
+     ],
+     "lines": [
+      "69971",
+      "51041"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "51041"
+     ],
+     "lines": [
+      "51041"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "51041"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "51041"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g017-blur",
+   "kind": "odometer",
+   "group": "dev-g017",
+   "labels": "hebrew",
+   "font": "Arial",
+   "expected": {
+    "odometer": "51041"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "51041"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 8,
+    "segment": 89,
+    "ppocr-v5+v6": 478
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "69971",
+      "TRIP",
+      "51041",
+      "n\"7"
+     ],
+     "lines": [
+      "69971",
+      "51041",
+      "7?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "0997~O997",
+      "51041"
+     ],
+     "lines": [
+      "0997?edge",
+      "51041"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "51041"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "51041"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g018-clean",
+   "kind": "pump",
+   "group": "dev-g018",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 77,
+    "ppocr-v5+v6": 558
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "23.99",
+      "LITRES",
+      "156.34",
+      "SALEm"
+     ],
+     "lines": [
+      "23.99",
+      "156.34"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "23.99",
+      "156.34"
+     ],
+     "lines": [
+      "23.99",
+      "156.34"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "156.34",
+       "liters": "23.99"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "156.34",
+       "liters": "23.99"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g018-tilt",
+   "kind": "pump",
+   "group": "dev-g018",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 15,
+    "segment": 309,
+    "ppocr-v5+v6": 683
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "23.99",
+      "LITRES",
+      "156.34",
+      "SALE"
+     ],
+     "lines": [
+      "23.99",
+      "156.34"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "23.99",
+      "156.34"
+     ],
+     "lines": [
+      "23.99",
+      "156.34"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "156.34",
+       "liters": "23.99"
+      },
+      "evidence": [
+       "label:liters",
+       "label:total",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "156.34",
+       "liters": "23.99"
+      },
+      "evidence": [
+       "label:liters",
+       "label:total",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g019-clean",
+   "kind": "odometer",
+   "group": "dev-g019",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "263091"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 15,
+    "segment": 362,
+    "ppocr-v5+v6": 919
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "374.6",
+      "TRIP",
+      "26309",
+      "km"
+     ],
+     "lines": [
+      "374.6",
+      "26309?stroke"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "TRIP",
+      "cYanmaGaYelllowb",
+      "11 km~3 1km"
+     ],
+     "lines": [
+      "11?edge"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g019-jpeg",
+   "kind": "odometer",
+   "group": "dev-g019",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "263091"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "263091"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "ms": {
+    "resample": 11,
+    "segment": 338,
+    "ppocr-v5+v6": 364,
+    "segment-roi": 176
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "263091",
+      "!",
+      "ODO"
+     ],
+     "lines": [
+      "263091"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "263091",
+      "263091"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "263091"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "263091"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light",
+       "polarity:value"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g020-clean",
+   "kind": "pump",
+   "group": "dev-g020",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 207,
+    "ppocr-v5+v6": 319
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "0426.00~.426.00",
+      "\"no",
+      "di7un7",
+      "62.740",
+      "D'OU'7~0'7017"
+     ],
+     "lines": [
+      "0426.00?verifier",
+      "7?text",
+      "7?text",
+      "62.740",
+      "7?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g020-tilt",
+   "kind": "pump",
+   "group": "dev-g020",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 17,
+    "segment": 567,
+    "ppocr-v5+v6": 870
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "426.00",
+      "Di7un7 i\"no n",
+      "62.740"
+     ],
+     "lines": [
+      "426.00",
+      "7?text",
+      "7?text",
+      "62.740"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "426.00",
+      "Di7un7 5\"no n~Di7un7 ⊃'no g",
+      "62.740"
+     ],
+     "lines": [
+      "426.00",
+      "7?verifier",
+      "75?verifier",
+      "62.740"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": [
+      "426.00"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "426.00",
+       "liters": "62.740"
+      },
+      "evidence": [
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "426.00",
+       "liters": "62.740"
+      },
+      "evidence": [
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g021-clean",
+   "kind": "odometer",
+   "group": "dev-g021",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "82381"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 127,
+    "ppocr-v5+v6": 805
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "13:40",
+      "82381",
+      "km"
+     ],
+     "lines": [
+      "82381"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "3:40~13:4U",
+      "8238",
+      "km"
+     ],
+     "lines": [
+      "8238?stroke"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "82381"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g021-tilt",
+   "kind": "odometer",
+   "group": "dev-g021",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "82381"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 21,
+    "segment": 540,
+    "ppocr-v5+v6": 609
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "13:40",
+      "8238"
+     ],
+     "lines": [
+      "8238"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      ":40",
+      "38",
+      "aowb"
+     ],
+     "lines": [
+      "40",
+      "38?stroke"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g022-clean",
+   "kind": "pump",
+   "group": "dev-g022",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 10,
+    "segment": 110,
+    "ppocr-v5+v6": 650
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.364",
+      "PRICE/L",
+      "412.45",
+      "SALE D",
+      "64.81",
+      "LITRES"
+     ],
+     "lines": [
+      "6.364",
+      "412.45",
+      "64.81"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "6.364",
+      "PRI",
+      "412.45",
+      "64.81"
+     ],
+     "lines": [
+      "6.364",
+      "412.45",
+      "64.81"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "412.45",
+       "liters": "64.81"
+      },
+      "evidence": [
+       "label:unitPrice",
+       "label:liters",
+       "product",
+       "precision",
+       "observed-unit-price:6.364",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "412.45",
+       "liters": "64.81"
+      },
+      "evidence": [
+       "label:unitPrice",
+       "label:liters",
+       "product",
+       "precision",
+       "observed-unit-price:6.364",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g022-blur",
+   "kind": "pump",
+   "group": "dev-g022",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 9,
+    "segment": 100,
+    "ppocr-v5+v6": 614
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.364",
+      "PRICE/L",
+      "412.45",
+      "SALE n",
+      "64.81",
+      "LITRES"
+     ],
+     "lines": [
+      "6.364",
+      "412.45",
+      "64.81"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "6.364",
+      "PR",
+      "412.45",
+      "64.81"
+     ],
+     "lines": [
+      "6.364",
+      "412.45",
+      "64.81"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "412.45",
+       "liters": "64.81"
+      },
+      "evidence": [
+       "label:unitPrice",
+       "label:liters",
+       "product",
+       "precision",
+       "observed-unit-price:6.364",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "412.45",
+       "liters": "64.81"
+      },
+      "evidence": [
+       "label:unitPrice",
+       "label:liters",
+       "product",
+       "precision",
+       "observed-unit-price:6.364",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g023-clean",
+   "kind": "odometer",
+   "group": "dev-g023",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "101699"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 123,
+    "ppocr-v5+v6": 587
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "48690",
+      "TRIP",
+      "10",
+      "1699",
+      "cnaGaY",
+      "ODO"
+     ],
+     "lines": [
+      "48690",
+      "10?adjacent",
+      "1699?adjacent"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "TRIP",
+      "cYanmaGaYelowb",
+      "ODO"
+     ],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g023-tilt",
+   "kind": "odometer",
+   "group": "dev-g023",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "101699"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "conflict",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 13,
+    "segment": 352,
+    "ppocr-v5+v6": 745
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "48690",
+      "TRIP",
+      "1699",
+      "ODO",
+      "10"
+     ],
+     "lines": [
+      "48690",
+      "1699?adjacent",
+      "10?adjacent"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "TRIP",
+      "90",
+      "10~16",
+      "1699",
+      "ODO"
+     ],
+     "lines": [
+      "90?stroke",
+      "10?verifier",
+      "1699"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "48690",
+      "TRIP",
+      "1699",
+      "ODO",
+      "10"
+     ],
+     "lines": [
+      "48690",
+      "1699?adjacent",
+      "10?adjacent"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": [
+      "101699"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "1699"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "101699"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:dark"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g024-clean",
+   "kind": "pump",
+   "group": "dev-g024",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "470.91",
+    "liters": "64.42"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 248,
+    "ppocr-v5+v6": 211,
+    "segment-roi": 131
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "470.9~47.0.9",
+      "64.42"
+     ],
+     "lines": [
+      "470.9?verifier",
+      "64.42"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "470.91",
+      "470.91"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "470.91",
+      "470.91"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g024-jpeg",
+   "kind": "pump",
+   "group": "dev-g024",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "470.91",
+    "liters": "64.42"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 9,
+    "segment": 216,
+    "ppocr-v5+v6": 405,
+    "segment-roi": 322
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "470.9",
+      "—",
+      "64.42"
+     ],
+     "lines": [
+      "470.9?stroke",
+      "64.42"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "470.91"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g025-clean",
+   "kind": "odometer",
+   "group": "dev-g025",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "231941"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "conflict": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 22,
+    "segment": 520,
+    "ppocr-v5+v6": 508,
+    "segment-roi": 228
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "254.5",
+      "TRIP",
+      "23",
+      "194",
+      "ODO"
+     ],
+     "lines": [
+      "254.5",
+      "23?adjacent",
+      "194?adjacent"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "1000",
+      "254.5",
+      "231941"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "231941",
+      "231941"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "conflict"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "231941"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light",
+       "polarity:value"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g025-jpeg",
+   "kind": "odometer",
+   "group": "dev-g025",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "231941"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 23,
+    "segment": 583,
+    "ppocr-v5+v6": 475,
+    "segment-roi": 237
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "54.5"
+     ],
+     "lines": [
+      "54.5"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "254.5",
+      "254.5"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g026-clean",
+   "kind": "pump",
+   "group": "dev-g026",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "94.46",
+    "liters": "12.236"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 25,
+    "segment": 362,
+    "ppocr-v5+v6": 565,
+    "segment-roi": 236
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "cYanmaGtaYellowb"
+     ],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "12.236",
+      "94.46"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "12.236"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "94.46",
+       "liters": "12.236"
+      },
+      "evidence": [
+       "precision",
+       "polarity:dark"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g026-noise",
+   "kind": "pump",
+   "group": "dev-g026",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "total": "94.46",
+    "liters": "12.236"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 3,
+    "conflict": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 27,
+    "segment": 585,
+    "ppocr-v5+v6": 2667,
+    "segment-roi": 280,
+    "paint": 0
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "94.46",
+      "12.236"
+     ],
+     "lines": [
+      "94.46",
+      "12.236"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "mae",
+      "7~3",
+      "TH",
+      "La2322~用332",
+      "989~3",
+      "2029e~出2器"
+     ],
+     "lines": [
+      "7?verifier",
+      "2322?verifier",
+      "989?verifier",
+      "2029?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "94.46",
+      "12.236"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment-painted@960",
+     "text": [],
+     "lines": [
+      "12.236"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": [
+      "12.236"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "94.46",
+       "liters": "12.236"
+      },
+      "evidence": [
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "conflict"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g027-clean",
+   "kind": "odometer",
+   "group": "dev-g027",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "12111"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "12111"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 97,
+    "ppocr-v5+v6": 445
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "59812",
+      "TRIP",
+      "12111",
+      "km"
+     ],
+     "lines": [
+      "59812",
+      "12111"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "J9012~57012",
+      "12111"
+     ],
+     "lines": [
+      "9012?verifier",
+      "12111"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "12111"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "12111"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g027-blur",
+   "kind": "odometer",
+   "group": "dev-g027",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "12111"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "12111"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 100,
+    "ppocr-v5+v6": 443
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "59812",
+      "TRIP",
+      "12111",
+      "km"
+     ],
+     "lines": [
+      "59812",
+      "12111"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "59812",
+      "12111"
+     ],
+     "lines": [
+      "59812",
+      "12111"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "12111"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "12111"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g028-clean",
+   "kind": "pump",
+   "group": "dev-g028",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "212.27",
+    "liters": "31.17"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 70,
+    "ppocr-v5+v6": 531
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "212.27",
+      "SALE m",
+      "31.17",
+      "LITRES"
+     ],
+     "lines": [
+      "212.27",
+      "31.17"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "212.27",
+      "SA",
+      "31",
+      "17",
+      "LITRE",
+      "•"
+     ],
+     "lines": [
+      "212.27",
+      "31?stroke",
+      "17"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "212.27",
+       "liters": "31.17"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g028-noise",
+   "kind": "pump",
+   "group": "dev-g028",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "212.27",
+    "liters": "31.17"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 89,
+    "ppocr-v5+v6": 248
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "212.27",
+      "SALE",
+      "31.1",
+      "LITRES",
+      "we"
+     ],
+     "lines": [
+      "212.27",
+      "31.1"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g029-clean",
+   "kind": "odometer",
+   "group": "dev-g029",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "140796"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 208,
+    "ppocr-v5+v6": 439
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "66823",
+      "TRIP",
+      "140796",
+      "km"
+     ],
+     "lines": [
+      "66823",
+      "140796"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "TRIP",
+      "Km"
+     ],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "140796"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g029-tilt",
+   "kind": "odometer",
+   "group": "dev-g029",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "140796"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "140796"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 15,
+    "segment": 726,
+    "ppocr-v5+v6": 659
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "66823",
+      "TRIP",
+      "140796",
+      "ODO"
+     ],
+     "lines": [
+      "66823",
+      "140796"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "66823",
+      "TRIP",
+      "140796",
+      "ODO"
+     ],
+     "lines": [
+      "66823",
+      "140796"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "140796"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "140796"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g030-clean",
+   "kind": "pump",
+   "group": "dev-g030",
+   "labels": "none",
+   "font": "Arial",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 12,
+    "segment": 150,
+    "ppocr-v5+v6": 406
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "35,15",
+      "262,22",
+      "€"
+     ],
+     "lines": [
+      "35.15",
+      "262.22"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g030-tilt",
+   "kind": "pump",
+   "group": "dev-g030",
+   "labels": "none",
+   "font": "Arial",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 27,
+    "segment": 341,
+    "ppocr-v5+v6": 374
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "35,15",
+      "262,22",
+      "E €"
+     ],
+     "lines": [
+      "35.15",
+      "262.22"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g031-clean",
+   "kind": "odometer",
+   "group": "dev-g031",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "162963"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 10,
+    "segment": 129,
+    "ppocr-v5+v6": 797
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "88188",
+      "162963"
+     ],
+     "lines": [
+      "88188",
+      "162963"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "T88~188",
+      "Ya",
+      "cYmaGow",
+      "963",
+      "cYanmaGYow",
+      "cYanmaGYeow"
+     ],
+     "lines": [
+      "88?verifier",
+      "963?stroke"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g031-tilt",
+   "kind": "odometer",
+   "group": "dev-g031",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "162963"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "162963"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 224,
+    "ppocr-v5+v6": 455
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "88188",
+      "162963",
+      "km"
+     ],
+     "lines": [
+      "88188",
+      "162963"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "88188",
+      "162963",
+      "km"
+     ],
+     "lines": [
+      "88188",
+      "162963"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "162963"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "162963"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g032-clean",
+   "kind": "pump",
+   "group": "dev-g032",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 9,
+    "segment": 100,
+    "ppocr-v5+v6": 765
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "310,58",
+      "Sale D",
+      "46,76",
+      "LITRES",
+      "6,642",
+      "PRICE/L"
+     ],
+     "lines": [
+      "310.58",
+      "46.76",
+      "6642"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "310,58",
+      "SALE",
+      "46,76",
+      "LITRES",
+      "642",
+      "6",
+      "PRICE/L"
+     ],
+     "lines": [
+      "310.58",
+      "46.76",
+      "642",
+      "6"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "310.58",
+       "liters": "46.76"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "310.58",
+       "liters": "46.76"
+      },
+      "evidence": [
+       "label:total",
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g032-tilt",
+   "kind": "pump",
+   "group": "dev-g032",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 16,
+    "segment": 260,
+    "ppocr-v5+v6": 306
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "310,58",
+      "SALE r",
+      "46,76",
+      "LITRES",
+      "6,642",
+      "PRICE/L"
+     ],
+     "lines": [
+      "310.58",
+      "46.76",
+      "6642"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g033-clean",
+   "kind": "odometer",
+   "group": "dev-g033",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "164250"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "164250"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 4,
+    "segment": 46,
+    "ppocr-v5+v6": 258
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "164250"
+     ],
+     "lines": [
+      "164250"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "164250"
+     ],
+     "lines": [
+      "164250"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "164250"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "164250"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g033-jpeg",
+   "kind": "odometer",
+   "group": "dev-g033",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "odometer": "164250"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "164250"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 4,
+    "segment": 47,
+    "ppocr-v5+v6": 281
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "164250",
+      "km"
+     ],
+     "lines": [
+      "164250"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "164250",
+      "km"
+     ],
+     "lines": [
+      "164250"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "164250"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "164250"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g034-clean",
+   "kind": "pump",
+   "group": "dev-g034",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "total": "382.91",
+    "liters": "56.98"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 9,
+    "segment": 94,
+    "ppocr-v5+v6": 245
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "382.91",
+      "56.98",
+      "6.72"
+     ],
+     "lines": [
+      "382.91",
+      "56.98",
+      "6.72"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g034-noise",
+   "kind": "pump",
+   "group": "dev-g034",
+   "labels": "none",
+   "font": "Arial",
+   "expected": {
+    "total": "382.91",
+    "liters": "56.98"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 9,
+    "segment": 188,
+    "ppocr-v5+v6": 237
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "9.0~P足星",
+      "50.98~56.98"
+     ],
+     "lines": [
+      "9.0?verifier",
+      "50.98?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g035-clean",
+   "kind": "odometer",
+   "group": "dev-g035",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "136694"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "136694"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 4,
+    "segment": 49,
+    "ppocr-v5+v6": 341
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "136694",
+      "DO"
+     ],
+     "lines": [
+      "136694"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "136694"
+     ],
+     "lines": [
+      "136694"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "136694"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "136694"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g035-jpeg",
+   "kind": "odometer",
+   "group": "dev-g035",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "136694"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "136694"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 5,
+    "segment": 57,
+    "ppocr-v5+v6": 324
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "136694",
+      "ODO"
+     ],
+     "lines": [
+      "136694"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "136694"
+     ],
+     "lines": [
+      "136694"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "136694"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "136694"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g036-clean",
+   "kind": "pump",
+   "group": "dev-g036",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "410.03",
+    "liters": "59.27"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 134,
+    "ppocr-v5+v6": 263,
+    "segment-roi": 68
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "59.27",
+      "D'7U'7~07017",
+      "4 10.03",
+      "Di70n7 5\"no D~D17Un7 ⊃\"no g"
+     ],
+     "lines": [
+      "59.27",
+      "7?verifier",
+      "7?verifier",
+      "410.03",
+      "70?verifier",
+      "75?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "59.27"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g036-jpeg",
+   "kind": "pump",
+   "group": "dev-g036",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "total": "410.03",
+    "liters": "59.27"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 125,
+    "ppocr-v5+v6": 280,
+    "segment-roi": 74
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "59.27",
+      "D'U'",
+      "4 10.03",
+      "n o "
+     ],
+     "lines": [
+      "59.27",
+      "410.03"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "59.27"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g037-clean",
+   "kind": "odometer",
+   "group": "dev-g037",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "262862"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "conflict",
+   "reasons": {
+    "conflict": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 160,
+    "ppocr-v5+v6": 201,
+    "segment-roi": 203
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "94987",
+      "262862",
+      "94987",
+      "262862",
+      "94987"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "94987",
+      "262862",
+      "94987",
+      "262862"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "94987",
+      "262862",
+      "262862"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "94987"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:blue"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "262862"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g037-noise",
+   "kind": "odometer",
+   "group": "dev-g037",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "262862"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 159,
+    "ppocr-v5+v6": 288
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g038-clean",
+   "kind": "pump",
+   "group": "dev-g038",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 7,
+    "segment": 127,
+    "ppocr-v5+v6": 260,
+    "segment-roi": 94
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "2 1.75",
+      "'0'",
+      "15 1.7 1",
+      "n7 \"no €"
+     ],
+     "lines": [
+      "21.75",
+      "0",
+      "151.71",
+      "7?text"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "151.71"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "151.71"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g038-noise",
+   "kind": "pump",
+   "group": "dev-g038",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 4,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 20,
+    "segment": 420,
+    "ppocr-v5+v6": 2398,
+    "segment-roi": 259,
+    "paint": 0
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "Freme waosed",
+      "D'70'7~0'7017",
+      "D7Un7270 €~017un7 2\"no €"
+     ],
+     "lines": [
+      "7?verifier",
+      "7270?verifier"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "946298~-",
+      "o\"no"
+     ],
+     "lines": [
+      "946298?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "151"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment-painted@960",
+     "text": [],
+     "lines": [
+      "151"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g039-clean",
+   "kind": "odometer",
+   "group": "dev-g039",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "11051"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 10,
+    "segment": 207,
+    "ppocr-v5+v6": 472,
+    "segment-roi": 77
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "08",
+      "•"
+     ],
+     "lines": [
+      "08"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "88"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g039-tilt",
+   "kind": "odometer",
+   "group": "dev-g039",
+   "labels": "hebrew",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "11051"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "11051"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 22,
+    "segment": 464,
+    "ppocr-v5+v6": 1217
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "17:08",
+      "ODO",
+      "11051"
+     ],
+     "lines": [
+      "11051"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "08",
+      "17:",
+      "11051"
+     ],
+     "lines": [
+      "08?adjacent",
+      "17?adjacent",
+      "11051"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "11051"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "11051"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g040-clean",
+   "kind": "pump",
+   "group": "dev-g040",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 29,
+    "segment": 228,
+    "ppocr-v5+v6": 1819
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "123.54",
+      "SALE m",
+      "18.69",
+      "LITRES",
+      "6.61",
+      "PRICE/L"
+     ],
+     "lines": [
+      "123.54",
+      "18.69",
+      "6.61"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "123.54",
+      "18.69",
+      "6.61",
+      "PRICE/L"
+     ],
+     "lines": [
+      "123.54",
+      "18.69",
+      "6.61"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "123.54",
+       "liters": "18.69"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.61",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "123.54",
+       "liters": "18.69"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.61",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g040-jpeg",
+   "kind": "pump",
+   "group": "dev-g040",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 27,
+    "segment": 329,
+    "ppocr-v5+v6": 2070
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "123.54",
+      "SALE m",
+      "18.69",
+      "LITRES",
+      "6.61",
+      "PRICE/L"
+     ],
+     "lines": [
+      "123.54",
+      "18.69",
+      "6.61"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "123.54",
+      "18.69",
+      "LIT",
+      "6.61",
+      "PRICE/L"
+     ],
+     "lines": [
+      "123.54",
+      "18.69",
+      "6.61"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "123.54",
+       "liters": "18.69"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.61",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "123.54",
+       "liters": "18.69"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.61",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g041-clean",
+   "kind": "odometer",
+   "group": "dev-g041",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "14939"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "14939"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 17,
+    "segment": 247,
+    "ppocr-v5+v6": 1198
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "11:33",
+      "14939",
+      "n\"7"
+     ],
+     "lines": [
+      "14939",
+      "7?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "14939",
+      "n\"7"
+     ],
+     "lines": [
+      "14939",
+      "7?text"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "14939"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "14939"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g041-jpeg",
+   "kind": "odometer",
+   "group": "dev-g041",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "14939"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "14939"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 18,
+    "segment": 194,
+    "ppocr-v5+v6": 1852
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "11:33",
+      "14939",
+      "n\"7"
+     ],
+     "lines": [
+      "14939",
+      "7?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "L 1 • J.~11 •J.",
+      "14939",
+      "n\"7"
+     ],
+     "lines": [
+      "1?edge",
+      "14939",
+      "7?text"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "14939"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "14939"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g042-clean",
+   "kind": "pump",
+   "group": "dev-g042",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 45,
+    "segment": 278,
+    "ppocr-v5+v6": 1334
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "45.848",
+      "LITRES",
+      "292.37",
+      "SALE m"
+     ],
+     "lines": [
+      "45.848",
+      "292.37"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "45.848",
+      "292.37"
+     ],
+     "lines": [
+      "45.848",
+      "292.37"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.37",
+       "liters": "45.848"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.37",
+       "liters": "45.848"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g042-noise",
+   "kind": "pump",
+   "group": "dev-g042",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 17,
+    "segment": 242,
+    "ppocr-v5+v6": 1594
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "45.848",
+      "LITRES",
+      "292.37",
+      "SALE"
+     ],
+     "lines": [
+      "45.848",
+      "292.37"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "H"
+     ],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "292.37",
+       "liters": "45.848"
+      },
+      "evidence": [
+       "label:liters",
+       "label:total",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g043-clean",
+   "kind": "odometer",
+   "group": "dev-g043",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "117711"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "117711"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 16,
+    "segment": 260,
+    "ppocr-v5+v6": 947
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "17:59",
+      "1177 1 1",
+      "km"
+     ],
+     "lines": [
+      "117711"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "17:59",
+      "1177 1 1",
+      "km",
+      "cYanmaGetaYelwb"
+     ],
+     "lines": [
+      "117711"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "117711"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "117711"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g043-blur",
+   "kind": "odometer",
+   "group": "dev-g043",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "117711"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "117711"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 283,
+    "ppocr-v5+v6": 475,
+    "segment-roi": 101
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "7:07~7.7",
+      "1177 1 1",
+      "km"
+     ],
+     "lines": [
+      "117711"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "117711"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "117711"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "117711"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "117711"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:value"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "117711"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g044-clean",
+   "kind": "pump",
+   "group": "dev-g044",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 3,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 28,
+    "segment": 645,
+    "ppocr-v5+v6": 1034,
+    "segment-roi": 478,
+    "paint": 2
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "153.71",
+      "SALE",
+      "19.790",
+      "LITRES"
+     ],
+     "lines": [
+      "153.71",
+      "19.790"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "153.71",
+      "SALE",
+      "19,790~19.7 90",
+      "LITRE"
+     ],
+     "lines": [
+      "153.71",
+      "19790?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "153.71"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "153",
+      "153"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment-painted@960",
+     "text": [],
+     "lines": [
+      "153.71"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": [
+      "153",
+      "153"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "153.71",
+       "liters": "19.790"
+      },
+      "evidence": [
+       "label:total",
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g044-blur",
+   "kind": "pump",
+   "group": "dev-g044",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 30,
+    "segment": 672,
+    "ppocr-v5+v6": 971,
+    "segment-roi": 445,
+    "paint": 1
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "153.71",
+      "Sale m",
+      "19.790",
+      "LITRES"
+     ],
+     "lines": [
+      "153.71",
+      "19.790"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "153.71",
+      "Sale m",
+      "19.790",
+      "LITRES"
+     ],
+     "lines": [
+      "153.71",
+      "19.790"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "19.790",
+      "19.790"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "19.790"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "19.790",
+      "19.790"
+     ]
+    },
+    {
+     "path": "segment-painted@960",
+     "text": [],
+     "lines": [
+      "19.790",
+      "19.790"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": [
+      "19.790"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": [
+      "19.790",
+      "19.790"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "153.71",
+       "liters": "19.790"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "153.71",
+       "liters": "19.790"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g045-clean",
+   "kind": "odometer",
+   "group": "dev-g045",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "255140"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 14,
+    "segment": 310,
+    "ppocr-v5+v6": 336,
+    "segment-roi": 93
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "55.9",
+      "55.9"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g045-noise",
+   "kind": "odometer",
+   "group": "dev-g045",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "255140"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 12,
+    "segment": 268,
+    "ppocr-v5+v6": 616
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "ODO"
+     ],
+     "lines": []
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g046-clean",
+   "kind": "pump",
+   "group": "dev-g046",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "total": "238.20",
+    "liters": "35.82"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 21,
+    "segment": 260,
+    "ppocr-v5+v6": 700
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.65",
+      "7' 'nn~70177 7'nn",
+      "238.20",
+      "n \"no D",
+      "35.82",
+      "'7U'~0'7017"
+     ],
+     "lines": [
+      "6.65",
+      "7?verifier",
+      "238.20",
+      "35.82",
+      "7?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g046-blur",
+   "kind": "pump",
+   "group": "dev-g046",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "total": "238.20",
+    "liters": "35.82"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 18,
+    "segment": 275,
+    "ppocr-v5+v6": 658
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.65",
+      "70'77 o'nn~70177 7'nn",
+      "238.20",
+      "Dint 5\"no D~D17un7 ⊃\"no g",
+      "35.82",
+      "D'U'"
+     ],
+     "lines": [
+      "6.65",
+      "238.20",
+      "5?verifier",
+      "35.82"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g047-clean",
+   "kind": "odometer",
+   "group": "dev-g047",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "38860"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 13,
+    "segment": 312,
+    "ppocr-v5+v6": 1055
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "50",
+      "740~7.4.0",
+      "TRIP",
+      "38860",
+      "km"
+     ],
+     "lines": [
+      "50?adjacent",
+      "740?adjacent",
+      "38860"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "TRIP",
+      "50 140",
+      "km"
+     ],
+     "lines": [
+      "50",
+      "140"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "38860"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g047-jpeg",
+   "kind": "odometer",
+   "group": "dev-g047",
+   "labels": "english",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "38860"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "38860"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 14,
+    "segment": 359,
+    "ppocr-v5+v6": 1160
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "50740",
+      "TRIP",
+      "38860",
+      "km"
+     ],
+     "lines": [
+      "50740",
+      "38860"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "50 140~50740",
+      "TRIP",
+      "38860",
+      "km"
+     ],
+     "lines": [
+      "50",
+      "140",
+      "38860"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "38860"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "38860"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g048-clean",
+   "kind": "pump",
+   "group": "dev-g048",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 25,
+    "segment": 331,
+    "ppocr-v5+v6": 532
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.672",
+      "90.2",
+      "€",
+      "13.52"
+     ],
+     "lines": [
+      "6.672",
+      "90.2?stroke",
+      "13.52"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g048-blur",
+   "kind": "pump",
+   "group": "dev-g048",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 3
+   },
+   "paths": null,
+   "ms": {
+    "resample": 20,
+    "segment": 319,
+    "ppocr-v5+v6": 555,
+    "segment-roi": 275
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.672",
+      "90.2",
+      "—",
+      "13.52"
+     ],
+     "lines": [
+      "6.672",
+      "90.2?stroke",
+      "13.52"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "13.52",
+      "90.21"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "13.52",
+      "90.21"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "13.52",
+      "90.21"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g049-clean",
+   "kind": "odometer",
+   "group": "dev-g049",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "113611"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "113611"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 219,
+    "ppocr-v5+v6": 566,
+    "segment-roi": 106
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "476.9",
+      "1 136 11"
+     ],
+     "lines": [
+      "476.9",
+      "113611"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "113611",
+      "476.9",
+      "113611"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "113611",
+      "176.1",
+      "113611",
+      "176.1"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "113611"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "113611"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light",
+       "polarity:value"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "113611"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light",
+       "polarity:value"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g049-blur",
+   "kind": "odometer",
+   "group": "dev-g049",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "113611"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "113611"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "ms": {
+    "resample": 13,
+    "segment": 313,
+    "ppocr-v5+v6": 400,
+    "segment-roi": 104
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "— — . ",
+      "1 136 11",
+      "km"
+     ],
+     "lines": [
+      "113611"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "113611",
+      "113611"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "113611",
+      "113611"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "113611"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "113611"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light",
+       "polarity:value"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "113611"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light",
+       "polarity:value"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g050-clean",
+   "kind": "pump",
+   "group": "dev-g050",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 14,
+    "segment": 318,
+    "ppocr-v5+v6": 1056
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "63.398",
+      "LITRES",
+      "429.78",
+      "SALE"
+     ],
+     "lines": [
+      "63.398",
+      "429.78"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "63.",
+      "398",
+      "LITRES",
+      "•",
+      "429",
+      "78",
+      "SALE n"
+     ],
+     "lines": [
+      "63?adjacent",
+      "398?adjacent",
+      "429?adjacent",
+      "78?adjacent"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "429.78",
+       "liters": "63.398"
+      },
+      "evidence": [
+       "label:liters",
+       "label:total",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g050-tilt",
+   "kind": "pump",
+   "group": "dev-g050",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 22,
+    "segment": 622,
+    "ppocr-v5+v6": 799
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "63.398",
+      "LITRES",
+      "429.78",
+      "SALE D"
+     ],
+     "lines": [
+      "63.398",
+      "429.78"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "63.398",
+      "LITRES",
+      "429.78",
+      "SALE m"
+     ],
+     "lines": [
+      "63.398",
+      "429.78"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "429.78",
+       "liters": "63.398"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "429.78",
+       "liters": "63.398"
+      },
+      "evidence": [
+       "label:liters",
+       "precision",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g051-clean",
+   "kind": "odometer",
+   "group": "dev-g051",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "154091"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "154091"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 89,
+    "ppocr-v5+v6": 571
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "154091",
+      "ODO"
+     ],
+     "lines": [
+      "154091"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "154091"
+     ],
+     "lines": [
+      "154091"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "154091"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "154091"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g051-tilt",
+   "kind": "odometer",
+   "group": "dev-g051",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "odometer": "154091"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "154091"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 15,
+    "segment": 404,
+    "ppocr-v5+v6": 544
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "154091",
+      "km"
+     ],
+     "lines": [
+      "154091"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "154091"
+     ],
+     "lines": [
+      "154091"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "154091"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "154091"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g052-clean",
+   "kind": "pump",
+   "group": "dev-g052",
+   "labels": "hebrew",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "185.56",
+    "liters": "24.193"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 14,
+    "segment": 221,
+    "ppocr-v5+v6": 489
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "7.67",
+      "70'77 o'nD~70177 7'nn",
+      "185.56",
+      "di70n7 5\"no D~017Un7 ⊃\"no g",
+      "24.193"
+     ],
+     "lines": [
+      "7.67",
+      "185.56",
+      "70?verifier",
+      "75?verifier",
+      "24.193"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g052-jpeg",
+   "kind": "pump",
+   "group": "dev-g052",
+   "labels": "hebrew",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "185.56",
+    "liters": "24.193"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 14,
+    "segment": 209,
+    "ppocr-v5+v6": 607
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "7.67",
+      "70'77 o'0n~70177 7'nn",
+      "185.56",
+      "Di7wn7 5\"no ~D17un7 ⊃\"no g",
+      "Y",
+      "24.193",
+      "D'U'7~07017"
+     ],
+     "lines": [
+      "7.67",
+      "0?verifier",
+      "185.56",
+      "7?verifier",
+      "75?verifier",
+      "24.193",
+      "7?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g053-clean",
+   "kind": "odometer",
+   "group": "dev-g053",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "111071"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "trip-meter": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 11,
+    "segment": 109,
+    "ppocr-v5+v6": 704
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "129.2",
+      "TRIP",
+      "111071",
+      "km"
+     ],
+     "lines": [
+      "129.2",
+      "111071"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "TRIP",
+      "29",
+      "•",
+      "111071",
+      "km"
+     ],
+     "lines": [
+      "29?stroke",
+      "111071"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "111071"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "trip-meter"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g053-blur",
+   "kind": "odometer",
+   "group": "dev-g053",
+   "labels": "english",
+   "font": "Andale Mono",
+   "expected": {
+    "odometer": "111071"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "111071"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 11,
+    "segment": 137,
+    "ppocr-v5+v6": 846
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "129.2",
+      "TRIP",
+      "111071",
+      "ODO"
+     ],
+     "lines": [
+      "129.2",
+      "111071"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "TRIP",
+      "129.2~12J.2",
+      "111071",
+      "ODO"
+     ],
+     "lines": [
+      "129.2?verifier",
+      "111071"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "111071"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "111071"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g054-clean",
+   "kind": "pump",
+   "group": "dev-g054",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 14,
+    "segment": 229,
+    "ppocr-v5+v6": 548
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6,67",
+      "PRICE/L",
+      "169,31",
+      "SALE €",
+      "25,384",
+      "LITRES"
+     ],
+     "lines": [
+      "6.67",
+      "169.31",
+      "25384"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g054-blur",
+   "kind": "pump",
+   "group": "dev-g054",
+   "labels": "english",
+   "font": "Courier New",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 15,
+    "segment": 174,
+    "ppocr-v5+v6": 493
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6,67",
+      "PRICE/L",
+      "169,31",
+      "SALE €",
+      "25,384",
+      "LITRES"
+     ],
+     "lines": [
+      "6.67",
+      "169.31",
+      "25384"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g055-clean",
+   "kind": "odometer",
+   "group": "dev-g055",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "227731"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "227731"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 91,
+    "ppocr-v5+v6": 309,
+    "segment-roi": 42
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "22773"
+     ],
+     "lines": [
+      "22773?stroke"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "227731"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "227731"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "227731"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:dark"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "227731"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:dark"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g055-tilt",
+   "kind": "odometer",
+   "group": "dev-g055",
+   "labels": "none",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "227731"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "227731"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 145,
+    "ppocr-v5+v6": 253,
+    "segment-roi": 55
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "22773",
+      "km"
+     ],
+     "lines": [
+      "22773?stroke"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "227731"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "227731"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "227731"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:dark"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "227731"
+      },
+      "evidence": [
+       "label:km",
+       "unit:km",
+       "polarity:dark"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g056-clean",
+   "kind": "pump",
+   "group": "dev-g056",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "195.80",
+    "liters": "28.625"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 14,
+    "segment": 351,
+    "ppocr-v5+v6": 529
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "195,80",
+      "SALE",
+      "n",
+      "28,625~28.625",
+      "LITRES",
+      "6,840~6.840",
+      "PRICE/L"
+     ],
+     "lines": [
+      "195.80",
+      "28625?verifier",
+      "6840?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g056-tilt",
+   "kind": "pump",
+   "group": "dev-g056",
+   "labels": "english",
+   "font": "DIN Condensed",
+   "expected": {
+    "total": "195.80",
+    "liters": "28.625"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 26,
+    "segment": 870,
+    "ppocr-v5+v6": 509
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "SALE n",
+      "195,80",
+      "LITRES",
+      "28,625~28.625",
+      "6,840~6.840",
+      "PRICE/L"
+     ],
+     "lines": [
+      "195.80",
+      "28625?verifier",
+      "6840?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g057-clean",
+   "kind": "odometer",
+   "group": "dev-g057",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "135356"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "135356"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 7,
+    "segment": 74,
+    "ppocr-v5+v6": 374
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "135356",
+      "n\"7"
+     ],
+     "lines": [
+      "135356",
+      "7?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "135356",
+      "n\"7"
+     ],
+     "lines": [
+      "135356",
+      "7?text"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "135356"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "135356"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g057-tilt",
+   "kind": "odometer",
+   "group": "dev-g057",
+   "labels": "hebrew",
+   "font": "Courier New",
+   "expected": {
+    "odometer": "135356"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "135356"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 9,
+    "segment": 177,
+    "ppocr-v5+v6": 384
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "135356",
+      "n\"7"
+     ],
+     "lines": [
+      "135356",
+      "7?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "135356",
+      "n\"7"
+     ],
+     "lines": [
+      "135356",
+      "7?text"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "135356"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "135356"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g058-clean",
+   "kind": "pump",
+   "group": "dev-g058",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 11,
+    "segment": 110,
+    "ppocr-v5+v6": 787
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "342.99",
+      "SALE D",
+      "54.790",
+      "LITRES",
+      "6.26",
+      "PRICE/L"
+     ],
+     "lines": [
+      "342.99",
+      "54.790",
+      "6.26"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "342.99",
+      "S",
+      "54.790",
+      "6.26",
+      "PRICE/L"
+     ],
+     "lines": [
+      "342.99",
+      "54.790",
+      "6.26"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "342.99",
+       "liters": "54.790"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.26",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "342.99",
+       "liters": "54.790"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.26",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g058-blur",
+   "kind": "pump",
+   "group": "dev-g058",
+   "labels": "english",
+   "font": "Arial",
+   "expected": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "ms": {
+    "resample": 11,
+    "segment": 111,
+    "ppocr-v5+v6": 818
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "342.99",
+      "SALe n",
+      "54.790",
+      "LITRES",
+      "6.26",
+      "PRICE/L"
+     ],
+     "lines": [
+      "342.99",
+      "54.790",
+      "6.26"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "342.99",
+      "54.790",
+      "6.26",
+      "PRICE/L"
+     ],
+     "lines": [
+      "342.99",
+      "54.790",
+      "6.26"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "342.99",
+       "liters": "54.790"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.26",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "total": "342.99",
+       "liters": "54.790"
+      },
+      "evidence": [
+       "label:liters",
+       "label:unitPrice",
+       "product",
+       "precision",
+       "observed-unit-price:6.26",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g059-clean",
+   "kind": "odometer",
+   "group": "dev-g059",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "252324"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 8,
+    "segment": 220,
+    "ppocr-v5+v6": 515
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "10828",
+      "TRIP",
+      "252324",
+      "ODO"
+     ],
+     "lines": [
+      "10828",
+      "252324"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "TRIP",
+      "ODO"
+     ],
+     "lines": []
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "252324"
+      },
+      "evidence": [
+       "label:odometer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "dev-g059-jpeg",
+   "kind": "odometer",
+   "group": "dev-g059",
+   "labels": "hebrew",
+   "font": "seven-segment",
+   "expected": {
+    "odometer": "252324"
+   },
+   "status": "accepted",
+   "outcome": "correct",
+   "values": {
+    "odometer": "252324"
+   },
+   "reason": null,
+   "reasons": null,
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "ms": {
+    "resample": 8,
+    "segment": 225,
+    "ppocr-v5+v6": 295,
+    "segment-roi": 231
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "10828",
+      "TRIP",
+      "252324",
+      "n\"r"
+     ],
+     "lines": [
+      "10828",
+      "252324"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "252324",
+      "10828"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "252324"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "read",
+      "values": {
+       "odometer": "252324"
+      },
+      "evidence": [
+       "long-integer",
+       "unit:not-visible",
+       "polarity:light"
+      ]
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  }
+ ]
+}

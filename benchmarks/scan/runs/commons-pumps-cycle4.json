@@ -1,0 +1,546 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T22:38:49.649Z",
+ "commit": "b01d609f2e593836f1380fe8ebbe97d0f62f8337",
+ "sessionsFile": "benchmarks/scan/commons-pump-sessions.json",
+ "text": "ppocr-v5+v6",
+ "note": "Individual real photographs; too few for an accuracy estimate.",
+ "outcomes": {
+  "correctly-empty": 5
+ },
+ "rows": [
+  {
+   "id": "commons:Defective Gas Station Pump Screen",
+   "kind": "pump",
+   "group": "commons:Defective Gas Station Pump Screen",
+   "labels": "French (Prix, Volume, Litres, Prix par litre)",
+   "expected": null,
+   "displayed": {
+    "total": "58,57",
+    "liters": "52,81",
+    "unitPrice": "1,109"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 4,
+    "no-reading": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 81,
+    "segment": 885,
+    "ppocr-v5+v6": 2665,
+    "segment-roi": 315,
+    "paint": 15
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "€",
+      "Prix",
+      "Litres",
+      "Volume",
+      "LIVRAIOINIMALE RES",
+      "1,109~1.109",
+      "€",
+      "Prix par litre",
+      "Htsyteeefenduehegn c",
+      "Windoews zal het wissebestand voor virtueed geheugen vergroten.",
+      "Tiders dit proces lunnen geheugenaanvragen van sommige",
+      "psn rRg H",
+      "informatie.",
+      "rendu",
+      "3 par~s par",
+      "ts de",
+      "hats.",
+      "we",
+      "with",
+      "1 200~f200"
+     ],
+     "lines": [
+      "1109?verifier",
+      "3?verifier",
+      "1200?verifier"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "voiume",
+      "LIVRAIO MINIMALE 5 LIRES",
+      "e €",
+      "1,109~1.109",
+      "litre",
+      "Prix par",
+      "Het systeem heeft onvoldoende virtueel geheugen beschikbaar.",
+      "Windows zal het wisselbestand voor virtueel geheugen vergroten.",
+      "Tijdens dit proces kunnen geheugenaanvragen van sommige",
+      "toepassingen worden geweigerd. Raadpleeg Help voor meer",
+      "informatie.",
+      "OK"
+     ],
+     "lines": [
+      "5?text",
+      "1109?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "52.81"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "5281",
+      "11791"
+     ]
+    },
+    {
+     "path": "segment-painted@960",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:שגיאת מחשב בתחנת דלק 2",
+   "kind": "pump",
+   "group": "commons:שגיאת מחשב בתחנת דלק 2",
+   "labels": "Gilbarco Veeder-Root console; only the price per litre is visible",
+   "expected": null,
+   "displayed": {
+    "unitPrice": "6.03"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 60,
+    "segment": 657,
+    "ppocr-v5+v6": 763
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.03",
+      "GILBARCO",
+      "VEEDER-ROOT",
+      "D",
+      "70~6"
+     ],
+     "lines": [
+      "6.03",
+      "70?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "group": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "labels": "Hungarian (Forint, Liter, Ft/L)",
+   "expected": null,
+   "displayed": {
+    "total": "000000",
+    "liters": "0000,00"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 54,
+    "segment": 603,
+    "ppocr-v5+v6": 881
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "JUMBO",
+      "100",
+      "000000",
+      "Forint",
+      "5",
+      "0000,00",
+      "Liter",
+      "Leghiseba Kiadhoti",
+      "Ft/L",
+      "pl50 des",
+      "0000~000.0",
+      "GILBARCO",
+      "VEEDER-ROOT",
+      "RON 100+"
+     ],
+     "lines": [
+      "100",
+      "000000",
+      "5",
+      "0000.00",
+      "50?text",
+      "0000?verifier",
+      "100"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "group": "commons:Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022",
+   "labels": "Hungarian (Ft, L, Ft/L)",
+   "expected": null,
+   "displayed": {
+    "total": "0",
+    "liters": "0.00"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 55,
+    "segment": 572,
+    "ppocr-v5+v6": 1882
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "KOIL kartya",
+      "szpénz/Cash",
+      "nkkártya/",
+      "Tisztelt Vásárlóink!",
+      "dit card",
+      "Tajékoztatjuk, hogy ezen a",
+      "K",
+      "kutoszlopon az egy tranzakcióban",
+      "vasárolható maximális üzemanyag",
+      "mennyiség 40 liter közvetlenül a",
+      "A",
+      "éabe, ille 0 ia.~gépjármübe, illetve 10 liter kannába.",
+      "Megértésüket köszönjük!",
+      "Dear Customers,",
+      "Please note that the maximum",
+      "Ft",
+      "volume of fuel that can be",
+      "TOP",
+      "purchased in one transaction at this",
+      "pump is 40 litres directly into the",
+      "D",
+      "vehicle or 10 litres into a can.",
+      "Thank you for your understanding.",
+      "IESEL",
+      "0.00",
+      "Ft/L"
+     ],
+     "lines": [
+      "40?text",
+      "0?verifier",
+      "40?text",
+      "10?text",
+      "0.00"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser",
+   "kind": "pump",
+   "group": "commons:TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser",
+   "labels": "Japanese; two volume-only displays",
+   "expected": null,
+   "displayed": {
+    "liters": "35.36 and 32.50 (two hoses; legible at full size)"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 61,
+    "segment": 658,
+    "ppocr-v5+v6": 2042
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "TATSUNO",
+      "AdBius",
+      "Managerj",
+      "WHNO",
+      "336~3535]",
+      "3250",
+      "wn",
+      "Sas",
+      "94~5",
+      "AdBlue",
+      "TATSUNO",
+      "222~22",
+      "TATSUNO"
+     ],
+     "lines": [
+      "336?verifier",
+      "3250",
+      "94?verifier",
+      "222?verifier"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "DEPXTRIC",
+      "AdBlue ",
+      "erj",
+      "SUNNYX",
+      "TATSUNO",
+      "TATSUNO",
+      "120~128",
+      "3536",
+      "©②",
+      "POOT",
+      "AdBlue",
+      "TATSUNO",
+      "SUN",
+      "TATSUNO"
+     ],
+     "lines": [
+      "120?verifier",
+      "3536"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  }
+ ]
+}

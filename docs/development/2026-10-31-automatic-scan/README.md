@@ -63,6 +63,10 @@ success. Accepted precision is a different metric: correct among accepted.
 | Cycle 3 rerun, challenge split | 49/139 = 35.3% | 49/53 = 92.5% | 4/280 |
 | Cycle 3, tuning split (development data) | 198/371 = 53.4% | 198/200 = 99.0% | 2/436 |
 | Cycle 3, **second frozen synthetic set** (independent; read once, `9265b13`) | odometers 68/120, pumps 22/120 (+16 correctly empty) | 90/94 = 95.7% | 4/240 (euro pumps filled as ₪; fixed afterwards: 0/240 on rerun) |
+| Cycle 4 rerun, test split (`b01d609`, **regression evidence**) | 319/713 = 44.7% | 319/320 = 99.7% | 1/764 (`118316` → `11836`; `151771` and `115853` now abstain) |
+| Cycle 4 rerun, challenge split | 49/139 = 35.3% | 49/53 = 92.5% | 4/280 |
+| Cycle 4, tuning split (development data) | 198/371 = 53.4% | 198/200 = 99.0% | 2/436 |
+| Cycle 4, **real pump photos frozen before reading** (independent, read once) | Israeli displays 0/3 (3 abstained) | — | 0/8 (5/5 negatives correctly empty) |
 
 The cycle-2 test rerun has one wrong acceptance the post-hoc run did not
 (`190061` read as `19006`). Both text paths dropped the last narrow "1"
@@ -96,15 +100,15 @@ Chromium 521 / 187–194 ms, WebKit 432 / 157–184 ms.
 
 | Criterion | Status |
 | --- | --- |
-| ≥ 95% correct automatic completion on readable, unambiguous sessions | **Not met**: 39.0% frozen; cycle-3 rerun 43.3% (regression evidence); second frozen synthetic set 90/240 |
-| ≥ 99.5% correctness among accepted readings | **Not met** frozen (97.9%); cycle-3 rerun 99.4% is **unproven**; second frozen synthetic set 95.7% (4 euro pumps), fixed afterwards |
+| ≥ 95% correct automatic completion on readable, unambiguous sessions | **Not met**: 39.0% frozen; cycle-4 rerun 44.7% (regression evidence); second frozen synthetic set 90/240; real Israeli pump photos 0/3 |
+| ≥ 99.5% correctness among accepted readings | **Not met** frozen (97.9%); cycle-4 rerun 99.7% (319/320) is **unproven** (regression evidence); second frozen synthetic set 95.7% (4 euro pumps), fixed afterwards |
 | Warm p95 ≤ 6 s per scene on Samsung Galaxy S25 | **Unverified**: no phone. Desktop Chromium p95 is 1.1 s |
 | Denominators and confidence intervals published, frozen and post-hoc kept apart | Met |
 | Field/session correctness, precision, wrong acceptance, coverage (eligible and all), rejection reasons, display-family breakdown, p50/p95, cold-start bytes, memory | Met for odometers. TRODO publishes no device identity, so there is no device breakdown. Pump field correctness was not measured (no photographs) |
-| Pump real-world accuracy | **Incomplete**: three real Commons photographs through the complete pipeline (none filled; two correctly empty, one abstained on decimal commas) and the synthetic suite, now through the complete pipeline with and without labels; no Israeli pump photographs |
+| Pump real-world accuracy | **Not demonstrated**: three permitted Israeli pump photographs (frozen before reading) all abstained; ten real negatives stayed empty. Otherwise synthetic suites and replay scenes |
 | Private calibration photos, prospective Israeli examples | **Incomplete**: not available |
 | Physical-device validation (S25, weaker Android, iOS Safari/PWA) | **Not done**: no device |
-| Build, rules, offline and browser gates pass without weakened assertions | Met (see the PR test plan); the CI failure from fixed October dates is fixed |
+| Build, rules, offline and browser gates pass without weakened assertions | **Corrected in cycle 4.** Cycle 3's camera replay accepted abstention on three readable scenes: the labelled pump after `9265b13` (an OS-font difference), and the counting pump and TRIP-above-ODO from the start. Earlier documents said no assertion was weakened; that was wrong. Cycle 4 restores exact fill assertions on pinned scenes and keeps safety assertions separate. The other gates were not weakened; the CI failure from fixed October dates is fixed |
 
 ## Cycle 2 (2026-11-01): defects fixed, failures attributed, one measured improvement
 
@@ -308,10 +312,13 @@ Behaviours:
 - a model integrity failure
 - an offline restart
 
-Scene displays use a printed display font: clean synthetic seven-segment
-digits read poorly with the recogniser loaded (unit and synthetic suites cover
-them), and the full-resolution recrop of large, crisp seven-segment digits
-detects only the unit. These are software replays, not phone validation.
+Scene displays used a printed display font from the system (DIN Condensed
+on macOS, a different fallback on Linux): clean synthetic seven-segment digits
+read poorly with the recogniser loaded, and the full-resolution recrop of
+large, crisp seven-segment digits detected only the unit. These are software
+replays, not phone validation. *(Superseded in cycle 4: the scenes are now
+drawn from a pinned font with pinned pixels, the seven-segment and crowded
+scenes are back, and readable scenes must fill exactly.)*
 
 **Frozen sets.** The first frozen set (`fixtures-frozen-2026-11-01`) was
 read once on the cycle-3 code. Its generator had fallen into a short random
@@ -348,6 +355,158 @@ correctly empty).
 - Two more Commons pump photographs were added (a Hungarian display at zero;
   a volume-only showroom display). None of the five is an Israeli display with
   amount and volume.
+
+## Cycle 4 (2026-11-01/02): deterministic replay, the whole fill-up from the camera, concrete failures
+
+Decisions used the tuning split and the development fixtures. The test,
+challenge and paired-failure runs are regression evidence. The only new
+independent result is the set of real pump photographs frozen before reading.
+
+**Correction.** Cycle 3 said no assertion was weakened. Its camera replay
+accepted abstention on three readable scenes: the labelled pump after
+`9265b13` (an OS-font difference), and the counting pump and TRIP-above-ODO
+from the start. That claim was wrong; cycle 4 restores exact gates.
+
+**Deterministic replay scenes.** Scene text came from system fonts, so
+macOS and the CI's Linux replayed different pixels. Every pixel is now
+computed in JavaScript:
+- seven-segment shapes (`fixtures.ts`);
+- printed lettering from a pinned OFL font, Assistant Bold (the app's own
+  UI font; licence beside it), filled by a small TrueType rasteriser
+  (`e2e/helpers/glyphs.ts`);
+- a box blur in integers, and the app's own resampler for camera motion.
+
+Each Y4M file is checked against its SHA-256 (`e2e/fixtures/replay-scenes.json`)
+before any test runs. CI on Linux reproduced every hash.
+
+**Exact gates.** Readable scenes must fill exactly; negative scenes must
+fill nothing; each scan's outcome is recorded apart from the test result
+(`replay-report.mjs`, a CI artifact).
+
+| Scene | Requirement |
+| --- | --- |
+| printed pump, odometer, blur → sharp, moving camera, counting pump, TRIP above ODO, labelled pump | exact values (counting pump: final values only) |
+| seven-segment odometer (an original difficult scene, restored) | exact values |
+| crowded dashboard (seven-segment pump panel beside TRIP and ODO) | pump step: exact; odometer step: positive gate marked `test.fail` (open failure) and a separate safety test that must pass |
+| pump → odometer, printed | the whole fill-up, below |
+| seven-segment pump; seven-segment pump → odometer | positive gates marked `test.fail` (open failure); a safety test that must pass |
+| trip meter alone; pump in euros | nothing filled |
+
+**The whole fill-up from the camera.** A scene shows a pump for 8 s, pans
+for 1 s, then shows the odometer. The test opens the camera once. The pump
+step reads the pump, the odometer step opens the camera by itself, and the
+form receives all three values. No field is typed and no skip or manual
+button is used. Then the ordinary Save, and exactly one record with
+287.40 ₪, 40 L and 128,450 km after a reload.
+
+Replay results (Chromium fake camera, built app, emulators) are in RESULTS.md,
+"Camera replay", with each scan's outcome counted apart from test results:
+final local run on the `b01d609` code (Apple M5, one test at a time): 20
+tests passed, 0 failed, 3 expected failures (the open gates for the
+seven-segment pump, the seven-segment fill-up and the dashboard odometer).
+Scans: 38 correct, 0 wrong, 10 abstained (all in those open scenes), 4
+correctly empty (trip meter alone, euros). The printed fill-up: pump after
+3.6 s, all three fields after 14.3 s, cold (models downloaded in the test).
+CI on Linux reproduced every scene hash and the same outcomes.
+
+**Replay frames with true labels.** `replay-frames.mjs` gave every scene both
+a pump and an odometer expectation, and the final pump values at any moment.
+It now writes each distinct frame with its own scene's truth for that moment:
+positive, blurred, partial (the pan), counting, negative, or absent (that
+kind of display is not in the frame). A counting frame read as displayed is
+counted as `intermediate`, not correct. Shipped verifier, all 122 frame
+sessions: positive 37/38 correct (the dashboard odometer abstains), blurred
+1/1, partial 3 correct and 9 abstained, counting 14 intermediate and 1 empty,
+negative and absent 56/56 empty, 0 wrong. The cycle-3 digit-model comparison
+on replay stills used the old export (correct for its seven 8-second frames,
+but from a mislabelling tool); on the true labels the trained digit model
+reads 7/38 positive frames and fills the euro pump as shekels, so it stays
+unshipped.
+
+**Recognition fixes.** Each was decided on tuning data or the development
+fixtures, then checked on the paired-failure set: every remaining wrong fill
+with its own display group and up to 25 correctly read photos of the same
+family whose value has the same pattern (`paired-failures.json`; regression
+evidence only).
+- **A box that cuts a glyph.** A detector box ending inside a glyph made the
+  recogniser read another digit (seven-segment `287.40` as `187,40`). The box
+  is widened to the next blank gap (at most 0.6 × its height) and read again:
+  the same reading keeps the widened box; a reading only the widened box gets
+  agreed by the verifier replaces a disputed one; numbers that change
+  otherwise make the reading unsure. Tuning: unchanged totals (2 gained, 2
+  lost). Side effect on the paired set: the clock row `11°C 19:43` that
+  filled as `1121943` now changes when widened and abstains.
+- **A "1" dropped before a unit.** CTC decoding now reports where each
+  character was read. A digit stroke in the number's box beyond the digits
+  read, together with a near-missed digit ≥ 0.3 at the number's edge (over
+  any spaces the recogniser emitted there), makes the number unsure:
+  `151771` read as `15177` (0.43 after the last 7) now abstains. Either
+  signal alone cost 5–17 correct tuning readings; together, none.
+- **Seven-segment pump through a camera (not fixed).** Its stills read, but
+  through the camera every frame abstained. On a frame emulating the camera's
+  4:2:0 colour subsampling, the gray channel found only the volume row and the
+  value channel only the amount row. For pumps the two channels' rows together
+  are now one more candidate when they agree wherever they overlap: that reads
+  the emulated frame, and development fixtures are unchanged, but the real
+  Chromium camera path still abstains (locally and on CI). The seven-segment
+  pump and the seven-segment fill-up stay open failures in the suite.
+- **Euro sign dropped.** A lone `€` was read as `C` at 0.17 and discarded, so
+  the printed euro pump filled as shekels. Boxes without digits now also take
+  standalone currency signs from the second recogniser (a narrow box is read
+  with background either side). More currency names are known (dirhams,
+  dinars, riyals, lira, forint, zloty, crowns and others).
+
+**Measured but not acted on** (kept in traces for diagnosis):
+- **7 read as 1** (`279890` → `219890`, `285077` → `285011`): a "1" whose ink
+  reaches across the top of its cell. Any threshold that catches the
+  `279890` display costs 9–12 correct tuning readings; `285077` measures 0.
+- **Ghost segments** (`84.9` → `888849`): the faintest digit's contrast. At
+  0.2 it cost nothing on tuning, but on the paired set the failure measured
+  0.13, 0.20 and 0.20 on its three paths (still accepted), and two correctly
+  read neighbours measured 0.09 and 0.19. Turned off (`b01d609` reverts the
+  use, not the measurement).
+- **Two narrow "1"s read as one** (`118948` → `18948`): bloom joins the second
+  "1" to the "8"; no column of the image separates them.
+
+| Paired-failure set (regression evidence) | Before (cycle 3) | After |
+| --- | --- | --- |
+| The 8 wrong fills | 8 wrong | 6 wrong, 2 abstained (`151771`, `115853`) |
+| Their neighbours (group and family) | 157 correct, 16 abstained, 133 correctly empty | 156 correct, 19 abstained, 133 correctly empty (one family neighbour, `234672`, now abstains) |
+
+TRODO reruns (regression evidence; these splits informed earlier changes):
+
+| Split | Cycle 3 | Cycle 4 (`b01d609`) |
+| --- | --- | --- |
+| Test | 309/713 correct, 2/764 wrong | **319/713 correct (44.7%), 1/764 wrong**; accepted precision 319/320 = 99.7% |
+| Challenge | 49/139 correct, 4/280 wrong | 49/139 correct, 4/280 wrong |
+| Tuning (decisions) | 198/371, 2/436 | 198/371, 2/436 |
+
+On the test split `151771` and `115853` now abstain, and one photo that
+abstained in cycle 3 now fills wrong: `118316` read as `11836` by both
+recognisers, a narrow "1" dropped inside the number with no near-miss, the
+same open weakness. Ten more photos are filled correctly.
+
+Synthetic and fixture checks are unchanged: development fixtures 60 correct,
+0 wrong, 50 abstained, 10 correctly empty; first frozen set 116 / 0 / 124;
+second frozen set 90 / 0 / 130 / 20; synthetic pumps 17/19, 7/19 + 28 and
+15/19 + 5 with 0 wrong.
+
+**Real pump photographs.** A search of Commons (Category:Petrol stations in
+Israel to depth 3, 187 files, plus Hebrew and English searches) and Flickr
+(CC licences) found only three Israeli displays with every digit of amount
+and volume certain. With five legible negatives (euros, dirhams,
+dollars/gallons, a display caught mid-refresh, a segment test) they were
+committed before reading (`pump-photos-2026-11-01.json`) and read once on the
+final code:
+
+| Photos | Correct | Wrong | Abstained | Correctly empty |
+| --- | --- | --- | --- | --- |
+| Israeli displays (150.00 / 23.734; 320.08 / 44.332; 163.06 / 26.514) | 0 | 0 | 3 | — |
+| Negatives | — | 0 | — | 5 |
+
+The three Israeli displays abstain with `format`: no pump panel forms from
+real LCD rows. Real pump recognition is not demonstrated. The earlier five
+Commons photos remain correctly empty.
 
 ## User-test version (preview channel, not production)
 
@@ -463,13 +622,14 @@ Every wrong acceptance in the frozen runs is listed by session in RESULTS.md.
 By cause:
 
 - **Speedometer numbers merged into one box** (`100 120` read as odometer `100120`): 4 of 6 wrong acceptances on the test split and 15 of 19 on the challenge split, mostly on trip-only displays. Fixed after those runs (groups that are all round dial values are kept apart); the re-run is reported separately as post-hoc, not independent.
-- **Inserted or dropped digits** that survive the fix on the test split (cause not analysed): `115853` → `1121943`, and `151771` → `15177` (last digit lost).
-- **7 read as 1** on some LCD fonts with a faint top bar (`279890` → `219890`, `285077` → `285011`): both recognisers make the same mistake, so the verifier does not catch it.
-- **Ghost segments**: unlit segments visible as `888` in front of a trip reading whose decimal point was lost (`84.9` → `888849`).
+- **Inserted or dropped digits** on the test split: `115853` → `1121943` (the clock row `11°C 19:43`) and `151771` → `15177` (a "1" dropped before a superscript "km") abstain since cycle 4. `118316` → `11836` (a "1" dropped inside the number, no near-miss) now fills wrong; it abstained in cycle 3.
+- **7 read as 1** on some LCD fonts with a faint top bar (`279890` → `219890`, `285077` → `285011`): both recognisers make the same mistake, so the verifier does not catch it. A top-bar measure exists (cycle 4) but costs 9–12 correct tuning readings at any threshold that would catch it, so it is not used.
+- **Ghost segments**: unlit segments visible as `888` in front of a trip reading whose decimal point was lost (`84.9` → `888849`). A contrast measure (cycle 4) did not separate it from unevenly lit correct readings, so it is not used.
 - **Bloomed leading "1"** on small backlit LCDs (`1 18948` read as `18948` by both recognisers, inside the detected box): neither the verifier nor the stray-stroke check sees it. Two tuning-split acceptances were wrong this way (one vehicle photographed twice).
 - **Analog drum registers**: the coloured last drum (usually tenths) is read or skipped inconsistently, and TRODO labels it inconsistently. These are reported separately, both ways; their correctness for the app's integer odometer is **unverified**.
 - **Trip meters, clocks and speed on the same display** are common; when only a trip is visible the reader must abstain, and TRODO's 257 trip/clock scenes measure that.
-- **Seven-segment pump displays**: the text recogniser misreads the synthetic seven-segment font (for example `287.40` as `1.40`), and a disagreement between paths blocks acceptance, so with the recogniser loaded a synthetic pump can abstain where the segment reader alone would read it. Real pump accuracy is unmeasured.
+- **Seven-segment pump displays**: since cycle 4 a box that cuts a glyph is widened, and synthetic seven-segment pump stills read; through the camera replay they still abstain. Real Israeli pump photographs (three) all abstain: no pump panel forms from their rows.
+- **Crowded dashboard**: with a pump panel and a TRIP row in view, the text detector finds only part of the odometer in the recrop (`128` of `128450`), and the odometer step abstains.
 - **Labels in Hebrew**: the English recogniser cannot read Hebrew labels (סכום, ליטרים, ק״מ). Pump identity then relies on precision alone, and a pump with two 2-place rows abstains.
 - **Decimal commas** (`58,57 €`, `52,81 L`, as on the French Commons photograph): a comma is read as a thousands separator only before exactly three digits, so these do not parse and the pump abstains. `1,109` is genuinely ambiguous (a 3-place price or a thousands separator) and is not guessed.
 - **Printed labels beside seven-segment digits** lower full-pipeline coverage in the synthetic suite (see RESULTS.md). No synthetic or real scene was filled wrongly.
@@ -540,11 +700,11 @@ is deployed and no photo leaves the phone.
 
 - Recognition targets are not met: about 6 in 10 readable digital odometers still fall back to typing, and the frozen run accepted 6 wrong readings in 764 scored sessions.
 - The evaluated scope is TRODO still photos from one country's vehicle fleet, of digital displays with at least 5 digits. Analog registers (858), 3–4 digit digital readings (20) and label-check exclusions (31) are reported separately and are not in any headline number.
-- Pump displays: five real Commons photographs (one complete display, in euros, and four negatives) were read through the complete pipeline: all correctly left empty, none filled correctly. That cannot estimate accuracy, and none is an Israeli display with amount and volume. Pump behaviour otherwise rests on synthetic suites and fixtures; the English recogniser cannot read Hebrew labels.
+- Pump displays: thirteen real Commons photographs. The three Israeli displays with amount and volume (found in cycle 4 and frozen before reading) all abstained; the ten negatives stayed empty. Real pump recognition is not demonstrated; pump behaviour otherwise rests on synthetic suites, fixtures and replay scenes. The English recogniser cannot read Hebrew labels. Commons and Flickr are exhausted for permitted Israeli pump photos.
 - Live camera behaviour is simulated twice: frames derived from TRODO still photos (session rules on real displays), and the camera replay of rendered displays through the real camera path (`playwright.replay.config.ts`). Neither is a hand-held phone at a real pump or dashboard.
 - No phone was used. S25 latency, weaker-Android memory, iOS Safari/PWA, real permission prompts and camera lifecycle are unverified. Desktop WebKit holds about 0.9–1.1 GB across scan cycles and releases part of it only after idling (707 MB 10 s after the last teardown); whether iOS keeps the tab alive at that size is unverified.
 - On the tuning split the verifier now has a measured effect (cycle-2 diagnosis): ignoring its disagreements adds correct fills and also wrong ones. The Tesseract comparison uses 60 tuning sessions, so it is coarse.
-- Cycle-2 and cycle-3 reruns on the test and challenge splits are regression evidence only; those splits informed the changes. The frozen fixture sets are synthetic. The first frozen set's generator was flawed (19 distinct scenes), and both frozen sets exposed failures that were then fixed, so their reruns are regression evidence too.
+- Cycle-2, cycle-3 and cycle-4 reruns on the test and challenge splits, and the paired-failure set, are regression evidence only; those splits informed the changes. The frozen fixture sets are synthetic. The first frozen set's generator was flawed (19 distinct scenes), and both frozen sets exposed failures that were then fixed, so their reruns are regression evidence too.
 - The trained display-digit recogniser helps on real TRODO odometers but does not generalise to other renderings; it is not shipped. A verifier that is better on both needs training data beyond TRODO, above all real pump displays.
 - First-scan download is 31.4 MB raw; Firebase Hosting serves it Brotli-compressed, 18.0 MB over the network (measured on the preview channel).
 - The private calibration photos, the research package, `dataset-sources.json` and `price-prompt.txt` were not available. The personal-price investigation was not touched.

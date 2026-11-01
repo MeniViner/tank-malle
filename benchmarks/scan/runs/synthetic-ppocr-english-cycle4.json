@@ -1,0 +1,4592 @@
+{
+ "format": "tank-maleh-scan-synthetic-v1",
+ "note": "Synthetic mechanism suite; not real-world accuracy.",
+ "commit": "b01d609f2e593836f1380fe8ebbe97d0f62f8337",
+ "seed": 20261101,
+ "count": 200,
+ "reader": "current",
+ "text": "ppocr-v5+v6",
+ "printedLabels": "english",
+ "pump": {
+  "decidable": {
+   "scenes": 19,
+   "accepted": 7,
+   "correct": 7,
+   "wrong": 0
+  },
+  "undecidable": {
+   "scenes": 81,
+   "accepted": 28,
+   "correct": 28,
+   "wrong": 0
+  }
+ },
+ "odometer": {
+  "decidable": {
+   "scenes": 72,
+   "accepted": 45,
+   "correct": 45,
+   "wrong": 0
+  },
+  "undecidable": {
+   "scenes": 28,
+   "accepted": 6,
+   "correct": 6,
+   "wrong": 0
+  }
+ },
+ "byDegradation": {
+  "clean": {
+   "scenes": 88,
+   "accepted": 14,
+   "correct": 14,
+   "wrong": 0
+  },
+  "blur": {
+   "scenes": 37,
+   "accepted": 29,
+   "correct": 29,
+   "wrong": 0
+  },
+  "tilt": {
+   "scenes": 45,
+   "accepted": 26,
+   "correct": 26,
+   "wrong": 0
+  },
+  "jpeg": {
+   "scenes": 30,
+   "accepted": 17,
+   "correct": 17,
+   "wrong": 0
+  }
+ },
+ "byPolarity": {
+  "lcd": {
+   "scenes": 76,
+   "accepted": 33,
+   "correct": 33,
+   "wrong": 0
+  },
+  "night": {
+   "scenes": 61,
+   "accepted": 27,
+   "correct": 27,
+   "wrong": 0
+  },
+  "blue": {
+   "scenes": 63,
+   "accepted": 26,
+   "correct": 26,
+   "wrong": 0
+  }
+ },
+ "wrong": [],
+ "rows": [
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "486.88",
+    "liters": "64.19"
+   },
+   "read": {
+    "total": "486.88",
+    "liters": "64.19"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "210953"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "conflict",
+   "frameReasons": {
+    "conflict": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "300.61",
+    "liters": "38.97"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "177711"
+   },
+   "read": {
+    "odometer": "177711"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "99.84",
+    "liters": "15.02"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "957"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "254.32",
+    "liters": "32.07"
+   },
+   "read": {
+    "total": "254.32",
+    "liters": "32.07"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "777771"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "conflict",
+   "frameReasons": {
+    "conflict": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "142.56",
+    "liters": "18.51"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "204248"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "228.81",
+    "liters": "34.80"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "831"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "241.90",
+    "liters": "32.911"
+   },
+   "read": {
+    "total": "241.90",
+    "liters": "32.911"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "209979"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "382.21",
+    "liters": "51.65"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "744444"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "188.74",
+    "liters": "25.32"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "100"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "381.73",
+    "liters": "57.49"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "774747"
+   },
+   "read": {
+    "odometer": "774747"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "323.73",
+    "liters": "49.652"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "901"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "116.61",
+    "liters": "14.779"
+   },
+   "read": {
+    "total": "116.61",
+    "liters": "14.779"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "474114"
+   },
+   "read": {
+    "odometer": "474114"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "130.28",
+    "liters": "17.21"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "731"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "conflict",
+   "frameReasons": {
+    "conflict": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "45.23",
+    "liters": "6.91"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "194960"
+   },
+   "read": {
+    "odometer": "194960"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "202.38",
+    "liters": "25.810"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "14887"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "482.09",
+    "liters": "62.69"
+   },
+   "read": {
+    "total": "482.09",
+    "liters": "62.69"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "441771"
+   },
+   "read": {
+    "odometer": "441771"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "197.29",
+    "liters": "27.198"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "441747"
+   },
+   "read": {
+    "odometer": "441747"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "82.39",
+    "liters": "12.54"
+   },
+   "read": {
+    "total": "82.39",
+    "liters": "12.54"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "652"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "232.98",
+    "liters": "32.86"
+   },
+   "read": {
+    "total": "232.98",
+    "liters": "32.86"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "711741"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "317.96",
+    "liters": "44.47"
+   },
+   "read": {
+    "total": "317.96",
+    "liters": "44.47"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "171147"
+   },
+   "read": {
+    "odometer": "171147"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "250.60",
+    "liters": "32.93"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "189"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "83.81",
+    "liters": "12.32"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "117141"
+   },
+   "read": {
+    "odometer": "117141"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "343.58",
+    "liters": "48.735"
+   },
+   "read": {
+    "total": "343.58",
+    "liters": "48.735"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "281822"
+   },
+   "read": {
+    "odometer": "281822"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "237.39",
+    "liters": "35.984"
+   },
+   "read": {
+    "total": "237.39",
+    "liters": "35.984"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "144471"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "356.36",
+    "liters": "50.62"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "741141"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "conflict",
+   "frameReasons": {
+    "no-reading": 1,
+    "conflict": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "233.04",
+    "liters": "33.823"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "777747"
+   },
+   "read": {
+    "odometer": "777747"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "94.32",
+    "liters": "13.714"
+   },
+   "read": {
+    "total": "94.32",
+    "liters": "13.714"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "389"
+   },
+   "read": {
+    "odometer": "389"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "39.65",
+    "liters": "5.73"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "417711"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "198.84",
+    "liters": "28.693"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "714171"
+   },
+   "read": {
+    "odometer": "714171"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "121.52",
+    "liters": "18.65"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "110061"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "181.98",
+    "liters": "22.89"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "646"
+   },
+   "read": {
+    "odometer": "646"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "162.32",
+    "liters": "20.81"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "11051"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "169.24",
+    "liters": "24.177"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "539"
+   },
+   "read": {
+    "odometer": "539"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "438.39",
+    "liters": "55.005"
+   },
+   "read": {
+    "total": "438.39",
+    "liters": "55.005"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "76378"
+   },
+   "read": {
+    "odometer": "76378"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "69.35",
+    "liters": "8.789"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "804"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "409.80",
+    "liters": "53.780"
+   },
+   "read": {
+    "total": "409.80",
+    "liters": "53.780"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "194"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "conflict": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "225.93",
+    "liters": "31.51"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "conflict": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "535"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "213.22",
+    "liters": "29.43"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "conflict",
+   "frameReasons": {
+    "implausible": 1,
+    "no-reading": 1,
+    "conflict": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "99488"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "53.69",
+    "liters": "7.145"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "implausible",
+   "frameReasons": {
+    "format": 1,
+    "implausible": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "411711"
+   },
+   "read": {
+    "odometer": "411711"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "348.58",
+    "liters": "53.219"
+   },
+   "read": {
+    "total": "348.58",
+    "liters": "53.219"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "69301"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "471.17",
+    "liters": "63.50"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "771141"
+   },
+   "read": {
+    "odometer": "771141"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "227.35",
+    "liters": "28.44"
+   },
+   "read": {
+    "total": "227.35",
+    "liters": "28.44"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "718"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "453.74",
+    "liters": "61.25"
+   },
+   "read": {
+    "total": "453.74",
+    "liters": "61.25"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "143035"
+   },
+   "read": {
+    "odometer": "143035"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "369.28",
+    "liters": "49.435"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "453"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "176.16",
+    "liters": "25.30"
+   },
+   "read": {
+    "total": "176.16",
+    "liters": "25.30"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "64788"
+   },
+   "read": {
+    "odometer": "64788"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "320.65",
+    "liters": "40.41"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "122417"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "206.70",
+    "liters": "26.331"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "771771"
+   },
+   "read": {
+    "odometer": "771771"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "40.79",
+    "liters": "5.297"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "940"
+   },
+   "read": {
+    "odometer": "940"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi",
+    "segment@1280"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "459.78",
+    "liters": "58.399"
+   },
+   "read": {
+    "total": "459.78",
+    "liters": "58.399"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "93529"
+   },
+   "read": {
+    "odometer": "93529"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "272.65",
+    "liters": "36.94"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "164044"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "264.51",
+    "liters": "33.188"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "279233"
+   },
+   "read": {
+    "odometer": "279233"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "376.34",
+    "liters": "47.942"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "177711"
+   },
+   "read": {
+    "odometer": "177711"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "240.06",
+    "liters": "34.099"
+   },
+   "read": {
+    "total": "240.06",
+    "liters": "34.099"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "205365"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "285.52",
+    "liters": "41.56"
+   },
+   "read": {
+    "total": "285.52",
+    "liters": "41.56"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "728"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "181.84",
+    "liters": "22.759"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "80007"
+   },
+   "read": {
+    "odometer": "80007"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "46.13",
+    "liters": "6.268"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "204570"
+   },
+   "read": {
+    "odometer": "204570"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "46.72",
+    "liters": "6.40"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "917"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "401.27",
+    "liters": "50.285"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "471741"
+   },
+   "read": {
+    "odometer": "471741"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "166.22",
+    "liters": "23.435"
+   },
+   "read": {
+    "total": "166.22",
+    "liters": "23.435"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "198282"
+   },
+   "read": {
+    "odometer": "198282"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "174.41",
+    "liters": "24.224"
+   },
+   "read": {
+    "total": "174.41",
+    "liters": "24.224"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "911"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "411.07",
+    "liters": "59.575"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "117747"
+   },
+   "read": {
+    "odometer": "117747"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "266.74",
+    "liters": "36.350"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "943"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "468.00",
+    "liters": "59.694"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "297963"
+   },
+   "read": {
+    "odometer": "297963"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "180.03",
+    "liters": "26.092"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "format": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "111477"
+   },
+   "read": {
+    "odometer": "111477"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "97.34",
+    "liters": "13.52"
+   },
+   "read": {
+    "total": "97.34",
+    "liters": "13.52"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "711411"
+   },
+   "read": {
+    "odometer": "711411"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "74.75",
+    "liters": "11.275"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "714171"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "conflict",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "conflict": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "431.12",
+    "liters": "57.56"
+   },
+   "read": {
+    "total": "431.12",
+    "liters": "57.56"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "225341"
+   },
+   "read": {
+    "odometer": "225341"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "247.34",
+    "liters": "33.20"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "741777"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "391.22",
+    "liters": "58.830"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "171147"
+   },
+   "read": {
+    "odometer": "171147"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "197.62",
+    "liters": "29.452"
+   },
+   "read": {
+    "total": "197.62",
+    "liters": "29.452"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "448"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "294.26",
+    "liters": "40.644"
+   },
+   "read": {
+    "total": "294.26",
+    "liters": "40.644"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "177111"
+   },
+   "read": {
+    "odometer": "177111"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "249.36",
+    "liters": "35.37"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "244"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "405.39",
+    "liters": "54.306"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "114174"
+   },
+   "read": {
+    "odometer": "114174"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "112.68",
+    "liters": "15.436"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "477771"
+   },
+   "read": {
+    "odometer": "477771"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "441.10",
+    "liters": "62.63"
+   },
+   "read": {
+    "total": "441.10",
+    "liters": "62.63"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "14039"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "433.13",
+    "liters": "62.24"
+   },
+   "read": {
+    "total": "433.13",
+    "liters": "62.24"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "174114"
+   },
+   "read": {
+    "odometer": "174114"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "464.53",
+    "liters": "60.802"
+   },
+   "read": {
+    "total": "464.53",
+    "liters": "60.802"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "290527"
+   },
+   "read": {
+    "odometer": "290527"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "401.31",
+    "liters": "55.660"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 4
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "141774"
+   },
+   "read": {
+    "odometer": "141774"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "259.15",
+    "liters": "38.392"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "171744"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "152.72",
+    "liters": "22.592"
+   },
+   "read": {
+    "total": "152.72",
+    "liters": "22.592"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "444444"
+   },
+   "read": {
+    "odometer": "444444"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "215.75",
+    "liters": "30.69"
+   },
+   "read": {
+    "total": "215.75",
+    "liters": "30.69"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "171714"
+   },
+   "read": {
+    "odometer": "171714"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "373.03",
+    "liters": "51.738"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "315"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "253.91",
+    "liters": "34.734"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "294441"
+   },
+   "read": {
+    "odometer": "294441"
+   },
+   "paths": [
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "277.72",
+    "liters": "35.11"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 5
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "777117"
+   },
+   "read": {
+    "odometer": "777117"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960",
+    "segment@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "111.28",
+    "liters": "14.70"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "266231"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "445.86",
+    "liters": "60.91"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "447"
+   },
+   "read": {
+    "odometer": "447"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "504.28",
+    "liters": "64.166"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 5
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "219875"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "380.87",
+    "liters": "56.06"
+   },
+   "read": {
+    "total": "380.87",
+    "liters": "56.06"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "126"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "136.56",
+    "liters": "17.575"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "477777"
+   },
+   "read": {
+    "odometer": "477777"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "403.57",
+    "liters": "54.36"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "125494"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "liters/total L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "219.71",
+    "liters": "27.671"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "711114"
+   },
+   "read": {
+    "odometer": "711114"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "158.35",
+    "liters": "21.37"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "123"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "516.30",
+    "liters": "64.78"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "763"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "105.73",
+    "liters": "13.678"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 2,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "179526"
+   },
+   "read": {
+    "odometer": "179526"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "lcd",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "liters/unitPrice/total L3 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "85.36",
+    "liters": "10.723"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "141174"
+   },
+   "read": {
+    "odometer": "141174"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "298.37",
+    "liters": "43.08"
+   },
+   "read": {
+    "total": "298.37",
+    "liters": "43.08"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "blue",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "ones-sevens",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "114474"
+   },
+   "read": {
+    "odometer": "114474"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters/unitPrice L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "185.55",
+    "liters": "28.259"
+   },
+   "read": {
+    "total": "185.55",
+    "liters": "28.259"
+   },
+   "paths": [
+    "ppocr-v5+v6@roi",
+    "segment@960"
+   ],
+   "polarity": "night",
+   "degradation": "blur",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "138617"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "unitPrice/total/liters L2 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "421.80",
+    "liters": "58.87"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "248228"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "clean",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   }
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L2 P2",
+   "printedLabels": "english",
+   "truth": {
+    "total": "171.99",
+    "liters": "22.78"
+   },
+   "read": {
+    "total": "171.99",
+    "liters": "22.78"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "segment@960"
+   ],
+   "polarity": "blue",
+   "degradation": "tilt",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "odometer",
+   "label": "short",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "416"
+   },
+   "read": {
+    "odometer": "416"
+   },
+   "paths": [
+    "ppocr-v5+v6@960",
+    "ppocr-v5+v6@roi"
+   ],
+   "polarity": "night",
+   "degradation": "jpeg",
+   "decidable": false,
+   "status": "accepted",
+   "correct": true,
+   "wrong": false,
+   "reason": null,
+   "frameReasons": null
+  },
+  {
+   "kind": "pump",
+   "label": "total/liters L3 P3",
+   "printedLabels": "english",
+   "truth": {
+    "total": "387.60",
+    "liters": "48.767"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "uncorroborated",
+   "frameReasons": {
+    "format": 3,
+    "no-reading": 2
+   }
+  },
+  {
+   "kind": "odometer",
+   "label": "random",
+   "printedLabels": "english",
+   "truth": {
+    "odometer": "63318"
+   },
+   "read": null,
+   "paths": null,
+   "polarity": "blue",
+   "degradation": "blur",
+   "decidable": true,
+   "status": "abstained",
+   "correct": false,
+   "wrong": false,
+   "reason": "unreadable",
+   "frameReasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   }
+  }
+ ]
+}
