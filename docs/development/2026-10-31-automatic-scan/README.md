@@ -214,6 +214,112 @@ fonts in different ways. A trained display-digit recogniser remains the step
 most likely to move both, but no training stack (PyTorch/ONNX tooling) is
 available here, so it was not attempted in this cycle.
 
+## Cycle 3 (2026-11-01): reproducible failures, camera replay, a trained verifier
+
+The test and challenge splits remain regression evidence. New decisions used
+the tuning split or the development fixtures. The independent result in this
+cycle is the frozen synthetic fixture set below; it is synthetic.
+
+**Dropped edge digits.** `190061` was read as `19006km`: a narrow "1" between
+the digits and "km" was dropped by both recognisers. CTC decoding now records,
+for each gap between characters, how close the model came to a digit it did
+not emit (`ctcDecode` `doubts`). A number whose edge is glued to a word and
+whose doubt there is ≥ 0.2 is unsure. On tuning, `doubt-sweep.mjs` showed that
+any threshold over all edges or inner gaps cost 11–104 correct readings,
+while the glued-edge rule at 0.2 cost none. With the PP-OCRv6-tiny verifier
+the test split went from 310/713 correct with 3 wrong to 309/713 with 2 wrong;
+the `190061` case now abstains. Still wrong: `115853` → `1121943`, and
+`151771` → `15177`, which has no glued word.
+
+**Printed labels on pumps.** SALE/LITRES beside seven-segment rows broke the
+segment reader's rows: its row parser takes S/A/L/E strokes as cells. For a
+pump where the segment reader located rows but read nothing:
+- the text reader starts from the whole frame (the located region held one
+  row);
+- its confirming recrop takes every row read (a half-cut price row had
+  blocked it);
+- recognised words that cannot be digits are painted over for two more
+  segment paths;
+- the words still count as labels.
+
+On the development fixtures this took pump images from 10 to 20 of 60
+correct, 0 wrong. The synthetic suite with the PP-OCRv6-tiny verifier:
+
+| Labels | Decidable | Undecidable settled by labels |
+| --- | --- | --- |
+| None | 12/19 → 17/19 | — |
+| English | 2/19 → 7/19 | 12 → 28 |
+| Hebrew | 2/19 → 15/19 | 3 → 5 |
+
+0 wrong throughout. Painting is pump-only: on odometers it cost about 0.7 s
+a frame for one more reading.
+
+**Decimal commas and foreign currency.** A comma before one or two final
+digits is a decimal comma (`58,57`); `1,109` stays ambiguous. An amount shown
+with €, $, Ft, … is never filled as shekels (identity `foreign-currency`; the
+reader says so).
+
+**Trained display-digit recogniser (experiment; not shipped).** An isolated uv
+environment (Python 3.12.13; torch 2.15.0, onnx 1.23.2, onnxruntime 1.31.1;
+pinned in `scripts/scan-train/requirements.lock`) trains a conv + CTC
+recogniser on MPS. Training data: 1,209 TRODO tuning rows from the training
+groups, plus synthetic seven-segment and font displays.
+- **Export:** ONNX, 1.7 MB. In onnxruntime-web WASM inside Chromium the
+  largest logit difference is 4e-5, with 24/24 identical decodes.
+- **Held-out annotated rows:** 114/178 exact (area-averaged input), against
+  PP-OCRv5 95 and PP-OCRv6-tiny 75. As a check on PP-OCRv5 it agrees on 85
+  correct and 5 wrong readings; v6-tiny on 72 correct and 22 wrong.
+- **As the pipeline's verifier, on real TRODO photographs:**
+  - held-out tuning groups: 15/40 either way;
+  - test: 317/713, 2 wrong, against 309/713, 2 wrong;
+  - challenge: 55/139, 0/280 wrong, against 49/139, 4/280.
+- **But it does not generalise to other renderings:**
+  - development fixtures: 18 against 60 correct (0 wrong for both);
+  - all seven camera-replay scenes refused (`128450` read as `120450`).
+
+So it was integrated, measured on the built app and reverted (`4a1b5ef`):
+PP-OCRv6-tiny remains the verifier. Training data beyond TRODO (real pump
+displays, more fonts) is what would let it ship. All its results are in
+`benchmarks/scan/runs/digit-model-experiment.json`; the benchmark reader
+`ppocr-v5+digits` runs it.
+
+**Camera replay.** `playwright.replay.config.ts` (also a CI job) plays
+rendered displays to Chromium's fake camera (Y4M, 1280×720, 3 fps). The real
+app runs end to end: preview, frame sampling, the built worker and models, the
+session, the wizard, the form, save, and reload against the emulators.
+
+Scenes (results in RESULTS.md):
+- crisp pump; crisp odometer
+- out of focus, then sharp
+- moving camera
+- counting pump
+- TRIP and a clock above ODO
+- printed pump labels
+
+Behaviours:
+- cold and warm reopening
+- 10 Mbit/s network
+- closing the camera mid-download
+- a frame still being read when the camera closes
+- a model integrity failure
+- an offline restart
+
+Scene displays use a printed display font: clean synthetic seven-segment
+digits read poorly with the recogniser loaded (unit and synthetic suites cover
+them), and the full-resolution recrop of large, crisp seven-segment digits
+detects only the unit. These are software replays, not phone validation.
+
+**Evaluation data.**
+- `fixture-set.mjs` renders labelled displays: fonts, polarities, layouts,
+  `.`/`,`, English or Hebrew labels, euros, TRIP and clocks, edge "1"s, and a
+  degraded copy in each group.
+- The development set (seed 7) was used while changing the pipeline.
+- `fixtures-frozen-2026-11-01` (seed 20261102, 240 images, 120 groups) was
+  committed before any evaluation and was read once, on the final code.
+- Two more Commons pump photographs were added (a Hungarian display at zero;
+  a volume-only showroom display). None of the five is an Israeli display with
+  amount and volume.
+
 ## Architecture decision
 
 **Decision.** Keep the model-free seven-segment reader as the first, cheap
