@@ -11,7 +11,9 @@ export type IdentityReason = 'no-reading' | 'identity-ambiguous' | 'trip-meter' 
 /** A numeric line found in one frame, in that frame's pixel coordinates.
  * `contested`: the recognisers disagreed on it, or digits may be missing at
  * its edges. It can never be accepted, and it blocks any reading it could be. */
-export type NumericLine = { text: string; left: number; right: number; top: number; height: number; contested?: string };
+export type NumericLine = { text: string; left: number; right: number; top: number; height: number; contested?: string;
+  /** A known label was read in the same detector box directly on this side. */
+  beside?: { left: boolean; right: boolean } };
 export type LabelClass = PumpRole | 'odometer' | 'trip' | 'tripLetter' | 'km' | 'miles';
 /** Printed text recognised near the display (e.g. "LITRES", "ODO", "km"). */
 export type LabelToken = { text: string; left: number; right: number; top: number; height: number };

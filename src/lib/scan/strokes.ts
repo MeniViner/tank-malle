@@ -52,6 +52,8 @@ export function strayStroke(frame: RgbaFrame, line: NumericLine) {
     }
     return false;
   };
+  // A side where a label was read in the same box holds that label's letters,
+  // and the recogniser saw past the number there.
   const reach = Math.round(glyph * 1.4);
-  return search(left - reach, left - 1) || search(right + 1, right + reach);
+  return (!line.beside?.left && search(left - reach, left - 1)) || (!line.beside?.right && search(right + 1, right + reach));
 }

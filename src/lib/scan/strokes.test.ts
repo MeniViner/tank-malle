@@ -21,4 +21,10 @@ describe('stray seven-segment strokes beside a recognised number', () => {
     drawDigits(dark, '1', 100, 200);
     expect(strayStroke(dark, box(170, 570))).toBe(true);
   });
+  it('does not take the letters of a label read in the same box for a stroke', () => {
+    // "1" stands in for the vertical edge of an "O" in "ODO 19462".
+    const image = blank(900, 480, [8, 15, 24]); drawDigits(image, '119462', 100, 200, [255, 200, 90]);
+    expect(strayStroke(image, { ...box(170, 570), beside: { left: true, right: false } })).toBe(false);
+    expect(strayStroke(image, { ...box(170, 570), beside: { left: false, right: true } })).toBe(true);
+  });
 });

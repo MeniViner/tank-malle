@@ -1,6 +1,6 @@
 import { analyzeDisplay, decideDisplay, type DisplayKind, type PolarityLines } from './automaticDisplay';
 import { clip, crop, scaled, type Rect, type RgbaFrame } from './frame';
-import type { LabelToken, NumericLine } from './identity';
+import { classifyLabel, type LabelToken, type NumericLine } from './identity';
 import { assessQuality, type FrameQuality } from './quality';
 import { strayStroke } from './strokes';
 import { CaptureSession, type Attempt } from './session';
@@ -24,39 +24,70 @@ export type FrameAnalysis = { quality: FrameQuality; attempts: Attempt[]; region
 export type PipelineOptions = { textReader?: TextReader | null; working?: number; fallback?: number; now?: () => number };
 type Box = { left: number; right: number; top: number; height: number };
 
-// A trailing unit read with the digits; a lone "m" is a "km" missing its k.
 // Registers may pad with zeros beyond seven digits ("00236096").
-const NUMBER = /^((?:0*\d{1,7})(?:\.\d{1,3})?)(km|kms|mi|m|l|lt|ltr)?$/i;
-/** Split recognised text boxes into numeric lines and labels. */
-export function fromText(items: TextItem[]) {
-  const lines: NumericLine[] = [], labels: LabelToken[] = [];
-  for (const item of items) {
-    const box = { left: item.left, right: item.right, top: item.top, height: item.height };
+const NUMBER = /^(?:0*\d{1,7})(?:\.\d{1,3})?$/;
+// A number as read: digits, with spaces, commas, points or quote marks only
+// between them; or a word. Punctuation without letters is detector noise.
+const TOKEN = /\d(?:[\d\s,.'`"]*\d)?|[^\s\d]+/g, WORD = /[\p{L}\p{Sc}]/u;
+type Run = { text: string; start: number; end: number; valid: boolean };
+/** A printed label of this kind of display (either kind when not given). A
+ * lone "m" beside an odometer reading is a "km" missing its k. */
+const known = (word: string, kind?: DisplayKind) => (kind ? [kind] : ['odometer', 'pump'] as const).some(k => classifyLabel(word, k) || (k === 'odometer' && /^m$/i.test(word)));
+/**
+ * Split recognised text boxes into numeric lines and labels. One box can hold
+ * a label and its number ("ODO 128450", "128450 km", "TRIP 84.9"): each part
+ * keeps its place in the box (by character position), and a label read in the
+ * same box as a number is placed on that number, so it attaches to it and not
+ * to a neighbour. A label between two numbers of one box could belong to
+ * either and is placed on both. A label beside a number that does not parse
+ * is dropped with it, never moved to another number. An unknown word directly
+ * beside a number ("I 28450", "S12.34") may be a misread digit: the number is
+ * unsure.
+ */
+export function fromText(items: TextItem[], kind?: DisplayKind) {
+  const found: { line: NumericLine; item: number }[] = [], labels: LabelToken[] = [], pieces: (Box & { text: string; item: number })[] = [];
+  items.forEach((item, index) => {
+    const box = { left: item.left, right: item.right, top: item.top, height: item.height }, text = item.text.trim();
     // A detector box can hold neighbouring numbers of a dial ("100 120"):
     // groups that are all round dial values are not one number.
-    const groups = item.text.trim().split(/\s+/);
+    const groups = text.split(/\s+/);
     if (groups.length > 1 && groups.every(group => /^\d{2,3}$/.test(group) && Number(group) % 10 === 0 && Number(group) <= 400)) {
-      for (const group of groups) lines.push({ ...box, text: group });
-      continue;
+      for (const group of groups) found.push({ line: { ...box, text: group }, item: index });
+      pieces.push({ ...box, text: groups.join(''), item: index });
+      return;
     }
-    // Otherwise spaces inside a number and thousands commas are layout; quote
-    // marks after it are detector noise.
-    const compact = item.text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').replace(/["'`]+$/, '');
-    const match = NUMBER.exec(compact);
-    if (match) {
-      lines.push({ ...box, text: match[1], ...(item.contested ? { contested: item.contested } : {}) });
-      // A unit printed in the same box is a label directly after the number.
-      if (match[2] && match[2].toLowerCase() !== 'm') labels.push({ ...box, left: box.right, right: box.right + box.height, text: match[2] });
-    } else labels.push({ ...box, text: item.text.trim() });
-  }
+    const tokens = [...text.matchAll(TOKEN)].map(m => ({ text: m[0], start: m.index, end: m.index + m[0].length, number: /^\d/.test(m[0]) }));
+    // Spaces inside a number and thousands commas are layout.
+    const runs: Run[] = tokens.filter(t => t.number).map(t => { const compact = t.text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, ''); return { text: compact, start: t.start, end: t.end, valid: NUMBER.test(compact) }; });
+    if (!runs.some(run => run.valid)) {
+      labels.push({ ...box, text });
+      for (const run of runs) pieces.push({ ...box, text: run.text, item: index });
+      return;
+    }
+    const at = (i: number) => box.left + (box.right - box.left) * i / text.length, place = (run: Run) => ({ ...box, left: at(run.start), right: at(run.end) });
+    for (const run of runs) pieces.push({ ...place(run), text: run.text, item: index });
+    tokens.forEach((token, i) => {
+      if (token.number) {
+        const run = runs.find(r => r.start === token.start)!; if (!run.valid) return;
+        const word = (t?: typeof token): t is typeof token => !!t && !t.number && WORD.test(t.text), [prev, next] = [tokens[i - 1], tokens[i + 1]];
+        // Ink of a label in the same box is not a stray digit stroke.
+        const beside = { left: word(prev) && known(prev.text, kind), right: word(next) && known(next.text, kind) };
+        const contested = item.contested ?? ([prev, next].some(t => word(t) && !known(t.text, kind)) ? 'text' : undefined);
+        found.push({ line: { ...place(run), text: run.text, ...(contested ? { contested } : {}), ...(beside.left || beside.right ? { beside } : {}) }, item: index });
+      } else if (WORD.test(token.text)) {
+        const before = runs.findLast(r => r.end <= token.start), after = runs.find(r => r.start >= token.end);
+        for (const run of [before, after]) if (run?.valid) labels.push({ ...place(run), text: token.text });
+      }
+    });
+  });
   // Digits directly beside a number in its own band (a separate drum, a split
   // box) make the number's extent uncertain: was it cut, or is it two values?
-  for (const line of lines) for (const item of items) {
-    if (item.left === line.left && item.top === line.top || !/^\d[\d.,]*(km|m)?$/i.test(item.text.replace(/\s+/g, ''))) continue;
-    const gap = Math.max(item.left - line.right, line.left - item.right), dy = Math.abs(item.top + item.height / 2 - line.top - line.height / 2), ratio = item.height / line.height;
+  for (const { line, item } of found) for (const piece of pieces) {
+    if (piece.item === item || !/^\d[\d.,]*$/.test(piece.text)) continue;
+    const gap = Math.max(piece.left - line.right, line.left - piece.right), dy = Math.abs(piece.top + piece.height / 2 - line.top - line.height / 2), ratio = piece.height / line.height;
     if (gap < line.height * .45 && dy < line.height * .35 && ratio > .75 && ratio < 1.33) line.contested = 'adjacent';
   }
-  return { lines, labels };
+  return { lines: found.map(f => f.line), labels };
 }
 /** Boxes mapped between images: out = in × scale + offset. */
 const mapBoxes = <T extends Box>(boxes: T[], scale: number, dx = 0, dy = 0) => boxes.map(b => ({ ...b, left: b.left * scale + dx, right: b.right * scale + dx, top: b.top * scale + dy, height: b.height * scale }));
@@ -89,7 +120,7 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
       // A region is cut at the photo's own resolution (never enlarged): the
       // recogniser sees real pixels, and small regions are scaled by detection.
       const cut = rect ? crop(source, rect, Math.min(1, 960 / Math.max(rect.w, rect.h))) : { image, rect: { x: 0, y: 0, w: source.width, h: source.height }, scale: ratio };
-      const found = fromText(await time(reader.name, () => reader.read(cut.image)));
+      const found = fromText(await time(reader.name, () => reader.read(cut.image)), kind);
       for (const line of found.lines) if (!line.contested && strayStroke(cut.image, line)) line.contested = 'stroke';
       const scale = ratio / cut.scale, dx = cut.rect.x * ratio, dy = cut.rect.y * ratio;
       return { lines: mapBoxes(found.lines, scale, dx, dy), labels: mapBoxes(found.labels, scale, dx, dy), path };
