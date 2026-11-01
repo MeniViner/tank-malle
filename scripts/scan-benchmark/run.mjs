@@ -11,6 +11,10 @@
 // Each session is recognised from the whole photograph through the same code
 // the app runs (src/lib/scan/pipeline.ts), never from an annotated crop. The
 // annotated crop is only used for the separate, diagnostic component metric.
+// --diagnose (tuning split only) also keeps what every path saw (text boxes,
+// numbers, labels, attempts) and reads the annotated odometer crop with the
+// same text recogniser, for scripts/scan-benchmark/diagnose.mjs. Annotation-
+// assisted reads are never part of the session result.
 // A missing or altered corpus file makes the run INCOMPLETE (exit code 2):
 // an accuracy gate is never reported green on a partial corpus.
 import { createHash } from 'node:crypto';
@@ -29,6 +33,7 @@ if (isMainThread) {
   const args = Object.fromEntries(process.argv.slice(2).reduce((pairs, arg, i, all) => arg.startsWith('--') ? [...pairs, [arg.slice(2), all[i + 1]?.startsWith('--') || all[i + 1] === undefined ? 'true' : all[i + 1]]] : pairs, []));
   const sessionsFile = resolve(args.sessions ?? 'benchmarks/scan/trodo-sessions.json'), root = resolve(args.root ?? '.scan-corpus');
   const splits = (args.split ?? 'test').split(','), reader = args.reader ?? 'current', text = args.text ?? 'none';
+  if (args.diagnose === 'true' && splits.some(s => s !== 'tuning')) throw new Error('--diagnose is for the tuning split only');
   const manifest = JSON.parse(await readFile(sessionsFile, 'utf8'));
   let sessions = manifest.sessions.filter(s => splits.includes(s.split));
   if (args.limit) sessions = sessions.filter((_, i) => i % Math.ceil(sessions.length / Number(args.limit)) === 0);
@@ -44,7 +49,7 @@ if (isMainThread) {
   // --workers 0 runs in this process: tesseract.js cannot start its own
   // workers from inside a worker thread.
   const workers = args.workers === '0' ? 0 : Math.max(1, Math.min(Number(args.workers ?? availableParallelism() - 1), runnable.length));
-  const started = Date.now(), rows = [], options = { root, reader, text, live: Number(args.live ?? 0), components: args.components === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} };
+  const started = Date.now(), rows = [], options = { root, reader, text, live: Number(args.live ?? 0), components: args.components === 'true', diagnose: args.diagnose === 'true', readerOptions: args['reader-options'] ? JSON.parse(args['reader-options']) : {} };
   if (workers === 0) await work({ ...options, sessions: runnable }, row => rows.push(row));
   else await Promise.all([...Array(workers)].map((_, w) => new Promise((done, fail) => {
     const share = runnable.filter((_, i) => i % workers === w);
@@ -59,7 +64,7 @@ if (isMainThread) {
   const summary = metrics.summarize(scored);
   const report = {
     format: 'tank-maleh-scan-run-v1', at: new Date().toISOString(), commit: (await import('node:child_process')).execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8' }).trim(),
-    reader, text, live: Number(args.live ?? 0) || null, splits, sessionsFile: sessionsFile.replace(repo + '/', ''), wallMs: Date.now() - started, workers, node: process.version,
+    reader, text, live: Number(args.live ?? 0) || null, diagnose: options.diagnose || undefined, splits, sessionsFile: sessionsFile.replace(repo + '/', ''), wallMs: Date.now() - started, workers, node: process.version,
     status: missing.length ? 'incomplete' : 'complete', missing,
     counts: { requested: sessions.length, run: rows.length, scored: scored.length, byRole: rows.reduce((m, r) => ({ ...m, [r.role]: (m[r.role] ?? 0) + 1 }), {}) },
     summary,
@@ -85,10 +90,12 @@ if (isMainThread) {
   if (missing.length) process.exitCode = 2;
 } else await work(workerData, row => parentPort.postMessage(row));
 
-async function work({ sessions, root, reader, text, live, components, readerOptions }, emit) {
+async function work({ sessions, root, reader, text, live, components, diagnose, readerOptions }, emit) {
   const sharp = (await import('sharp')).default, { runnerImport } = await import('vite');
   const load = async file => (await runnerImport(join(repo, file))).module;
   const pipeline = await load('src/lib/scan/pipeline.ts'), frames = await load('src/lib/scan/frame.ts'), { CaptureSession } = await load('src/lib/scan/session.ts');
+  const display = diagnose ? await load('src/lib/scan/automaticDisplay.ts') : null;
+  const box = b => ({ left: Math.round(b.left), right: Math.round(b.right), top: Math.round(b.top), height: Math.round(b.height) });
   const baseline = reader === 'baseline' ? await load('scripts/scan-benchmark/baseline-1.6.0/automaticDisplay.ts') : null;
   const segment = components ? await load('src/lib/scan/sevenSegment.ts') : null;
   const textReader = text === 'none' ? null : await (await import('./readers.mjs')).createTextReader(text, readerOptions);
@@ -129,7 +136,24 @@ async function work({ sessions, root, reader, text, live, components, readerOpti
         row.frames = frame;
         Object.assign(row, decision.status === 'accepted' ? { status: 'accepted', values: decision.values, paths: decision.paths, evidence: decision.evidence } : { status: 'abstained', reason: decision.status === 'abstained' ? decision.reason : 'timeout', reasons: decision.reasons });
       } else {
-        const { decision, analysis } = await pipeline.readStill(source, session.kind, { textReader });
+        const trace = [];
+        const { decision, analysis } = await pipeline.readStill(source, session.kind, { textReader, ...(diagnose ? { trace: event => trace.push(event) } : {}) });
+        if (diagnose) {
+          row.trace = trace.map(e => ({ path: e.path, items: e.items?.map(i => ({ text: i.text, ...box(i), ...(i.contested ? { contested: i.contested, verifierText: i.verifierText } : {}) })), lines: e.lines.map(l => ({ text: l.text, ...box(l), ...(l.contested ? { contested: l.contested } : {}) })), labels: e.labels.map(l => ({ text: l.text, ...box(l) })) }));
+          row.attempts = analysis.attempts.map(a => ({ path: a.path, result: a.result }));
+          row.size = { width: source.width, height: source.height };
+          if (session.odometerBox && textReader) {
+            // Diagnostic only: the annotated odometer box (with a margin), in
+            // decoded-photo coordinates, read with the same text recogniser.
+            const meta = await sharp(join(root, session.frames[0].file), { failOn: 'none' }).metadata(), k = source.width / meta.width, b = session.odometerBox;
+            const gt = { x: b.xmin * k, y: b.ymin * k, w: (b.xmax - b.xmin) * k, h: (b.ymax - b.ymin) * k };
+            row.gt = { left: Math.round(gt.x), right: Math.round(gt.x + gt.w), top: Math.round(gt.y), height: Math.round(gt.h) };
+            const rect = { x: gt.x - gt.w * .15, y: gt.y - gt.h * .25, w: gt.w * 1.3, h: gt.h * 1.5 }, cut = frames.crop(source, rect, Math.min(1, 960 / Math.max(rect.w, rect.h)));
+            const items = await textReader.read(cut.image), found = pipeline.fromText(items, session.kind);
+            const lines = found.lines.map(l => ({ ...l, polarity: 'light', support: 2 }));
+            row.oracleCrop = { items: items.map(i => ({ text: i.text, ...(i.contested ? { contested: i.contested, verifierText: i.verifierText } : {}) })), lines: found.lines.map(l => ({ text: l.text, ...(l.contested ? { contested: l.contested } : {}) })), result: display.decideDisplay([{ polarity: 'light', stable: lines, conflicts: [] }], session.kind, found.labels) };
+          }
+        }
         row.ms = analysis.ms; row.quality = { hint: analysis.quality.hint, sharpness: Math.round(analysis.quality.sharpness * 100) / 100 };
         Object.assign(row, decision.status === 'accepted' ? { status: 'accepted', values: decision.values, paths: decision.paths, evidence: decision.evidence } : { status: 'abstained', reason: decision.reason, reasons: decision.reasons });
       }

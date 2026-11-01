@@ -31,11 +31,17 @@ describe('frame pipeline', () => {
     expect(analysis.attempts.find(a => a.path === 'segment@960')?.result).toMatchObject({ status: 'read', values: { total: '40.00', liters: '287.40' } });
   });
   it('splits recognised text into numbers, units and labels', () => {
-    // The number takes the first 7 of the box's 10 characters; the unit read
-    // with it is placed on it.
+    // The number's part of the box reaches to the unit (character 8 of 10);
+    // the unit read with it is placed on it.
     expect(fromText([{ text: '128,450 km', left: 0, right: 100, top: 0, height: 20, score: 1 }, { text: 'ODO', left: 0, right: 30, top: 30, height: 10, score: 1 }])).toEqual({
-      lines: [{ left: 0, right: 70, top: 0, height: 20, text: '128450', beside: { left: false, right: true } }],
-      labels: [{ left: 0, right: 70, top: 0, height: 20, text: 'km' }, { left: 0, right: 30, top: 30, height: 10, text: 'ODO' }],
+      lines: [{ left: 0, right: 80, top: 0, height: 20, text: '128450', beside: { left: false, right: true } }],
+      labels: [{ left: 0, right: 80, top: 0, height: 20, text: 'km' }, { left: 0, right: 30, top: 30, height: 10, text: 'ODO' }],
+    });
+    // Punctuation is narrow detector noise inside the number's box, and a
+    // clock is not a number.
+    expect(fromText([{ text: '237348\'', left: 0, right: 70, top: 0, height: 20, score: 1 }, { text: '6: 16', left: 0, right: 50, top: 40, height: 20, score: 1 }])).toEqual({
+      lines: [{ left: 0, right: 70, top: 0, height: 20, text: '237348' }],
+      labels: [{ left: 0, right: 50, top: 40, height: 20, text: '6: 16' }],
     });
   });
   it('does not join neighbouring dial numbers into one long number', () => {
@@ -57,12 +63,12 @@ describe('text boxes that hold a label and a number', () => {
   it('keeps the number and its label whichever side the label is on', () => {
     for (const text of ['ODO 128450', '128450 ODO', 'ODO128450', 'ODO: 128,450 km'])
       expect(odometer(box(text)), text).toMatchObject({ status: 'resolved', values: { odometer: '128450' }, evidence: expect.arrayContaining(['label:odometer']) });
-    expect(fromText([box('ODO 128450')]).lines).toEqual([{ text: '128450', left: 40, right: 100, top: 0, height: 20, beside: { left: true, right: false } }]);
+    expect(fromText([box('ODO 128450')]).lines).toEqual([{ text: '128450', left: 30, right: 100, top: 0, height: 20, beside: { left: true, right: false } }]);
   });
   it('keeps a trip meter with its own label, beside or below the odometer', () => {
     const { lines, labels } = fromText([box('TRIP 84.9')], 'odometer');
     expect(lines.map(l => l.text)).toEqual(['84.9']);
-    expect(labels).toEqual([{ text: 'TRIP', left: 50, right: 90, top: 0, height: 20 }]);
+    expect(labels).toEqual([{ text: 'TRIP', left: 40, right: 90, top: 0, height: 20 }]);
     expect(odometer(box('ODO 128450'), box('TRIP 84.9', 40))).toMatchObject({ status: 'resolved', values: { odometer: '128450' } });
     expect(odometer(box('TRIP A 84.9'), box('ODO 128450', 40))).toMatchObject({ status: 'resolved', values: { odometer: '128450' } });
     // A whole-number trip meter is still a trip meter.

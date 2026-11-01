@@ -21,14 +21,17 @@ type Pixels = { width: number; height: number; data: Uint8ClampedArray };
 /** Local text detection/recognition. Coordinates are in the image passed in. */
 export type TextReader = { name: string; read: (image: Pixels) => Promise<TextItem[]> };
 export type FrameAnalysis = { quality: FrameQuality; attempts: Attempt[]; region: Rect | null; ms: Record<string, number> };
-export type PipelineOptions = { textReader?: TextReader | null; working?: number; fallback?: number; now?: () => number };
+/** What one path saw, in full-frame coordinates (benchmark diagnosis only). */
+export type TraceEvent = { path: string; items?: TextItem[]; lines: NumericLine[]; labels: LabelToken[] };
+export type PipelineOptions = { textReader?: TextReader | null; working?: number; fallback?: number; now?: () => number; trace?: (event: TraceEvent) => void };
 type Box = { left: number; right: number; top: number; height: number };
 
 // Registers may pad with zeros beyond seven digits ("00236096").
 const NUMBER = /^(?:0*\d{1,7})(?:\.\d{1,3})?$/;
 // A number as read: digits, with spaces, commas, points or quote marks only
-// between them; or a word. Punctuation without letters is detector noise.
-const TOKEN = /\d(?:[\d\s,.'`"]*\d)?|[^\s\d]+/g, WORD = /[\p{L}\p{Sc}]/u;
+// between them (a colon makes a clock, which does not parse); or a word.
+// Punctuation without letters is detector noise.
+const TOKEN = /\d(?:[\d\s,.:'`"]*\d)?|[^\s\d]+/g, WORD = /[\p{L}\p{Sc}]/u;
 type Run = { text: string; start: number; end: number; valid: boolean };
 /** A printed label of this kind of display (either kind when not given). A
  * lone "m" beside an odometer reading is a "km" missing its k. */
@@ -64,7 +67,11 @@ export function fromText(items: TextItem[], kind?: DisplayKind) {
       for (const run of runs) pieces.push({ ...box, text: run.text, item: index });
       return;
     }
-    const at = (i: number) => box.left + (box.right - box.left) * i / text.length, place = (run: Run) => ({ ...box, left: at(run.start), right: at(run.end) });
+    // A number's part of the box reaches to the neighbouring word or number:
+    // punctuation beside it is narrow noise inside its box, so the box edge
+    // stays where the detector put it.
+    const significant = tokens.filter(t => t.number || WORD.test(t.text)), at = (i: number) => box.left + (box.right - box.left) * i / text.length;
+    const place = (run: Run) => ({ ...box, left: at(significant.findLast(t => t.end <= run.start)?.end ?? 0), right: at(significant.find(t => t.start >= run.end)?.start ?? text.length) });
     for (const run of runs) pieces.push({ ...place(run), text: run.text, item: index });
     tokens.forEach((token, i) => {
       if (token.number) {
@@ -120,9 +127,10 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
       // A region is cut at the photo's own resolution (never enlarged): the
       // recogniser sees real pixels, and small regions are scaled by detection.
       const cut = rect ? crop(source, rect, Math.min(1, 960 / Math.max(rect.w, rect.h))) : { image, rect: { x: 0, y: 0, w: source.width, h: source.height }, scale: ratio };
-      const found = fromText(await time(reader.name, () => reader.read(cut.image)), kind);
+      const items = await time(reader.name, () => reader.read(cut.image)), found = fromText(items, kind);
       for (const line of found.lines) if (!line.contested && strayStroke(cut.image, line)) line.contested = 'stroke';
       const scale = ratio / cut.scale, dx = cut.rect.x * ratio, dy = cut.rect.y * ratio;
+      options.trace?.({ path, items: mapBoxes(items, 1 / cut.scale, cut.rect.x, cut.rect.y), lines: mapBoxes(found.lines, 1 / cut.scale, cut.rect.x, cut.rect.y), labels: mapBoxes(found.labels, 1 / cut.scale, cut.rect.x, cut.rect.y) });
       return { lines: mapBoxes(found.lines, scale, dx, dy), labels: mapBoxes(found.labels, scale, dx, dy), path };
     } catch { return null; }
   };
@@ -150,6 +158,7 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
     }
   }
   attempts.push({ frame, path: `segment@${working}`, result: decideDisplay(primary, kind, labels) });
+  options.trace?.({ path: `segment@${working}`, lines: mapBoxes(primary.flatMap(p => p.stable), 1 / ratio), labels: mapBoxes(labels, 1 / ratio) });
 
   const segmentRegion = regionOf(primary.flatMap(p => p.stable), ratio, source);
   if (segmentRegion) {
@@ -167,6 +176,7 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
       const cut = crop(source, recrop, Math.max(.4, Math.min(3, target / height)), 1_500_000, short);
       const lines = await time('segment-roi', () => analyzeDisplay(cut.image, kind));
       if (lines) result = decideDisplay(lines, kind, mapBoxes(labels, cut.scale / ratio, -cut.rect.x * cut.scale, -cut.rect.y * cut.scale));
+      if (lines) options.trace?.({ path: 'segment@roi', lines: mapBoxes(lines.flatMap(p => p.stable), 1 / cut.scale, cut.rect.x, cut.rect.y), labels: mapBoxes(labels, 1 / ratio) });
       if (result?.status === 'read') break;
     }
     if (result) attempts.push({ frame, path: 'segment@roi', result });
@@ -175,6 +185,7 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
     const lines = await time('segment', () => analyzeDisplay(larger.image, kind));
     if (lines) {
       attempts.push({ frame, path: `segment@${fallback}`, result: decideDisplay(lines, kind, mapBoxes(labels, larger.ratio / ratio)) });
+      options.trace?.({ path: `segment@${fallback}`, lines: mapBoxes(lines.flatMap(p => p.stable), 1 / larger.ratio), labels: mapBoxes(labels, 1 / ratio) });
       region ??= regionOf(lines.flatMap(p => p.stable), larger.ratio, source);
     }
   }
