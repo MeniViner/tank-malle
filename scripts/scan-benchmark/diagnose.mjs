@@ -132,7 +132,7 @@ const conflicts = scored.filter(r => r.reason === 'conflict' && r.trace).map(r =
 });
 
 const report = {
-  format: 'tank-maleh-scan-diagnosis-v1', run: { file: runFile, commit: run.commit, at: run.at, text: run.text, splits: run.splits },
+  format: 'tank-maleh-scan-diagnosis-v1', run: { file: runFile.split('/').pop(), commit: run.commit, at: run.at, text: run.text, splits: run.splits },
   note: 'Development (tuning) split only. The annotated box locates the odometer and gives an oracle crop; neither is part of any headline result. Variants are recomputed from the same recorded paths and are post-hoc.',
   eligible: eligible.length, correct: stages.filter(s => s.stage === 'correct').length, byStage, variants, corroboration, conflicts,
   consistency: { sessions: scored.filter(r => r.trace).length, sameDecisionWhenRecomputed: consistency },

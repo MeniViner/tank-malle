@@ -26,7 +26,7 @@ if (frozen) {
   if (before) lines.push(`- **Before** (1.6.0 reader, same sessions): correct completion ${ci(before.summary.coverageEligible)}; accepted precision ${ci(before.summary.acceptedPrecision)}.`);
   lines.push(`- Coverage and precision are different metrics. A safe abstention is not a success: it leaves the person to type the value. Abstentions in the frozen run: ${reasons(f.sessionReasons)}.`);
   lines.push(`- Targets: ≥ 95% correct completion **${frozen.targets.correctAutomaticCompletionEligible.verdict}**; ≥ 99.5% accepted precision **${frozen.targets.acceptedPrecision.verdict}** (post-hoc: **${posthoc?.targets.acceptedPrecision.verdict ?? '—'}**, the interval reaches below 99.5%).`);
-  lines.push(`- Scope: TRODO v2 smartphone photos of vehicle odometers from Turkey, one photo per session. Scored = ${roles.eligible} eligible digital displays with ≥ 5 digits whose annotated digit boxes spell the label, plus ${roles['negative-trip-or-clock']} trip/clock negatives. Not in any denominator: ${roles['unscored-analog-register']} analog registers, ${roles['unscored-ambiguous-label']} digital 3–4 digit labels, ${roles['excluded-label-check']} label-check exclusions. No pump photographs were evaluated; pump evidence is synthetic only. Live camera sequences are simulated from still photos. No phone was measured.`, '');
+  lines.push(`- Scope: TRODO v2 smartphone photos of vehicle odometers from Turkey, one photo per session. Scored = ${roles.eligible} eligible digital displays with ≥ 5 digits whose annotated digit boxes spell the label, plus ${roles['negative-trip-or-clock']} trip/clock negatives. Not in any denominator: ${roles['unscored-analog-register']} analog registers, ${roles['unscored-ambiguous-label']} digital 3–4 digit labels, ${roles['excluded-label-check']} label-check exclusions. Pumps: three real photographs (too few to estimate accuracy; see below), otherwise synthetic scenes. Live camera sequences are simulated from still photos. No phone was measured.`, '');
 }
 
 for (const [split, title] of [['test', 'Test split (frozen, independent)'], ['challenge', 'Unseen-display-family challenge split'], ['tuning', 'Tuning split (used for decisions; not independent)']]) {
@@ -56,16 +56,16 @@ for (const [split, title] of [['test', 'Test split (frozen, independent)'], ['ch
 }
 
 // Cycle 2 on development data: each change measured on its own, then where the remaining failures come from.
-const steps = [['tuning-current-ppocr-posthoc', 'Before cycle 2'], ['tuning-cycle2-1-parser', '1. Labels and numbers kept from one text box'], ['tuning-cycle2-2-identity', '2. + zero-padded registers accepted'], ['tuning-current-ppocr-cycle2', '3. + seven-segment look-alikes in the verifier']];
+const steps = [['tuning-current-ppocr-posthoc', 'Before cycle 2'], ['tuning-cycle2-1-parser', '1. Labels and numbers kept from one text box'], ['tuning-cycle2-2-identity', '2. + zero-padded registers accepted by identity'], ['tuning-cycle2-3-recrop', '3. + the recrop finds a padded register (bug exposed by 2)'], ['tuning-current-ppocr-cycle2', '4. + seven-segment look-alikes in the verifier']];
 const stepped = (await Promise.all(steps.map(async ([name, label]) => [label, await load(name)]))).filter(([, r]) => r);
 if (stepped.length > 1) {
   lines.push('## Cycle 2 changes, one at a time (tuning split: development data, not independent)', '', '| Step | Commit | Correct completion, eligible | Accepted precision | Wrong, all scored | Abstentions |', '| --- | --- | --- | --- | --- | --- |');
   for (const [label, r] of stepped) lines.push(`| ${label} | ${sha(r)} | ${ci(r.summary.coverageEligible)} | ${ci(r.summary.acceptedPrecision)} | ${ci(r.summary.wrongAcceptanceAmongAll)} | ${reasons(r.summary.sessionReasons)} |`);
   lines.push('');
 }
-const diagnosis = await load('diagnosis-tuning-cycle2');
-if (diagnosis) {
-  lines.push('## Where the remaining odometer failures come from (tuning split, diagnostic)', '', `${diagnosis.note} Run ${'`'}${diagnosis.run.commit.slice(0, 7)}${'`'}: ${diagnosis.correct}/${diagnosis.eligible} eligible sessions correct. Each other eligible session is attributed to the first stage that lost the correct value. "Oracle crop" reads the annotated odometer box with the same recogniser (diagnostic only): raw digits = some text box there holds the label's digits; read = the crop alone resolves to the label.`, '');
+for (const [name, when] of [['diagnosis-tuning-before', 'before the cycle-2 recognition changes (the measurement that chose them)'], ['diagnosis-tuning-cycle2', 'after cycle 2']]) {
+  const diagnosis = await load(name); if (!diagnosis) continue;
+  lines.push(`## Where the remaining odometer failures come from, ${when} (tuning split, diagnostic)`, '', `${diagnosis.note} Run ${'`'}${diagnosis.run.commit.slice(0, 7)}${'`'}: ${diagnosis.correct}/${diagnosis.eligible} eligible sessions correct. Each other eligible session is attributed to the first stage that lost the correct value. "Oracle crop" reads the annotated odometer box with the same recogniser (diagnostic only): raw digits = some text box there holds the label's digits; read = the crop alone resolves to the label.`, '');
   lines.push('| Stage that lost the correct value | Sessions | Details | Oracle crop: raw digits | Oracle crop: read |', '| --- | --- | --- | --- | --- |');
   for (const s of diagnosis.byStage) lines.push(`| ${s.stage} | ${s.sessions} | ${reasons(s.details)} | ${s.oracleCropRawDigits} | ${s.oracleCropRead} |`);
   lines.push('', `Recomputing the recorded paths reproduces ${diagnosis.consistency.sameDecisionWhenRecomputed}/${diagnosis.consistency.sessions} decisions. Variants on the same sessions (post-hoc):`, '', '| Variant | Correct completion, eligible | Wrong, all scored | Of which on negatives |', '| --- | --- | --- | --- |');
@@ -86,10 +86,10 @@ if (compared.length) {
 }
 for (const [name, label] of [['synthetic-baseline', '1.6.0 reader'], ['synthetic-current', 'New reader (segment path)'], ['synthetic-ppocr-none', 'Complete pipeline with the recogniser, no printed labels'], ['synthetic-ppocr-english', 'Complete pipeline, English labels (SALE / LITRES / PRICE, ODO)'], ['synthetic-ppocr-hebrew', 'Complete pipeline, Hebrew labels (סה״כ לתשלום / ליטרים / מחיר לליטר, ק״מ)']]) {
   const s = await load(name); if (!s) continue;
-  if (name === 'synthetic-baseline') lines.push('## Synthetic mechanism suite (not real-world accuracy)', '', `Seed ${s.seed}, ${s.count} generated seven-segment scenes. "Decidable" means image evidence alone fixes every field (a 3-place volume beside a 2-place amount; a 5+ digit odometer); undecidable scenes must abstain. This is the only pump evidence.`, '', '| Reader | Pump decidable: correct / wrong | Pump undecidable: accepted (all wrong) | Odometer decidable: correct / wrong | Odometer undecidable: accepted |', '| --- | --- | --- | --- | --- |');
-  lines.push(`| ${label}${s.text && s.text !== 'none' ? ` (${sha(s)})` : ''} | ${s.pump.decidable.correct}/${s.pump.decidable.scenes} / ${s.pump.decidable.wrong} | ${s.pump.undecidable.accepted}/${s.pump.undecidable.scenes}${s.pump.undecidable.accepted ? ` (${s.pump.undecidable.correct} correct)` : ''} | ${s.odometer.decidable.correct}/${s.odometer.decidable.scenes} / ${s.odometer.decidable.wrong} | ${s.odometer.undecidable.accepted}/${s.odometer.undecidable.scenes} |`);
+  if (name === 'synthetic-baseline') lines.push('## Synthetic mechanism suite (not real-world accuracy)', '', `Seed ${s.seed}, ${s.count} generated seven-segment scenes. "Decidable" means image evidence alone fixes every field (a 3-place volume beside a 2-place amount; a 5+ digit odometer); without readable labels an undecidable scene must abstain, so any acceptance there is a failure even when it happens to match (1.6.0 assigned rows by position). Apart from three real photographs this is the only pump evidence.`, '', '| Reader | Pump decidable: correct / wrong | Pump undecidable: accepted | Odometer decidable: correct / wrong | Odometer undecidable: accepted |', '| --- | --- | --- | --- | --- |');
+  lines.push(`| ${label}${s.text && s.text !== 'none' ? ` (${sha(s)})` : ''} | ${s.pump.decidable.correct}/${s.pump.decidable.scenes} / ${s.pump.decidable.wrong} | ${s.pump.undecidable.accepted}/${s.pump.undecidable.scenes}${s.pump.undecidable.accepted ? ` (${s.pump.undecidable.correct} match the truth)` : ''} | ${s.odometer.decidable.correct}/${s.odometer.decidable.scenes} / ${s.odometer.decidable.wrong} | ${s.odometer.undecidable.accepted}/${s.odometer.undecidable.scenes} |`);
 }
-lines.push('', 'With printed labels the undecidable layouts can be settled by the labels, so accepted undecidable scenes are counted as correct or wrong against the truth. The English recogniser cannot read Hebrew.', '');
+lines.push('', 'With printed English labels an undecidable layout can be settled by its labels, so those acceptances are legitimate; all of them match the truth. The English recogniser cannot read Hebrew labels. Printed labels in the digit row also break the segment reader\'s row parsing (its paths report format / no-reading), which is why labelled decidable pumps drop from 12 to 2. No synthetic scene was filled wrongly in any configuration.', '');
 const photos = await load('commons-pumps');
 if (photos) {
   lines.push('## Real pump photographs (complete pipeline; too few for an accuracy estimate)', '', `${photos.rows.length} CC BY-SA photographs from Wikimedia Commons, transcribed by eye (see \`benchmarks/scan/commons-pump-sessions.json\`), read at ${sha(photos)}. Outcomes: ${reasons(photos.outcomes)}.`, '', '| Photograph | Displayed | Outcome | Reason |', '| --- | --- | --- | --- |');
@@ -114,7 +114,7 @@ if (browsers.length) {
 }
 const memory = (await Promise.all(['chromium', 'webkit'].map(name => load(`memory-${name}`)))).filter(Boolean);
 if (memory.length) {
-  lines.push('## Memory over repeated scan / cancel / reopen cycles (desktop engines)', '', `${memory[0].note} Each value is after a requested garbage collection.`, '');
+  lines.push('## Memory over repeated scan / cancel / reopen cycles (desktop engines)', '', memory[0].note, '');
   for (const m of memory) {
     lines.push(`**${m.engine} ${m.browserVersion}** (${sha(m)}): recogniser ready in ${m.opens.map(o => `${ms(o.readyMs)}${o.downloadedBytes ? ` (${(o.downloadedBytes / 1e6).toFixed(1)} MB downloaded)` : ''}`).join(', ')}.`, '', '| Cycle | Step | Renderer RSS |', '| --- | --- | --- |');
     for (const s of m.samples) lines.push(`| ${s.cycle} | ${s.step} | ${s.rssMb} MB |`);

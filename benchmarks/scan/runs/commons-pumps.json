@@ -1,0 +1,319 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T11:19:50.198Z",
+ "commit": "c482b26d8a6829505396d1fd8a6e120265a8a523",
+ "sessionsFile": "benchmarks/scan/commons-pump-sessions.json",
+ "text": "ppocr-v5+v6",
+ "note": "Individual real photographs; too few for an accuracy estimate.",
+ "outcomes": {
+  "abstained": 1,
+  "correctly-empty": 2
+ },
+ "rows": [
+  {
+   "id": "commons:Defective Gas Station Pump Screen",
+   "expected": {
+    "total": "58.57",
+    "liters": "52.81"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 3
+   },
+   "paths": null,
+   "ms": {
+    "resample": 28,
+    "segment": 375,
+    "ppocr-v5+v6": 262,
+    "segment-roi": 211
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@roi",
+     "text": [
+      "LIVRAISON MINIMALE 5 LITRES"
+     ],
+     "lines": [
+      "5?text"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "52.81"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "5281",
+      "11791"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:שגיאת מחשב בתחנת דלק 2",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 38,
+    "segment": 441,
+    "ppocr-v5+v6": 1037
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "6.03",
+      "GILBARCO",
+      "VEEDER-ROOT",
+      "D",
+      "70~6"
+     ],
+     "lines": [
+      "6.03",
+      "70?verifier"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "55~JU",
+      "My Camp",
+      "of The jc",
+      "1x1~",
+      "ected",
+      "t or",
+      "fnot I",
+      "be",
+      "detected"
+     ],
+     "lines": [
+      "55?verifier",
+      "1?verifier",
+      "1?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "expected": null,
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 40,
+    "segment": 480,
+    "ppocr-v5+v6": 1910
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "JUMBO",
+      "100",
+      "000000",
+      "Forint",
+      "5",
+      "0000,00~0000.00",
+      "Liter",
+      "Leghiseba Kiadhoti",
+      "Ft/L",
+      "pl50 des",
+      "0000~000.0",
+      "GILBARCO",
+      "VEEDER-ROOT",
+      "RON 100+"
+     ],
+     "lines": [
+      "100?stroke",
+      "000000",
+      "5",
+      "50?text",
+      "0000?verifier",
+      "100?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "Kedves Vasdrtonkd",
+      "An",
+      "nem szoigalunk ki.",
+      "A megintset bjk!",
+      "Mobil Petral",
+      "Dear Customer!",
+      "You can up to 50 lies of fuel a a ",
+      "not served.",
+      "000000",
+      "Forint",
+      "Thank you for your understanding!",
+      "Mobil Petrol",
+      "Sehr geehrter Kunde!",
+      "000000~000 0.00",
+      "Liter",
+      "    .",
+      "Legkisebb Kiadhato Mennyl",
+      "Velen DanrV",
+      "Mabil Petrol",
+      "Stmate clent!",
+      "Ft/L",
+      "sunt deservite.",
+      " umpieab",
+      "0000~000.0",
+      "i ",
+      "Mobil Petrol",
+      "GILBARCO",
+      "VEEDER-ROOT"
+     ],
+     "lines": [
+      "50?text",
+      "000000",
+      "000000?verifier",
+      "0000?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  }
+ ]
+}

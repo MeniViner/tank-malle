@@ -38,14 +38,21 @@
     },
     {
       "id": "pump-photographs",
-      "status": "not-acquired",
+      "status": "three-real-examples-acquired",
       "reason": "No public dataset with numeric transcriptions was found. The candidates are Roboflow Universe projects whose download needs a signed-in Roboflow account, which this work cannot create or use. Their field boxes are not numeric ground truth.",
       "candidates": [
         { "url": "https://universe.roboflow.com/axis-in/petrol-pump-display-k9svp", "declaredLicence": "CC BY 4.0", "images": 291, "labels": "digit classes 0-9, dot, field boxes amount/litre (strings could be rebuilt from digit boxes)", "provenance": "undocumented" },
         { "url": "https://universe.roboflow.com/ahmed-gamal-rax1c/petrol-pump-dyrua", "declaredLicence": "CC BY 4.0", "images": 4979, "labels": "field boxes cost/liters only", "provenance": "undocumented" },
         { "url": "https://universe.roboflow.com/aihub-rjg53/petrol", "declaredLicence": "CC BY 4.0", "images": 98, "labels": "field boxes only; augmented with horizontal flips", "provenance": "undocumented" }
       ],
-      "consequence": "The pump real-world accuracy gate is incomplete. Pump behaviour is covered only by the synthetic mechanism suite."
+      "commons": {
+        "searched": "2026-11-01, Wikimedia Commons API: categories Petrol pumps (195 files), Dor Alon / Sonol / Paz / Delek petrol stations (11 / 25 / 67 / 20 members), and a full-text search.",
+        "screened": "34 candidate photographs, triaged from thumbnails.",
+        "usable": "3: one complete display (France: decimal commas, French labels), one Israeli console showing only the price per litre, one Hungarian display showing zeros. No Commons photograph found shows a legible Israeli total and volume with Hebrew labels.",
+        "sessions": "benchmarks/scan/commons-pump-sessions.json (licence, author, source page, sha256, transcription)",
+        "images": "Not in Git; fetched from each session's original URL into .scan-corpus/commons-pumps/."
+      },
+      "consequence": "Real pump accuracy is still unmeasured: three photographs cannot estimate it, and none is an Israeli display with total and volume. The gap is photographs of Israeli pumps with Hebrew labels, varied layouts and 2/3-place volumes, transcribed by a person, which needs physical access to stations (or a permitted dataset). Pump behaviour is otherwise covered by the synthetic suite, now also through the complete pipeline."
     },
     {
       "id": "private-calibration-photographs",
