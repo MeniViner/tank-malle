@@ -61,3 +61,4 @@ playwright-report/
 
 # Benchmark images and model downloads; manifests with hashes are committed.
 .scan-corpus/
+replay-report/
