@@ -349,6 +349,19 @@ correctly empty).
   a volume-only showroom display). None of the five is an Israeli display with
   amount and volume.
 
+## User-test version (preview channel, not production)
+
+- **URL:** https://tank-malle--scan-test-0764a2e-3jrcfs0r.web.app (Firebase Hosting preview channel `scan-test-0764a2e`, expires 2026-11-15).
+- **Version:** app 1.6.0, build `0764a2e` (production mode, clean). Settings shows "גרסה 1.6.0 · 0764a2e40c". `/build-info.json` returns the same.
+- **Backend:** the real `tank-malle` project, with the same deployed Firestore rules; this branch changes none. A fill-up saved there is a real record in the signed-in account.
+- **Sign-in:** the Firebase CLI added the channel's domain to Firebase Auth's authorized domains when it deployed the channel.
+- **Removal:** `firebase hosting:channel:delete scan-test-0764a2e --project tank-malle`. If the domain is still listed afterwards, remove it in the console.
+- **Live site:** `https://tank-malle.web.app` was not changed (last release 2026-10-22).
+
+This is an experimental test build for a normal-use phone check. It is not
+evidence of production readiness, and the recognition targets above are
+still unmet.
+
 ## Architecture decision
 
 **Decision.** Keep the model-free seven-segment reader as the first, cheap
@@ -410,7 +423,7 @@ price is recorded only as evidence.
 | PP-OCRv5 English recognition | 7,848,423 | 7,231,601 (gzip 9) | first scan |
 | PP-OCRv6-tiny recognition (verifier) | 4,462,639 | 4,107,389 (gzip 9) | first scan |
 | Worker chunk incl. ORT glue and dictionaries | ~131 kB JS | precached with the app | install |
-| **Total on first scan** | **31,377,477** | **≈ 18.2 MB** if the host compresses all four (brotli WASM, gzip models); up to 31.4 MB if it does not (unverified for Firebase Hosting and `.onnx`) | once, then Cache Storage |
+| **Total on first scan** | **31,377,477** | **18.0 MB** measured on the Firebase Hosting preview channel (Brotli for all four: 2.36 + 4.44 + 7.13 + 4.05 MB) | once, then Cache Storage |
 
 Model files are served at `/scan-models/<version>/` with immutable caching
 (`firebase.json`), verified by sha256 in the worker before use, stored in a
@@ -533,7 +546,7 @@ is deployed and no photo leaves the phone.
 - On the tuning split the verifier now has a measured effect (cycle-2 diagnosis): ignoring its disagreements adds correct fills and also wrong ones. The Tesseract comparison uses 60 tuning sessions, so it is coarse.
 - Cycle-2 and cycle-3 reruns on the test and challenge splits are regression evidence only; those splits informed the changes. The frozen fixture sets are synthetic. The first frozen set's generator was flawed (19 distinct scenes), and both frozen sets exposed failures that were then fixed, so their reruns are regression evidence too.
 - The trained display-digit recogniser helps on real TRODO odometers but does not generalise to other renderings; it is not shipped. A verifier that is better on both needs training data beyond TRODO, above all real pump displays.
-- First-scan download is 31.4 MB raw. Whether Firebase Hosting compresses `.wasm` and `.onnx` (about 18 MB if it does) is unverified.
+- First-scan download is 31.4 MB raw; Firebase Hosting serves it Brotli-compressed, 18.0 MB over the network (measured on the preview channel).
 - The private calibration photos, the research package, `dataset-sources.json` and `price-prompt.txt` were not available. The personal-price investigation was not touched.
 
 ## Reproducing
