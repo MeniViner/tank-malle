@@ -110,22 +110,25 @@ function recCrop(image: Pixels, box: { left: number; top: number; right: number;
  * Greedy CTC decoding. `doubts[i]` is, for the gap before emitted character i
  * (the last entry: after the last character), the highest probability the
  * model gave a digit at a blank step there: a digit it nearly read but did
- * not emit, such as a narrow seven-segment "1" beside a number.
+ * not emit, such as a narrow seven-segment "1" beside a number. `centres[i]`
+ * is where character i was read, as a share of the input's width (the middle
+ * of its run of steps).
  */
 export function ctcDecode(probabilities: ArrayLike<number>, steps: number, classes: number, dictionary: string[], offset = 0) {
   // Index 0 is the CTC blank; a final extra class, when present, is the space.
   const characters = classes === dictionary.length + 2 ? [...dictionary, ' '] : dictionary;
   const digits = characters.flatMap((c, i) => (/^\d$/.test(c) ? [i + 1] : []));
-  let text = '', confidence = 0, kept = 0, previous = -1;
-  const doubts = [0];
+  let text = '', confidence = 0, kept = 0, previous = -1, start = 0;
+  const doubts = [0], centres: number[] = [];
   for (let t = 0; t < steps; t++) {
     let best = 0, value = -Infinity;
     for (let c = 0; c < classes; c++) { const p = probabilities[offset + t * classes + c]; if (p > value) { value = p; best = c; } }
     if (best === 0) for (const d of digits) doubts[text.length] = Math.max(doubts[text.length], probabilities[offset + t * classes + d]);
-    if (best !== 0 && best !== previous && characters[best - 1] !== undefined) { text += characters[best - 1]; confidence += value; kept++; doubts.push(0); }
+    if (best !== 0 && best !== previous && characters[best - 1] !== undefined) { text += characters[best - 1]; confidence += value; kept++; doubts.push(0); centres.push(t + .5); start = t; }
+    else if (best !== 0 && best === previous && centres.length) centres[centres.length - 1] = (start + t + 1) / 2;
     previous = best;
   }
-  return { text, confidence: kept ? confidence / kept : 0, doubts: doubts.map(d => Math.round(d * 100) / 100) };
+  return { text, confidence: kept ? confidence / kept : 0, doubts: doubts.map(d => Math.round(d * 100) / 100), centres: centres.map(c => c / steps) };
 }
 /** One box read by a recognition model (exported for the component benchmark). */
 export async function recognize(rec: OrtSession, dictionary: string[], runtime: OrtRuntime, image: Pixels, box: Parameters<typeof recCrop>[1], rotate: 0 | 90 | 270) {
@@ -134,6 +137,49 @@ export async function recognize(rec: OrtSession, dictionary: string[], runtime: 
   const result = output[rec.outputNames[0]];
   return { ...ctcDecode(floats(result), result.dims[1], result.dims[2], dictionary), rotate };
 }
+type Edges = { left: number; top: number; right: number; bottom: number };
+/**
+ * A detector box can end inside a glyph: the sparse first segment of a
+ * seven-segment "2" left outside, the right strokes of a last "0" cut off,
+ * and the recogniser reads another digit ("287.40" as "187,40"). Where the
+ * box's ink (the minority side of its Otsu split) runs across a side edge,
+ * that edge moves out to the next blank gap, by at most 0.6 × the box height.
+ * Ink that runs on further is not a cut glyph, and the edge stays.
+ */
+export function widen(image: Pixels, box: Edges): Edges {
+  const { width, height, data } = image;
+  const top = Math.max(0, Math.round(box.top)), bottom = Math.min(height, Math.round(box.bottom)), left = Math.max(0, Math.round(box.left)), right = Math.min(width, Math.round(box.right));
+  const h = bottom - top;
+  if (h < 8 || right - left < 8) return box;
+  const luminance = (x: number, y: number) => { const i = (y * width + x) * 4; return Math.round(.299 * data[i] + .587 * data[i + 1] + .114 * data[i + 2]); };
+  const histogram = new Uint32Array(256); let total = 0, sum = 0;
+  for (let y = top; y < bottom; y++) for (let x = left; x < right; x++) { const v = luminance(x, y); histogram[v]++; total++; sum += v; }
+  let below = 0, belowSum = 0, best = -1, threshold = 127;
+  for (let i = 0; i < 255; i++) {
+    below += histogram[i]; belowSum += i * histogram[i]; if (!below || below === total) continue;
+    const diff = belowSum / below - (sum - belowSum) / (total - below), variance = below * (total - below) * diff * diff;
+    if (variance > best) { best = variance; threshold = i; }
+  }
+  let bright = 0; for (let i = threshold + 1; i < 256; i++) bright += histogram[i];
+  const lightInk = bright < total / 2, minimum = Math.max(2, h * .03);
+  const inked = (x: number) => { if (x < 0 || x >= width) return false; let n = 0; for (let y = top; y < bottom; y++) n += +(lightInk ? luminance(x, y) > threshold : luminance(x, y) <= threshold); return n >= minimum; };
+  const reach = Math.round(h * .6), gap = Math.max(2, Math.round(h * .1));
+  // `outside`: the first column beyond the edge; returns the new edge column, or null.
+  const edge = (outside: number, step: number) => {
+    if (!inked(outside - step) || !inked(outside)) return null;
+    for (let x = outside, blank = 0; Math.abs(x - outside) <= reach; x += step) {
+      if (x < 0 || x >= width) return null;
+      blank = inked(x) ? 0 : blank + 1;
+      if (blank >= gap) return x - step * (gap - 1);
+    }
+    return null;
+  };
+  const l = edge(left - 1, -1), r = edge(right, 1);
+  return l === null && r === null ? box : { ...box, left: l ?? box.left, right: r === null ? box.right : r + 1 };
+}
+// Currency signs the second recogniser's wider alphabet reads where the first
+// drops or misreads them (a "€" detected alone, read as "C" at 0.17).
+const CURRENCY = /^[€$£₺₽¥]$/;
 const groups = (text: string) => text.replace(/\s+/g, '').replace(/,(?=\d{3}(?!\d))/g, '').replace(/(\d),(\d{1,2})(?!\d)/g, '$1.$2').match(/\d+(?:\.\d+)?/g) ?? [];
 // Only the verifier's reading is normalised: its wider alphabet writes some
 // digits as look-alike letters (I, l, O, o), and seven-segment digits as the
@@ -156,24 +202,47 @@ export function createPpocrReader(models: PpocrModels, runtime: OrtRuntime, { lo
       const output = await models.det.run({ [models.det.inputNames[0]]: input.tensor });
       const map = floats(output[models.det.outputNames[0]]);
       const items: TextItem[] = [];
+      const checks: Verify[] = [...(models.verifier ? [async (...args: Parameters<Verify>) => (await recognize(models.verifier!.rec, models.verifier!.dictionary, runtime, ...args)).text] : []), ...(models.verifiers ?? [])];
+      /** The first verifier reading that disagrees with `text` on this box, if any. */
+      const dispute = async (text: string, box: Edges, rotate: 0 | 90 | 270) => { for (const check of checks) { const other = await check(image, box, rotate); if (!verifierAgrees(text, other)) return other; } return null; };
       for (const b of dbBoxes(map, input.width, input.height, models.db)) {
-        const box = { left: b.left * input.sx, right: b.right * input.sx, top: b.top * input.sy, bottom: b.bottom * input.sy };
+        let box: Edges = { left: b.left * input.sx, right: b.right * input.sx, top: b.top * input.sy, bottom: b.bottom * input.sy };
         const tall = (box.bottom - box.top) >= 1.5 * (box.right - box.left);
         // Sideways text (a phone held across the dashboard) is read both ways;
         // the more confident reading is kept.
-        const read = (rotate: 0 | 90 | 270) => recognize(models.rec, models.dictionary, runtime, image, box, rotate);
+        const read = (rotate: 0 | 90 | 270, on = box) => recognize(models.rec, models.dictionary, runtime, image, on, rotate);
         const readings = tall ? [await read(90), await read(270)] : [await read(0)];
-        const best = readings.sort((a, b) => b.confidence - a.confidence)[0];
+        let best = readings.sort((a, b) => b.confidence - a.confidence)[0];
+        if (!tall && models.verifier && !/\d/.test(best.text)) {
+          // A lone narrow glyph is read with some background either side: the
+          // recognisers read little from a crop narrower than it is tall.
+          const pad = box.right - box.left < box.bottom - box.top ? (box.bottom - box.top) / 2 : 0;
+          const second = await recognize(models.verifier.rec, models.verifier.dictionary, runtime, image, { ...box, left: Math.max(0, box.left - pad), right: Math.min(image.width, box.right + pad) }, 0);
+          const signs = second.confidence >= minConfidence ? second.text.split(/\s+/).filter(token => CURRENCY.test(token) && !best.text.includes(token)) : [];
+          if (signs.length) best = best.confidence >= minConfidence ? { ...best, text: `${best.text} ${signs.join(' ')}` } : { ...best, text: signs.join(' '), confidence: second.confidence };
+        }
         if (!best.text.trim() || best.confidence < minConfidence) continue;
         let contested: TextItem['contested'], verifierText: string | undefined;
-        const checks: Verify[] = [...(models.verifier ? [async (...args: Parameters<Verify>) => (await recognize(models.verifier!.rec, models.verifier!.dictionary, runtime, ...args)).text] : []), ...(models.verifiers ?? [])];
-        if (/\d/.test(best.text)) for (const check of checks) {
-          const text = await check(image, box, best.rotate);
-          if (!verifierAgrees(best.text, text)) { contested = 'verifier'; verifierText = text; break; }
+        if (/\d/.test(best.text)) {
+          let disputed = await dispute(best.text, box, best.rotate);
+          // A box cutting a glyph: read again on the widened box. The same
+          // reading keeps the widened box; a reading that only the widened box
+          // gets agreed by the verifier replaces a disputed one; numbers that
+          // change otherwise make the number unsure. (Widening into a glued
+          // unit, "159073" and "159073km", changes no number.)
+          const wide = tall ? box : widen(image, box);
+          if (wide !== box) {
+            const again = await read(0, wide), same = groups(again.text).join(' ') === groups(best.text).join(' ');
+            if (again.text === best.text) { box = wide; best = again; }
+            else if (disputed !== null && !same && again.confidence >= minConfidence && (await dispute(again.text, wide, 0)) === null) { box = wide; best = again; disputed = null; }
+            else if (!same) { contested = 'edge'; verifierText = again.text; }
+          }
+          if (disputed !== null) { contested = 'verifier'; verifierText = disputed; }
         }
         // Report sideways boxes in the reading frame's terms: height is the short side.
         const core = { left: b.core.left * input.sx, right: b.core.right * input.sx, top: b.core.top * input.sy, height: (b.core.bottom - b.core.top) * input.sy };
-        items.push({ text: best.text, left: box.left, right: box.right, top: box.top, height: tall ? box.right - box.left : box.bottom - box.top, score: best.confidence * b.score, doubts: best.doubts, core, ...(contested ? { contested, verifierText } : {}) });
+        const centres = !tall && best.centres.length === best.text.length ? best.centres.map(f => box.left + f * (box.right - box.left)) : undefined;
+        items.push({ text: best.text, left: box.left, right: box.right, top: box.top, height: tall ? box.right - box.left : box.bottom - box.top, score: best.confidence * b.score, doubts: best.doubts, core, ...(centres ? { centres } : {}), ...(contested ? { contested, verifierText } : {}) });
       }
       return items;
     },
