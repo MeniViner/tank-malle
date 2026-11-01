@@ -37,6 +37,47 @@ public dataset pages and the request's own description. Consequences:
 Manual entry, the ordinary save action, authored-value protection, the
 serializer and the outbox are untouched. Recognition never writes a record.
 
+## Measured results (summary; every number is in RESULTS.md)
+
+TRODO v2 test split, one photo per session, protocol v1.1. "Correct
+completion" counts only sessions the app filled in automatically and
+correctly; a safe abstention leaves the person to type the value and is not a
+success. Accepted precision is a different metric: correct among accepted.
+
+| Run | Correct completion, eligible | Accepted precision | Wrong acceptances, all scored |
+| --- | --- | --- | --- |
+| 1.6.0 reader (before) | 13/713 = 1.8% | 13/14 = 92.9% | 1/764 |
+| New pipeline, **frozen run** (`8992585`, independent) | **278/713 = 39.0%** [35.5, 42.6] | **278/284 = 97.9%** [95.5, 99.0] | 6/764 (3 of them on 51 trip/clock negatives) |
+| Same after the dial-number fix (**post-hoc**, `2fd98c9`, not independent) | 283/713 = 39.7% [36.2, 43.3] | 283/285 = 99.3% [97.5, 99.8] | 2/764 |
+| Unseen display families (challenge split), frozen run | 47/139 = 33.8% | 47/66 = 71.2% | 19/280 |
+| Same, post-hoc | 47/139 = 33.8% | 47/51 = 92.2% | 4/280 |
+| Simulated live, 4 derived frames, 143 test sessions (post-hoc code) | 32/76 = 42.1% | 32/32 = 100% [89.3, 100] | 0/83 |
+
+Frozen-run abstentions on the test split: unreadable 369, uncorroborated 108,
+conflict 2, implausible 1 (of 764 scored sessions).
+
+Runtime, desktop engines on an Apple M5 (not phones): first scan after
+install 1.5 s in Chromium and 1.4 s in WebKit on a local server, and 25.9 s
+at an emulated 10 Mbit/s (download-bound). Reopening with the models in
+Cache Storage: 1.2 s first scan in Chromium and 1.1 s in WebKit, with 0
+bytes downloaded. Warm photo p50/p95: Chromium 766/1,067 ms (accepted
+744/992 ms, abstained 816/996 ms); WebKit 702/954 ms. Renderer memory rose
+from 80 to 462 MB in Chromium and from 105 to 1,105 MB in WebKit.
+
+### Acceptance criteria
+
+| Criterion | Status |
+| --- | --- |
+| ≥ 95% correct automatic completion on readable, unambiguous sessions | **Not met**: 39.0% frozen (the whole interval is below 43%) |
+| ≥ 99.5% correctness among accepted readings | **Not met** frozen (97.9%); post-hoc 99.3% is **unproven** (interval 97.5–99.8%) |
+| Warm p95 ≤ 6 s per scene on Samsung Galaxy S25 | **Unverified**: no phone. Desktop Chromium p95 is 1.1 s |
+| Denominators and confidence intervals published, frozen and post-hoc kept apart | Met |
+| Field/session correctness, precision, wrong acceptance, coverage (eligible and all), rejection reasons, display-family breakdown, p50/p95, cold-start bytes, memory | Met for odometers. TRODO publishes no device identity, so there is no device breakdown. Pump field correctness was not measured (no photographs) |
+| Pump real-world accuracy | **Incomplete**: synthetic mechanism suite only |
+| Private calibration photos, prospective Israeli examples | **Incomplete**: not available |
+| Physical-device validation (S25, weaker Android, iOS Safari/PWA) | **Not done**: no device |
+| Build, rules, offline and browser gates pass without weakened assertions | Met (see the PR test plan) |
+
 ## Architecture decision
 
 **Decision.** Keep the model-free seven-segment reader as the first, cheap
@@ -46,16 +87,21 @@ recognition, with every number re-read by the independently trained
 PP-OCRv6-tiny recogniser before it can be used. Acceptance is decided by a
 capture session over several paths, never by one read.
 
-**Why.** On the TRODO tuning split the seven-segment reader reads almost
-nothing from real photographs (full frame or annotated crop), while PP-OCR
-reads most digital odometers and the printed labels (ODO, TOTAL, km, TRIP)
-that identity needs. PP-OCR alone accepted many wrong readings (dropped
-leading "1", dropped last drum, merged neighbours); the independent verifier,
-the stray-stroke check and the session rules brought tuning precision from
-73% to ~99%. Tesseract.js was compared on the same tuning pipeline (see
-RESULTS.md) and was slower and weaker on these displays. Measured choices are
-in RESULTS.md; the test split was run once per configuration, after the
-design was frozen.
+**Why.** On the TRODO tuning split the seven-segment reader reads nothing
+from real photographs (0/371 eligible, full frame or annotated crop), while
+PP-OCR reads many digital odometers and the printed labels (ODO, TOTAL, km,
+TRIP) that identity needs. On the same 60-session tuning subsample (RESULTS.md),
+Tesseract.js in sparse-text mode completed 2/33 eligible sessions against
+20/33 for the shipped PP-OCR configuration; it was faster per session but
+found few display numbers. During tuning, PP-OCR without the later checks
+accepted wrong readings (dropped leading "1", dropped last drum, merged
+neighbours); the verifier, the stray-stroke check and the session rules were
+added for those. The saved runs do **not** isolate the verifier's
+contribution: on the 60-session subsample the configuration without it
+completed 22/33 with 22/22 accepted correct, against 20/33 and 20/20 with it,
+and those intervals are wide. Keeping the 4.5 MB verifier is therefore a
+precaution, not a measured gain. The test split was run once per
+configuration, after the design was frozen.
 
 **Rejected alternatives.**
 - Cloud OCR, paid inference: excluded by the request.
@@ -99,14 +145,24 @@ Model files are served at `/scan-models/<version>/` with immutable caching
 (`firebase.json`), verified by sha256 in the worker before use, stored in a
 versioned Cache Storage entry, and old versions are deleted on upgrade. The
 production build fetches them from their pinned URLs and fails if a hash does
-not match. Browser cold-start time, warm latency and memory are in RESULTS.md.
+not match.
+
+| Measured (desktop, Apple M5; RESULTS.md) | Chromium 156 | WebKit 27.2 |
+| --- | --- | --- |
+| First scan after install, local server (download + verify + load + read) | 1,498 ms (recogniser ready at 493 ms) | 1,428 ms (445 ms) |
+| First scan after install at an emulated 10 Mbit/s, 150 ms RTT | 25,867 ms (24,825 ms) | not measured (no network emulation) |
+| First scan after reopening (models from Cache Storage, 0 bytes) | 1,224 ms (193 ms) | 1,145 ms (163 ms) |
+| Warm photo p50 / p95, all (39 photos) | 766 / 1,067 ms | 702 / 954 ms |
+| …accepted (16) / abstained (23) p50 | 744 / 816 ms | 683 / 735 ms |
+| Renderer memory before → after 40 photos | 80 → 462 MB | 105 → 1,105 MB |
 
 ## Failure cases (documented, not hidden)
 
 Every wrong acceptance in the frozen runs is listed by session in RESULTS.md.
 By cause:
 
-- **Speedometer numbers merged into one box** (`100 120` read as odometer `100120`): 4 of 6 wrong acceptances on the test split and 14 of 19 on the challenge split, mostly on trip-only displays. Fixed after those runs (groups that are all round dial values are kept apart); the re-run is reported separately as post-hoc, not independent.
+- **Speedometer numbers merged into one box** (`100 120` read as odometer `100120`): 4 of 6 wrong acceptances on the test split and 15 of 19 on the challenge split, mostly on trip-only displays. Fixed after those runs (groups that are all round dial values are kept apart); the re-run is reported separately as post-hoc, not independent.
+- **Inserted or dropped digits** that survive the fix on the test split (cause not analysed): `115853` → `1121943`, and `151771` → `15177` (last digit lost).
 - **7 read as 1** on some LCD fonts with a faint top bar (`279890` → `219890`, `285077` → `285011`): both recognisers make the same mistake, so the verifier does not catch it.
 - **Ghost segments**: unlit segments visible as `888` in front of a trip reading whose decimal point was lost (`84.9` → `888849`).
 - **Bloomed leading "1"** on small backlit LCDs (`1 18948` read as `18948` by both recognisers, inside the detected box): neither the verifier nor the stray-stroke check sees it. Two tuning-split acceptances were wrong this way (one vehicle photographed twice).
@@ -124,7 +180,19 @@ By cause:
 | Permission denial, late permission, background/resume, cancellation | Verified in Chromium and WebKit desktop engines (e2e), not on phones |
 | Worker failure / model integrity failure → segment-only fallback, manual route | Verified in Chromium and WebKit (e2e) |
 | Offline availability of the recogniser after first use, PWA restart | Verified in Chromium (PWA e2e) |
+| Recogniser kept across worker restarts | Chromium and WebKit with a persistent profile: reopen downloads 0 bytes. An ephemeral WebKit context loses entries a worker wrote once the worker is terminated, unless the page read them first (reproduced). Safari private browsing may therefore re-download about 31 MB after each 30 s idle stop; unverified on iOS |
 | Duplicate-write prevention, outbox, account/vehicle isolation | Existing suites pass unchanged |
+
+## Remaining limitations
+
+- Recognition targets are not met: about 6 in 10 readable digital odometers still fall back to typing, and the frozen run accepted 6 wrong readings in 764 scored sessions.
+- The evaluated scope is TRODO still photos from one country's vehicle fleet, of digital displays with at least 5 digits. Analog registers (858), 3–4 digit digital readings (20) and label-check exclusions (31) are reported separately and are not in any headline number.
+- Pump displays: no real photograph was evaluated. The synthetic suite shows only that identity and abstention behave as designed. The English text recogniser misreads seven-segment fonts and cannot read Hebrew labels.
+- Live camera behaviour is simulated by deriving frames from still photos. Derived frames share blur, glare, angle and font, so they test the session rules, not a hand-held camera.
+- No phone was used. S25 latency, weaker-Android memory (about 1 GB of WebKit renderer memory after 40 photos on desktop), iOS Safari/PWA, real permission prompts and camera lifecycle are unverified.
+- The verifier's precision benefit is not demonstrated by the saved runs. The Tesseract comparison uses 60 tuning sessions, so it is coarse.
+- First-scan download is 31.4 MB raw. Whether Firebase Hosting compresses `.wasm` and `.onnx` (about 18 MB if it does) is unverified.
+- The private calibration photos, the research package, `dataset-sources.json` and `price-prompt.txt` were not available. The personal-price investigation was not touched.
 
 ## Reproducing
 
@@ -134,7 +202,10 @@ node scripts/scan-benchmark/trodo-audit.mjs .scan-corpus/trodo-v2/trodo-v01 benc
 node scripts/scan-benchmark/run.mjs --split test --reader current --text ppocr-v5+v6 --out run.json
 node scripts/scan-benchmark/run.mjs --split test --reader baseline --out before.json
 node scripts/scan-benchmark/synthetic.mjs 200 synthetic.json current
+node scripts/scan-benchmark/run.mjs --split test --limit 150 --reader current --text ppocr-v5+v6 --live 4 --out live.json
 npx vite build && node scripts/scan-benchmark/browser.mjs chromium 40 browser.json
+CARE_WEBKIT_PATH=<playwright webkit pw_run.sh> node scripts/scan-benchmark/browser.mjs webkit 40 browser-webkit.json
+CARE_THROTTLE=10,150 node scripts/scan-benchmark/browser.mjs chromium 3 browser-10mbps.json
 node scripts/scan-benchmark/report.mjs
 ```
 
