@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveOdometer, resolvePump } from './identity';
 import { analyzeFrame, fromText, readStill, type TextItem, type TextReader } from './pipeline';
-import { blank, demoPhoto, drawDigits } from './fixtures';
+import { blank, demoPhoto, drawDigits, rect } from './fixtures';
 
 /** A crisp synthetic display photographed at a higher resolution. */
 function enlarge(image: ReturnType<typeof blank>, factor: number) {
@@ -49,6 +49,16 @@ describe('frame pipeline', () => {
     expect(fromText([item('100 120')]).lines.map(l => l.text)).toEqual(['100', '120']);
     expect(fromText([item('16 1563km')]).lines.map(l => l.text)).toEqual(['161563']);
     expect(fromText([item('0023 1755')]).lines.map(l => l.text)).toEqual(['00231755']);
+  });
+  it('recrops a padded register for its second path', async () => {
+    // Printed digits only the (stub) recogniser reads; its first read locates them.
+    // A textured scene (usable quality) with no seven-segment digits in it.
+    const image = blank(1600, 1000);
+    for (let y = 0; y < 1000; y += 40) for (let x = (y / 40) % 2 * 40; x < 1600; x += 80) rect(image, x, y, 40, 40, [90, 100, 95]);
+    const reader: TextReader = { name: 'stub', read: async pixels => [{ text: '00236096km', left: pixels.width * .3, right: pixels.width * .7, top: pixels.height * .45, height: pixels.height * .1, score: .9 }] };
+    const { decision, analysis } = await readStill(image, 'odometer', { textReader: reader });
+    expect(analysis.attempts.map(a => a.path)).toEqual(expect.arrayContaining(['stub@960', 'stub@roi']));
+    expect(decision).toMatchObject({ status: 'accepted', values: { odometer: '236096' }, paths: ['stub@960', 'stub@roi'] });
   });
   it('skips unusable frames without reading them', async () => {
     const dark = blank(640, 480, [2, 2, 2]);

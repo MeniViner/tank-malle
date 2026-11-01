@@ -149,7 +149,8 @@ export async function analyzeFrame(source: RgbaFrame, kind: DisplayKind, frame: 
       // Nothing segment-like was located but text was: read that text again,
       // cut from the full frame at higher resolution, as a separate path.
       if (!region && result.status === 'read') {
-        const textRegion = regionOf(first.lines.filter(l => Object.values(result.values).includes(l.text)), ratio, source);
+        // The value may be a padded register's number ("00236096" read as 236096).
+        const textRegion = regionOf(first.lines.filter(l => Object.values(result.values).some(v => v === l.text || v === l.text.replace(/^0+(?=\d)/, ''))), ratio, source);
         const second = textRegion ? await readText(textRegion, `${reader.name}@roi`) : null;
         if (second?.lines.length) attempts.push({ frame, path: second.path, result: decideDisplay(asPolarity(second.lines), kind, [...second.labels, ...first.labels]) });
         region = textRegion;
