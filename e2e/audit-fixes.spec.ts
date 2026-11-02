@@ -200,6 +200,7 @@ test("F07: a rejected tank-capacity confirmation never claims success and retrie
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "estimate" }, fillups: [{ id: "base", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   await installRules(denyVehicleWrites(rules));
+  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   await page.getByRole("button", { name: "מאשר", exact: true }).click();
   await expect(page.getByText("נפח המיכל לא אושר בשרת", { exact: true })).toBeVisible();
   await expect(page.getByText("נפח המיכל אושר", { exact: true })).toHaveCount(0);
@@ -255,6 +256,7 @@ test("F15/F16: narrow header contains long names, pushed screens start at the he
   await setDocument(`users/${uid}/vehicles/v1/observations/current`, { observedAt: new Date(), recordedAt: new Date(), kind: "level", level: 0.5, confirmed: true, levelSource: "direct-gauge" });
   await page.setViewportSize({ width: 320, height: 700 });
   await page.reload();
+  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   await expect(page.getByText("כדאי לתדלק", { exact: true })).toBeVisible();
   expect(await page.getByText("כדאי לתדלק", { exact: true }).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
