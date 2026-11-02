@@ -11,6 +11,7 @@ test('a recent gauge with old mileage has one odometer action after every source
   await page.goto('/');const overview=page.getByRole('region',{name:'מצב הרכב'});
   await expect(overview).not.toContainText('טוענים');await expect(overview).not.toContainText('חלקי');
   const tank=page.locator('#my-tank');await expect(tank).toBeVisible();
+  await tank.locator('details[aria-label="המיכל שלי"] > summary').click();
   await expect(tank.getByRole('button',{name:'עדכון קילומטראז׳',exact:true})).toHaveCount(1);
   await tank.getByRole('button',{name:'עדכון קילומטראז׳',exact:true}).click();
   await expect(page.getByRole('dialog').getByLabel('קילומטראז׳ נוכחי')).toBeVisible();
@@ -28,11 +29,11 @@ test('Home has one compact tank, useful mileage and honest purchase habits',asyn
   await expect(tank.getByText('כמה דלק נשאר?',{exact:true})).toHaveCount(0);
   await expect(page.getByTestId('mileage-precision')).toHaveCount(0);
   expect((await tank.boundingBox())!.height).toBeLessThan(380);
-  await tank.locator('summary').click();
   await expect(tank.getByText('בדרך כלל מתדלקים כל',{exact:true})).toBeVisible();
   await expect(tank.getByText('תדלוק טיפוסי',{exact:true})).toBeVisible();
   await expect(tank.getByText('עדיין לומדים את התדירות')).toBeVisible();
   await page.screenshot({path:info.outputPath('home-review.png')});
+  await tank.locator('details[aria-label="המיכל שלי"] > summary').click();
   await page.getByRole('button',{name:'איך המיכל מחושב',exact:true}).click();
   await expect(page.getByRole('button',{name:'יש לי נסיעה מתוכננת',exact:true})).toBeVisible();
 });

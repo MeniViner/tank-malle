@@ -54,6 +54,7 @@ import { InfoTip } from "../components/InfoTip";
 import {
   FUEL_TYPE_SHORT,
   dayMonthShort,
+  int,
   monthYear,
   num,
   price,
@@ -344,7 +345,7 @@ export function Statistics() {
                   <BarChart data={spendData} margin={CHART_MARGIN}>
                     <CartesianGrid stroke="var(--line)" vertical={false} />
                     <XAxis {...xAxis} />
-                    <YAxis {...yAxis} width={44} />
+                    <YAxis {...yAxis} width={44} allowDecimals={false} tickFormatter={value => int(Number(value))} />
                     <Tooltip content={<ChartTooltip currency />} />
                     <Bar isAnimationActive={false}
                       dataKey="cost"
@@ -519,7 +520,7 @@ export function Statistics() {
                   <LineChart data={priceData} margin={CHART_MARGIN}>
                     <CartesianGrid stroke="var(--line)" vertical={false} />
                     <XAxis {...xAxis} />
-                    <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
+                    <YAxis {...yAxis} width={42} domain={["auto", "auto"]} allowDecimals={false} tickFormatter={value => int(Number(value))} />
                     <Tooltip content={<ChartTooltip currency />} />
                     {hasOfficialLine ? (
                       <Line isAnimationActive={false}

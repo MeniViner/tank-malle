@@ -48,6 +48,7 @@ test('learned fuel falls with time, the handle matches its fill, and correction 
  const {uid,vehicleId}=await signedInWithData(page,{vehicle:car,regulatedPrice:7.77,fillups:[0,1,2,3].map(i=>({id:`h${i}`,date:new Date(now-(3-i)*7*DAY),odometer:10000+i*450,liters:30}))});
  const base=`users/${uid}/vehicles/${vehicleId}`;
  await setDocument(base+'/fillups/h3',{...(await getDocument(base+'/fillups/h3')),tankSchemaVersion:2,fillEndState:'partial',fillEndStateSource:'user-confirmed',isFullTank:false,preFillLevel:.9,preFillLevelSource:'direct-gauge'});
+ await page.locator('details[aria-label="המיכל שלי"] > summary').click();
  await expect(page.getByRole('button',{name:'עדכון המיכל',exact:true})).toBeVisible();
  await expect(page.getByTestId('current-tank-level')).toHaveText('כ־100%');
  await page.clock.install({time:new Date(now)});

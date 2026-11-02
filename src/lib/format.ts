@@ -65,27 +65,28 @@ export function int(value: number): string {
   return Math.round(value).toLocaleString("he-IL");
 }
 
-/** Display totals in whole shekels; the stored amount retains its precision. */
-export function shekel(value: number, digits?: number): string {
-  const d = digits ?? 0;
-  return `₪${Math.abs(value).toLocaleString("he-IL", {
-    minimumFractionDigits: d,
-    maximumFractionDigits: d,
-  })}`;
+/** Product policy: all read-only ILS amounts use whole shekels, including rates. */
+export const CURRENCY_DISPLAY_FRACTION_DIGITS = 0;
+const currencyNumber = new Intl.NumberFormat("he-IL", {
+  minimumFractionDigits: CURRENCY_DISPLAY_FRACTION_DIGITS,
+  maximumFractionDigits: CURRENCY_DISPLAY_FRACTION_DIGITS,
+});
+
+/** 216.77 → "₪217". Display only: never use this to calculate or persist money. */
+export function shekel(value: number): string {
+  return Number.isFinite(value) ? `₪${currencyNumber.format(Math.abs(value))}` : "—";
 }
 
-/** Signed shekel delta, e.g. "\u2212₪0.05" / "+₪1.20". */
-export function shekelSigned(value: number, digits = 2): string {
-  const sign = value < 0 ? "\u2212" : value > 0 ? "+" : "";
-  return `${sign}${shekel(value, digits)}`;
+/** Signed whole-shekel delta. Rounded zero has no misleading positive/negative sign. */
+export function shekelSigned(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  const sign = Math.round(Math.abs(value)) === 0 ? "" : value < 0 ? "\u2212" : "+";
+  return `${sign}${shekel(value)}`;
 }
 
-/** 7.31 → "₪7.31" (prices always keep 2 decimals). */
+/** A displayed unit price follows the same whole-shekel policy as other amounts. */
 export function price(value: number): string {
-  return `₪${value.toLocaleString("he-IL", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return shekel(value);
 }
 
 /**

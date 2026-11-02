@@ -1,4 +1,5 @@
 import { FuelDiscountSheet } from '../components/FuelDiscountSheet';
+import { MarketFuelPrice } from '../components/MarketFuelPrice';
 import { vehicleDiscount, discountLabel } from '../lib/prices/discount';
 import { useMemo, useState } from "react";
 import { describeOfficialPrice, officialPriceFor } from "../lib/prices/regulated";
@@ -111,7 +112,7 @@ export function Settings() {
             {/* The same resolver the fill-up form uses, for THIS vehicle's
                 fuel type and today — so the two screens cannot disagree, and a
                 manual admin entry is named as such rather than as "מפוקח". */}
-            <div className="flex min-h-[58px] items-center gap-3 px-4 py-3">
+            {officialToday.price !== null || (activeVehicle?.fuelType !== '98' && activeVehicle?.fuelType !== 'diesel') ? <div className="flex min-h-[58px] items-center gap-3 px-4 py-3">
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="text-[15px] font-semibold text-ink">מחיר רשמי נוכחי</span>
                 <span className="truncate text-[14px] text-muted">
@@ -128,7 +129,9 @@ export function Settings() {
               <Num className="flex-none text-[18px] font-semibold text-ink">
                 {officialToday.price !== null ? price(officialToday.price) : "—"}
               </Num>
-            </div>
+            </div> : null}
+
+            {activeVehicle?.fuelType === '98' || activeVehicle?.fuelType === 'diesel' ? <div className="px-4 py-3"><MarketFuelPrice fuelType={activeVehicle.fuelType} /></div> : null}
 
             {activeVehicle?.fuelType === '95' ? <RowButton
               title="הנחה מהמחיר הרשמי"
@@ -193,7 +196,8 @@ export function Settings() {
             <RowButton title="תנאי שימוש" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/terms")} />
             <RowButton title="מדיניות פרטיות" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/privacy")} />
           </ListCard>
-          <p className="py-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION} · {BUILD_COMMIT.slice(0,10)}{BUILD_DIRTY?" · שינויים מקומיים":""}</Num></p>
+          <p className="pt-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION}</Num> · בילד <Num>{BUILD_COMMIT.slice(0,10)}</Num>{BUILD_DIRTY?" · שינויים מקומיים":""}</p>
+          <p className="text-center text-[12px] text-muted">הגרסה שפועלת במכשיר הזה · אותו עדכון מציג אותו בילד לכולם</p>
           <UpdateCheckButton />
         </section>
       </div>

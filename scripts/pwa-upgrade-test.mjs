@@ -1,23 +1,24 @@
 import { createServer } from 'node:http';
-import { readFileSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { resolve, extname, sep } from 'node:path';
 import { build } from 'vite';
 
-// Two real optimized emulator-only builds, with a test-only older version
-// label. No deployed source, browser profile or customer data is modified.
+// Two real optimized emulator-only builds with the SAME app version and a
+// deterministic test-only previous commit. This reproduces users staying on
+// different builds while every Settings page still says the same version.
 const before = resolve('.care-device/unified/upgrade-before');
 const after = resolve('.care-device/unified/upgrade-after');
-const previousVersion = 'acceptance-before';
+const previousCommit = '1'.repeat(40);
 await build({ mode: 'care-test', build: { outDir: before }, plugins: [{
-  name: 'acceptance-previous-version', enforce: 'pre',
+  name: 'acceptance-previous-build', enforce: 'pre',
   load(id) {
-    if (id === resolve('src/lib/version.ts')) return readFileSync(id, 'utf8').replace(/APP_VERSION = "[^"]+"/, `APP_VERSION = "${previousVersion}"`);
-  },
-  generateBundle(_options, bundle) {
-    const info = bundle['build-info.json'];
-    if (info?.type === 'asset') info.source = JSON.stringify({ ...JSON.parse(String(info.source)), version: previousVersion });
+    if (id === resolve('src/lib/version.ts')) return readFileSync(id, 'utf8').replace('BUILD_COMMIT = __BUILD_COMMIT__', `BUILD_COMMIT = "${previousCommit}"`);
   },
 }] });
+// The pre-load transform runs before the production identity plugin emits its
+// asset. Update this fixture metadata after build so it matches the test bundle.
+const beforeInfo = resolve(before, 'build-info.json');
+writeFileSync(beforeInfo, JSON.stringify({ ...JSON.parse(readFileSync(beforeInfo, 'utf8')), commit: previousCommit }));
 await build({ mode: 'care-test', build: { outDir: after } });
 let published = false;
 const mime = { '.js':'application/javascript', '.mjs':'application/javascript', '.css':'text/css', '.html':'text/html', '.json':'application/json', '.svg':'image/svg+xml', '.png':'image/png', '.woff2':'font/woff2', '.ttf':'font/ttf' };

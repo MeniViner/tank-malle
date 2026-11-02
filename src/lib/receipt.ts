@@ -15,6 +15,7 @@
  */
 
 import { parseNumberInput } from "./numeric";
+import { shekel } from "./format";
 
 export type ReceiptField = "liters" | "pricePerLiter" | "totalCost";
 
@@ -145,7 +146,7 @@ export function receiptConflict(state: ReceiptState): ReceiptConflict | null {
   if (Math.abs(difference) <= Math.max(1, expected * 0.01)) return null;
   return {
     differenceShekels: round2(difference),
-    message: `${liters} ל׳ × ₪${price} = ₪${round2(expected).toFixed(2)}, אבל הסכום שהוזן הוא ₪${round2(total).toFixed(2)}`,
+    message: `הסכום המחושב מהכמות ומהמחיר שהוזנו הוא ${shekel(expected)}, אבל הסכום שהוזן הוא ${shekel(total)}`,
   };
 }
 

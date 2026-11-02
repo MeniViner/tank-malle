@@ -16,6 +16,7 @@
 
 import type { Fillup, StationRef } from "./stats";
 import type { OutboxPayload } from "./outbox";
+import { shekel } from "./format";
 
 export const SERVER_TIMESTAMP = "__serverTimestamp__";
 
@@ -371,7 +372,7 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
     if (Math.abs(total - expected) > tolerance) {
       errors.push({
         field: "totalCost",
-        message: `הסכום (₪${total.toFixed(2)}) לא מסתדר עם ${liters} ל׳ × ₪${price} = ₪${expected.toFixed(2)}`,
+        message: `הסכום (${shekel(total)}) לא תואם את הכמות והמחיר שהוזנו; הסכום המחושב הוא ${shekel(expected)}`,
       });
     }
   }

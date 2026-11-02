@@ -96,6 +96,7 @@ test("F06: both tank editors preserve grouped odometers and reject a backward re
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "user" }, fillups: [{ id: "base", date: new Date(Date.UTC(2026, 9, 1)), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   await setDocument(`users/${uid}/vehicles/v1/observations/seed`, { observedAt: new Date(Date.now() - 60000), recordedAt: new Date(), kind: "level", level: 0.5, confirmed: true, levelSource: "direct-gauge" });
   await page.reload();
+  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   await page.getByRole("button", { name: "עדכון קילומטראז׳", exact: true }).click();
   let dialog = page.getByRole("dialog");
   await dialog.getByLabel("קילומטראז׳ נוכחי").fill("123,456");

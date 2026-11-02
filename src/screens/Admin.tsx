@@ -611,7 +611,7 @@ function FuelPriceEditor() {
               ? `הצלחה אחרונה: ${dayMonthShort(lastSuccess)}${
                   automation?.lastReadMonth
                     ? ` · נקרא ${priceMonthLabel(automation.lastReadMonth, now)}${
-                        automation.lastReadPrice != null ? ` ₪${automation.lastReadPrice}` : ""
+                        automation.lastReadPrice != null ? ` ${price(automation.lastReadPrice)}` : ""
                       }`
                     : ""
                 }${automation?.lastVia ? ` · דרך ${automation.lastVia}` : ""}`

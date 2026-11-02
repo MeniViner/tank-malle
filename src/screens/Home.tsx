@@ -15,6 +15,7 @@ import { ConsumptionValue, Quantity } from "../components/Fmt";
 import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
 import { compareToPersonalAverage } from "../lib/efficiency";
 import { officialPriceFor } from "../lib/prices/regulated";
+import { MarketFuelPrice } from "../components/MarketFuelPrice";
 import { StationBrandMark } from "../components/StationBrand";
 import { HeroSpark } from "../components/HeroSpark";
 import {
@@ -293,6 +294,14 @@ function FuelPriceCard() {
   // not an event.
   const [today] = useState(() => Date.now());
   const lookup = useMemo(() => officialPriceFor(prices, fuelType, today), [prices, fuelType, today]);
+
+  if (fuelType === '98' || fuelType === 'diesel') {
+    return <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <Label>מחיר דלק נוכחי</Label>
+      {lookup.price !== null ? <p className="text-sm"><Num>{price(lookup.price)}</Num> לליטר · מחיר שהוזן במערכת</p> : null}
+      <MarketFuelPrice fuelType={fuelType} compact />
+    </div>;
+  }
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-1.5">

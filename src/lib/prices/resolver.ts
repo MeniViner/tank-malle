@@ -1,4 +1,5 @@
 import type { FuelType } from "../stats";
+import { price as money } from "../format";
 import {
   REGULATED_LABEL,
   regulatedMaxPrice,
@@ -374,13 +375,6 @@ export interface StationPriceView {
   stale: boolean;
 }
 
-function money(value: number): string {
-  return `₪${value.toLocaleString("he-IL", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
-}
-
 /** "לפני יומיים" — the age alone, for the compact row line. */
 function shortAge(observedAt: number | null, now: number): string {
   if (observedAt === null) return "";
@@ -453,7 +447,7 @@ export function stationPriceView(
 /**
  * How a resolved price should be worded where the ceiling IS the subject.
  *
- * A ceiling reads "עד ₪7.31", an observation reads "₪7.18", and an unknown
+ * A ceiling reads "עד ₪7", an observation reads "₪7", and an unknown
  * reads as an unknown. This is the single place that decision is made.
  */
 export function priceDisplay(resolved: ResolvedPrice): {
@@ -463,10 +457,7 @@ export function priceDisplay(resolved: ResolvedPrice): {
   if (resolved.price === null) {
     return { text: "—", detail: resolved.explanation };
   }
-  const amount = `₪${resolved.price.toLocaleString("he-IL", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  const amount = money(resolved.price);
   return {
     text: resolved.isCeiling ? `עד ${amount}` : `${amount} לליטר`,
     detail: resolved.explanation,
