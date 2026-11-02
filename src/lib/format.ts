@@ -65,7 +65,7 @@ export function int(value: number): string {
   return Math.round(value).toLocaleString("he-IL");
 }
 
-/** Product policy: all read-only ILS amounts use whole shekels, including rates. */
+/** Product policy: read-only ILS amounts use whole shekels; per-litre prices keep agorot. */
 export const CURRENCY_DISPLAY_FRACTION_DIGITS = 0;
 const currencyNumber = new Intl.NumberFormat("he-IL", {
   minimumFractionDigits: CURRENCY_DISPLAY_FRACTION_DIGITS,
@@ -84,9 +84,14 @@ export function shekelSigned(value: number): string {
   return `${sign}${shekel(value)}`;
 }
 
-/** A displayed unit price follows the same whole-shekel policy as other amounts. */
+const unitPriceNumber = new Intl.NumberFormat("he-IL", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** 7.35 → "₪7.35". A per-litre price is meaningless rounded to the shekel. */
 export function price(value: number): string {
-  return shekel(value);
+  return Number.isFinite(value) ? `₪${unitPriceNumber.format(value)}` : "—";
 }
 
 /**

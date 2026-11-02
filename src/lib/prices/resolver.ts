@@ -447,7 +447,7 @@ export function stationPriceView(
 /**
  * How a resolved price should be worded where the ceiling IS the subject.
  *
- * A ceiling reads "עד ₪7", an observation reads "₪7", and an unknown
+ * A ceiling reads "עד ₪7.31", an observation reads "₪7.18", and an unknown
  * reads as an unknown. This is the single place that decision is made.
  */
 export function priceDisplay(resolved: ResolvedPrice): {

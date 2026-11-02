@@ -45,7 +45,7 @@ describe("station row price", () => {
     const result = view("95");
     expect(result.kind).toBe("reference");
     // "עד" is doing the work: this is a ceiling, not what the pump charges.
-    expect(result.text).toBe("עד ₪8");
+    expect(result.text).toBe("עד ₪8.25");
     expect(result.detail).toBe("מחיר ארצי");
     expect(result.detail).not.toContain("מחיר מרבי מפוקח");
   });
@@ -66,7 +66,7 @@ describe("station row price", () => {
       ],
     });
     expect(result.kind).toBe("station");
-    expect(result.text).toBe("₪8");
+    expect(result.text).toBe("₪8.09");
     expect(result.detail).toContain("לפני שעתיים");
     expect(result.stale).toBe(false);
   });
@@ -78,7 +78,7 @@ describe("station row price", () => {
     // what the pump charges right now.
     expect(result.detail).toContain("שילמת כאן");
     expect(result.detail).toContain("לפני 3 ימים");
-    expect(result.text).toBe("₪8");
+    expect(result.text).toBe("₪8.02");
   });
 
   it("prefers a real station price over the user's own history", () => {
@@ -98,7 +98,7 @@ describe("station row price", () => {
       personal: { price: 8.02, observedAt: NOW - 3 * 24 * HOUR },
     });
     expect(result.kind).toBe("station");
-    expect(result.text).toBe("₪8");
+    expect(result.text).toBe("₪8.09");
   });
 
   it("never falls back to the 95 figure for diesel or 98", () => {

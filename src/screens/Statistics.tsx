@@ -520,8 +520,8 @@ export function Statistics() {
                   <LineChart data={priceData} margin={CHART_MARGIN}>
                     <CartesianGrid stroke="var(--line)" vertical={false} />
                     <XAxis {...xAxis} />
-                    <YAxis {...yAxis} width={42} domain={["auto", "auto"]} allowDecimals={false} tickFormatter={value => int(Number(value))} />
-                    <Tooltip content={<ChartTooltip currency />} />
+                    <YAxis {...yAxis} width={42} domain={["auto", "auto"]} />
+                    <Tooltip content={<ChartTooltip currency unitPrice />} />
                     {hasOfficialLine ? (
                       <Line isAnimationActive={false}
                         type="monotone"
@@ -1145,6 +1145,7 @@ function ChartTooltip({
   label,
   suffix = "",
   currency = false,
+  unitPrice = false,
   digits = 1,
 }: {
   active?: boolean;
@@ -1152,6 +1153,7 @@ function ChartTooltip({
   label?: string;
   suffix?: string;
   currency?: boolean;
+  unitPrice?: boolean;
   digits?: number;
 }) {
   if (!active || !payload?.length) return null;
@@ -1167,7 +1169,7 @@ function ChartTooltip({
         if (!Number.isFinite(value)) return null;
         return (
           <div key={index} className="text-[14px] font-bold text-ink">
-            <Num>{currency ? shekel(value) : `${num(value, digits)}${suffix}`}</Num>
+            <Num>{currency ? (unitPrice ? price(value) : shekel(value)) : `${num(value, digits)}${suffix}`}</Num>
           </div>
         );
       })}

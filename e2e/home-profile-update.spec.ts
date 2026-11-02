@@ -27,15 +27,15 @@ test('diesel list price refreshes independently and never becomes a receipt defa
   await page.route('https://r.jina.ai/https://delek.co.il/**', route => route.fulfill({ status: 503, body: 'unavailable' }));
   await signedInWithData(page, { vehicle: { make: 'פורד', model: 'טרנזיט', fuelType: 'diesel' }, regulatedPrice: 7.31 });
   const reference = page.getByRole('region', { name: 'מחירון סולר', exact: true });
-  await expect(reference).toContainText('₪12');
+  await expect(reference).toContainText('₪12.05');
   await expect(reference).toContainText('מחירון דלק · שירות מלא');
   await expect(reference).toContainText('מחוץ לאילת');
   await page.goto('/settings');
-  await expect(reference).toContainText('₪12');
+  await expect(reference).toContainText('₪12.05');
   down = true;
   await reference.getByRole('button', { name: 'רענון מחירון', exact: true }).click();
   await expect(reference).toContainText('הרענון לא הצליח');
-  await expect(reference).toContainText('₪12');
+  await expect(reference).toContainText('₪12.05');
   await page.goto('/fillup/new');
   await expect(page.getByLabel('מחיר לליטר', { exact: true })).toHaveValue('');
 });
@@ -50,12 +50,12 @@ test('98 uses its own published value while 95 keeps its exact existing suggesti
   expect(requests).toBe(0);
 });
 
-test('98 is labelled as a network reference, with its own rounded price', async ({ page }) => {
+test('98 is labelled as a network reference, with its own exact price', async ({ page }) => {
   await page.route('https://delek.co.il/**', route => route.fulfill({ contentType: 'text/html', headers: { 'access-control-allow-origin': '*' }, body: publication() }));
   await signedInWithData(page, { vehicle: { make: 'מבחן', model: '98', fuelType: '98' } });
   const reference = page.getByRole('region', { name: 'מחירון בנזין 98', exact: true });
-  await expect(reference).toContainText('₪10');
-  await expect(reference).not.toContainText('₪12');
+  await expect(reference).toContainText('₪9.66');
+  await expect(reference).not.toContainText('₪12.05');
   await expect(reference).toContainText('המחיר ששולם בתחנה עשוי להיות שונה');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

@@ -37,7 +37,7 @@ describe("RTL-safe numeric formatting", () => {
     expect(shekel(216.77)).toBe("₪217")
     expect(shekel(11680.89)).toBe("₪11,681");
     expect(shekel(216)).toBe("₪216");
-    expect(price(8.25)).toBe("₪8");
+    expect(price(8.25)).toBe("₪8.25");
   });
 
   it("puts the sign in front of the currency symbol", () => {
@@ -56,10 +56,10 @@ describe("RTL-safe numeric formatting", () => {
     expect(num(26.762, 3)).toBe("26.762");
   });
 
-  it("applies the whole-shekel policy to totals, unit prices and stored agorot", () => {
+  it("applies the whole-shekel policy to totals and stored agorot, not per-litre prices", () => {
     expect(shekel(233.1)).toBe("₪233");
-    expect(price(7.35)).toBe("₪7");
-    expect(price(7.5)).toBe("₪8");
+    expect(price(7.35)).toBe("₪7.35");
+    expect(price(7.5)).toBe("₪7.50");
     expect(vehicleMoney(23310)).toBe("₪233");
     expect(vehicleMoney(-155)).toBe("−₪2");
     expect(vehicleMoney(null)).toBe("לא ידוע");
