@@ -76,7 +76,7 @@ test("a station row shows the national ceiling as a ceiling, not as the station'
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
 
   await expect(page.getByText("מחיר ארצי").first()).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText(/עד ₪7(?![\d.])/).first()).toBeVisible();
+  await expect(page.getByText(/עד ₪7\.31/).first()).toBeVisible();
   await expect(page.getByText("מחיר לא זמין")).toHaveCount(0);
   await expect(page.getByText(/אין דיווח עדכני מהתחנה/)).toHaveCount(0);
 });
@@ -95,7 +95,7 @@ test("the diesel station list shows no price at all", async ({ page }) => {
 
   await expect(page.getByText("אין מחיר לסוג הדלק").first()).toBeVisible({ timeout: 20_000 });
   // Not one 95 price anywhere in the list.
-  await expect(page.getByText(/₪7(?![\d.])/)).toHaveCount(0);
+  await expect(page.getByText(/₪7\.31/)).toHaveCount(0);
 });
 
 test("a personal discount is not published as the station's price", async ({ page }) => {

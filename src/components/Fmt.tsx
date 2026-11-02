@@ -80,7 +80,7 @@ export function SignedMoney({
   return <NumRun className={className}>{shekelSigned(value)}</NumRun>;
 }
 
-/** ₪8 לליטר */
+/** ₪7.35 לליטר */
 export function PricePerLiter({
   value,
   className = "",

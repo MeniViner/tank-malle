@@ -1,13 +1,16 @@
 # Product display rules
 
-- All read-only amounts in Israeli shekels must display as whole shekels, rounded
-  to the nearest shekel, with no decimal point or fractional digits. This includes
-  totals, unit prices, discounts, differences, charts, tooltips, notifications,
-  scan results, history, profile and admin views.
-- Use `shekel`, `shekelSigned` or `price` from `src/lib/format.ts`, the matching
-  components in `src/components/Fmt.tsx`, or `vehicleMoney` for integer agorot.
-  Do not add local `toFixed`/`Intl.NumberFormat` currency implementations or
-  per-call precision overrides. Money chart ticks must also be integers.
+- Read-only shekel amounts display as whole shekels, rounded to the nearest
+  shekel: totals, costs, differences in totals, spend charts, tooltips,
+  notifications, scan results, history, profile and admin views.
+- **Exception: per-litre fuel prices always show two decimals** (₪7.35, not ₪7),
+  including official/list prices, average price paid, per-litre discounts and
+  the price chart. Rounding a fuel price to the shekel makes it meaningless.
+- Use `shekel`/`shekelSigned` (totals) or `price` (per litre) from
+  `src/lib/format.ts`, the matching components in `src/components/Fmt.tsx`, or
+  `vehicleMoney` for integer agorot. Do not add local `toFixed`/`Intl.NumberFormat`
+  currency implementations or per-call precision overrides. Spend chart ticks
+  must be integers.
 - This is a **display** rule. Preserve exact original monetary values in editable
   fields, calculations, validation, persistence, imports and exports. Never round
   stored prices, derive litres from a displayed rounded price, or save a formatted

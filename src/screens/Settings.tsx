@@ -196,8 +196,7 @@ export function Settings() {
             <RowButton title="תנאי שימוש" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/terms")} />
             <RowButton title="מדיניות פרטיות" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/legal/privacy")} />
           </ListCard>
-          <p className="pt-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION}</Num> · בילד <Num>{BUILD_COMMIT.slice(0,10)}</Num>{BUILD_DIRTY?" · שינויים מקומיים":""}</p>
-          <p className="text-center text-[12px] text-muted">הגרסה שפועלת במכשיר הזה · אותו עדכון מציג אותו בילד לכולם</p>
+          <p className="py-2 text-center text-[12px] text-muted">טנק מלא · גרסה <Num>{APP_VERSION}</Num> · בילד <Num>{BUILD_COMMIT.slice(0,10)}</Num>{BUILD_DIRTY?" · שינויים מקומיים":""}</p>
           <UpdateCheckButton />
         </section>
       </div>

@@ -35,6 +35,5 @@ export function HeroSpark({ segments, units = "kmPerLiter", average }: {
     <div className="tm-chart-dates" style={{ gridTemplateColumns: `repeat(${recent.length}, minmax(0, 1fr))` }}>
       {recent.map(s => <span key={s.endId}>{dayMonthShort(s.endDate)}</span>)}
     </div>
-    <figcaption>כל עמודה היא מקטע בין תדלוקים מלאים.{avg !== null ? <> הקו המקווקו הוא הממוצע שלכם.</> : null}</figcaption>
   </figure>;
 }
