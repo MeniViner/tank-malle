@@ -30,10 +30,9 @@ import { GAUGE_SD_BY_SOURCE } from "../lib/tank/config";
 import type { TankEstimate } from "../lib/tank";
 
 /**
- * "המיכל שלי" — the tank card on Home.
+ * Learned usage stays visible on Home; the tank estimate opens on request.
  *
- * One dominant estimate, one personalised sentence, two compact actions, and
- * everything else behind a tap. The states are rendered separately on purpose:
+ * The disclosure contains the estimate, personalised guidance and actions. The states are rendered separately on purpose:
  * unknown has to LOOK unknown, because an empty bar and a bar we cannot draw
  * are very different things to tell somebody about their fuel.
  */
@@ -79,9 +78,22 @@ export function MyTankCard() {
   return (
     <>
       <Card id="my-tank" className="tm-rise home-tank flex flex-col gap-2 p-[14px_16px]" style={{ animationDelay: "70ms" }}>
+        <section aria-label="מה למדנו מהשימוש שלך" className="flex flex-col gap-3 py-2">
+          <h2 className="text-[17px] font-semibold">מה למדנו מהשימוש שלך</h2>
+          {fillups.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 pb-2 text-[14px]">
+              {estimate.mobility.kmPerDay !== null ? <div><span className="block text-muted">נסיעה ביום</span><span className="text-[21px] font-semibold"><Num>{num(estimate.mobility.kmPerDay, 0)}</Num> ק״מ</span></div> : null}
+              <div><span className="block text-muted">בדרך כלל מתדלקים כל</span>{usage.cadenceDays !== null ? <span className="text-[19px] font-semibold"><Num>{num(usage.cadenceDays, 0)}</Num> ימים</span> : <span className="text-[13px] text-muted">עדיין לומדים את התדירות</span>}</div>
+              <div><span className="block text-muted">תדלוק טיפוסי</span>{usage.typicalLiters !== null ? <><Num className="font-semibold">{num(usage.typicalLiters, 0)}</Num> ליטר</> : <span className="text-[13px] text-muted">נדרשים עוד תדלוקים</span>}</div>
+              {estimate.consumption.source === 'history' && estimate.consumption.kmPerLiter !== null ? <div><span className="block text-muted">הצריכה שנלמדה</span><Num className="font-semibold">{num(estimate.consumption.kmPerLiter, 1)}</Num> קמ״ל</div> : null}
+            </div>
+          ) : <p className="text-[14px] leading-relaxed text-muted">לאחר תיעוד תדלוקים נציג כאן את הרגלי השימוש שלך.</p>}
+        </section>
+        <details className="border-t border-[var(--hairline)] pt-2" aria-label="המיכל שלי">
+          <summary className="min-h-12 cursor-pointer py-3 font-semibold">המיכל שלי</summary>
+          <div className="flex flex-col gap-2 pb-2">
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center">
-            <h2 className="text-[17px] font-semibold">המיכל שלי</h2>
             <button
               type="button"
               aria-label="איך המיכל מחושב"
@@ -186,17 +198,6 @@ export function MyTankCard() {
 
         {/* Exactly one personalised sentence. Everything else is in the sheet. */}
         {habit.canClaim || habit.overridden ? <p className="text-[15px] leading-relaxed text-ink">{habitCopy.text}</p> : null}
-        {fillups.length > 0 ? (
-          <details className="border-t border-[var(--hairline)] pt-2" aria-label="מה למדנו מהשימוש שלך">
-            <summary className="min-h-10 cursor-pointer py-2 text-[13.5px] font-semibold text-muted">מה למדנו מהשימוש שלך</summary>
-            <div className="grid grid-cols-2 gap-3 pb-2 text-[14px]">
-            {estimate.mobility.kmPerDay !== null ? <div><span className="block text-muted">נסיעה ביום</span><span className="text-[21px] font-semibold"><Num>{num(estimate.mobility.kmPerDay, 0)}</Num> ק״מ</span></div> : null}
-            <div><span className="block text-muted">בדרך כלל מתדלקים כל</span>{usage.cadenceDays !== null ? <span className="text-[19px] font-semibold"><Num>{num(usage.cadenceDays, 0)}</Num> ימים</span> : <span className="text-[13px] text-muted">עדיין לומדים את התדירות</span>}</div>
-            <div><span className="block text-muted">תדלוק טיפוסי</span>{usage.typicalLiters !== null ? <><Num className="font-semibold">{num(usage.typicalLiters, 0)}</Num> ליטר</> : <span className="text-[13px] text-muted">נדרשים עוד תדלוקים</span>}</div>
-            {estimate.consumption.source === 'history' && estimate.consumption.kmPerLiter !== null ? <div><span className="block text-muted">הצריכה שנלמדה</span><Num className="font-semibold">{num(estimate.consumption.kmPerLiter, 1)}</Num> קמ״ל</div> : null}
-            </div>
-          </details>
-        ) : null}
         {enriching ? <p role="status" className="text-[14px] text-muted">משלים מפרט רכב…</p> : null}
         {!estimate.capacity.liters && !enriching ? <button type="button" onClick={() => navigate('/settings/vehicles')} className="min-h-[44px] text-start text-[14px] font-semibold text-accent">השלמת נפח המיכל</button> : null}
         {current.level !== null && recommended ? <p className="text-[15px] font-semibold text-accent">{recommended}</p> : null}
@@ -231,6 +232,8 @@ export function MyTankCard() {
             }}
           />
         ) : null}
+          </div>
+        </details>
       </Card>
 
       <DetailsSheet

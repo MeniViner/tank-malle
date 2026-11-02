@@ -10,6 +10,7 @@ import { ConfirmDialog } from "../components/Sheet";
 import { Num } from "../components/Num";
 import { WarningIcon } from "../components/icons";
 import { fullDate, num, shekel, time } from "../lib/format";
+import { vehicleMoney } from "../lib/vehicle/format";
 import { fillupFromPayload } from "../lib/fillupSerializer";
 import { exportOperations, outboxStatusText, type OutboxOperation } from "../lib/outbox";
 import { MUTATION_LABELS, describeError } from "../lib/writes";
@@ -247,7 +248,7 @@ function OperationCard({
       {op.kind.startsWith("maintenance.") ? <div className="rounded-xl bg-surface-2 p-3 text-sm">
         <b>{String((op.payload ?? op.beforeImage)?.title ?? "עדכון תחזוקת רכב")}</b>
         <p>{String((op.payload ?? op.beforeImage)?.day ?? (op.payload ?? op.beforeImage)?.dueDay ?? "")}</p>
-        {typeof (op.payload ?? op.beforeImage)?.costAgorot === "number" ? <p>₪{Number((op.payload ?? op.beforeImage)?.costAgorot) / 100}</p> : null}
+        {typeof (op.payload ?? op.beforeImage)?.costAgorot === "number" ? <p><Num>{vehicleMoney(Number((op.payload ?? op.beforeImage)?.costAgorot))}</Num></p> : null}
         <p className="mt-1 text-muted">הנתונים המלאים כלולים בייצוא הפעולות שלא סונכרנו.</p>
       </div> : null}
       {op.kind.startsWith("maintenance.") && op.status === "conflict" ? <CareConflictDetails mine={op.payload ?? op.beforeImage} server={op.serverImage ?? null} /> : null}

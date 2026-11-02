@@ -22,6 +22,22 @@ async function activate(page:Page) {
 }
 test.beforeEach(async({request})=>{expect((await request.post('/__acceptance/reset')).status()).toBe(204);});
 
+test('an uncontrolled first tab can activate a waiting update and load its new bundle',async({page,context})=>{
+  await page.goto('/');await page.evaluate(()=>navigator.serviceWorker.ready.then(()=>undefined));
+  expect(await page.evaluate(()=>navigator.serviceWorker.controller===null)).toBe(true);
+  // Keep the original worker in use so the next one waits instead of
+  // activating immediately. The original first tab remains uncontrolled.
+  const controlled=await context.newPage();await controlled.goto('/');await waitForServiceWorkerControl(controlled);
+  await publish(page);await page.evaluate(async()=>{await (await navigator.serviceWorker.getRegistration())?.update();});
+  await expect(page.getByRole('button',{name:'רענון',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>navigator.serviceWorker.controller===null)).toBe(true);
+  expect(await page.evaluate(async()=>!!(await navigator.serviceWorker.getRegistration())?.waiting)).toBe(true);
+  const html=await (await page.request.get('/')).text();
+  const script=html.match(/src="(\/assets\/index-[^"]+\.js)"/)![1];
+  await activate(page);
+  await expect(page.locator('script[src^="/assets/index-"]')).toHaveAttribute('src',script);
+});
+
 test('resume discovers a waiting build; activation preserves existing data, both drafts and an offline queue',async({page,context})=>{
   const scope=await signedInWithData(page,{fillups:[{id:'kept',date:new Date(Date.now()-86400000),odometer:99000,liters:10,pricePerLiter:8,totalCost:80}]});
   const root=`users/${scope.uid}/vehicles/${scope.vehicleId}`;
@@ -61,16 +77,34 @@ test('resume discovers a waiting build; activation preserves existing data, both
   await expect.poll(()=>outboxCount(page,scope.uid)).toBe(0);expect(await listDocuments(root+'/fillups')).toHaveLength(1);
 });
 
-test('manual checks report offline/current and can reopen a dismissed waiting update',async({page,context})=>{
-  await signedInWithData(page,{fillups:[]});await expectVersion(page,'acceptance-before');await waitForServiceWorkerControl(page);
+test('manual checks compare same-version builds and can reopen a dismissed waiting update',async({page,context})=>{
+  await signedInWithData(page,{fillups:[]});await expectVersion(page,version);await waitForServiceWorkerControl(page);
+  await expect(page.getByText(/טנק מלא · גרסה .* · בילד 1111111111/)).toBeVisible();
   await context.setOffline(true);await page.getByRole('button',{name:'בדיקת עדכון',exact:true}).click();
   await expect(page.getByText('חזרו לחיבור לאינטרנט כדי לבדוק עדכון.')).toBeVisible();await context.setOffline(false);
   await page.getByRole('button',{name:'בדיקת עדכון',exact:true}).click();await expect(page.getByText('לא נמצא עדכון חדש.')).toBeVisible();
+  // A previous check may have requested a direct reload while no worker was
+  // waiting. If dismissed, that flag must not bypass a subsequently staged SW.
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('tm:app-update-available',{detail:{reload:true}})));
+  await page.getByRole('button',{name:'אחר כך',exact:true}).click();
   await publish(page);await page.getByRole('button',{name:'בדיקת עדכון',exact:true}).click();
   await expect(page.getByText('גרסה חדשה זמינה',{exact:true})).toBeVisible();await page.getByRole('button',{name:'אחר כך',exact:true}).click();
   await expect(page.getByRole('button',{name:'רענון',exact:true})).toHaveCount(0);
   await page.getByRole('button',{name:'בדיקת עדכון',exact:true}).click();await expect(page.getByRole('button',{name:'רענון',exact:true})).toBeVisible();
   await activate(page);await expectVersion(page,version);
+  const release=await (await page.request.get('/build-info.json')).json();
+  await expect(page.getByText(new RegExp(`טנק מלא · גרסה .* · בילד ${release.commit.slice(0,10)}`))).toBeVisible();
+  await page.getByRole('button',{name:'בדיקת עדכון',exact:true}).click();
+  await expect(page.getByText('לא נמצא עדכון חדש.')).toBeVisible();
+  await expect(page.getByText(new RegExp(`בשרת: גרסה .* · בילד ${release.commit.slice(0,10)}`))).toBeVisible();
+});
+
+test('a failed release metadata request never claims the running build is current',async({page,context})=>{
+  await signedInWithData(page,{fillups:[]});await expectVersion(page,version);await waitForServiceWorkerControl(page);
+  await context.route('**/build-info.json',route=>route.fulfill({status:503,body:'unavailable'}));
+  await page.getByRole('button',{name:'בדיקת עדכון',exact:true}).click();
+  await expect(page.getByText('לא ניתן לבדוק עדכון כרגע. אפשר לנסות שוב.')).toBeVisible();
+  await expect(page.getByText('לא נמצא עדכון חדש.')).toHaveCount(0);
 });
 
 test('another tab activating an update cannot discard a draft whose disk write failed',async({page,context})=>{

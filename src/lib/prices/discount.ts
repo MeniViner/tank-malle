@@ -1,4 +1,5 @@
 import type { Vehicle } from '../stats';
+import { shekel } from '../format';
 
 export interface FuelDiscount { kind: 'amount' | 'percent'; value: number }
 
@@ -25,5 +26,5 @@ export function discountedPrice(official: number, rule: FuelDiscount | null): nu
 export function discountLabel(rule: FuelDiscount | null): string {
   return rule && rule.value > 0 ? rule.kind === 'percent'
     ? `${rule.value}% הנחה מהמחיר הרשמי`
-    : `${rule.value.toFixed(2)} ₪ הנחה לליטר מהמחיר הרשמי` : 'ללא הנחה';
+    : `${shekel(rule.value)} הנחה לליטר מהמחיר הרשמי` : 'ללא הנחה';
 }

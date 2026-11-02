@@ -5,6 +5,7 @@ import { CheckIcon } from '../icons';
 import { PhotoReader } from './PhotoReader';
 import type { ScanDraft } from '../../lib/scan/draft';
 import type { DisplayReading } from '../../lib/scan/automaticDisplay';
+import { shekel } from '../../lib/format';
 
 export function ScanWizard({ initial,onClose,onApply }: { initial:ScanDraft;onClose:()=>void;onApply:(draft:ScanDraft,scanned:boolean)=>void }) {
   const heading=useRef<HTMLParagraphElement>(null);
@@ -23,7 +24,7 @@ export function ScanWizard({ initial,onClose,onApply }: { initial:ScanDraft;onCl
   return <><Sheet open onClose={close} title={<h2 className="text-lg font-bold">תדלוק בשני צילומים</h2>}>
     <div className="flex flex-col gap-5">
       <ol className="scan-steps" aria-label="שלבי הוספת תדלוק">{['משאבה','קילומטראז׳'].map((name,i)=><li key={name} aria-current={step===i?'step':undefined}><span>{i<step?<CheckIcon size={16}/>:i+1}</span>{name}</li>)}</ol>
-      {pump?<div className="scan-success" role="status"><CheckIcon size={20}/><span><b>המשאבה נקראה</b><span><bdi>₪{pump.total}</bdi> · <bdi>{pump.liters}</bdi> ליטר</span></span></div>:null}
+      {pump?<div className="scan-success" role="status"><CheckIcon size={20}/><span><b>המשאבה נקראה</b><span><bdi>{shekel(Number(pump.total))}</bdi> · <bdi>{pump.liters}</bdi> ליטר</span></span></div>:null}
       <p ref={heading} tabIndex={-1} className="text-sm leading-relaxed text-muted outline-none">{step===0?'פותחים מצלמה, מכוונים לצג — ואנחנו קוראים את הספרות. פעלו לפי הנחיות התחנה לשימוש בטלפון.':'עוד צילום אחד, והנתונים יעברו לטופס לבדיקה.'}</p>
       <PhotoReader key={step} kind={step===0?'pump':'odometer'} autoOpen={live} onRead={read}/>
       {step===0?<Button variant="ghost" onClick={()=>setStep(1)}>דילוג לקילומטראז׳</Button>:<Button variant="ghost" onClick={()=>onApply(draft,!!pump)}>השלמה בטופס הידני</Button>}

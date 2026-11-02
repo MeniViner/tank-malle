@@ -1,6 +1,6 @@
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { useEffect, useRef, useState } from "react";
-import { APP_UPDATE_AVAILABLE, canReloadForUpdate, watchAppUpdates } from "../lib/appUpdates";
+import { APP_UPDATE_AVAILABLE, canReloadForUpdate, waitForWorkerActivation, watchAppUpdates } from "../lib/appUpdates";
 import { RefreshIcon } from "./icons";
 
 /**
@@ -11,6 +11,8 @@ import { RefreshIcon } from "./icons";
 export function UpdatePrompt() {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [blocked, setBlocked] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [updateFailed, setUpdateFailed] = useState(false);
   const reloadPending = useRef(false);
   const {
     needRefresh: [needRefresh, setNeedRefresh],
@@ -31,7 +33,13 @@ export function UpdatePrompt() {
   });
   useEffect(() => registration ? watchAppUpdates(registration) : undefined, [registration]);
   useEffect(() => {
-    const available = () => setNeedRefresh(true);
+    const available = (event: Event) => {
+      // The published build can differ even when a newer worker is already
+      // active (or the browser has no worker). In that case reload the page
+      // through the same editor/durable-draft guard as worker activation.
+      if ((event as CustomEvent<{ reload?: boolean }>).detail?.reload) reloadPending.current = true;
+      setNeedRefresh(true);
+    };
     window.addEventListener(APP_UPDATE_AVAILABLE, available);
     return () => window.removeEventListener(APP_UPDATE_AVAILABLE, available);
   }, [setNeedRefresh]);
@@ -47,16 +55,29 @@ export function UpdatePrompt() {
 
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="text-[14.5px] font-bold text-ink">גרסה חדשה זמינה</span>
-          <span role="status" className="text-[14px] text-muted">{blocked ? "סיימו את השמירה או שמרו את הטיוטה לפני הרענון." : "רעננו כדי לעבור אליה"}</span>
+          <span role="status" className="text-[14px] text-muted">{blocked ? "סיימו את השמירה או שמרו את הטיוטה לפני הרענון." : updateFailed ? "העדכון לא הושלם. אפשר לנסות שוב." : activating ? "מפעילים את העדכון…" : "רעננו כדי לעבור אליה"}</span>
         </div>
 
         <button
           type="button"
-          onClick={() => {
+          disabled={activating}
+          onClick={async () => {
             if (!canReloadForUpdate()) { setBlocked(true); return; }
-            setBlocked(false);
-            if (reloadPending.current) window.location.reload();
-            else void updateServiceWorker(true);
+            setBlocked(false); setUpdateFailed(false);
+            // A worker staged after a dismissed direct-reload prompt takes
+            // priority; reloading before activating it would keep the old app.
+            try {
+              if (registration?.waiting) {
+                if (!navigator.serviceWorker.controller) {
+                  setActivating(true);
+                  await Promise.all([waitForWorkerActivation(registration.waiting), updateServiceWorker(true)]);
+                  reloadPending.current = true;
+                  if (canReloadForUpdate()) window.location.reload(); else setBlocked(true);
+                } else await updateServiceWorker(true);
+              } else if (reloadPending.current) window.location.reload();
+              else await updateServiceWorker(true);
+            } catch { setUpdateFailed(true); }
+            finally { setActivating(false); }
           }}
           className="min-h-[40px] flex-none rounded-pill bg-accent px-3.5 text-[13px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.96]"
         >

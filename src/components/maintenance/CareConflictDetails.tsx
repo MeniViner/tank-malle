@@ -1,9 +1,10 @@
 import { JOBS, EXPENSES } from '../../lib/maintenance/model';
 import type { OutboxPayload } from '../../lib/outbox';
+import { vehicleMoney } from '../../lib/vehicle/format';
 const labels: Record<string,string> = { title:'שם',day:'תאריך ביצוע',odometer:'קילומטראז׳',costAgorot:'עלות',jobs:'עבודות',garage:'מוסך',notes:'הערות',dueDay:'תאריך יעד',dueOdometer:'יעד ק״מ',intervalKm:'מרווח ק״מ',intervalMonths:'מרווח חודשים',active:'תזכורת פעילה',source:'מקור',basis:'חישוב מועד',category:'סוג הוצאה',job:'סוג טיפול',completedPlanIds:'תזכורות שהושלמו' };
 function value(key:string,input:unknown): string {
   if (input===null || input===undefined || input==='') return 'לא הוזן';
-  if (key==='costAgorot') return `₪${Number(input)/100}`;
+  if (key==='costAgorot') return vehicleMoney(Number(input));
   if (key==='jobs' && Array.isArray(input)) return input.map(v=>JOBS[v as keyof typeof JOBS]??String(v)).join(', ');
   if (key==='completedPlanIds' && Array.isArray(input)) return `${input.length} תזכורות; הבחירה השתנתה בין הגרסאות`;
   if (key==='job') return JOBS[input as keyof typeof JOBS]??String(input);

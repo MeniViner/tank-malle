@@ -58,33 +58,29 @@ function WithUnit({
   );
 }
 
-/** ₪216.77 */
+/** ₪217 (whole-shekel display; source values retain their precision). */
 export function Money({
   value,
-  digits,
   className = "",
 }: {
   value: number;
-  digits?: number;
   className?: string;
 }) {
-  return <NumRun className={className}>{shekel(value, digits)}</NumRun>;
+  return <NumRun className={className}>{shekel(value)}</NumRun>;
 }
 
-/** +₪1.20 / −₪0.05 */
+/** +₪1 / −₪2 */
 export function SignedMoney({
   value,
-  digits = 2,
   className = "",
 }: {
   value: number;
-  digits?: number;
   className?: string;
 }) {
-  return <NumRun className={className}>{shekelSigned(value, digits)}</NumRun>;
+  return <NumRun className={className}>{shekelSigned(value)}</NumRun>;
 }
 
-/** ₪8.25 לליטר */
+/** ₪8 לליטר */
 export function PricePerLiter({
   value,
   className = "",

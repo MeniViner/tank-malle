@@ -171,8 +171,6 @@ export function Profile() {
       <ScreenHeader title="פרופיל וחשבון" onBack={() => navigate(-1)} />
 
       <div className="tm-page">
-        <UnifiedTransfer onImported={() => setLoadAttempt(n => n + 1)} />
-        <LegacyCareTransfer />
         {accountDeletionPending ? <p role="alert" className="rounded-card bg-danger/10 p-4 text-sm text-danger">מחיקת החשבון ממתינה להשלמה. הנתונים שכבר נמחקו לא ישוחזרו; ניתן לנסות שוב דרך מחיקת החשבון למטה. אם הפעולה נעצרה, רעננו תחילה.</p> : null}
         <section className="tm-rise flex flex-col gap-3.5 py-2 text-ink">
           <div className="flex items-center gap-3.5">
@@ -254,8 +252,9 @@ export function Profile() {
           </ListCard>
         </section>
 
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2" aria-label="הנתונים שלי">
           <Label>הנתונים שלי</Label>
+          <UnifiedTransfer onImported={() => setLoadAttempt(n => n + 1)} />
           <ListCard>
             <RowButton title="היקף הייצוא" value={scopeLabel} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setScopeOpen(true)} />
             <RowButton
@@ -277,6 +276,7 @@ export function Profile() {
               onClick={() => exportSelected("tank")}
             />
             <RowButton icon={<UploadIcon size={18} className="text-muted" />} title="ייבוא נתונים" subtitle="CSV או Excel · גם יומנים ישנים" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/import")} />
+            <LegacyCareTransfer />
             <RowButton title="פעולות שלא סונכרנו" value={healthUnknown ? "מצב האחסון לא ידוע" : unsynced > 0 ? "יש פעולות לטיפול" : "הכול מסונכרן"} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/unsynced")} />
           </ListCard>
         </section>

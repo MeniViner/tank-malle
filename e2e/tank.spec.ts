@@ -271,8 +271,10 @@ test("Home carries the tank card alongside the two summary tiles", async ({ page
   // matters, which is the one to the refuelling threshold.
   await expect(page.getByText("טווח נסיעה משוער במיכל מלא")).toHaveCount(0);
 
-  // Nothing measured yet, so the card leads with a single invitation rather
-  // than two equal-weight actions.
+  // Learned usage stays visible; the optional tank opens only on request.
+  await expect(page.getByLabel("מה למדנו מהשימוש שלך")).toBeVisible();
+  await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeHidden();
+  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   await expect(page.getByTestId("current-tank-level")).toHaveText("לא ידוע");
   await expect(page.getByText("כמה דלק נשאר?")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeVisible();
@@ -282,6 +284,7 @@ test("an odometer update is a reading, not a fill-up", async ({ page }) => {
   const { uid, vehicleId } = await freshVehicle(page);
 
   await page.goto("/");
+  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   // A gauge reading first, so the card has something to show and offers the
   // odometer action; the point of the test is that the odometer update is a
   // reading and not a fill-up.

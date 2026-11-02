@@ -9,6 +9,7 @@ import {
   num,
   int,
 } from "./format";
+import { vehicleMoney } from "./vehicle/format";
 
 /**
  * These assertions are about BIDI correctness, not arithmetic. Every string
@@ -36,13 +37,13 @@ describe("RTL-safe numeric formatting", () => {
     expect(shekel(216.77)).toBe("₪217")
     expect(shekel(11680.89)).toBe("₪11,681");
     expect(shekel(216)).toBe("₪216");
-    expect(price(8.25)).toBe("₪8.25");
+    expect(price(8.25)).toBe("₪8");
   });
 
   it("puts the sign in front of the currency symbol", () => {
-    expect(shekelSigned(-0.05)).toBe("−₪0.05");
-    expect(shekelSigned(1.2)).toBe("+₪1.20");
-    expect(shekelSigned(0)).toBe("₪0.00");
+    expect(shekelSigned(-1.5)).toBe("−₪2");
+    expect(shekelSigned(1.2)).toBe("+₪1");
+    expect(shekelSigned(0)).toBe("₪0");
   });
 
   it("uses a true minus sign, not a hyphen, so it cannot read as a list dash", () => {
@@ -53,6 +54,28 @@ describe("RTL-safe numeric formatting", () => {
   it("groups thousands", () => {
     expect(int(201050)).toBe("201,050");
     expect(num(26.762, 3)).toBe("26.762");
+  });
+
+  it("applies the whole-shekel policy to totals, unit prices and stored agorot", () => {
+    expect(shekel(233.1)).toBe("₪233");
+    expect(price(7.35)).toBe("₪7");
+    expect(price(7.5)).toBe("₪8");
+    expect(vehicleMoney(23310)).toBe("₪233");
+    expect(vehicleMoney(-155)).toBe("−₪2");
+    expect(vehicleMoney(null)).toBe("לא ידוע");
+  });
+
+  it("does not show a positive or negative sign on rounded zero", () => {
+    expect(shekelSigned(-0.05)).toBe("₪0");
+    expect(shekelSigned(0.2)).toBe("₪0");
+    expect(vehicleMoney(-49)).toBe("₪0");
+    expect(vehicleMoney(-50)).toBe("−₪1");
+  });
+
+  it("keeps unknown/non-finite monetary values out of displayed amounts", () => {
+    expect(shekel(NaN)).toBe("—");
+    expect(price(Infinity)).toBe("—");
+    expect(shekelSigned(-Infinity)).toBe("—");
   });
 });
 

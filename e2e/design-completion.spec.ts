@@ -65,6 +65,7 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
   await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
   await page.goto('/');
   await expect(page.getByTestId('consumption-chart').getByRole('img')).toHaveAccessibleName(/12.5 קמ״ל/);
+  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   await expect(page.getByTestId('tank-level-bar')).toBeVisible();
   const logo = page.getByTestId('recent-fillups-timeline').locator('img').first();
   await expect(logo).toHaveAttribute('src','/brands/sonol.svg');
