@@ -29,7 +29,7 @@ export function HeroSpark({ segments, units = "kmPerLiter", average }: {
       {recent.map((segment, i) => <rect key={segment.endId} data-segment={segment.endId}
         x={width - slot * (i + .5) - barWidth / 2} y={y(values[i])}
         width={barWidth} height={baseline - y(values[i])} rx="4"
-        fill={i === recent.length - 1 ? (segment.kmPerLiter < weighted * .97 ? "var(--danger)" : "var(--accent)") : "color-mix(in srgb, var(--accent) 22%, var(--surface))"} />)}
+        fill={i === recent.length - 1 ? (segment.kmPerLiter < weighted * .97 ? "var(--worse)" : segment.kmPerLiter > weighted * 1.03 ? "var(--better)" : "var(--ink)") : "color-mix(in srgb, var(--accent) 22%, var(--surface))"} />)}
       {avg !== null ? <line data-testid="consumption-average" x1="0" x2={width} y1={y(avg)} y2={y(avg)} stroke="var(--muted)" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" /> : null}
     </svg>
     <div className="tm-chart-dates" style={{ gridTemplateColumns: `repeat(${recent.length}, minmax(0, 1fr))` }}>

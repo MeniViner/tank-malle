@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { ScreenHeader } from "../components/AppHeader";
-import { Card } from "../components/Card";
 import { Num } from "../components/Num";
+import { NumericText } from "../components/Fmt";
+import "../secondary-design.css";
 
 /**
  * Terms of Service and Privacy Policy.
@@ -12,7 +13,7 @@ import { Num } from "../components/Num";
  * authoritative. Vague boilerplate would protect nobody.
  */
 
-const LAST_UPDATED = "31 באוגוסט 2026";
+const LAST_UPDATED = "4 בנובמבר 2026";
 const CONTACT = "meniviner@gmail.com";
 
 export function Legal() {
@@ -21,36 +22,29 @@ export function Legal() {
   const isPrivacy = doc === "privacy";
 
   return (
-    <main className="flex flex-1 flex-col pb-[104px] pt-safe">
+    <main className="tm-secondary-page" data-testid="legal-page">
       <ScreenHeader
         title={isPrivacy ? "מדיניות פרטיות" : "תנאי שימוש"}
         onBack={() => navigate(-1)}
       />
 
-      <div className="flex flex-col gap-4 px-5">
-        <Card className="px-4 py-3">
-          <p className="text-[14px] text-muted">
-            עודכן לאחרונה: {LAST_UPDATED} · גרסה <Num>1.0</Num>
-          </p>
-        </Card>
-
-        <article className="tm-document flex flex-col gap-6 pb-6">
+      <div className="tm-secondary-body">
+        <article className="tm-secondary-legal flex flex-col gap-7 pb-6" aria-label={isPrivacy ? "מדיניות הפרטיות המלאה" : "תנאי השימוש המלאים"}>
+          <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{LAST_UPDATED}</NumericText> · גרסה <Num>1.1</Num></p>
           {isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}
 
-          <Card className="flex flex-col gap-1.5 p-4">
-            <span className="text-[14px] font-bold text-ink">יצירת קשר</span>
-            <span className="text-[14px] leading-relaxed text-muted">
+          <div className="tm-secondary-group pt-4">
+            <h2 className="tm-secondary-section-title">יצירת קשר</h2>
+            <p className="tm-secondary-copy mt-2">
               לשאלות, בקשות למחיקת מידע או מימוש זכויות לפי חוק הגנת הפרטיות:{" "}
-              <span dir="ltr" className="font-semibold text-accent">
-                {CONTACT}
-              </span>
-            </span>
-          </Card>
+            </p>
+            <a className="tm-secondary-link" href={`mailto:${CONTACT}`}><bdi dir="ltr">{CONTACT}</bdi></a>
+          </div>
 
           <button
             type="button"
             onClick={() => navigate(isPrivacy ? "/legal/terms" : "/legal/privacy")}
-            className="min-h-[48px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.97]"
+            className="tm-button tm-button-line"
           >
             {isPrivacy ? "מעבר לתנאי השימוש" : "מעבר למדיניות הפרטיות"}
           </button>
@@ -63,8 +57,8 @@ export function Legal() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-2">
-      <h2 className="font-display text-[23px] font-bold text-ink">{title}</h2>
-      <div className="flex flex-col gap-2 text-[16px] leading-[1.72] text-ink/85">
+      <h2><NumericText>{title}</NumericText></h2>
+      <div className="tm-secondary-legal-copy">
         {children}
       </div>
     </section>
@@ -76,7 +70,7 @@ function List({ items }: { items: React.ReactNode[] }) {
     <ul className="flex flex-col gap-1.5 ps-4">
       {items.map((item, index) => (
         <li key={index} className="list-disc marker:text-muted">
-          {item}
+          {typeof item === "string" ? <NumericText>{item}</NumericText> : item}
         </li>
       ))}
     </ul>
@@ -112,8 +106,8 @@ function TermsOfService() {
 
       <Section title="3. הנתונים שלכם שייכים לכם">
         <p>
-          כל התדלוקים, הרכבים וההגדרות שהזנתם הם שלכם. תוכלו בכל עת לייצא את מלוא
-          הנתונים לקובץ CSV דרך מסך ההגדרות, ולמחוק את החשבון וכל המידע שנצבר בו מחיקה
+          כל התדלוקים, הרכבים וההגדרות שהזנתם הם שלכם. דרך „חשבון ← הנתונים שלי״ תוכלו
+          לייצא רשומות לקובץ CSV או לשמור גיבוי של נתוני החשבון, ולמחוק את החשבון וכל המידע שנצבר בו מחיקה
           מלאה ובלתי הפיכה.
         </p>
       </Section>
@@ -136,7 +130,7 @@ function TermsOfService() {
       <Section title="5. מחירי דלק — מידע אינדיקטיבי בלבד">
         <p>
           מחיר הדלק המוצג בשירות הוא <b>הערכה לנוחותכם בלבד</b> ואינו מהווה מקור רשמי.
-          המחיר הרשמי המרבי לבנזין 95 בשירות עצמי נקבע ומתפרסם על ידי משרד האנרגיה
+          המחיר הרשמי המרבי לבנזין <Num>95</Num> בשירות עצמי נקבע ומתפרסם על ידי משרד האנרגיה
           והתשתיות, והוא הקובע היחיד.
         </p>
         <p>
@@ -174,7 +168,7 @@ function TermsOfService() {
         <p>
           השירות מסופק „כפי שהוא״ (AS IS) ו„כפי שהוא זמין״ (AS AVAILABLE), ללא התחייבות
           לזמינות, לרציפות או לשימור נתונים לאורך זמן. אנו רשאים לשנות, להשעות או להפסיק
-          את השירות, כולו או חלקו, בכל עת. מומלץ לייצא גיבוי CSV מעת לעת.
+          את השירות, כולו או חלקו, בכל עת. מומלץ לשמור גיבוי של הנתונים מעת לעת.
         </p>
       </Section>
 
@@ -224,7 +218,7 @@ function PrivacyPolicy() {
         <p>
           אנחנו אוספים את המינימום ההכרחי כדי שהשירות יעבוד, לא מוכרים מידע לאף אחד, ולא
           משתמשים במידע שלכם לפרסום. מדיניות זו מנוסחת בהתאם לחוק הגנת הפרטיות,
-          התשמ״א-1981 ותקנותיו.
+          התשמ״א-<Num>1981</Num> ותקנותיו.
         </p>
       </Section>
 
@@ -237,8 +231,9 @@ function PrivacyPolicy() {
         <p>
           <b>מידע שאתם מזינים:</b> פרטי רכב (יצרן, דגם, שנה, סוג דלק, מספר רישוי אם
           הזנתם, נפח מיכל, צריכה מוצהרת, כינוי), ורשומות תדלוק (תאריך ושעה, קילומטראז׳,
-          ליטרים, מחיר, סכום, מיכל מלא/חלקי, שם תחנה והערות).
+          ליטרים, מחיר, סכום, תדלוק עד הסוף/חלקי, שם תחנה והערות).
           אפשר גם לתעד טיפולים, הוצאות והחזרים, קריאות קילומטראז׳, תקלות ותזכורות לטיפול.
+          פרטי רישוי וביטוח הם רשות, ויכולים לכלול מועד טסט, חברת ביטוח, סוג כיסוי, תוקף ועלות שנתית.
         </p>
         <p>
           <b>העדפות:</b> ערכת נושא, צבע הדגשה, יחידת מדידה והרכב הפעיל.
@@ -283,8 +278,8 @@ function PrivacyPolicy() {
           זמן. אנונימיות מלאה תדרוש עיבוד בצד השרת, שעדיין אינו פעיל.
         </p>
         <p>
-          ניתן לבטל את ההשתתפות בכל עת ב„הגדרות ← השוואה אנונימית״. ביטול מוחק את כל
-          הרשומות מיידית. מחיקת החשבון מוחקת אותן אף היא.
+          ניתן לבטל את ההשתתפות בכל עת ב„חשבון ← השוואה לנהגים״. ביטול מסיר את רשומות
+          ההשוואה לאחר השלמת הסנכרון. מחיקת החשבון מוחקת אותן אף היא.
         </p>
       </Section>
 
@@ -301,9 +296,9 @@ function PrivacyPolicy() {
         </p>
         <p>
           <b>נכון להיום</b> מנגנון הדיווח הקהילתי אינו פעיל. מחירי התחנות המוצגים הם
-          המחיר המרבי המפוקח, שקיים לבנזין 95 בשירות עצמי בלבד. לסולר ולבנזין 98 אין
-          מחיר מפוקח בישראל, ולכן במקרים אלה נכתב במפורש „מחיר לא ידוע״ במקום להציג
-          מחיר של סוג דלק אחר.
+          המחיר המרבי המפוקח, שקיים לבנזין <Num>95</Num> בשירות עצמי בלבד. לסולר ולבנזין <Num>98</Num> אין
+          מחיר מפוקח בישראל. כשזמין מחירון רשת עבורם, הוא מסומן כמחירון עם מקור ותאריך,
+          ואינו מוצג כמחיר שנגבה בתחנה מסוימת. בלי מקור מתאים מוצג שהמחיר אינו ידוע.
         </p>
       </Section>
 
@@ -351,15 +346,13 @@ function PrivacyPolicy() {
               <b>Google Firebase</b> — אימות, אחסון ואירוח.
             </>,
             <>
-              <b>Google Fonts</b> — טעינת הגופן Heebo.
-            </>,
-            <>
               <b>data.gov.il</b> — שאילתות למאגרי משרד התחבורה ומשרד האנרגיה בעת איתור
               רכב לפי מספר רישוי. הבקשה כוללת את מספר הרישוי שהזנתם ואינה כוללת פרטים
               מזהים אחרים עליכם.
             </>,
           ]}
         />
+        <p>הגופנים נכללים בקבצי האפליקציה ונטענים ממנה, ללא פנייה לשירות Google Fonts.</p>
         <p>איננו משתמשים בכלי פרסום, ברשתות מודעות או בפיקסלים של מעקב.</p>
       </Section>
 
@@ -378,7 +371,7 @@ function PrivacyPolicy() {
       <Section title="10. הזכויות שלכם">
         <List
           items={[
-            "עיון — כל המידע שלכם מוצג באפליקציה וניתן לייצוא מלא לקובץ CSV.",
+            "עיון — הנתונים מוצגים באפליקציה. בחשבון ניתן לייצא רשומות לקובץ CSV ולשמור גיבוי של נתוני החשבון.",
             "תיקון — כל שדה, לרבות רשומות היסטוריות, ניתן לעריכה בכל עת.",
             "מחיקה — מחיקת רשומה בודדת, רכב שלם או החשבון כולו.",
             "ביטול הסכמה — הפסקת ההשתתפות בהשוואה האנונימית או ביטול הרשאת המיקום.",
@@ -396,7 +389,7 @@ function PrivacyPolicy() {
 
       <Section title="12. קטינים">
         <p>
-          השירות אינו מיועד לילדים מתחת לגיל 16. אם נודע לנו שנאסף מידע מקטין ללא הסכמת
+          השירות אינו מיועד לילדים מתחת לגיל <Num>16</Num>. אם נודע לנו שנאסף מידע מקטין ללא הסכמת
           אפוטרופוס, נמחק אותו.
         </p>
       </Section>

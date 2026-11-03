@@ -1,0 +1,160 @@
+/* The two care steps share native modal containment with the smaller sheets. */
+.tm-sheet-panel.care-entry-sheet {
+  position: relative;
+  isolation: isolate;
+  height: 100dvh;
+  max-height: 100dvh;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.care-entry-sheet > .tm-sheet-grab { display: none; }
+.care-entry-sheet > .tm-sheet-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+}
+.care-entry-top {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: max(52px, env(safe-area-inset-top, 0px)) 20px 18px;
+}
+.care-entry-top .tm-icon-button {
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+}
+.care-entry-top-spacer { width: 44px; height: 44px; }
+.care-entry-step { color: var(--ink-2); font-size: 13px; font-weight: 600; }
+.care-entry-sheet .care-v2-editor { flex: 1; min-width: 0; min-height: 0; gap: 0; }
+.care-entry-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 20px 20px;
+  scroll-padding-block: 16px;
+}
+.care-entry-fields { display: flex; flex-direction: column; gap: 18px; min-width: 0; margin: 0; padding: 0; border: 0; }
+.care-entry-sheet-content { display: flex; flex-direction: column; gap: 18px; }
+.care-entry-sheet .care-entry-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font: 700 54px/1.05 var(--font-display);
+  letter-spacing: normal;
+  text-align: right;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+}
+.care-entry-heading h3:focus { outline: none; }
+.care-v2-editor .care-choice-grid { gap: 10px; }
+.care-v2-editor .care-choice {
+  min-height: 64px;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--ink);
+  border-radius: 18px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: none;
+  transition: background-color .15s;
+}
+.care-v2-editor .care-choice > svg:first-child { width: 22px; height: 22px; color: var(--ink); }
+.care-v2-editor .care-choice > svg:last-child { flex: none; }
+.care-v2-editor .care-choice-dot { display: none; }
+.care-v2-editor .care-choice[aria-pressed=true] { background: var(--accent); color: #111; box-shadow: inset 0 0 0 .5px #111; }
+.care-v2-editor .care-choice[aria-pressed=true] > svg { color: #111; }
+.care-v2-editor .care-choice:active { scale: 1; }
+.care-v2-editor .care-quiet-note { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.55; }
+.care-entry-sheet .care-entry-category { display: flex; align-items: center; gap: 8px; margin: 8px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.care-entry-category svg { flex: none; width: 18px; height: 18px; }
+.care-entry-details { display: flex; flex-direction: column; gap: 18px; }
+.care-entry-cost { display: grid; gap: 6px; }
+.care-v2-editor .tm-field-control { min-height: 52px; border: 1.5px solid var(--ink); border-radius: 12px; }
+.care-v2-editor input[dir=ltr] { text-align: right; font-family: var(--font-mono); font-weight: 400; }
+.care-v2-editor input[type=date] { min-width: 0; width: 100%; }
+.care-v2-editor input[type=date]::-webkit-date-and-time-value { text-align: right; }
+.care-v2-editor input::placeholder { font-family: var(--font-sans); font-size: 15px; }
+.care-entry-cost input { font-size: 26px; }
+.care-entry-cost input::placeholder { font-size: 20px; }
+.care-entry-notes { display: grid; gap: 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; }
+.care-entry-notes textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ink);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font: 400 17px/1.5 var(--font-sans);
+}
+.care-entry-notes textarea::placeholder { color: var(--ink-2); opacity: 1; }
+.care-entry-extra { display: flex; flex-direction: column; gap: 16px; padding-top: 12px; }
+.care-v2-editor .care-disclosure { padding-inline: 0; }
+.care-v2-editor .care-disclosure summary { min-height: 48px; }
+.care-v2-editor .care-disclosure summary small { color: var(--ink-2); }
+.care-v2-editor .care-check-row { min-height: 48px; }
+.care-v2-editor .care-check-row input { accent-color: var(--ink); }
+.care-entry-sheet .care-entry-footer {
+  position: static;
+  bottom: auto;
+  z-index: auto;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 20px max(30px, env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to top, var(--bg) 75%, transparent);
+  box-shadow: none;
+}
+.care-entry-footer:empty { display: none; }
+.care-entry-footer .care-draft-status { order: -1; color: var(--ink-2); gap: 8px; }
+.care-entry-footer .care-draft-status button { flex: none; }
+.care-entry-scroll > .care-form-error { margin-top: 18px; }
+.care-v2-editor .care-restored { padding: 9px 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); }
+.care-entry-step,
+.care-v2-editor :is(.care-quiet-note, .care-disclosure summary, .care-entry-notes > span, .text-muted) {
+  text-shadow: var(--tm-atmosphere-text-shadow);
+}
+.care-v2-editor :is(button, input, textarea, select, summary) { scroll-margin-block: 12px; }
+.care-v2-editor :is(button, textarea, select, summary):focus-visible,
+.care-entry-top button:focus-visible,
+.care-v2-editor .tm-field-control:focus-within,
+.care-v2-editor .tm-field-input:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.care-odometer-sheet .care-step-heading h3 { font: 700 34px/1.05 var(--font-display); }
+.care-odometer-sheet .care-editor-footer { background: var(--bg); }
+.care-odometer-details { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.care-odometer-details > .tm-field-row { padding-inline: 0; }
+.care-odometer-pump .tm-pump-value input { min-height: 44px; font: 600 32px/1.15 var(--font-mono); font-variant-numeric: tabular-nums; text-align: left; }
+.care-odometer-pump .tm-pump-value input::placeholder { font-family: var(--font-sans); font-size: 14px; }
+.care-odometer-pump .tm-pump-caption { text-shadow: none; }
+@media (max-width: 350px) {
+  .care-entry-top { padding-inline: 16px; }
+  .care-entry-scroll { padding-inline: 16px; }
+  .care-entry-sheet .care-entry-footer { padding-inline: 16px; }
+  .care-entry-sheet .care-entry-heading h3 { font-size: 48px; }
+  .care-v2-editor .care-choice { gap: 7px; padding: 10px; font-size: 14px; }
+}
+@media (max-height: 620px) {
+  .care-entry-top { padding-top: max(12px, env(safe-area-inset-top, 0px)); padding-bottom: 12px; }
+  .care-entry-sheet .care-entry-footer { padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tm-sheet-panel.care-entry-sheet { animation: none; }
+  .care-v2-editor .care-choice { transition: none; }
+}

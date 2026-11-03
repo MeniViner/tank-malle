@@ -10,6 +10,7 @@ import { runTransaction, type DocumentReference, type Firestore } from "firebase
 import { fillupBaseMatches } from "./writesBase";
 export { fillupBaseMatches } from "./writesBase";
 import type { OutboxOpType, OutboxPayload } from "./outbox";
+import { requireRestorableVehicle } from './vehicleRestoreGuard';
 
 export class FillupConflictError extends Error {
   readonly code = "conflict";
@@ -28,9 +29,13 @@ export function conditionalFillupWrite(
   before: OutboxPayload | null,
   /** Undo may recreate an absent document OR restore an unchanged base. */
   restore = false,
+  stillCurrent: () => boolean = () => true,
 ): Promise<void> {
   return runTransaction(db, async transaction => {
+    if (!stillCurrent()) throw Object.assign(new Error('הרכב או החשבון התחלפו'), { code: 'scope-changed' });
+    if (restore && opType !== 'delete') await requireRestorableVehicle(transaction, ref, stillCurrent);
     const snapshot = await transaction.get(ref);
+    if (!stillCurrent()) throw Object.assign(new Error('הרכב או החשבון התחלפו'), { code: 'scope-changed' });
     const server = snapshot.exists() ? snapshot.data() as OutboxPayload : null;
     if (opType === "delete") {
       if (!server) return; // idempotent retry

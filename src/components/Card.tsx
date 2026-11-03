@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 
 export function Card({
   children,
@@ -34,7 +34,7 @@ export function Label({
 }) {
   return (
     <span
-      className={`text-[12px] font-bold tracking-[0.07em] text-muted ${className}`}
+      className={`text-[13px] font-semibold text-muted ${className}`}
     >
       {children}
     </span>
@@ -50,7 +50,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="flex items-center justify-between pt-1">
-      <h2 className="text-[19px] font-bold text-ink">{children}</h2>
+      <h2 className="font-display text-[34px] font-bold leading-none text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -67,7 +67,7 @@ export function IconTile({
   className?: string;
 }) {
   const tones = {
-    accent: "text-accent",
+    accent: "text-ink",
     muted: "text-muted",
     danger: "text-danger",
     success: "text-success-ink",
@@ -85,23 +85,22 @@ export function Chip({
   children,
   tone = "neutral",
   className = "",
+  selected,
+  dashed = false,
+  onClick,
+  ...buttonProps
 }: {
   children: ReactNode;
   tone?: "neutral" | "success" | "danger" | "warning" | "accent" | "outline";
   className?: string;
-}) {
-  const tones = {
-    neutral: "bg-surface-2 text-muted",
-    success: "bg-success-soft text-success-ink",
-    danger: "bg-danger-soft text-danger-ink",
-    warning: "bg-warning-soft text-warning-ink",
-    accent: "bg-accent-soft text-accent",
-    outline: "border border-line text-muted",
-  };
+  selected?: boolean;
+  dashed?: boolean;
+} & Pick<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "disabled" | "aria-label" | "aria-pressed" | "id">) {
+  const classes = `tm-chip tm-chip-${tone}${selected ? " tm-chip-selected" : ""}${dashed ? " tm-chip-dashed" : ""} ${className}`;
+  if (onClick) return <button type="button" className={classes} onClick={onClick}
+    aria-pressed={selected} {...buttonProps}>{children}</button>;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-pill px-[11px] py-1 text-[14px] font-semibold ${tones[tone]} ${className}`}
-    >
+    <span className={classes}>
       {children}
     </span>
   );
@@ -123,7 +122,7 @@ export function ListCard({
     <div
       id={id}
       style={style}
-      className={`tm-list overflow-hidden rounded-card bg-surface [&>*+*]:border-t [&>*+*]:border-[var(--hairline)] ${className}`}
+      className={`tm-list tm-plate-list [&>*+*]:border-t [&>*+*]:border-line ${className}`}
     >
       {children}
     </div>

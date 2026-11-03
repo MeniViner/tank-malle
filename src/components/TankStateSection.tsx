@@ -170,7 +170,7 @@ export function TankStateSection({
                       onClick={() => {
                         setEditingAfter(false);
                       }}
-                      className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
+                      className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-ink"
                     >
                       סגירה
                     </button>
@@ -179,7 +179,7 @@ export function TankStateSection({
                   <button
                     type="button"
                     onClick={() => setEditingAfter(true)}
-                    className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-accent"
+                    className="min-h-[44px] rounded-pill px-3 text-[13px] font-semibold text-ink"
                   >
                     {draft.afterLevelOverride !== null ? "תיקון המד אחרי" : afterLevel === null ? "הזנת המצב אחרי" : "לא נראה נכון?"}
                   </button>
@@ -234,7 +234,7 @@ export function TankStateSection({
                 onClick={onReviewCapacity}
                 className="text-start text-[12px] leading-relaxed text-muted"
               >
-                {capacityNote} · <span className="font-semibold text-accent">לאישור או תיקון</span>
+                {capacityNote} · <span className="font-semibold text-ink">לאישור או תיקון</span>
               </button>
             ) : null}
 
@@ -254,7 +254,7 @@ export function TankStateSection({
                     }
                     className={`min-h-[40px] rounded-pill px-3.5 text-[13px] font-semibold transition-[background-color] duration-200 ${
                       draft.reason === reason.value
-                        ? "bg-accent-soft text-accent"
+                        ? "bg-accent-soft text-ink"
                         : "border border-line bg-surface text-muted"
                     }`}
                   >
@@ -354,12 +354,12 @@ function Reconciliation({
       {impliedLevel !== null && state !== "capacitySuspect" ? (
         <span className="text-[14px] text-warning-ink/85">
           לפי המצב שסימנת והכמות שמילאת יוצא <Num>{Math.round(impliedLevel * 100)}%</Num> —
-          יותר ממיכל מלא.
+          יותר מנפח המיכל.
         </span>
       ) : null}
       <div className="flex flex-wrap gap-2 pt-0.5">
         {onAdjustBefore ? <ReconcileAction label="התאמת המצב לפני" onClick={onAdjustBefore} /> : null}
-        {onMarkFull ? <ReconcileAction label="מילאתי מיכל מלא" onClick={onMarkFull} /> : null}
+        {onMarkFull ? <ReconcileAction label="מילאתי עד הסוף" onClick={onMarkFull} /> : null}
         {onReviewCapacity ? (
           <ReconcileAction label="בדיקת נפח המיכל" onClick={onReviewCapacity} />
         ) : null}

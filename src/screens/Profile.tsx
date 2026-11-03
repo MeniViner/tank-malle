@@ -149,7 +149,7 @@ export function Profile() {
         showToast({
           tone: "error",
           title: result.deleted.length ? "המחיקה נעצרה לפני השלמתה" : "המחיקה לא החלה",
-          detail: result.failed.includes("pending-writes") ? "יש פעולות שלא סונכרנו במכשיר. טפלו בהן לפני המחיקה."
+          detail: result.failed.includes("pending-writes") ? "יש שינויים שעוד לא עלו לענן במכשיר. טפלו בהן לפני המחיקה."
             : result.failed.includes("local-cache") ? "סגרו לשוניות נוספות של האפליקציה, רעננו ונסו שוב. חשבון ההתחברות נשמר."
             : "חשבון ההתחברות נשמר כדי שתוכלו לנסות שוב. רעננו ונסו להשלים את המחיקה.",
         });
@@ -277,7 +277,7 @@ export function Profile() {
             />
             <RowButton icon={<UploadIcon size={18} className="text-muted" />} title="ייבוא נתונים" subtitle="CSV או Excel · גם יומנים ישנים" trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/import")} />
             <LegacyCareTransfer />
-            <RowButton title="פעולות שלא סונכרנו" value={healthUnknown ? "מצב האחסון לא ידוע" : unsynced > 0 ? "יש פעולות לטיפול" : "הכול מסונכרן"} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/unsynced")} />
+            <RowButton title="שינויים שעוד לא עלו לענן" value={healthUnknown ? "מצב האחסון לא ידוע" : unsynced > 0 ? "יש פעולות לטיפול" : "הכול מסונכרן"} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => navigate("/settings/unsynced")} />
           </ListCard>
         </section>
 
@@ -322,7 +322,7 @@ export function Profile() {
         <button
           type="button"
           onClick={() => navigate("/legal/terms")}
-          className="font-semibold text-accent"
+          className="font-semibold text-ink"
         >
           לתנאי השימוש
         </button>{" "}
@@ -330,7 +330,7 @@ export function Profile() {
         <button
           type="button"
           onClick={() => navigate("/legal/privacy")}
-          className="font-semibold text-accent"
+          className="font-semibold text-ink"
         >
           למדיניות הפרטיות
         </button>
@@ -365,7 +365,7 @@ export function Profile() {
               </span>
             ) : healthUnknown ? (
               <span>
-                לא ניתן לוודא שאין פעולות שלא סונכרנו ({outboxHealth.message ?? "אחסון לא קריא"}).
+                לא ניתן לוודא שאין שינויים שעוד לא עלו לענן ({outboxHealth.message ?? "אחסון לא קריא"}).
                 שום דבר מקומי לא יימחק.
               </span>
             ) : deviceState === "some" ? (
@@ -458,7 +458,7 @@ function DetailRow({
       <span className="flex items-center gap-2">
         <span className="text-[14px] font-semibold text-ink">{value}</span>
         {badge ? (
-          <span className="rounded-pill bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent">
+          <span className="rounded-pill bg-accent-soft px-2 py-0.5 text-[12px] font-bold text-ink">
             {badge}
           </span>
         ) : null}

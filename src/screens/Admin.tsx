@@ -32,8 +32,10 @@ import {
   type VehicleSummary,
 } from "../lib/summary";
 import { ScreenHeader } from "../components/AppHeader";
-import { Card, IconTile, Label, ListCard, Skeleton } from "../components/Card";
+import { Card, IconTile, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
+import { NumericText } from "../components/Fmt";
+import { useAccountScope } from "../components/account/useAccountScope";
 import { StationBrandMark } from "../components/StationBrand";
 import { Avatar } from "../components/Avatar";
 import { Segmented } from "../components/Segmented";
@@ -54,6 +56,8 @@ import {
 } from "../components/icons";
 import { dayMonthShort, num, parseDecimal, price, shekel, timeAgo } from "../lib/format";
 import { monthKey, type FuelType } from "../lib/stats";
+import { adminFeedbackStorageKey, readHandledFeedback, updateHandledFeedback } from "../lib/adminFeedback";
+import "../admin-design.css";
 import {
   REGULATED_SERVICE_MODE,
   adaptLegacyConfig,
@@ -70,8 +74,8 @@ import {
  *
  * Read-only by construction: the security rules give admins `read` on user
  * documents and never `write`, so nothing here can modify somebody else's
- * account. Every figure is computed from raw fill-ups with the same engine
- * the user's own screens use.
+ * account. User figures come only from bounded, owner-published summaries.
+ * The separate price editor keeps its existing durable admin-only write path.
  */
 
 interface AdminUser {
@@ -113,8 +117,15 @@ const ADMIN_TABS: { value: AdminTab; label: string }[] = [
 ];
 
 export function Admin() {
+  const { user, isAdmin, claimsLoaded } = useAuth();
+  // Account/claim changes retire all selected profiles, drafts and local markers.
+  return <AdminSession key={`${user?.uid ?? 'signed-out'}:${claimsLoaded && isAdmin ? 'admin' : 'limited'}`} />;
+}
+
+function AdminSession() {
   const navigate = useNavigate();
   const { user, isAdmin, claimsLoaded } = useAuth();
+  const captureScope = useAccountScope(user?.uid);
 
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,36 +137,10 @@ export function Admin() {
   const [exhausted, setExhausted] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  /**
-   * Load one PAGE of users.
-   *
-   * The previous implementation read every user document, then every vehicle
-   * of every user, then every fill-up of every vehicle — an unbounded N+1 scan
-   * that, at 500 users, could be tens of thousands of document reads on a
-   * single screen load, against a Spark daily quota of 50,000.
-   *
-   * Now: one paged query for the users, and a COUNT aggregation for vehicles
-   * and fill-ups. A count query bills one read per query rather than one per
-   * document, so a page of 25 users costs roughly 25 + 25 + (a count per
-   * vehicle) reads instead of thousands. Nothing reads a fill-up document at
-   * all unless an admin explicitly expands a row.
-   */
-  /**
-   * Load one PAGE of users.
-   *
-   * The original implementation read every user document, then every vehicle
-   * of every user, then every fill-up of every vehicle — an unbounded N+1 scan
-   * that at 500 users could be tens of thousands of reads on one screen load,
-   * against a Spark daily quota of 50,000.
-   *
-   * It now reads the profile page plus each account's published summary: two
-   * documents per user, and NOT ONE fill-up record. The summaries are
-   * client-produced operational telemetry and back no security decision; they
-   * simply mean the dashboard does not need to see anybody's fuel log to count
-   * it.
-   */
+  /** One bounded profile page and its published summaries; no private ledger reads. */
   const load = useCallback(
     async (cursor: QueryDocumentSnapshot | null) => {
+      const current = captureScope();
       setError(null);
       setLoadingMore(true);
       try {
@@ -167,6 +152,7 @@ export function Admin() {
             ? query(collection(db, "users"), ...constraints, startAfter(cursor))
             : query(collection(db, "users"), ...constraints),
         );
+        if (!current()) return;
 
         const rows = await Promise.all(
           usersSnapshot.docs.map(async (userDoc) => {
@@ -208,6 +194,7 @@ export function Admin() {
           }),
         );
 
+        if (!current()) return;
         setUsers((previous) => (cursor ? [...(previous ?? []), ...rows] : rows));
         setPageCursor(
           usersSnapshot.docs.length === PAGE_SIZE
@@ -216,6 +203,7 @@ export function Admin() {
         );
         setExhausted(usersSnapshot.docs.length < PAGE_SIZE);
       } catch (caught) {
+        if (!current()) return;
         setError(
           (caught as { code?: string }).code === "permission-denied"
             ? "אין הרשאת אדמין לחשבון הזה. התנתקו והתחברו מחדש כדי לרענן את ההרשאות."
@@ -223,10 +211,10 @@ export function Admin() {
         );
         if (!cursor) setUsers([]);
       } finally {
-        setLoadingMore(false);
+        if (current()) setLoadingMore(false);
       }
     },
-    [],
+    [captureScope],
   );
 
   useEffect(() => {
@@ -292,7 +280,7 @@ export function Admin() {
 
   return (
     <main className="tm-admin flex min-w-0 flex-1 flex-col pb-safe pt-safe">
-      <header className="admin-header"><button type="button" aria-label="חזרה להגדרות" onClick={() => navigate('/settings')}><ChevronStart size={22} className="rotate-180" /></button><h1>לוח בקרה</h1><span aria-hidden="true" /></header>
+      <header className="admin-header"><button type="button" aria-label="חזרה להגדרות" onClick={() => navigate('/settings')}><ChevronStart size={22} className="rotate-180" /></button><div><span className="admin-eyebrow">טנק מלא · ניהול</span><h1>לוח בקרה</h1></div><button type="button" aria-label="רענון נתוני ניהול" disabled={loadingMore} onClick={() => void load(null)}><RefreshIcon size={20} /></button></header>
       <nav aria-label="מדורי ניהול" className="admin-tabs">
         {ADMIN_TABS.map(entry => <button key={entry.value} type="button" aria-current={tab === entry.value ? 'page' : undefined} aria-pressed={tab === entry.value} onClick={() => { setTab(entry.value); setSelectedUser(null); }}>{entry.label}</button>)}
       </nav>
@@ -301,7 +289,7 @@ export function Admin() {
         {!users ? <><Skeleton className="h-[170px] rounded-card" /><Skeleton className="h-[210px] rounded-card" /></> : <>
           {tab === 'overview' ? <>
             <section aria-label="סיכום המערכת">
-              <div className="admin-group-head"><h2>המערכת</h2><button type="button" disabled={loadingMore} className="admin-link" onClick={() => void load(null)}>{loadingMore ? 'טוענים…' : 'רענון'}</button></div>
+              <div className="admin-group-head"><h2>תמונת מצב</h2><InfoTip label="על נתוני הניהול"><p>הספירות מבוססות על סיכומים שהחשבונות פרסמו. הצריכה משוקללת לפי מרחק; חלק מהסיכומים עשויים לכלול תדלוקים בלבד. לא נקראים כאן פרטי היומן האישיים.</p></InfoTip></div>
               <div className="admin-tiles">
                 <StatTile label="משתמשים" value={num(totals?.users ?? 0, 0)} />
                 <StatTile label="רכבים" value={num(totals?.vehicles ?? 0, 0)} />
@@ -309,7 +297,7 @@ export function Admin() {
                 <StatTile label="צריכה ממוצעת · קמ״ל" value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : '—'} />
               </div>
               <div className="admin-kinds" aria-label="פילוח רשומות">{([['fuel', 'תדלוקים'], ['expense', 'הוצאות'], ['service', 'טיפולים'], ['odometer', 'עדכוני ק״מ']] as const).map(([kind, title]) => <span key={kind}>{title} <Num>{kind === 'fuel' || ledger.ledgerVehicles ? num(ledger.counts[kind], 0) : '—'}</Num></span>)}</div>
-              <p className="helper">{exhausted?'כל החשבונות נטענו. ':'נטענה רשימת חשבונות חלקית. '}{totals?.withoutSummary ? `${totals.withoutSummary} חשבונות ללא סיכום. ` : ''}{ledger.missingLedgers || ledger.missingVehicles ? 'חלק מהסיכומים עדיין כוללים תדלוקים בלבד. ' : ''}הספירות מסיכומים שפורסמו; הצריכה משוקללת לפי מרחק.</p>
+              <p className="helper admin-coverage"><NumericText>{`${exhausted ? 'כל החשבונות נטענו' : `נתונים חלקיים · ${users.length} חשבונות נטענו`}${totals?.withoutSummary ? ` · ${totals.withoutSummary} ללא סיכום` : ''}${ledger.missingLedgers || ledger.missingVehicles ? ' · חלק מהרכבים ללא סיכום יומן מלא' : ''}`}</NumericText></p>
             </section>
             <AdminSpendChart data={ledger} />
             <BenchmarkPool />
@@ -318,19 +306,19 @@ export function Admin() {
             <label className="admin-search"><SearchIcon size={18} /><input type="search" aria-label="חיפוש משתמשים" placeholder="חיפוש לפי שם או מייל" value={search} onChange={e => setSearch(e.target.value)} /></label>
             <Segmented size="sm" value={sort} onChange={setSort} ariaLabel="מיון משתמשים" options={[{ value: 'activity', label: 'תדלוקים' }, { value: 'spend', label: 'הוצאה' }, { value: 'joined', label: 'הצטרפות' }]} />
             <div className="admin-group">{sorted.map(entry => <button className="admin-user-row" type="button" key={entry.uid} aria-haspopup="dialog" onClick={() => setSelectedUser(entry)}>
-              <Avatar name={entry.displayName} photoURL={entry.photoURL} size={36} />
+              <Avatar name={entry.displayName} size={36} />
               <span className="admin-row-main"><strong>{entry.displayName ?? 'ללא שם'}</strong><small dir="ltr">{entry.email ?? 'ללא כתובת מייל'}</small></span>
-              <span className="admin-user-value"><Num>{entry.summary ? num(entry.fillups, 0) : '—'}</Num><small>תדלוקים</small></span><ChevronStart size={16} className="text-muted" />
+              <span className="admin-user-value"><span><NumericText>{sort === 'joined' ? entry.createdAt ? dayMonthShort(entry.createdAt) : '—' : entry.summary ? sort === 'spend' ? shekel(costOf(entry.summary)) : num(entry.fillups, 0) : '—'}</NumericText></span><small>{sort === 'joined' ? 'הצטרפות' : sort === 'spend' ? 'הוצאה' : 'תדלוקים'}</small></span><ChevronStart size={16} className="text-muted" />
             </button>)}</div>
             {!sorted.length ? <p className="admin-empty">{search ? 'לא נמצאו משתמשים בחשבונות שנטענו' : 'אין עדיין משתמשים'}</p> : null}
             {!exhausted ? <button type="button" disabled={loadingMore} onClick={() => void load(pageCursor)} className="tm-text-action">{loadingMore ? 'טוענים…' : `טעינת ${PAGE_SIZE} משתמשים נוספים`}</button> : null}
-            <p className="helper">החיפוש והמיון חלים על {users.length} החשבונות שנטענו. נתוני משתמשים הם לקריאה בלבד.</p>
+            <p className="helper"><NumericText>{`החיפוש והמיון חלים על ${users.length} החשבונות שנטענו. נתוני משתמשים הם לקריאה בלבד.`}</NumericText></p>
           </> : null}
           {tab === 'data' ? <><FuelPriceEditor key={user?.uid} /><StationDataPanel /></> : null}
-          {tab === 'feedback' ? <FeedbackInbox /> : null}
+          {tab === 'feedback' && user ? <FeedbackInbox key={user.uid} uid={user.uid} /> : null}
         </>}
       </div>
-      <Sheet open={selectedUser !== null} onClose={() => setSelectedUser(null)} title={selectedUser?.displayName ?? 'פרטי משתמש'}>
+      <Sheet className="admin-detail-sheet" open={selectedUser !== null} onClose={() => setSelectedUser(null)} title={selectedUser?.displayName ?? 'פרטי משתמש'}>
         {selectedUser ? <div className="flex flex-col gap-4"><p dir="ltr" className="text-right text-muted">{selectedUser.email ?? 'ללא כתובת מייל'}</p><div className="admin-group">
           {[
             ['רכבים', selectedUser.summary ? num(selectedUser.vehicles, 0) : '—'],
@@ -338,7 +326,7 @@ export function Admin() {
             ['צריכה ממוצעת', selectedUser.summary ? consumptionOf(selectedUser.summary) + ' קמ״ל' : '—'],
             ['הוצאה שפורסמה', selectedUser.summary ? shekel(costOf(selectedUser.summary)) : '—'],
             ['הצטרפות', selectedUser.createdAt ? dayMonthShort(selectedUser.createdAt) : 'לא ידוע'],
-          ].map(([label, value]) => <div className="admin-data-row" key={label}><span>{label}</span><Num>{value}</Num></div>)}
+          ].map(([label, value]) => <div className="admin-data-row" key={label}><span>{label}</span><span><NumericText>{value}</NumericText></span></div>)}
         </div><p className="helper">{selectedUser.summary ? 'הנתונים הם סיכומים שהחשבון פרסם. סיכום ישן עשוי לכלול תדלוקים בלבד.' : 'לא זמין סיכום תקין לחשבון הזה, ולכן אין עדיין ספירה מאומתת.'} אין אפשרות לערוך או למחוק נתונים של משתמש אחר.</p></div> : null}
       </Sheet>
     </main>
@@ -366,7 +354,7 @@ function Panel({
   return (
     <section className="flex min-w-0 flex-col gap-2">
       <div className="admin-group-head">
-        <Label>{title}</Label>
+        <h2>{title}</h2>
         {trailing}
       </div>
       {note ? <p className="-mt-1 text-[13px] text-muted">{note}</p> : null}
@@ -392,7 +380,13 @@ const SENTIMENT = {
 };
 
 /** Everything users sent through Settings → משוב, newest first. */
-function FeedbackInbox() {
+function FeedbackInbox({ uid }: { uid: string }) {
+  const { showToast } = useToast();
+  const storageKey = adminFeedbackStorageKey(uid);
+  const [handled, setHandled] = useState(() => {
+    try { return readHandledFeedback(localStorage.getItem(storageKey)); }
+    catch { return new Set<string>(); }
+  });
   const [entries, setEntries] = useState<FeedbackEntry[] | null>(null);
   const [selected, setSelected] = useState<FeedbackEntry | null>(null);
   const [filter, setFilter] = useState<"all" | "good" | "idea" | "bug">("all");
@@ -412,11 +406,13 @@ function FeedbackInbox() {
       if (!active) return;
       const rows = snapshot.docs.map(entry => {
         const data = entry.data();
+        const text = (value: unknown, max: number) => typeof value === 'string' ? value.slice(0, max) : null;
+        const createdAt = toEpochMillis(data.createdAt);
         return {
-          id: entry.id, message: String(data.message ?? ""),
+          id: entry.id, message: text(data.message, 20_000) ?? '',
           sentiment: Object.hasOwn(SENTIMENT, data.sentiment) ? data.sentiment as keyof typeof SENTIMENT : null,
-          displayName: data.displayName ?? null, email: data.email ?? null,
-          appVersion: data.appVersion ?? null, createdAt: data.createdAt?.toMillis?.() ?? null,
+          displayName: text(data.displayName, 120), email: text(data.email, 254),
+          appVersion: text(data.appVersion, 100), createdAt: createdAt !== null && createdAt >= 0 && createdAt < 8.64e15 ? createdAt : null,
         } satisfies FeedbackEntry;
       });
       rows.sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
@@ -425,6 +421,16 @@ function FeedbackInbox() {
     return () => { active = false; };
   }, [attempt]);
   const visible = entries?.filter(entry => filter === "all" || entry.sentiment === filter);
+
+  function toggleHandled(entry: FeedbackEntry) {
+    const next = updateHandledFeedback(handled, entry.id, !handled.has(entry.id));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...next]));
+      setHandled(next);
+    } catch {
+      showToast({ tone: 'error', title: 'הסימון לא נשמר במכשיר. נסו שוב.' });
+    }
+  }
 
   return <Panel title="משוב ממשתמשים" bare trailing={entries ? <Num className="text-[13.5px] text-muted">{entries.length}</Num> : null}>
     <Segmented ariaLabel="סינון משוב" value={filter} onChange={setFilter} options={[
@@ -435,22 +441,26 @@ function FeedbackInbox() {
       לא ניתן לטעון את המשוב <button type="button" className="tm-text-action" onClick={() => { setError(false); setAttempt(n => n + 1); }}>ניסיון נוסף</button>
     </div> : !visible ? <Skeleton className="h-[120px] rounded-card" /> : visible.length === 0 ?
       <p className="py-8 text-center text-[15.5px] text-muted">{entries?.length ? "אין משוב בקטגוריה הזו" : "עוד לא התקבל משוב"}</p> :
-      <ListCard>{visible.map(entry => {
+      <div className="admin-feedback-list">{visible.map(entry => {
         const meta = entry.sentiment ? SENTIMENT[entry.sentiment] : null;
-        return <button key={entry.id} type="button" onClick={() => setSelected(entry)} className="flex w-full flex-col gap-2 px-4 py-4 text-start active:bg-surface-2" aria-haspopup="dialog">
-          <span className="flex items-center gap-2">
-            {meta ? <meta.Icon size={18} className="text-muted" /> : null}
-            <span className="min-w-0 flex-1 truncate text-[15.5px] font-semibold">{entry.displayName ?? "משתמש"}</span>
-            <span className="text-[12px] text-muted">{entry.createdAt ? timeAgo(entry.createdAt) : "—"}</span>
+        return <button key={entry.id} type="button" onClick={() => setSelected(entry)} className="admin-feedback-row" data-handled={handled.has(entry.id)} aria-haspopup="dialog">
+          <span className="admin-feedback-meta">
+            <span className="admin-feedback-kind" data-kind={entry.sentiment ?? 'other'}>{meta ? <meta.Icon size={15} /> : null}{meta?.label ?? 'משוב'}</span>
+            {handled.has(entry.id) ? <span className="admin-feedback-handled">טופל אצלי</span> : null}
+            <span className="admin-feedback-date"><NumericText>{entry.createdAt ? dayMonthShort(entry.createdAt) : 'ללא תאריך'}</NumericText></span>
           </span>
-          <span className="line-clamp-2 whitespace-pre-wrap break-words text-[14px] text-muted">{entry.message}</span>
+          <span className="admin-feedback-message">{entry.message}</span>
+          <span className="admin-feedback-author">{entry.displayName ?? 'משתמש'}</span>
         </button>;
-      })}</ListCard>}
-    <Sheet open={selected !== null} onClose={() => setSelected(null)} title={<h2 className="text-[19px] font-bold">{selected?.sentiment ? SENTIMENT[selected.sentiment].label : "משוב"}</h2>}>
+      })}</div>}
+    <p className="helper">מוצגות עד <Num>200</Num> פניות. הסימון ״טופל אצלי״ נשמר במכשיר הזה, עבור החשבון שלך בלבד.</p>
+    <Sheet className="admin-detail-sheet" open={selected !== null} onClose={() => setSelected(null)} title={selected?.sentiment ? SENTIMENT[selected.sentiment].label : 'משוב'}>
       {selected ? <div className="flex flex-col gap-4">
-        <div><p className="text-[15.5px] font-semibold">{selected.displayName ?? "משתמש"}</p><p className="break-words text-[13.5px] text-muted">{selected.email ?? ""}</p></div>
+        <div><p className="text-[15.5px] font-semibold">{selected.displayName ?? "משתמש"}</p><p dir="ltr" className="break-words text-right text-[13.5px] text-muted">{selected.email ?? ""}</p></div>
         <p className="whitespace-pre-wrap break-words text-[16px] leading-relaxed">{selected.message}</p>
-        <p className="text-[13.5px] text-muted">{selected.createdAt ? dayMonthShort(selected.createdAt) : "תאריך לא ידוע"}{selected.appVersion ? ` · גרסה ${selected.appVersion}` : ""}</p>
+        <p className="text-[13.5px] text-muted"><NumericText>{`${selected.createdAt ? dayMonthShort(selected.createdAt) : 'תאריך לא ידוע'}${selected.appVersion ? ` · גרסה ${selected.appVersion}` : ''}`}</NumericText></p>
+        <Button full variant={handled.has(selected.id) ? 'secondary' : 'primary'} aria-pressed={handled.has(selected.id)} onClick={() => toggleHandled(selected)}>{handled.has(selected.id) ? 'טופל אצלי · ביטול הסימון' : 'סימון כטופל אצלי'}</Button>
+        <p className="helper">הסימון אישי ומקומי; הוא אינו מסמן שהפנייה טופלה אצל מנהלים אחרים.</p>
       </div> : null}
     </Sheet>
   </Panel>;
@@ -477,6 +487,7 @@ function daysAgoText(at: number, now: number): string {
 function FuelPriceEditor() {
   const { showToast } = useToast();
   const { user, isAdmin, claimsLoaded } = useAuth();
+  const captureScope = useAccountScope(user?.uid);
   const { updateAdminPrices, outbox: outboxOps, retryOperation, outboxReady } = useData();
   const priceOps = outboxOps.filter(op => op.uid === user?.uid && op.kind === "adminPrice.update");
   const latest95Op = priceOps.filter(op => Object.keys(op.payload ?? {}).some(key => key.startsWith('byFuelType.95.'))).at(-1);
@@ -488,6 +499,7 @@ function FuelPriceEditor() {
   const [readSource, setReadSource] = useState<ReadSource>(null);
 
   const load = useCallback(async (fromServer = false): Promise<ReadSource> => {
+    const current = captureScope();
     setLoading(true);
     try {
       const ref = doc(db, "appConfig", "fuelPrices");
@@ -509,6 +521,7 @@ function FuelPriceEditor() {
       }
       // Normalised first: the raw document carries Firestore Timestamps, and
       // the freshness line does date arithmetic on them.
+      if (!current()) return null;
       setConfig(
         snapshot.exists()
           ? adaptLegacyConfig(normalizePriceDocument(snapshot.data()))
@@ -517,9 +530,9 @@ function FuelPriceEditor() {
       setReadSource(source);
       return source;
     } finally {
-      setLoading(false);
+      if (current()) setLoading(false);
     }
-  }, []);
+  }, [captureScope]);
 
   useEffect(() => onSnapshot(doc(db, "appConfig", "fuelPrices"), { includeMetadataChanges: true }, snapshot => {
     setConfig(snapshot.exists() ? adaptLegacyConfig(normalizePriceDocument(snapshot.data())) : { byFuelType: {} });
@@ -527,7 +540,7 @@ function FuelPriceEditor() {
     setLoading(false);
   }, () => setLoading(false)), []);
 
-  async function applyOfficial(read: BrowserPriceReading) {
+  async function applyOfficial(read: BrowserPriceReading, current: () => boolean) {
     const prefix = 'byFuelType.95.self';
     const old = config?.byFuelType?.['95']?.self;
     if ((old?.current?.effectiveFrom ?? 0) > read.effectiveFrom) throw new Error('נמצא פרסום ישן יותר. המחיר הקיים נשמר.');
@@ -539,21 +552,23 @@ function FuelPriceEditor() {
       [`${prefix}.source`]: 'scheduled', [`${prefix}.sourceUrl`]: read.url,
       [`${prefix}.retrievedAt`]: read.readAt, [`${prefix}.manualOverride`]: null,
     });
-    showToast({ tone: 'info', title: 'המחיר אומת ונשלח לשמירה' });
+    if (current()) showToast({ tone: 'info', title: 'המחיר אומת ונשלח לשמירה' });
   }
 
   async function pull() {
     if (pulling) return;
+    const current = captureScope();
     setPulling(true);
     setReading(null);
     setPullError(null);
-    try { const read = await fetchBrowserPrice(); setReading(read); await applyOfficial(read); }
-    catch (error) { setPullError(error instanceof Error ? error.message : "הקריאה נכשלה — נסו שוב"); }
-    finally { setPulling(false); }
+    try { const read = await fetchBrowserPrice(); if (!current()) return; setReading(read); await applyOfficial(read, current); }
+    catch (error) { if (current()) setPullError(error instanceof Error ? error.message : "הקריאה נכשלה — נסו שוב"); }
+    finally { if (current()) setPulling(false); }
   }
 
   /** Returns after both journal and SDK disk acceptance; server acknowledgement remains visible below. */
   async function save(fuelType: FuelType, value: number) {
+    const current = captureScope();
     const now = new Date();
     const month = monthKey(now.getTime());
     const prefix = `byFuelType.${fuelType}.${REGULATED_SERVICE_MODE}`;
@@ -565,7 +580,7 @@ function FuelPriceEditor() {
       [`${prefix}.source`]: "manual",
       [`${prefix}.manualOverride`]: { pricePerLiter: value, month, setAt: Date.now(), note: null },
     });
-    showToast({ tone: "info", title: "הקלט נשמר במכשיר — ממתין לאישור השרת" });
+    if (current()) showToast({ tone: "info", title: "הקלט נשמר במכשיר — ממתין לאישור השרת" });
   }
 
   async function restoreScheduled(fuelType: FuelType, month: string, scheduled: number) {
@@ -629,8 +644,8 @@ function FuelPriceEditor() {
     <Panel title="מחירי דלק רשמיים" note={readSource === 'server' ? 'נקרא מהשרת' : readSource === 'cache' ? 'מוצג עותק מקומי' : undefined} bare trailing={<button type="button" className="admin-link" disabled={pulling || !isAdmin || !outboxReady || priceOps.some(op => op.status === 'pending')} aria-label="משיכת מחיר מהדפדפן" aria-busy={pulling || undefined} onClick={() => void pull()}><RefreshIcon size={15} />{pulling ? 'קוראים…' : 'משיכה עכשיו'}</button>}>
       <div className="admin-group">{EDITABLE_FUELS.map(({ fuelType, label }) => <FuelPriceRow key={fuelType} label={label} draftKey={`tm.adminPriceDraft.${user?.uid}.${fuelType}`} writable={isAdmin && outboxReady} serverConfirmed={readSource === 'server'} operation={priceOps.filter(op => Object.keys(op.payload ?? {}).some(key => key.startsWith(`byFuelType.${fuelType}.`))).at(-1)} onRetry={opId => retryOperation(opId)} lookup={regulatedMaxPrice(config, fuelType, now)} series={config?.byFuelType?.[fuelType]?.[REGULATED_SERVICE_MODE]} onSave={value => save(fuelType, value)} onRestore={(month, scheduled) => restoreScheduled(fuelType, month, scheduled)} />)}</div>
       <div className="flex flex-wrap items-center justify-between gap-x-3 text-[12px] text-muted">
-        <span>95 בשירות עצמי · 98 וסולר אינם בפיקוח</span>
-        <RefreshButton busy={loading} label="רענון מהשרת" onClick={() => void load(true).then(source => showToast({ tone: source === 'server' ? 'success' : 'info', title: source === 'server' ? 'נקרא מהשרת' : 'השרת לא זמין — מוצג עותק מקומי' })).catch(() => showToast({ tone: 'error', title: 'הקריאה נכשלה' }))} />
+        <span><NumericText>95 בשירות עצמי · 98 וסולר אינם בפיקוח</NumericText></span>
+        <RefreshButton busy={loading} label="רענון מהשרת" onClick={() => { const current = captureScope(); void load(true).then(source => { if (current() && source) showToast({ tone: source === 'server' ? 'success' : 'info', title: source === 'server' ? 'נקרא מהשרת' : 'השרת לא זמין — מוצג עותק מקומי' }); }).catch(() => { if (current()) showToast({ tone: 'error', title: 'הקריאה נכשלה' }); }); }} />
       </div>
       {pullError ? <p role="alert" className="text-[13px] text-danger-ink">{pullError}</p> : null}
       {reading ? <p className="helper">נקרא פרסום משרד האנרגיה לחודש {priceMonthLabel(reading.month, now)}. {latest95Op ? 'אישור השמירה מוצג ליד המחיר.' : readSource === 'server' ? 'המחיר מאושר בשרת.' : 'ממתינים לאישור השרת.'}</p> : null}
@@ -658,7 +673,7 @@ function RefreshButton({
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-accent transition-[background-color,scale] duration-200 active:scale-[0.96] disabled:opacity-50"
+      className="flex min-h-[44px] flex-none items-center gap-1.5 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] disabled:opacity-50"
     >
       <RefreshIcon size={14} />
       {busy ? "בודק…" : label}
@@ -719,7 +734,8 @@ function FuelPriceRow({
     lookup.price === null
       ? "לא הוזן"
       : [
-          lookup.isManual ? "ידני" : "אוטומטי",
+          lookup.isManual ? 'עודכן ידנית' : lookup.source === 'scheduled' ? 'עודכן אוטומטית' : lookup.source === 'import' ? 'יובא' : 'מקור לא ידוע',
+          lookup.updatedAt !== null ? timeAgo(lookup.updatedAt) : 'מועד עדכון לא ידוע',
           monthText || null,
           overrideActive && scheduledForMonth !== null
             ? `דורס את הערך האוטומטי ${price(scheduledForMonth)}`
@@ -734,8 +750,8 @@ function FuelPriceRow({
   function failureTitle(error: unknown): string {
     const code = (error as { code?: unknown })?.code;
     return code === "permission-denied"
-      ? "אין הרשאת מנהל (custom claim admin) — ראו scripts/grantAdmin.mjs"
-      : `הפעולה נכשלה (${typeof code === "string" ? code : "unknown"})`;
+      ? 'אין הרשאה לשמירת מחירים.'
+      : 'שמירת המחיר לא הושלמה. נסו שוב.';
   }
 
   const status = operation ? <div className="flex flex-col gap-1" role="status">
@@ -753,11 +769,11 @@ function FuelPriceRow({
   }
   return <div className="admin-price-entry">
     <button type="button" className="admin-price-row" aria-label={`עריכת מחיר · ${label}`} aria-haspopup="dialog" onClick={() => { if (!draft && lookup.price !== null) setDraft(String(lookup.price)); setEditing(true); }}>
-      <span className="admin-row-main"><strong>{label}</strong><small className={currentMonth ? '' : 'text-warning-ink'}>{sourceText}</small>{changed && !operation ? <small className="text-accent">טיוטה ממתינה</small> : null}</span>
+      <span className="admin-row-main"><strong><NumericText>{label}</NumericText></strong><small className={currentMonth ? '' : 'text-warning-ink'}><NumericText>{sourceText}</NumericText></small>{changed && !operation ? <small className="text-ink">טיוטה ממתינה</small> : null}</span>
       <Num className="text-[17px] font-semibold">{lookup.price === null ? '—' : price(lookup.price)}</Num><ChevronStart size={16} className="text-muted" />
     </button>
     {!editing && operation ? <div className="admin-price-status">{status}</div> : null}
-    <Sheet open={editing} onClose={closeEditor} title={`מחיר לליטר · ${label}`}>
+    <Sheet className="admin-detail-sheet admin-price-sheet" open={editing} onClose={closeEditor} title={<h2>מחיר לליטר · <NumericText>{label}</NumericText></h2>}>
       <form className="admin-price-editor" onSubmit={event => { event.preventDefault(); if (!changed || !writable || saving || operation?.status === 'pending') return; setSaving(true); void onSave(parsed).catch(error => showToast({ tone: 'error', title: failureTitle(error) })).finally(() => setSaving(false)); }}>
         <p className="helper">{label === 'בנזין 95' ? 'ערך ידני מחליף את המחיר האוטומטי לחודש הנוכחי. תדלוקים קיימים אינם משתנים.' : 'סוג דלק זה אינו בפיקוח. הערך הידני ישמש כברירת מחדל בתדלוקים חדשים.'}</p>
         <label className="admin-price-field"><span>מחיר לליטר</span><input inputMode="decimal" aria-label={`מחיר חדש לליטר · ${label}`} value={draft} onChange={event => { const value = event.target.value; setDraft(value); try { localStorage.setItem(draftKey, value); setDraftError(false); } catch { setDraftError(true); } }} placeholder={lookup.price !== null ? String(lookup.price) : '—'} dir="ltr" className="num" /><span>₪</span></label>
@@ -990,11 +1006,11 @@ function DiagnosticRow({
   detail: string;
 }) {
   return (
-    <div className="flex min-h-[52px] items-center gap-2 border-b border-[var(--hairline)] last:border-b-0">
+    <div className="admin-diagnostic-row flex min-h-[52px] items-center gap-2 border-b border-[var(--hairline)] last:border-b-0">
       <span className={`size-[7px] flex-none rounded-full ${ok ? "bg-success" : "bg-warning"}`} aria-hidden="true" />
-      <span className="min-w-0 flex-1 text-[15.5px] font-semibold">{title}</span>
-      <span className="text-[13.5px] text-muted">{value}</span>
-      <InfoTip label={`פרטים · ${title}`}><p className="break-words">{detail}</p></InfoTip>
+      <span className="min-w-0 flex-1 text-[15.5px] font-semibold"><NumericText>{title}</NumericText></span>
+      <span className="text-[13.5px] text-muted"><NumericText>{value}</NumericText></span>
+      <InfoTip label={`פרטים · ${title}`}><p className="break-words"><NumericText>{detail}</NumericText></p></InfoTip>
     </div>
   );
 }

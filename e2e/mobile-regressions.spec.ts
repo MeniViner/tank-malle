@@ -1,3 +1,4 @@
+import { finishFillupSave, setFillupEndState } from "./helpers/fillup";
 import { test, expect } from "@playwright/test";
 import { signedInWithData } from "./helpers/app";
 import { getDocument, listDocuments, setDocument, waitForDocument, type SeedFillup } from "./helpers/emulator";
@@ -17,7 +18,7 @@ for (const width of [360, 430]) {
     // A failed registry fetch must never hide an existing personal station.
     await page.route("**/fuel-stations.json", (route) => route.abort());
     await page.goto("/fillup/new");
-    const trigger = page.getByRole("button", { name: /^תחנה / });
+    const trigger = page.getByTestId("fillup-station");
     await trigger.click();
     const dialog = page.getByRole("dialog");
     const input = dialog.getByPlaceholder("חיפוש תחנה…");
@@ -68,17 +69,16 @@ for (const identified of [false, true]) {
       : { name: "סונול שפיה" };
     await setDocument(`${collection}/b`, { ...historical, date: RECORDS[1].date, createdAt: RECORDS[1].date, station });
     await page.goto("/fillup/new");
-    await page.getByRole("button", { name: /^תחנה / }).click();
+    await page.getByTestId("fillup-station").click();
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("חיפוש תחנה…").fill("שפיה סונול");
     await dialog.getByRole("button", { name: /סונול שפיה.*תחנה מהיסטוריית התדלוקים/ }).click();
     await page.getByLabel(/^קילומטראז׳/).fill("101400");
     await page.getByLabel("ליטרים", { exact: true }).fill("40");
     await page.getByLabel("מחיר לליטר").fill("7");
-    if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
-    await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+    await setFillupEndState(page, "full");
     await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-    await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
+    await finishFillupSave(page);
     const saved = await waitForDocument(collection, (record) => record.odometer === 101400);
     expect(saved.station).toEqual(station);
     expect(saved.pricePerLiter).toBe(7);
@@ -101,7 +101,7 @@ for (const oldCache of [false, true]) {
     }
     await page.route("**/fuel-stations.json", (route) => route.abort());
     await page.goto("/fillup/new");
-    const trigger = page.getByRole("button", { name: /^תחנה / });
+    const trigger = page.getByTestId("fillup-station");
     await trigger.click();
     const dialog = page.getByRole("dialog");
     const search = dialog.getByPlaceholder("חיפוש תחנה…");
@@ -120,6 +120,7 @@ for (const oldCache of [false, true]) {
     await page.getByLabel("ליטרים", { exact: true }).fill("40");
     await page.getByLabel("מחיר לליטר").fill("7");
     await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+    await finishFillupSave(page);
     const saved = await waitForDocument(`users/${uid}/vehicles/${vehicleId}/fillups`, (record) => record.odometer === 100000);
     // The serializer omits unresolved IDs and coordinates, as for legacy stations.
     expect(saved.station).toEqual({ name: "סונול שפיה", brand: "סונול" });
@@ -132,9 +133,9 @@ test("home labels measured consumption intervals and their average in both theme
   const hero = page.getByTestId("consumption-summary");
   const chart = hero.getByTestId("consumption-chart");
   await expect(chart.getByRole("img")).toHaveAccessibleName("4 באוק׳: 10.0 קמ״ל; 10 באוק׳: 15.0 קמ״ל");
-  await expect(chart.locator("rect[data-segment]")).toHaveCount(2);
+  await expect(chart.locator("button[data-testid^=consumption-point-]")).toHaveCount(2);
   await expect(chart.getByRole("img")).toBeVisible();
-  await expect(hero.getByText(/ממוצע כולל 12\.5 קמ״ל/)).toBeVisible();
+  await expect(chart.locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 12\.5/)).toBeVisible();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await testInfo.attach(`home-consumption-${colorScheme}`, { body: await hero.screenshot(), contentType: "image/png" });

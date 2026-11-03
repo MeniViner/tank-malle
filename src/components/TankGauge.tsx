@@ -116,7 +116,7 @@ export function TankGauge({
             which somebody is reading the gauge. */}
         <span
           aria-hidden="true"
-          className="flex flex-col justify-between py-1 text-[10px] font-bold text-muted"
+          className="flex flex-col justify-between py-1 text-[12px] font-bold text-muted"
         >
           <span>F</span>
           <span>E</span>

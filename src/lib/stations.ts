@@ -1,3 +1,4 @@
+import { num } from "./format";
 import type { Station } from "./types";
 
 /**
@@ -327,5 +328,5 @@ export function toStation(entry: CatalogStation): Station {
 
 export function formatDistance(meters: number): string {
   if (meters < 1000) return `${Math.round(meters)} מ׳`;
-  return `${(meters / 1000).toFixed(1)} ק״מ`;
+  return `${num(meters / 1000, 1)} ק״מ`;
 }

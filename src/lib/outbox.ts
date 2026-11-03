@@ -600,16 +600,20 @@ export class Outbox {
    * Re-base a conflicted update on what the server holds now, so the next
    * retry compares — and the server's version check counts — against the
    * right base. Only meaningful for a conflicted entry.
+   * An optional synchronous guard binds a reviewed conflict to this actual
+   * transaction image. Existing callers retain their three-argument behavior.
    */
   async rebase(
     opId: string,
     serverImage: OutboxPayload,
     payloadPatch: OutboxPayload,
+    acceptCurrent?: (current: Readonly<OutboxOperation>) => boolean,
   ): Promise<OutboxOperation | null> {
     let rebased: OutboxOperation | null = null;
     await transact(this.db, "readwrite", async (ops) => {
       const op = (await request(ops.get(opId))) as OutboxOperation | undefined;
       if (!op || op.uid !== this.uid || op.status !== "conflict") return;
+      if (acceptCurrent && acceptCurrent(op) !== true) return;
       rebased = {
         ...op,
         beforeImage: serverImage,
@@ -1040,7 +1044,7 @@ export function outboxStatusText(status: OutboxStatus): string {
     case "pending":
       return "ממתין לאישור השרת";
     case "failed":
-      return "נדחה — הנתונים נשמרו לתיקון";
+      return "לא אושר · הנתונים נשמרו לתיקון";
     case "conflict":
       return "התנגשות עם גרסה חדשה יותר";
   }

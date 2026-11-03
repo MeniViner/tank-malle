@@ -1,7 +1,9 @@
 # טנק מלא · Tank Maleh
 
-A Hebrew, right-to-left, offline-first PWA for tracking fuel fill-ups: real
-consumption in קמ״ל, spend over time, price trends and per-station comparisons.
+A Hebrew, right-to-left, offline-first PWA for fuel fill-ups and vehicle care:
+consumption in קמ״ל, running costs, service records, reminders, documents,
+price trends and per-station comparisons. The Plate v2 interface uses yellow
+licence-plate accents, warm light/dark themes and locally bundled fonts.
 
 **Live:** https://tank-malle.web.app
 
@@ -9,17 +11,17 @@ consumption in קמ״ל, spend over time, price trends and per-station compariso
 
 ## The one idea that shapes everything
 
-**Nothing derived is ever stored.** Firestore holds only raw fill-up records —
-date, odometer, liters, price, full-tank flag. Consumption, averages, monthly
-totals and every chart series are computed at runtime from the sorted list by a
-single pure module, [`src/lib/stats.ts`](src/lib/stats.ts).
+**Private raw records remain the source of truth.** Fill-ups, observations,
+service records, expenses and plans are stored with their original precision.
+Consumption, continuity, tank estimates and running costs are calculated by
+pure modules in `src/lib/stats.ts`, `src/lib/tank/`, `src/lib/maintenance/` and
+`src/lib/vehicle/`. Editing or backdating a record recalculates the derived view.
 
-That is what makes a backdated insert, an edit or a delete "recalculate
-everything" for free: there is no derived state to invalidate, no recompute job,
-and no way for the numbers to drift out of sync with the records.
-
-`stats.ts` imports neither React nor Firebase, so it is unit-testable in
-isolation — and it is the most thoroughly tested part of the codebase.
+Published benchmark and admin summaries are bounded projections with their own
+consent and access rules; they are not an alternative private ledger.
+The visual reference is [`design/v2/DESIGN-V2.md`](design/v2/DESIGN-V2.md).
+[`DESIGN_NOTES.md`](DESIGN_NOTES.md) describes the implementation and its
+behavior-preservation requirements.
 
 ## Stack
 
@@ -51,7 +53,7 @@ the admin scripts below, and only via `GOOGLE_APPLICATION_CREDENTIALS`.
 | -------------------------------------- | ----------------------------------------------- |
 | `npm run dev`                          | Dev server                                       |
 | `npm run build`                        | Type-check + production build                    |
-| `npm test`                             | Vitest run — 250 cases, no emulator needed       |
+| `npm test`                             | Vitest unit tests, no emulator needed       |
 | `npm run test:watch`                   | Vitest watch                                     |
 | `npm run test:rules`                   | Firestore Rules tests (needs Java 21+ and the CLI) |
 | `npm run lint`                         | oxlint                                           |
@@ -103,9 +105,22 @@ backwards.
 ## Deploying
 
 ```bash
+npm ci
+npm test
+npm run lint
+npm run test:rules
+npm run test:e2e -- --retries=0 --fail-on-flaky-tests
+npm run test:unified -- --retries=0 --fail-on-flaky-tests
 npm run build
-firebase deploy --only hosting,firestore
+firebase deploy --only firestore:rules --project tank-malle
+firebase deploy --only hosting --project tank-malle
 ```
+
+Run from a clean, committed source tree with an authorized Firebase account.
+Deploy the additive document/profile rules before Hosting. Check the live
+`/build-info.json` for the expected commit, version and `dirty: false`, then
+smoke-test the updated app and PWA. A successful local build does not prove a
+deployment occurred.
 
 Functions are excluded until the project is on the Blaze plan (see
 [Known limitations](#known-limitations)):
@@ -127,7 +142,7 @@ After deploying functions, re-add the proxy rewrite to `firebase.json`:
 src/
   lib/
     stats.ts          pure derived-metrics engine — the heart of the app
-    stats.test.ts     the original 64 cases
+    stats.test.ts     fuel calculation regression tests
     continuity.test.ts  islands, open segments, draft evaluation
     periods.ts        date ranges and aggregation buckets for Statistics
     prices/           fuel-type-aware price model + the one station resolver
@@ -139,7 +154,7 @@ src/
     numeric.ts        field-aware number parsing that consumes the whole input
     capabilities.ts   flags gating Blaze-only features (all default off)
     plateLookup.ts    tier-1 vehicle lookup, with a real tri-state outcome
-    accents.ts        accent palette + AA-contrast dark-variant derivation
+    accents.ts        six curated Plate v2 accent pairs + legacy fallback
     format.ts         Hebrew/RTL-aware number, money and date formatting
     csv.ts            versioned raw-data CSV export
     firebase.ts       app/auth/firestore initialisation
@@ -160,6 +175,10 @@ design/               the design export this was built against
 users/{uid}                                     profile + settings + login stamps
 users/{uid}/vehicles/{vehicleId}
 users/{uid}/vehicles/{vehicleId}/fillups/{fillupId}
+users/{uid}/vehicles/{vehicleId}/{serviceEvents,vehicleExpenses,maintenancePlans}/{id}
+users/{uid}/vehicles/{vehicleId}/{vehicleIssues,notificationStates}/{id}
+users/{uid}/vehicles/{vehicleId}/{observations,tankPlans,odometerReadings}/{id}
+userSummaries/{uid}                            bounded published admin summary
 users/{uid}/stationPriceReports/{reportId}      private; owner-only, create-only
 users/{uid}/personalPriceRules/{ruleId}         private; scoped price rules
 benchmarks/{uid}__{vehicleId}                   per-vehicle economy summary
@@ -174,7 +193,7 @@ Full field semantics, and how every pre-upgrade shape is read, are in
 ### Consumption model
 
 `isFullTank` means **the tank was full at the END of the fill-up** — whatever
-was in it on arrival. The UI says so: *מילאתי טנק מלא*, not *מיכל מלא*.
+was in it on arrival. The UI says *מילאתי עד הסוף*; a partial fill-up is *תדלוק חלקי*.
 
 Consumption is only meaningful between two such fill-ups. A partial does not
 close a segment; its liters roll into the open one, because the tank level at a
@@ -293,7 +312,7 @@ unticked shakes the row and says why, rather than silently doing nothing.
 
 ### Feedback
 
-Settings → משוב opens a single-field form. Submissions land in `feedback/`,
+Account → משוב opens a single-field form. Submissions land in `feedback/`,
 which is append-only: `allow update: if false`, so a note cannot be quietly
 rewritten after the fact. A user can read back their own; only admins see the
 whole pile, in the `/admin` inbox.
@@ -337,9 +356,11 @@ frame. Skeletons appear only when there is genuinely nothing cached.
 Semantic tokens live as CSS variables on `:root`. Light is the bare `:root`;
 dark applies either through `[data-theme="dark"]` or, when the setting is
 `system` (no attribute stamped), through `prefers-color-scheme`. The accent is
-stored as two theme variants (`--accent-l` / `--accent-d`) so a custom colour
-still swaps correctly with the theme; the dark variant is auto-lightened until
-it clears 4.5:1 against the dark surface.
+chosen from six fixed light/dark pairs: plate (default), mint, sky, peach,
+lilac and lime. Old/custom accent values map to plate. Text on accent surfaces
+remains ink; the licence plate itself uses a separate yellow `--lp` token.
+Karantina, IBM Plex Sans Hebrew and IBM Plex Mono are bundled with OFL licences
+and precached for offline use; no external font request is required.
 
 ### RTL
 
@@ -358,7 +379,7 @@ still reads right-to-left.
 
 ### Import and export
 
-Settings → ייבוא נתונים reads CSV and XLSX **entirely on the device**. The
+Account → ייבוא נתונים reads CSV and XLSX **entirely on the device**. The
 format and field mapping are detected automatically — Tank Maleh's own export
 (v1 or v2) and older fuel-tracker workbooks — but nothing is written until a
 preview has been confirmed, and the final report distinguishes imported, queued,
@@ -376,8 +397,9 @@ about 9 kB, loaded only when the import screen is opened.
 
 An offline write feels instant and its promise only settles on **server**
 acknowledgement. Those are different things, so the states are kept distinct
-and shown in the header: `נשמר במכשיר`, `ממתין לסנכרון`, `סונכרן`,
-`נדחה`, `התנגשות`.
+and shown in contextual receipts, toasts and the Unsynced screen: local
+acceptance, pending server acknowledgement, confirmed, failed and conflict.
+The redesigned header does not claim that a locally accepted write is synced.
 
 Before any user-data write reaches Firestore — fill-ups, imports and their
 rollbacks, vehicles, settings, observations, plans, price rules — its complete
@@ -404,7 +426,7 @@ conflict the user resolves explicitly. A pending entry cannot be retried (the
 SDK owns that write), and removing one from the list is labelled for what it
 is — it does not cancel the SDK's queued write.
 
-Settings → `פעולות שלא סונכרנו` lists every entry with its original input,
+Account → `שינויים שעוד לא עלו לענן` lists every entry with its original input,
 retry, edit (bound to the operation and its vehicle, opening the rejected
 input), export, conflict resolution and an explicitly confirmed discard.
 Unreadable storage is reported as *unknown*, never as "all synced": a legacy
@@ -422,7 +444,7 @@ backup for those. See `docs/RELIABILITY-RECOVERY-2026-09-30.md`.
 Switching accounts never requires clearing cookies or site data. A
 user-generation counter is bumped before any listener for the next account
 attaches; every async callback drops its result if the generation has moved.
-Profile → החלפת חשבון is the explicit flow.
+Account → החלפת חשבון is the explicit flow.
 
 ## Testing
 
@@ -447,28 +469,18 @@ special-case: they refuse to contact any real Google service, so a
 misconfigured test cannot reach production. The E2E helpers additionally refuse
 any host that is not `127.0.0.1` or `localhost`.
 
-| Suite | Cases | Covers |
-| --- | --- | --- |
-| `stats.test.ts` | 67 | the original engine — segments with partials, backdated inserts, edits, deletes, odometer bounds, soft/hard validation, range filtering — plus the no-95-for-diesel price rule |
-| `continuity.test.ts` | 33 | islands, breaks before full and partial fills, backdated and removed breaks, valid tracked distance, cost per valid km, open segments, `evaluateDraft`, warning suppression, segment range boundaries |
-| `import.test.ts` | 45 (7 need the real workbook) | bidi marks, NBSP, currency, units, comma ambiguity, Excel serials, header aliases, legacy reset detection, duplicate prevention, CSV and XLSX fixtures |
-| `prices.test.ts` | 30 | no cross-fuel fallback, precedence, freshness, confidence, personal-rule scoping, ceiling-vs-price wording |
-| `plateLookup.test.ts` | 22 | every failure classification, plate mismatch, retries, cached fallback |
-| `periods.test.ts` | 18 | ranges, grouping, elapsed-time averages, year-to-date, per-metric range semantics |
-| `format.test.ts` | 12 | leading signs, currency placement, true minus, previous-login wording |
-| `DateTimePicker.test.ts` | 9 | one-minute typed times, day-first dates, impossible dates |
-| `writes.test.ts` | 8 | pending → synced → failed, disposal after an account switch |
-| `outbox.test.ts` | 30 | payload survives reload and rejection, quota and IndexedDB-unavailable refusal, account scoping, immutable versions under late ack/rejection, concurrent enqueue/ack/replace/retry from two clients in both orders, lossless and idempotent legacy migration, quarantine of corrupt bytes, unknown-vs-none device state, reconciliation verdicts including pending deletes |
-| `fillupSerializer.test.ts` | 14 | no `id` in a patch, immutable creation metadata, station sanitising, malformed dates, every rule bound with its field |
-| `receipt.test.ts` | 11 | every typing order, suggested price never moves a typed figure, three-way conflicts reported not moved |
-| `numeric.test.ts` | 7 | grouped odometers, decimal commas, mixed separators, ambiguity flag, whole-input rejection |
-| `tank/outcome.test.ts` | 31 | draft → payload → replay round trips, provenance-aware tolerance, signature mutation sweep |
-| `prices/suggestion.test.ts` | — | one resolver for form, settings, home and statistics; manual vs regulated labelling; month-scoped overrides |
-| `csv.test.ts` | 6 | export round trip, formula-injection neutralisation, v1 compatibility |
-| `xlsx.test.ts` | 20 | Excel vs Google Sheets structure, shared and inline strings, styled date serials, empty cells, multiple sheets, formulas |
-| `ranking.test.ts` | 16 | nearest / cheapest / freshest / best value, no cross-fuel comparison, unknown prices last |
-| `tests/rules/` | 185 | owner / other user / admin / unauthenticated, on every collection; the 1,000-expression budget on the client's real document shape; the fill-up `version` contract (create, stored + 1 on a write that changes `writeId`, legacy documents and pre-version clients let through) |
-| `e2e/` | 68 | account isolation, consumption, import and rollback, date/time, vehicle lookup, pricing, statistics, legacy price rules, RTL, and the data-preservation contract (offline ×3 + reload, server rejection kept and retried once, Undo read back, sign-out A → B → A) |
+The unit suite covers the fuel and continuity engines, receipt ownership,
+imports, civil dates, vehicle documents, outbox reconciliation, exact before
+images, profile bootstrap and action lifetimes. Rules tests cover ownership,
+admin claims, schema bounds and versioned writes. Main and Unified Playwright
+suites cover the real application, emulator reads/writes, account isolation,
+responsive layouts, offline recovery, PWA installation and upgrades.
+
+Use the generated reports for current counts rather than a hand-maintained
+number here. The recovered v2 baseline and remaining environment-limited
+verification are recorded under [`design/v2/evidence/`](design/v2/evidence/).
+A private-workbook skip is expected when that external fixture is unavailable;
+synthetic importer fixtures still run.
 
 ### The legacy workbook
 
@@ -552,13 +564,14 @@ with entirely invented data, generated by `scripts/makeImportFixtures.mjs`.
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on every pull request and on pushes to `main`
-and `feat/**`, in three jobs:
+and `feat/**`, in four jobs:
 
 | Job | What it does |
 | --- | --- |
 | **verify** | typecheck, lint, a lint-warning budget, unit tests, production build, Functions install and build, and a check that the import fixtures still match their generators |
 | **rules** | Firestore Rules against the emulator, with Java 21 and a cached emulator binary |
-| **e2e** | Playwright in Chromium against the emulators, uploading the trace and report on failure |
+| **e2e** | Main Playwright suite in Chromium against the emulators, with failure traces |
+| **unified-vehicle** | Vehicle integration, built PWA, HTTPS gateway and service-worker upgrades |
 
 Nothing in CI deploys, and nothing touches a real Firebase project.
 

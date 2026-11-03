@@ -1,0 +1,145 @@
+{
+  "googleFontsCommit": "2fe1e8c6b137fb13041a7cfca6fdcd8a910ea4dc",
+  "fonts": [
+    {
+      "family": "IBM Plex Mono",
+      "weight": 500,
+      "subset": "latin-ext",
+      "filename": "ibm-plex-mono-latin-ext-500.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwl5FgtIU.woff2",
+      "unicodeRange": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF",
+      "bytes": 13432,
+      "sha256": "6bb06407c97584b0867a959e05e8874693bfeb8c317de190811c51598f2d99ea"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": 500,
+      "subset": "latin",
+      "filename": "ibm-plex-mono-latin-500.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3twJwlBFgg.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 14888,
+      "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": 600,
+      "subset": "latin-ext",
+      "filename": "ibm-plex-mono-latin-ext-600.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3vAOwl5FgtIU.woff2",
+      "unicodeRange": "U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF",
+      "bytes": 14328,
+      "sha256": "32057cf50dd14bdb21a2c93766c4a2c43e4abe688ea3922df3203cac7751a98b"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weight": 600,
+      "subset": "latin",
+      "filename": "ibm-plex-mono-latin-600.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexmono/v20/-F6qfjptAgt5VM-kVkqdyU8n3vAOwlBFgg.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 15620,
+      "sha256": "0d1f0b8d0722224e32e9f28261bdc86c79115be73444ae5eceb73976a1bcdf83"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 400,
+      "subset": "hebrew",
+      "filename": "ibm-plex-sans-hebrew-400.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa2qYENg9Kw1mpLpO0bGM5lfHAAZHhDXE2g-lgHrQ.woff2",
+      "unicodeRange": "U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F",
+      "bytes": 5476,
+      "sha256": "087793392c1abaa1ad918f3e2ca7e991cbf2cb6d4a991944fa8b9e336c12aab1"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 400,
+      "subset": "latin",
+      "filename": "ibm-plex-sans-latin-400.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa2qYENg9Kw1mpLpO0bGM5lfHAAZHhDXE2i-lg.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 19452,
+      "sha256": "f3f80a783f878dc6f0f637e6e541234434b9b6839dcd9f3da3552703e4d76b2a"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 500,
+      "subset": "hebrew",
+      "filename": "ibm-plex-sans-hebrew-500.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa5qYENg9Kw1mpLpO0bGM5lfHAAZHhDXEVR2U06jDu19Q.woff2",
+      "unicodeRange": "U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F",
+      "bytes": 5668,
+      "sha256": "3f85b2d84d91b35cdd7abb4b7b100bd218a5e5de83fc19b2d7e0d2f174a10e18"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 500,
+      "subset": "latin",
+      "filename": "ibm-plex-sans-latin-500.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa5qYENg9Kw1mpLpO0bGM5lfHAAZHhDXEVR2U04jDs.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 20328,
+      "sha256": "f21bfcb2593478480d9e85761fa209500d041088a0c1630af5daaa3bb1113486"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 600,
+      "subset": "hebrew",
+      "filename": "ibm-plex-sans-hebrew-600.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa5qYENg9Kw1mpLpO0bGM5lfHAAZHhDXEV93k06jDu19Q.woff2",
+      "unicodeRange": "U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F",
+      "bytes": 5652,
+      "sha256": "2a0832e31ca7571d89f13a385d1b45f431415160b631eff71636c2a9483b87dc"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 600,
+      "subset": "latin",
+      "filename": "ibm-plex-sans-latin-600.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa5qYENg9Kw1mpLpO0bGM5lfHAAZHhDXEV93k04jDs.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 20692,
+      "sha256": "8216c868e967c513a82b220e25b01ea6f11f26d85dc5a55b549fdd78a1d86157"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 700,
+      "subset": "hebrew",
+      "filename": "ibm-plex-sans-hebrew-700.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa5qYENg9Kw1mpLpO0bGM5lfHAAZHhDXEUZ3006jDu19Q.woff2",
+      "unicodeRange": "U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F",
+      "bytes": 5644,
+      "sha256": "7127a3cf5a6f98b5db2a89ca2802765fd9e2d34336dde46423fa421214796e03"
+    },
+    {
+      "family": "IBM Plex Sans Hebrew",
+      "weight": 700,
+      "subset": "latin",
+      "filename": "ibm-plex-sans-latin-700.woff2",
+      "url": "https://fonts.gstatic.com/s/ibmplexsanshebrew/v12/BCa5qYENg9Kw1mpLpO0bGM5lfHAAZHhDXEUZ3004jDs.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 19708,
+      "sha256": "a07b17697aad7bccad286a14a98555166de7efa390abeabc55da722bf8592d64"
+    },
+    {
+      "family": "Karantina",
+      "weight": 700,
+      "subset": "hebrew",
+      "filename": "karantina-hebrew-700.woff2",
+      "url": "https://fonts.gstatic.com/s/karantina/v13/buExpo24ccnh31GVMABxTC8v_fRPWiw.woff2",
+      "unicodeRange": "U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F",
+      "bytes": 5684,
+      "sha256": "0d8ca903dd3c0943022777195f6c3065dd651f6649cf3eb459319cb40377b141"
+    },
+    {
+      "family": "Karantina",
+      "weight": 700,
+      "subset": "latin",
+      "filename": "karantina-latin-700.woff2",
+      "url": "https://fonts.gstatic.com/s/karantina/v13/buExpo24ccnh31GVMABxTC8v__RP.woff2",
+      "unicodeRange": "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD",
+      "bytes": 14652,
+      "sha256": "e25d8653a0b302d15fc973ee094b31752938b82f84b3e75e8f1c51fc589a1e6a"
+    }
+  ]
+}

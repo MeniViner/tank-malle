@@ -6,15 +6,17 @@ import { subscribeResilient } from '../lib/subscribeResilient';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { useMaintenance } from '../hooks/useMaintenance';
-import { localDay, type MaintenancePlan } from '../lib/maintenance/model';
-import { EXTRA_COLLECTIONS, decodeVehicleRecord, validVehicleRecord, type VehicleCollection, type VehicleRecord } from '../lib/vehicle/model';
+import { localDay, type Job, type MaintenancePlan } from '../lib/maintenance/model';
+import { EXTRA_COLLECTIONS, decodeVehicleRecord, validVehicleRecord, type NotificationState, type VehicleCollection, type VehicleRecord } from '../lib/vehicle/model';
+import { advanceNotificationBaseline, notificationBaseline } from '../lib/vehicle/notificationBaseline';
 import { emptyExtraSources, recordExtraSourceError, type ExtraSourceState } from '../lib/vehicle/sourceState';
 import { buildLedger, currentMileage, mileageEvidence, periodSummary, reminderRows } from '../lib/vehicle/derived';
 import { notificationPreferences } from '../lib/vehicle/notificationPreferences';
-export interface EditingRecord { collection: VehicleCollection; record?: VehicleRecord; completePlan?: MaintenancePlan }
+export interface EditingRecord { collection: VehicleCollection; record?: VehicleRecord; completePlan?: MaintenancePlan; initialJob?: Job; odometerIntent?: 'current' }
 function useVehicleSources() {
   const {user}=useAuth();const data=useData();const uid=user?.uid??'',vehicleId=data.activeVehicle?.id??'';const scope=`${uid}/${vehicleId}`;
   const care=useMaintenance(uid,vehicleId);
+  const notificationLifetime=useMemo(()=>({uid,vehicleId}),[uid,vehicleId]);
   const [extra,setExtra]=useState<ExtraSourceState>(emptyExtraSources);
   const [now,setNow]=useState(()=>Date.now());
   const today=localDay(new Date(now));
@@ -23,10 +25,11 @@ function useVehicleSources() {
     const empty=emptyExtraSources(scope);
     const off=EXTRA_COLLECTIONS.map(name=>subscribeResilient<QuerySnapshot<DocumentData>>((next,error)=>onSnapshot(collection(db,'users',uid,'vehicles',vehicleId,name),{includeMetadataChanges:true},next,error),snap=>{
       const rows=snap.docs.map(d=>decodeVehicleRecord(name,{...d.data(),id:d.id}));const valid=rows.filter(r=>validVehicleRecord(name,r));invalid.set(name,rows.length-valid.length);
-      setExtra(old=>{const prev=old.scope===scope?old:empty;return {...prev,data:{...prev.data,[name]:valid},loaded:[...new Set([...prev.loaded,name])],cached:[...prev.cached.filter(n=>n!==name),...(snap.metadata.fromCache?[name]:[])],errors:prev.errors.filter(n=>n!==name),malformed:[...invalid.values()].reduce((a,b)=>a+b,0)};});
+      setExtra(old=>{const prev=old.scope===scope?old:empty;return {...prev,data:{...prev.data,[name]:valid},loaded:[...new Set([...prev.loaded,name])],cached:[...prev.cached.filter(n=>n!==name),...(snap.metadata.fromCache?[name]:[])],errors:prev.errors.filter(n=>n!==name),malformed:[...invalid.values()].reduce((a,b)=>a+b,0),
+        ...(name==='notificationStates'?{notificationSnapshot:advanceNotificationBaseline(prev.notificationSnapshot,notificationLifetime,valid as NotificationState[],snap.docs.map(d=>d.id),!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites)}:{})};});
     },{isCurrent:()=>current,label:name,onError:()=>setExtra(old=>recordExtraSourceError(old,scope,name))}));
     return()=>{current=false;off.forEach(fn=>fn());};
-  },[uid,vehicleId,scope]);
+  },[uid,vehicleId,scope,notificationLifetime]);
   const scoped=extra.scope===scope?extra:emptyExtraSources(scope);
   const mileage=useMemo(()=>mileageEvidence(data.fillups,data.observations,care.data),[data.fillups,data.observations,care.data]);
   const ledger=useMemo(()=>buildLedger(data.fillups,data.observations,care.data,scoped.data),[data.fillups,data.observations,care.data,scoped.data]);
@@ -35,7 +38,8 @@ function useVehicleSources() {
   const reminders=useMemo(()=>reminderRows(care.data,mileage,today,{days:notifications.leadDays,km:notifications.leadKm}),[care.data,mileage,today,notifications.leadDays,notifications.leadKm]);
   const current=currentMileage(mileage,today);
   const month=periodSummary(ledger,mileage,today.slice(0,7)+'-01',today,incomplete);
-  return {uid,vehicleId,scope,today,now,care,extra:scoped.data,extraErrors:scoped.errors,incomplete,mileage,currentMileage:current,ledger,reminders,month,notifications};
+  const notificationBase=(note:{id:string;occurrence:string})=>notificationBaseline(notificationLifetime,scoped.notificationSnapshot,scoped.errors.includes('notificationStates'),note);
+  return {uid,vehicleId,scope,today,now,care,extra:scoped.data,extraErrors:scoped.errors,notificationBase,incomplete,mileage,currentMileage:current,ledger,reminders,month,notifications};
 }
 type State=ReturnType<typeof useVehicleSources>&{editing:EditingRecord|null;edit:(next:EditingRecord|null)=>void};
 const Context=createContext<State|null>(null);

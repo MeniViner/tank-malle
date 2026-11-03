@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { NumRun } from "./Fmt";
 
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -30,7 +31,7 @@ export function Segmented<T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`flex w-full gap-1 rounded-pill bg-surface-2 ${size === "sm" ? "p-[3px]" : "p-1"}`}
+      className={`tm-segmented ${size === "sm" ? "tm-segmented-sm" : ""}`}
     >
       {options.map((option, index) => {
         const selected = option.value === value;
@@ -54,16 +55,11 @@ export function Segmented<T extends string>({
             }}
             id={`${groupId}-${option.value}`}
             onClick={() => onChange(option.value)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-pill font-semibold transition-[background-color,color,box-shadow,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] ${
-              size === "sm" ? "min-h-[40px] text-[13px]" : "min-h-[42px] text-[14px]"
-            } ${
-              selected
-                ? "bg-surface text-ink"
-                : "text-muted"
-            }`}
+            className="tm-segment"
           >
             {option.icon}
-            {option.label}
+            {option.label.split(/(\d[\d,.]*)/).map((part, partIndex) =>
+              /^\d/.test(part) ? <NumRun key={partIndex}>{part}</NumRun> : part)}
           </button>
         );
       })}
@@ -87,7 +83,7 @@ export function Toggle({
       aria-checked={checked}
       aria-label={ariaLabel}
       onClick={() => onChange(!checked)}
-      className="tm-switch"
+      className="tm-switch tm-plate-switch"
     >
       <span className="tm-switch-track" aria-hidden="true"><span className="tm-switch-thumb"/></span>
     </button>

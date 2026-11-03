@@ -1,373 +1,142 @@
-import { vehicleMoney } from "../lib/vehicle/format";
-import { useVehicleData } from "../context/VehicleDataContext";
-import { VehicleOverview } from "../components/VehicleOverview";
-import { resolveEndState } from "../lib/tank/observations";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useId, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
+import { useVehicleData } from "../context/VehicleDataContext";
 import { useStats } from "../hooks/useStats";
+import { useTankEstimate, type TankEstimateHandle } from "../hooks/useTankEstimate";
+import { useVehicleEnrichment } from "../hooks/useVehicleEnrichment";
+import { useSpotlight } from "../hooks/useSpotlight";
+import { int, vehicleLabel } from "../lib/format";
+import { averageMonthlyFuel } from "../lib/home/presentation";
+import type { SpotlightItem } from "../lib/home/spotlight";
+import type { Stats } from "../lib/stats";
+import type { LedgerRow } from "../lib/vehicle/derived";
 import { AppHeader } from "../components/AppHeader";
-import { Card, Label, SectionTitle, Skeleton } from "../components/Card";
-import { MyTankCard } from "../components/MyTankCard";
-import { Sheet } from "../components/Sheet";
-import { Num } from "../components/Num";
-import { ConsumptionValue, Quantity } from "../components/Fmt";
-import { InfoIcon, PumpIcon, SparkleIcon, WarningIcon } from "../components/icons";
-import { compareToPersonalAverage } from "../lib/efficiency";
-import { officialPriceFor } from "../lib/prices/regulated";
-import { MarketFuelPrice } from "../components/MarketFuelPrice";
-import { StationBrandMark } from "../components/StationBrand";
-import { HeroSpark } from "../components/HeroSpark";
-import {
-  FUEL_TYPE_SHORT,
-  consumption,
-  dayMonthShort,
-  heMonthName,
-  num,
-  price,
-  shekel,
-} from "../lib/format";
+import { Button } from "../components/Button";
+import { Skeleton } from "../components/Card";
+import { ConsumptionSparkline } from "../components/ConsumptionSparkline";
+import { ConsumptionValue, Distance, Money, NumericText, NumRun } from "../components/Fmt";
+import { InfoIcon, PumpIcon } from "../components/icons";
+import { JournalEntryRow } from "../components/JournalEntryRow";
+import { serviceMileageWarning } from "../lib/journal/presentation";
+import { HomeSpotlight } from "../components/home/HomeSpotlight";
+import { ConsumptionComparison } from "../components/home/ConsumptionComparison";
+import { ConsumptionDetails } from "../components/home/ConsumptionDetails";
+import { HomeFuelPrice } from "../components/home/HomeFuelPrice";
+import { SegmentSheet } from "../components/home/SegmentSheet";
+import { TankHero, type TankSheetEntry } from "../components/tank/TankHero";
+import { TankSheets } from "../components/tank/TankSheets";
+import "../home-design.css";
 
-/** Consumption first, followed by current costs, tank guidance and recent records. */
+/** One model/enrichment lifetime, including a vehicle with no fill-ups yet. */
 export function Home() {
-  const { settings, fillups, loadingFillups } = useData();
+  const data = useData(), vehicle = useVehicleData();
   const stats = useStats();
-  // Operational telemetry for the admin dashboard, so it never has to read
-  // anyone's fill-up records to count them.
+  const tank = useTankEstimate();
+  const enriching = useVehicleEnrichment();
+  return <main className="home-page pt-safe" data-testid="home-page">
+    <h1 className="sr-only">מצב הרכב</h1>
+    <AppHeader />
+    <HomeBody key={`${vehicle.uid}/${data.activeVehicle?.id ?? "none"}`} stats={stats} tank={tank} enriching={enriching} />
+  </main>;
+}
 
-  const [explainerOpen, setExplainerOpen] = useState(false);
+function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimateHandle; enriching: boolean }) {
+  const data = useData(), vehicle = useVehicleData(), navigate = useNavigate();
+  const spotlight = useSpotlight(stats);
+  const body = useRef<HTMLDivElement>(null);
+  const consumptionId = useId();
+  const [tankEntry, setTankEntry] = useState<TankSheetEntry | null>(null);
+  const [segmentId, setSegmentId] = useState<string | null>(null);
+  const [measurementOpen, setMeasurementOpen] = useState(false);
+  const [priceOpen, setPriceOpen] = useState(false);
+  const units = data.settings.units;
+  const active = data.activeVehicle;
+  const loading = data.loadingFillups || data.observationsStatus === "loading";
+  const hasFillups = data.fillups.length > 0;
+  const incompleteHistory = !!data.fillupsError || data.malformedFillups.length > 0;
+  const recent = vehicle.ledger.filter(row => row.day <= vehicle.today).slice(0, 3);
+  const monthly = averageMonthlyFuel(vehicle.ledger, vehicle.today);
+  const kmPerDay = tank.estimate.mobility.kmPerDay;
+  const segmentValues = new Map(stats.segments.map(segment => [segment.endId, segment.kmPerLiter]));
+  const flagged = new Set(stats.anomalies.map(anomaly => anomaly.fillupId));
+  const pendingPaths = new Set(data.outbox.filter(operation => operation.status === "pending").map(operation => operation.path));
+  const attentionPaths = new Set(data.outbox.filter(operation => operation.status === "failed" || operation.status === "conflict").map(operation => operation.path));
 
-  const units = settings.units;
+  function openItem(item: SpotlightItem) {
+    if (item.target.kind === "segment") setSegmentId(item.target.endId);
+    else if (item.target.kind === "price") setPriceOpen(true);
+    else navigate(item.target.to);
+  }
+  function openEntry(row: LedgerRow) {
+    const params = new URLSearchParams({ entry: row.key, owner: vehicle.uid, vehicle: vehicle.vehicleId });
+    navigate(`/history?${params}`);
+  }
+  function focusContent() { body.current?.querySelector<HTMLElement>("button, a")?.focus({ preventScroll: true }); }
 
-  const hero = consumption(stats.lastSegment?.kmPerLiter ?? null, units);
-  const average = consumption(stats.avgKmPerLiter, units);
-
-  /**
-   * More economical or less — never "above/below the average".
-   *
-   * Computed from km/L, the canonical metric, so the verdict is identical
-   * whether the screen is showing km/L or L/100 km. Saying "+4% above the
-   * average" beside a 6.8 that is BELOW a 7.1 L/100 km average is the exact
-   * contradiction this replaces.
-   */
-  const comparison = compareToPersonalAverage(
-    stats.lastSegment?.kmPerLiter ?? null,
-    stats.avgKmPerLiter,
-  );
-
-  const recent = [...stats.fillups].sort((a, b) => b.date - a.date).slice(0, 3);
-  const lastFillup = recent[0] ?? null;
-  const consumptionByEndId = new Map(stats.segments.map((s) => [s.endId, s.kmPerLiter]));
-
-  return (
-    <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-      <h1 className="sr-only">מצב הרכב</h1>
-      <AppHeader />
-
-      <div className="tm-page">
-        <VehicleOverview />
-        {loadingFillups ? (
-          <HomeSkeleton />
-        ) : (
-          <>
-            {/* Hero: the last measured consumption, the personal average, and
-                which of the two is the more economical result. */}
-            <section data-testid="consumption-summary" className="tm-rise flex flex-col gap-2.5 py-2 text-ink">
-              <div className="flex items-start justify-between gap-2">
-                <span className="flex flex-none items-center">
-                  <Label className="text-muted">צריכה אחרונה</Label>
-                  <button
-                    type="button"
-                    aria-label="מה המספרים האלה"
-                    aria-haspopup="dialog"
-                    aria-expanded={explainerOpen}
-                    onClick={() => setExplainerOpen(true)}
-                    className="flex size-10 items-center justify-center rounded-full text-muted transition-[color,scale] duration-200 active:scale-[0.96]"
-                  >
-                    <InfoIcon size={15} />
-                  </button>
-                </span>
-
-                {comparison ? (
-                  <span
-                    className={`mt-1 inline-flex items-center gap-1.5 rounded-pill px-1 py-1 text-[12px] font-semibold ${
-                      comparison.outcome === "better"
-                        ? "text-success-ink"
-                        : comparison.outcome === "worse"
-                          ? "text-danger-ink"
-                          : "text-muted"
-                    }`}
-                  >
-                    {comparison.outcome === "better" ? (
-                      <SparkleIcon size={13} />
-                    ) : comparison.outcome === "worse" ? (
-                      <WarningIcon size={13} />
-                    ) : null}
-                    {comparison.label}
-                  </span>
-                ) : null}
-              </div>
-
-              <span className="flex items-baseline gap-2">
-                <Num className="font-display text-[64px] font-bold leading-[0.88] tracking-[-0.03em]">
-                  {hero.value}
-                </Num>
-                <span className="text-[15px] font-semibold text-muted">{hero.unit}</span>
-              </span>
-
-              <HeroSpark segments={stats.segments} units={units} average={stats.avgKmPerLiter} />
-
-              {stats.avgKmPerLiter !== null ? (
-                <div className="home-average-row flex items-baseline justify-between gap-x-2 text-[13.5px]">
-                  <span>
-                    ממוצע כולל <Num className="font-semibold">{average.value}</Num>{" "}
-                    {average.unit}
-                  </span>
-                  <span className="text-muted">
-                    מבוסס על <Num>{stats.segments.length}</Num>{" "}
-                    מקטעים ·{" "}
-                    <Num>{stats.records.fillupCount}</Num> תדלוקים
-                  </span>
-                </div>
-              ) : (
-                <div className="border-t border-line pt-3 text-[14px] text-muted">
-                  הצריכה תחושב אחרי מקטע רציף שמתחיל ומסתיים במיכל מלא
-                </div>
-              )}
-
-              <OpenSegmentNote stats={stats} />
-            </section>
-
-            <div className="tm-rise tm-statpair" style={{ animationDelay: "70ms" }}>
-              <MonthSpendCard stats={stats} lastFillupDate={lastFillup?.date ?? null} />
-              <span className="tm-statpair-divider" aria-hidden="true" />
-              <FuelPriceCard />
-            </div>
-
-            <MyTankCard />
-
-            <SectionTitle
-              action={
-                fillups.length > 0 ? (
-                  <Link to="/history" className="inline-flex min-h-10 items-center text-[14px] font-semibold text-accent">
-                    לכל ההיסטוריה
-                  </Link>
-                ) : null
-              }
-            >
-              תדלוקים אחרונים
-            </SectionTitle>
-
-            {recent.length === 0 ? (
-              <Card className="flex flex-col items-center gap-3 px-6 py-8 text-center">
-                <span className="flex size-[58px] items-center justify-center rounded-[20px] bg-accent-soft text-accent">
-                  <PumpIcon size={28} />
-                </span>
-                <span className="text-[16px] font-bold text-ink">אין עדיין תדלוקים</span>
-                <span className="max-w-[250px] text-[14px] leading-relaxed text-muted">
-                  הוסיפו תדלוק ראשון כדי להתחיל.
-                </span>
-              </Card>
-            ) : (
-              <div className="tm-timeline -mt-5" data-testid="recent-fillups-timeline">
-                {recent.map((fillup) => {
-                  const kmPerLiter = consumptionByEndId.get(fillup.id) ?? null;
-                  return (
-                    <Link
-                      key={fillup.id}
-                      to={`/fillup/${fillup.id}`}
-                      className="tm-timeline-row"
-                    >
-                      <StationBrandMark brand={fillup.station?.brand} name={fillup.station?.name} />
-                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="truncate text-[15px] font-semibold text-ink">
-                          {fillup.station?.name || "ללא מיקום"}
-                        </span>
-                        <span className="text-[13px] text-muted">
-                          {dayMonthShort(fillup.date)} · <Num>{num(fillup.liters, 1)}</Num> ל׳ ·{" "}
-                          <Num>{shekel(fillup.totalCost)}</Num>
-                        </span>
-                      </span>
-
-                      {resolveEndState(fillup).state !== "full" ? (
-                        <span className="flex-none text-[14px] font-semibold text-muted">
-                          {resolveEndState(fillup).state === "partial" ? "חלקי" : "לא צוין"}
-                        </span>
-                      ) : kmPerLiter !== null ? (
-                        <ConsumptionValue
-                          kmPerLiter={kmPerLiter}
-                          units={units}
-                          className="flex-none text-[15px] font-bold text-ink"
-                          unitClassName="text-[13px] font-semibold text-muted"
-                        />
-                      ) : null}
-
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <Sheet
-        open={explainerOpen}
-        onClose={() => setExplainerOpen(false)}
-        title={<h2 className="text-[18px] font-semibold text-ink">איך זה מחושב</h2>}
-      >
-        <div className="flex flex-col gap-3 px-1 text-[14px] leading-relaxed text-ink/85">
-          <span>
-            <b className="text-ink">צריכה אחרונה</b> — צריכת הדלק שנמדדה מאז התדלוק המלא הקודם.
-          </span>
-
-          <span>
-            <b className="text-ink">ממוצע כולל</b> — ממוצע צריכת הדלק מכל הנסיעות שנמדדו, לפי המרחק שנסעת.
-          </span>
-
-          <span>
-            <b className="text-ink">הגרף</b> — כל עמודה היא מקטע בין תדלוקים מלאים. הקו המקווקו הוא הממוצע שלך.
-          </span>
-
-          <span>
-            אם סימנת שהיה תדלוק שלא תועד, החישוב מתחיל מחדש מאותה נקודה כדי לשמור על דיוק.
-          </span>
+  return <div ref={body} className="home-body">
+    <HomeSpotlight items={spotlight.items} onOpen={openItem} onDismiss={spotlight.dismiss} onEmpty={focusContent} />
+    {!active ? <section className="home-empty" data-testid="home-no-active">
+      <h2>בוחרים רכב וממשיכים</h2><p>אפשר לשחזר רכב מהארכיון או להוסיף רכב.</p>
+      <Button onClick={() => navigate("/vehicle")}>לרכב שלי</Button>
+    </section> : loading ? <HomeSkeleton /> : <>
+      {incompleteHistory ? <p className="home-history-status" role="status" data-testid="home-history-incomplete">חלק מהיסטוריית התדלוקים אינו זמין.</p> : null}
+      {!hasFillups && !incompleteHistory ? <section className="home-empty" data-testid="home-first-fillup">
+        <span className="home-label"><NumericText>{vehicleLabel(active)}</NumericText></span>
+        <h2>מתחילים מהתדלוק הבא</h2>
+        <p>שני תדלוקים עד הסוף ייתנו נקודת התחלה למדידת הצריכה.</p>
+        <Button full data-testid="first-fillup" onClick={() => navigate("/fillup/new")}><PumpIcon size={22} />רישום התדלוק הראשון</Button>
+        {tank.estimate.available ? <button type="button" className="home-text-action" onClick={() => setTankEntry("gauge")}>עדכון המחוון</button> : null}
+      </section> : null}
+      {hasFillups || data.observations.length ? <TankHero estimate={tank.estimate} onOpen={setTankEntry} /> : null}
+      {hasFillups ? <section className="home-consumption" data-testid="consumption-summary">
+        <div className="home-consumption-heading">
+          <span className="home-label">{stats.lastSegment ? "צריכה בתדלוק האחרון" : "צריכה"}</span>
+          <button className="tm-icon-button" type="button" data-testid="consumption-details-open" aria-label="פרטי מדידת הצריכה"
+            aria-haspopup="dialog" onClick={() => setMeasurementOpen(true)}><InfoIcon size={18} /></button>
         </div>
-      </Sheet>
-    </main>
-  );
-}
-
-/**
- * This month's spend.
- *
- * A month with no fill-up in it is not a ₪0 month — it is a month that has not
- * happened yet — so it says so and points at the last one that did.
- */
-function MonthSpendCard({
-  stats,
-  lastFillupDate,
-}: {
-  stats: ReturnType<typeof useStats>;
-  lastFillupDate: number | null;
-}) {
-  void stats;
-  const sharedMonth = useVehicleData().month;
-
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label>הוצאות החודש</Label>
-
-      {sharedMonth.financialCount > 0 ? (
-        <>
-          {/* dir="ltr" inside an RTL card left-aligns by default; the amount
-              belongs on the card's start edge, which is the right. */}
-          <Num className="self-start whitespace-nowrap font-display text-[26px] font-bold leading-tight text-ink">
-            {vehicleMoney(sharedMonth.total)}
-          </Num>
-          <span className="text-[14px] text-muted">
-            <Num>{sharedMonth.financialCount}</Num> רשומות ·{" "}
-            {heMonthName(new Date().getMonth() + 1)}
-          </span>
-        </>
-      ) : (
-        <>
-          <span className="text-[19px] font-bold leading-tight text-ink">טרם תודלק</span>
-          <span className="text-[14px] text-muted">
-            {lastFillupDate !== null ? `אחרון: ${dayMonthShort(lastFillupDate)}` : "עדיין אין תדלוקים"}
-          </span>
-        </>
-      )}
-    </div>
-  );
-}
-
-/**
- * The current fuel price, for THIS vehicle's fuel type.
- *
- * The regulated maximum in Israel covers 95-octane self-service and nothing
- * else. A diesel or 98 vehicle therefore gets "אין מחיר עדכני" rather than the
- * 95 figure wearing its label — unless an admin entered one, in which case it
- * is shown and named as a manual entry. Same resolver as the fill-up form.
- */
-function FuelPriceCard() {
-  const { prices, activeVehicle } = useData();
-  const fuelType = activeVehicle?.fuelType ?? "95";
-
-  // Sampled once per mount: the card is about today's figure, and a render is
-  // not an event.
-  const [today] = useState(() => Date.now());
-  const lookup = useMemo(() => officialPriceFor(prices, fuelType, today), [prices, fuelType, today]);
-
-  if (fuelType === '98' || fuelType === 'diesel') {
-    return <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label>מחיר דלק נוכחי</Label>
-      {lookup.price !== null ? <p className="text-sm"><Num>{price(lookup.price)}</Num> לליטר · מחיר שהוזן במערכת</p> : null}
-      <MarketFuelPrice fuelType={fuelType} compact />
-    </div>;
-  }
-
-  return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label>מחיר דלק נוכחי</Label>
-      <span className="flex flex-wrap items-baseline gap-x-1.5">
-        <Num className="font-display text-[26px] font-bold leading-tight text-ink">
-          {lookup.price !== null ? price(lookup.price) : "—"}
-        </Num>
-        {lookup.price !== null ? (
-          <span className="text-[12px] text-muted">לליטר</span>
-        ) : null}
-      </span>
-      <span className="truncate text-[14px] text-muted">
-        {lookup.price === null
-          ? `אין מחיר עדכני · ${FUEL_TYPE_SHORT[fuelType]}`
-          : lookup.isRegulated ? '95 · שירות עצמי' : `${FUEL_TYPE_SHORT[fuelType]} · ידני`}
-      </span>
-    </div>
-  );
-}
-
-/**
- * Open-segment status.
- *
- * Partial fill-ups are retained, not ignored — but nothing in the UI said so,
- * which made a partial look like it had been thrown away. This states the
- * pending liters explicitly.
- */
-function OpenSegmentNote({ stats }: { stats: ReturnType<typeof useStats> }) {
-  const open = stats.openSegment;
-
-  if (!open.hasBaseline) {
-    if (stats.records.fillupCount === 0) return null;
-    return (
-      <span className="text-[14px] text-muted">
-        עדיין אין נקודת התחלה. התדלוק הבא יפתח את החישוב.
-      </span>
-    );
-  }
-
-  if (open.pendingFillups === 0) return null;
-
-  return (
-    <span className="text-[14px] text-muted">
-      במקטע הפתוח נשמרו <Quantity value={open.liters} digits={1} /> מ־
-      <Num>{open.pendingFillups}</Num>{" "}
-      {open.pendingFillups === 1 ? "תדלוק" : "תדלוקים"} — הם ייכללו בחישוב
-      בתדלוק הבא.
-    </span>
-  );
+        {stats.lastSegment ? <>
+          <button type="button" className="home-consumption-reading" onClick={() => setSegmentId(stats.lastSegment!.endId)}
+            aria-labelledby={`${consumptionId}-action ${consumptionId}-value`} aria-describedby={`${consumptionId}-comparison`}>
+            <span id={`${consumptionId}-action`} className="sr-only">פרטי המקטע האחרון</span>
+            <span id={`${consumptionId}-value`}><ConsumptionValue kmPerLiter={stats.lastSegment.kmPerLiter} units={units} long className="home-consumption-value" unitClassName="home-consumption-unit" /></span>
+            <span id={`${consumptionId}-comparison`}><ConsumptionComparison latest={stats.lastSegment.kmPerLiter} average={stats.avgKmPerLiter} units={units} /></span>
+          </button>
+          <ConsumptionSparkline segments={stats.segments} units={units} average={stats.avgKmPerLiter} onSelect={segment => setSegmentId(segment.endId)} />
+        </> : <div className="home-empty home-consumption-empty" data-testid="home-open-segment">
+          <h2>{stats.openSegment.hasBaseline ? "עוד תדלוק מלא אחד ונדע" : "מתחילים בתדלוק עד הסוף"}</h2>
+          <div className="home-measurement-progress" aria-hidden="true"><span style={{ width: stats.openSegment.hasBaseline ? "50%" : "10%" }} /></div>
+          <p>{stats.openSegment.hasBaseline ? "נקודת ההתחלה נשמרה. אחרי נסיעה ותדלוק נוסף עד הסוף נחשב את הצריכה."
+            : "התדלוקים נשמרו. למדידת צריכה צריך שני תדלוקים עד הסוף."}</p>
+        </div>}
+      </section> : null}
+      <div className="home-trio" data-testid="home-trio">
+        <button type="button" className="home-trio-cell" data-testid="home-km-day" onClick={() => navigate("/vehicle")}>
+          <span className="home-trio-label">נוסע ביום</span>
+          {kmPerDay !== null && kmPerDay >= .5 ? <Distance value={kmPerDay} className="home-trio-value" unitClassName="home-trio-unit" /> : <NumRun block className="home-trio-value">—</NumRun>}
+          <span className="home-trio-caption">{kmPerDay !== null && kmPerDay > 0 ? kmPerDay < .5 ? "פחות מקילומטר ביום" : <>כ־<NumRun>{int(kmPerDay * 30)}</NumRun> בחודש</> : "אחרי כמה רישומים"}</span>
+        </button>
+        <button type="button" className="home-trio-cell" data-testid="home-fuel-month" onClick={() => navigate("/stats?tab=spend")}>
+          <span className="home-trio-label">דלק לחודש</span>
+          {monthly !== null && monthly >= .5 ? <Money block value={monthly} className="home-trio-value" /> : <NumRun block className="home-trio-value">—</NumRun>}
+          <span className="home-trio-caption">{monthly === null ? "אין ממוצע מלא" : monthly === 0 ? "לא נרשמה הוצאה" : monthly < .5 ? "פחות משקל לחודש" : incompleteHistory ? "לפי הרישומים הזמינים" : "בממוצע"}</span>
+        </button>
+        <HomeFuelPrice vehicle={active} now={vehicle.now} open={priceOpen} onOpen={() => setPriceOpen(true)} onClose={() => setPriceOpen(false)} />
+      </div>
+      {recent.length ? <section data-testid="recent-fillups-timeline" className="home-recent">
+        <div className="home-recent-heading"><h2 className="home-group-title">לאחרונה</h2><Link className="home-text-action" to="/history">כל היומן</Link></div>
+        {recent.map(row => <JournalEntryRow key={row.key} row={row} units={units} kmPerLiter={segmentValues.get(row.id)}
+          pending={pendingPaths.has(`users/${vehicle.uid}/vehicles/${vehicle.vehicleId}/${row.collection}/${row.id}`)} flagged={row.kind === "fuel" ? flagged.has(row.id) : !!serviceMileageWarning(row, vehicle.mileage)}
+          attention={attentionPaths.has(`users/${vehicle.uid}/vehicles/${vehicle.vehicleId}/${row.collection}/${row.id}`)}
+          onOpen={() => openEntry(row)} />)}
+      </section> : null}
+      <TankSheets handle={tank} entry={tankEntry} enriching={enriching} onClose={() => setTankEntry(null)} />
+      {segmentId ? <SegmentSheet endId={segmentId} stats={stats} units={units} onClose={() => setSegmentId(null)} /> : null}
+      {measurementOpen ? <ConsumptionDetails stats={stats} units={units} incomplete={incompleteHistory} onClose={() => setMeasurementOpen(false)} /> : null}
+    </>}
+  </div>;
 }
 
 function HomeSkeleton() {
-  return (
-    <div className="flex flex-col gap-3">
-      <Skeleton className="h-[208px] rounded-card" />
-      <div className="flex gap-3">
-        <Skeleton className="h-[92px] flex-1 rounded-card" />
-        <Skeleton className="h-[92px] flex-1 rounded-card" />
-      </div>
-      <Skeleton className="h-[210px] rounded-card" />
-      <Skeleton className="h-[176px] rounded-card" />
-    </div>
-  );
+  return <div className="home-skeleton"><Skeleton className="h-[228px] rounded-[24px]" /><Skeleton className="h-[310px] rounded-[18px]" /><Skeleton className="h-[100px] rounded-[12px]" /></div>;
 }

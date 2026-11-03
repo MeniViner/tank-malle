@@ -7,6 +7,31 @@ import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS, vehiclePayload as carePayload,
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
 import { storedDeclaredSource } from '../lib/vehicleSpecs';
+import { isVehicleEnrichmentOperation, isVehicleEnrichmentPatch, recoveryGroupsWithVehicleEnrichment, vehicleEnrichmentDecision, vehicleEnrichmentVerdict, vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
+import { decodeReusablePumpRule } from '../lib/fillupPricing';
+import { assertMutationScope, conditionalRawWrite, decodeRawDocument, encodeRawDocument, storedRawDocumentMatches } from '../lib/rawDocument';
+import { isVersionedFillupDelete, partitionFillupDeletes, retainedCreationUndo } from '../lib/fillupUndo';
+import { reconcileFillupDeletion, writeFillupDeletion } from '../lib/fillupUndoPersistence';
+import { createFillupEditUndo, fillupAfterPatch, fillupLifecycleImage, fillupLifecyclePatch } from '../lib/fillupLifecycle';
+import { submitVehicleCreation, blockedVehicleSelection, vehicleCreationIdentityMatches, notifyVehicleSelection,
+  type VehicleCreationOptions, type VehicleSelectionOptions, type VehicleSelectionResult, type VehicleWriteSubmission } from '../lib/vehicleCreation';
+import { vehicleSelectionBase, selectedVehicleFromBase, vehicleSelectionIntent, isVehicleSelectionOperation,
+  vehicleSelectionTargetId, vehicleSelectionApplied, writeVehicleSelectionOperation, reconcileVehicleSelectionOperation } from '../lib/vehicleSelection';
+import { retireVehicleAttempt, sameVehicleAttempt, vehicleWriteError } from '../lib/vehicleWriteAttempt';
+import {
+  captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture, vehicleDocumentIntent,
+  isVehicleDocumentOperation, writeVehicleDocumentOperation, reconcileVehicleDocumentOperation,
+  rebaseVehicleDocumentOperation, rawVehicleIdentity, type VehicleDocumentImages,
+} from '../lib/vehicleDocumentPersistence';
+import type { VehicleDocKey, VehicleDocChanges, VehicleDocumentSnapshot } from '../lib/vehicle/documents';
+import {
+  createObservationCapture, createRecordUndo, immutableRawImage, readObservationCapture,
+  type ObservationDeletionSnapshot, type RecordDeletionOptions,
+} from '../lib/recordUndo';
+import {
+  assertRecordUncontended, captureCareImage, isRecordUndoOperation, reconcileRecordOperation,
+  recordConflictPayloadPatch, recordRestoreImage, writeRecordOperation, type RecordCollection,
+} from '../lib/recordUndoPersistence';
 import { withPublicPrice } from "../lib/prices/regulated";
 import type { TankImportRecord } from "../lib/import/tankUpdates";
 import {
@@ -14,6 +39,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -59,7 +85,6 @@ import {
   Outbox,
   OutboxStorageError,
   collectionOf,
-  orphanGroups,
   reconcileWithServer,
   unacknowledgedState,
   type EnqueueInput,
@@ -81,6 +106,7 @@ import {
 import { genericPayloadMatches } from "../lib/writesPayload";
 import { conditionalFillupWrite, fillupBaseMatches, FillupConflictError } from "../lib/writesConditional";
 import { APP_VERSION } from "../lib/version";
+import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
 import { useAuth } from "./AuthContext";
 import { useTheme } from "./ThemeContext";
 import {
@@ -103,10 +129,52 @@ import {
 
 import { readScopedTankInput, type ScopedTankInput, type TankInputScope, type TankInputStatus } from "../lib/tank/inputScope";
 
+export type { ObservationDeletionSnapshot, RecordDeletionOptions, RecordDeletionSubmission } from '../lib/recordUndo';
+export type { VehicleDocumentSnapshot } from '../lib/vehicle/documents';
+export type { VehicleCreationSubmission, VehicleWriteSubmission, VehicleSelectionResult, VehicleSelectionOptions } from '../lib/vehicleCreation';
+
+interface ObservationSnapshot extends ScopedTankInput<TankObservation> {
+  rawImages: ReadonlyMap<string, OutboxPayload>;
+  pendingIds: ReadonlySet<string>;
+}
+
+interface VehicleSnapshot {
+  scope: object;
+  records: Vehicle[];
+  documentImages: ReadonlyMap<string, VehicleDocumentImages>;
+  identities: ReadonlyMap<string, OutboxPayload>;
+  pendingIds: ReadonlySet<string>;
+}
+
+export interface FillupSubmission {
+  written: Readonly<Fillup>;
+  receipt: MutationReceipt;
+  /** Provider account/vehicle session; ordinary route unmount does not end it. */
+  isCurrent: () => boolean;
+  undoCreation?: () => Promise<MutationReceipt>;
+  undoEdit?: () => Promise<MutationReceipt>;
+  restoreDeleted?: () => Promise<MutationReceipt>;
+}
+
+export interface FillupSubmissionOptions {
+  replaceOpId?: string | null;
+  replaceVersion?: number;
+  vehicleId?: string;
+  onSubmitted?: (submission: FillupSubmission) => void;
+}
+
+function immutableFillup(fillup: Fillup): Readonly<Fillup> {
+  return Object.freeze({ ...fillup, ...(fillup.station ? { station: Object.freeze({ ...fillup.station }) } : {}) });
+}
+
 interface DataContextValue {
+  /** A render-bound lifetime check that survives route changes, but never account changes. */
+  captureAccountAction: () => () => boolean;
+  /** As above, also invalidated by switching away from the active vehicle. */
+  captureVehicleAction: () => () => boolean;
   importBackupEntries: (entries: BackupEntry[]) => Promise<{written:number; receipts: MutationReceipt[]}>;
   saveCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord, previous?: CareRecord) => Promise<MutationReceipt>;
-  deleteCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord) => Promise<MutationReceipt>;
+  deleteCareRecord: (vehicleId: string, name: CareCollection, record: CareRecord, options?: RecordDeletionOptions) => Promise<MutationReceipt>;
   ready: boolean;
   accountDeletionPending: boolean;
   benchmarkWithdrawal: "idle" | "pending" | "done" | "error";
@@ -157,10 +225,12 @@ interface DataContextValue {
   fillupsError: string | null;
   /** Stored records this client could not read (e.g. an unreadable date). */
   malformedFillups: { id: string; reason: string; raw: Record<string, unknown> }[];
+  /** Raw price presence; normalized missing prices must not become authored zeroes. */
+  fillupPriceKnown: ReadonlyMap<string, boolean>;
   /** Re-submit a failed or conflicted operation. Idempotent by document id. */
   retryOperation: (opId: string) => Promise<void>;
   /** Resolve a conflict explicitly: keep the server's version or overwrite it. */
-  resolveConflict: (opId: string, choice: "keep-server" | "overwrite") => Promise<void>;
+  resolveConflict: (opId: string, choice: "keep-server" | "overwrite", reviewed?: OutboxOperation) => Promise<void>;
   /**
    * Drop an operation the user explicitly gave up on. Removes the journal
    * entry only — a write the SDK still holds is NOT cancelled by this.
@@ -170,10 +240,15 @@ interface DataContextValue {
   updateSettings: (patch: Partial<UserSettings>) => Promise<void>;
   setActiveVehicle: (vehicleId: string) => Promise<void>;
 
-  addVehicle: (vehicle: Omit<Vehicle, "id" | "createdAt">) => Promise<string>;
+  addVehicle: (vehicle: Omit<Vehicle, "id" | "createdAt">, options?: VehicleCreationOptions) => Promise<string>;
   updateVehicle: (vehicleId: string, patch: Partial<Vehicle>) => Promise<MutationReceipt>;
-  setVehicleArchived: (vehicleId: string, archived: boolean) => Promise<void>;
-  deleteVehicle: (vehicleId: string) => Promise<void>;
+  captureVehicleDocument: <K extends VehicleDocKey>(vehicle: Vehicle, key: K) => VehicleDocumentSnapshot<K> | null;
+  updateVehicleDocument: <K extends VehicleDocKey>(vehicleId: string, key: K, changes: VehicleDocChanges<K>,
+    options: { expected: VehicleDocumentSnapshot<K> }) => Promise<MutationReceipt>;
+  /** Best-effort generated specs; only unchanged missing server fields may be filled. */
+  enrichVehicleSpecs: (vehicle: Vehicle, patch: Partial<Vehicle>, signal?: AbortSignal) => Promise<MutationReceipt | null>;
+  setVehicleArchived: (vehicleId: string, archived: boolean, options?: VehicleSelectionOptions) => Promise<void>;
+  deleteVehicle: (vehicleId: string, options?: VehicleSelectionOptions) => Promise<void>;
 
   /**
    * Create a fill-up. The payload is written to the outbox BEFORE Firestore
@@ -182,7 +257,7 @@ interface DataContextValue {
    */
   addFillup: (
     fillup: FillupWrite,
-    options?: { replaceOpId?: string | null; vehicleId?: string; onWritten?: (fillup: Fillup) => void },
+    options?: FillupSubmissionOptions & { onWritten?: (fillup: Fillup) => void },
   ) => Promise<string>;
   /**
    * Replace a record's fields. `previous` is the before-image: kept in the
@@ -192,11 +267,11 @@ interface DataContextValue {
     fillupId: string,
     next: FillupWrite,
     previous?: Fillup | null,
-    options?: { replaceOpId?: string | null; vehicleId?: string },
+    options?: FillupSubmissionOptions,
   ) => Promise<Fillup | null>;
-  deleteFillup: (fillup: Fillup) => Promise<void>;
+  deleteFillup: (fillup: Fillup, options?: FillupSubmissionOptions) => Promise<void>;
   /** Re-create a deleted record with its original id and creation metadata, for Undo. */
-  restoreFillup: (fillup: Fillup) => Promise<void>;
+  restoreFillup: (fillup: Fillup, options?: { vehicleId?: string }) => Promise<void>;
   /** Write many fill-ups at once, for an import batch. */
   addFillupBatch: (
     vehicleId: string,
@@ -207,13 +282,16 @@ interface DataContextValue {
   listImportBatches: () => Promise<ImportBatch[]>;
   /** The user's explicit personal pricing rules. */
   priceRules: StoredPriceRule[];
-  savePriceRule: (rule: StoredPriceRule) => Promise<void>;
-  deletePriceRule: (ruleId: string) => Promise<void>;
+  rawPriceRules: ReadonlyMap<string, OutboxPayload>;
+  eligiblePriceRules: StoredPriceRule[];
+  priceRulesStatus: 'loading' | 'ready' | 'unavailable';
+  savePriceRule: (rule: StoredPriceRule, options?: { expected?: OutboxPayload | null }) => Promise<MutationReceipt>;
+  deletePriceRule: (ruleId: string, options?: { expected?: OutboxPayload | null }) => Promise<MutationReceipt>;
   /**
    * Undo one import. Deletes ONLY the records carrying that batch id, and then
    * the batch record itself.
    */
-  deleteImportBatch: (batch: ImportBatch) => Promise<ImportRollbackResult>;
+  deleteImportBatch: (batch: Pick<ImportBatch, "id" | "vehicleId">) => Promise<ImportRollbackResult>;
 
   /**
    * Standalone gauge / odometer updates for the active vehicle.
@@ -228,7 +306,8 @@ interface DataContextValue {
   addObservation: (
     observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">,
   ) => Promise<string>;
-  deleteObservation: (observationId: string) => Promise<void>;
+  captureObservation: (record: TankObservation) => ObservationDeletionSnapshot | null;
+  deleteObservation: (observationId: string, options?: RecordDeletionOptions & { snapshot?: ObservationDeletionSnapshot }) => Promise<void>;
 
   /** Upcoming journeys. They move the forecast and never become real travel. */
   plans: TankPlan[];
@@ -419,6 +498,26 @@ function unverified(): { code: string; message: string; at: number } {
   };
 }
 
+/** Automatic proposals never replace fields that became known while fetching. */
+function writeVehicleEnrichment(
+  path: string,
+  payload: OutboxPayload | null,
+  before: OutboxPayload | null,
+  stillCurrent: () => boolean,
+): Promise<void> {
+  return runTransaction(db, async transaction => {
+    if (!stillCurrent()) return;
+    const ref = doc(db, path);
+    const snapshot = await transaction.get(ref);
+    if (!stillCurrent()) return;
+    const decision = vehicleEnrichmentDecision(payload, before, snapshot.exists() ? snapshot.data() : null);
+    if (decision.state === 'unverified') {
+      throw Object.assign(new Error('לא ניתן לאמת את מפרט הרכב המקורי — ההצעה לא הוחלה'), { code: 'unverified' });
+    }
+    if (decision.state === 'update') transaction.update(ref, decision.patch);
+  });
+}
+
 
 /**
  * Journal several operations, hand ONE write to Firestore for them, and bind
@@ -478,17 +577,49 @@ function settleOrphans(outbox: Outbox, stillCurrent: () => boolean): () => void 
 
   void outbox.list().then((operations) => {
     if (stopped || !stillCurrent()) return;
-    for (const group of orphanGroups(reconcilableOperations(outbox, operations))) {
+    const { ordinary, deletions } = partitionFillupDeletes(reconcilableOperations(outbox, operations));
+    const records = ordinary.filter(isRecordUndoOperation);
+    const documentWrites = ordinary.filter(isVehicleDocumentOperation);
+    const selections = ordinary.filter(isVehicleSelectionOperation);
+    for (const group of [...recoveryGroupsWithVehicleEnrichment(ordinary.filter(op => !isRecordUndoOperation(op) && !isVehicleDocumentOperation(op) && !isVehicleSelectionOperation(op))),
+      ...selections.filter(op => op.status !== 'conflict').map(newest => ({ newest, superseded: [] })),
+      ...documentWrites.filter(op => op.status !== 'conflict').map(newest => ({ newest, superseded: [] })),
+      ...records.filter(op => op.status !== 'conflict').map(newest => ({ newest, superseded: [] })),
+      ...deletions.filter(op => op.status !== 'conflict').map(newest => ({ newest, superseded: [] }))]) {
       const { newest, superseded } = group;
       const collectionPath = collectionOf(newest.path);
       const isFillup = newest.kind.startsWith("fillup.") || newest.kind === "import.batch";
-      const matches = newest.kind.startsWith("maintenance.") ? carePayloadMatches : isFillup ? fillupPayloadMatches : genericPayloadMatches;
+      const matches = newest.kind.startsWith('priceRule.') ? storedRawDocumentMatches : newest.kind.startsWith("maintenance.") ? carePayloadMatches : isFillup ? fillupPayloadMatches : genericPayloadMatches;
       let done = false;
       const unsubscribe = onSnapshot(
         doc(db, newest.path),
         { includeMetadataChanges: true },
         (snapshot) => {
           if (done || stopped || !stillCurrent() || snapshot.metadata.fromCache) return;
+          if (isVehicleSelectionOperation(newest)) {
+            void reconcileVehicleSelectionOperation(db, outbox, newest, () => !stopped && stillCurrent()).then(settled => {
+              if (settled) { done = true; unsubscribe(); }
+            });
+            return;
+          }
+          if (isVehicleDocumentOperation(newest)) {
+            void reconcileVehicleDocumentOperation(db, outbox, newest, () => !stopped && stillCurrent()).then(settled => {
+              if (settled) { done = true; unsubscribe(); }
+            });
+            return;
+          }
+          if (isRecordUndoOperation(newest)) {
+            void reconcileRecordOperation(db, outbox, newest, () => !stopped && stillCurrent()).then(settled => {
+              if (settled) { done = true; unsubscribe(); }
+            });
+            return;
+          }
+          if (isVersionedFillupDelete(newest)) {
+            void reconcileFillupDeletion(db, outbox, newest, () => !stopped && stillCurrent()).then(settled => {
+              if (settled) { done = true; unsubscribe(); }
+            });
+            return;
+          }
           const documents = snapshot.exists()
             ? [
                 {
@@ -499,24 +630,27 @@ function settleOrphans(outbox: Outbox, stillCurrent: () => boolean): () => void 
               ]
             : [];
           void outbox.get(newest.opId).then((current) => {
+            if (stopped || !stillCurrent()) return;
             // Settled meanwhile (another tab, or a listener reconcile).
             if (!current || current.version !== newest.version) {
               done = true;
               unsubscribe();
               return;
             }
-            const verdicts = reconcileWithServer(
-              [current],
-              collectionPath,
-              documents,
-              matches,
-              snapshot.metadata.hasPendingWrites,
-            );
+            let verdicts: ReconcileVerdict[];
+            if (isVehicleEnrichmentOperation(current)) {
+              if (snapshot.metadata.hasPendingWrites) return;
+              verdicts = [vehicleEnrichmentVerdict(current, snapshot.exists() ? snapshot.data() : null)];
+            } else {
+              verdicts = reconcileWithServer(
+                [current], collectionPath, documents, matches, snapshot.metadata.hasPendingWrites,
+              );
+            }
             const verdict = verdicts[0];
             if (!verdict || verdict.verdict === "still-pending") return;
             done = true;
             unsubscribe();
-            applyVerdicts(outbox, verdicts);
+            applyVerdicts(outbox, newest.kind.startsWith('priceRule.') ? encodePrivateConflicts(verdicts) : verdicts);
             // The inputs this one replaced are settled with it.
             for (const older of superseded) {
               if (verdict.verdict === "synced") void outbox.acknowledge(older.opId, older.version);
@@ -563,6 +697,53 @@ function applyVerdicts(outbox: Outbox, verdicts: ReconcileVerdict[]): void {
   }
 }
 
+function encodePrivateConflicts(verdicts: ReconcileVerdict[]): ReconcileVerdict[] {
+  return verdicts.map(verdict => verdict.verdict === 'conflict'
+    ? { ...verdict, serverImage: verdict.serverImage === null ? null : encodeRawDocument(verdict.serverImage) } : verdict);
+}
+
+/**
+ * The triggering collection snapshot can predate the asynchronous journal
+ * read. Obtain new server evidence after capturing these operation versions;
+ * an older snapshot is never proof that a new suggestion became obsolete.
+ */
+function reconcileVehicleEnrichment(
+  outbox: Outbox,
+  operations: OutboxOperation[],
+  stillCurrent: () => boolean,
+): void {
+  const reads = new Map<string, Promise<DocumentSnapshot<DocumentData>>>();
+  for (const captured of operations) {
+    let read = reads.get(captured.path);
+    if (!read) {
+      read = getDocFromServer(doc(db, captured.path));
+      reads.set(captured.path, read);
+    }
+    void read.then(async snapshot => {
+      if (!stillCurrent() || snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+      const current = await outbox.get(captured.opId);
+      if (!stillCurrent() || !current || current.version !== captured.version || !isVehicleEnrichmentOperation(current)) return;
+      applyVerdicts(outbox, [vehicleEnrichmentVerdict(current, snapshot.exists() ? snapshot.data() : null)]);
+    }).catch(() => { /* Unreadable/offline evidence settles no journal entry. */ });
+  }
+}
+
+/** Raw private-rule images must be judged against evidence newer than capture. */
+function reconcilePrivateRules(outbox: Outbox, operations: OutboxOperation[], stillCurrent: () => boolean): void {
+  const reads = new Map<string, Promise<DocumentSnapshot<DocumentData>>>();
+  for (const captured of operations) {
+    let read = reads.get(captured.path);
+    if (!read) { read = getDocFromServer(doc(db, captured.path)); reads.set(captured.path, read); }
+    void read.then(async snapshot => {
+      if (!stillCurrent() || snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites) return;
+      const current = await outbox.get(captured.opId);
+      if (!stillCurrent() || !current || current.version !== captured.version) return;
+      applyVerdicts(outbox, encodePrivateConflicts(reconcileWithServer([current], collectionOf(current.path), snapshot.exists()
+        ? [{ id: snapshot.id, data: snapshot.data(), hasPendingWrites: false }] : [], storedRawDocumentMatches)));
+    }).catch(() => { /* Keep the exact input while the server is unavailable. */ });
+  }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user, isAdmin } = useAuth();
   const { setTheme, setAccent } = useTheme();
@@ -572,16 +753,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // rebuilds every listener for no reason.
   const uid = user?.uid ?? null;
 
+  const accountScope = useMemo(() => ({ uid }), [uid]);
+  const currentAccountScope = useRef<typeof accountScope | null>(null);
+  useLayoutEffect(() => {
+    currentAccountScope.current = accountScope;
+    return () => { currentAccountScope.current = null; };
+  }, [accountScope]);
+
   const [accountDeletionPending, setAccountDeletionPending] = useState(false);
   const deletingRef = useRef(false);
   const [benchmarkWithdrawal, setBenchmarkWithdrawal] = useState<"idle" | "pending" | "done" | "error">("idle");
   const [withdrawalAttempt, setWithdrawalAttempt] = useState(0);
   const retryBenchmarkWithdrawal = useCallback(() => setWithdrawalAttempt((n) => n + 1), []);
   const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const settingsCacheIntentRef = useRef<object | null>(null);
+  const [preferenceSnapshot, setPreferenceSnapshot] = useState<{ scope: object; base: OutboxPayload | null; pending: boolean } | null>(null);
+  const selectionIntentRef = useRef({ scope: accountScope, version: 0 });
+  useLayoutEffect(() => { selectionIntentRef.current = { scope: accountScope, version: 0 }; }, [accountScope]);
+  const [vehicleSnapshot, setVehicleSnapshot] = useState<VehicleSnapshot | null>(null);
+  const vehicles = useMemo(() => vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.records : [], [accountScope, vehicleSnapshot]);
   // Retry compares stored fields, not the display model's id/default values.
   const vehicleDocumentsRef = useRef(new Map<string, OutboxPayload>());
   const [fillups, setFillups] = useState<Fillup[]>([]);
+  const [fillupPriceSnapshot, setFillupPriceSnapshot] = useState<{ scope: TankInputScope; values: ReadonlyMap<string, boolean> } | null>(null);
   const [prices, setPrices] = useState<RegulatedPriceConfig | null>(null);
   const [ready, setReady] = useState(false);
   const [loadingFillups, setLoadingFillups] = useState(true);
@@ -589,8 +783,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [fillupsFromCache,setFillupsFromCache] = useState(true);
   const [fromCache, setFromCache] = useState(false);
   const [writes, setWrites] = useState<WriteStatus>(EMPTY_WRITE_STATUS);
-  const [priceRules, setPriceRules] = useState<StoredPriceRule[]>([]);
-  const [observationSnapshot, setObservationSnapshot] = useState<ScopedTankInput<TankObservation> | null>(null);
+  const priceRuleScope = useMemo(() => ({ uid }), [uid]);
+  const [priceRuleSnapshot, setPriceRuleSnapshot] = useState<{
+    scope: typeof priceRuleScope; raw: ReadonlyMap<string, OutboxPayload>;
+    status: 'loading' | 'ready' | 'unavailable';
+  } | null>(null);
+  const rawPriceRules = useMemo<ReadonlyMap<string, OutboxPayload>>(() =>
+    priceRuleSnapshot?.scope === priceRuleScope ? priceRuleSnapshot.raw : new Map(), [priceRuleSnapshot, priceRuleScope]);
+  const priceRulesStatus = priceRuleSnapshot?.scope === priceRuleScope ? priceRuleSnapshot.status : 'loading';
+  const priceRules = useMemo<StoredPriceRule[]>(() => [...rawPriceRules].map(([id, data]) => ({
+    id, vehicleId: data.vehicleId ?? null, stationId: data.stationId ?? null,
+    stationName: data.stationName ?? null, fuelType: data.fuelType ?? null,
+    discountPerLiter: typeof data.discountPerLiter === 'number' ? data.discountPerLiter : 0,
+    fixedPricePerLiter: toNumberOrNull(data.fixedPricePerLiter), label: data.label ?? null,
+    expiresAt: toNumberOrNull(data.expiresAt), legacy: data.legacy === true, reviewed: data.reviewed === true,
+  } as StoredPriceRule)), [rawPriceRules]);
+  const eligiblePriceRules = useMemo(() => [...rawPriceRules].flatMap(([id, raw]) => {
+    const rule = decodeReusablePumpRule(id, raw);
+    return rule ? [rule] : [];
+  }), [rawPriceRules]);
+  const [observationSnapshot, setObservationSnapshot] = useState<ObservationSnapshot | null>(null);
   const [planSnapshot, setPlanSnapshot] = useState<ScopedTankInput<TankPlan> | null>(null);
   const [outboxOps, setOutboxOps] = useState<OutboxOperation[]>([]);
   const [outboxHealth, setOutboxHealth] = useState<OutboxHealth>(UNOPENED_HEALTH);
@@ -632,6 +844,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     (generation: number) => () => generation === generationRef.current,
     [],
   );
+  const captureAccountScope = useCallback(() => {
+    const expected = accountScope;
+    return () => currentAccountScope.current === expected && !deletingRef.current;
+  }, [accountScope]);
 
   /**
    * Reconcile a collection's pending/failed journal entries against a
@@ -648,6 +864,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       stillRelevant: () => boolean = () => true,
     ) => {
       if (snapshot.metadata.fromCache) return;
+      const generation = generationRef.current;
+      const relevant = () => generation === generationRef.current && stillRelevant();
       const documents = snapshot.docs.map((entry) => ({
         id: entry.id,
         data: entry.data() as OutboxPayload,
@@ -656,10 +874,33 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const pendingWrites = snapshot.metadata.hasPendingWrites;
       void outboxPromiseRef.current?.then((outbox) =>
         outbox?.list().then((operations) => {
-          if (!stillRelevant()) return;
+          if (!relevant()) return;
+          const candidates = reconcilableOperations(outbox, operations);
+          const { ordinary, deletions } = partitionFillupDeletes(operations);
+          const ordinaryIds = new Set(ordinary.map(op => op.opId));
+          const availableIds = new Set(candidates.map(op => op.opId));
+          for (const deletion of deletions) {
+            if (collectionOf(deletion.path) === collectionPath && availableIds.has(deletion.opId)) {
+              void reconcileFillupDeletion(db, outbox, deletion, relevant);
+            }
+          }
+          const eligible = candidates.filter(op => ordinaryIds.has(op.opId));
+          for (const operation of eligible.filter(op => collectionOf(op.path) === collectionPath && isVehicleSelectionOperation(op))) {
+            void reconcileVehicleSelectionOperation(db, outbox, operation, relevant);
+          }
+          for (const operation of eligible.filter(op => collectionOf(op.path) === collectionPath && isVehicleDocumentOperation(op))) {
+            void reconcileVehicleDocumentOperation(db, outbox, operation, relevant);
+          }
+          const automatic = eligible.filter(op => collectionOf(op.path) === collectionPath && isVehicleEnrichmentOperation(op));
+          reconcileVehicleEnrichment(outbox, automatic, relevant);
+          const privateRules = eligible.filter(op => collectionOf(op.path) === collectionPath && op.kind.startsWith('priceRule.'));
+          reconcilePrivateRules(outbox, privateRules, relevant);
+          for (const operation of eligible.filter(op => collectionOf(op.path) === collectionPath && isRecordUndoOperation(op))) {
+            void reconcileRecordOperation(db, outbox, operation, relevant);
+          }
           applyVerdicts(
             outbox,
-            reconcileWithServer(reconcilableOperations(outbox, operations), collectionPath, documents, matches, pendingWrites),
+            reconcileWithServer(eligible.filter(op => !isVehicleEnrichmentOperation(op) && !isVehicleDocumentOperation(op) && !isVehicleSelectionOperation(op) && !op.kind.startsWith('priceRule.') && !isRecordUndoOperation(op)), collectionPath, documents, matches, pendingWrites),
           );
         }),
       );
@@ -692,16 +933,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     // Reset everything user-scoped, synchronously.
     setSettings(DEFAULT_SETTINGS);
-    setVehicles([]);
+    settingsCacheIntentRef.current = null;
+    setPreferenceSnapshot(null);
+    setVehicleSnapshot(null);
     vehicleDocumentsRef.current.clear();
     setFillups([]);
+    setFillupPriceSnapshot(null);
     setFillupDataScope(null);
     setPrices(null);
     setReady(false);
     setLoadingFillups(Boolean(uid));
     setFromCache(false);
     setWrites(EMPTY_WRITE_STATUS);
-    setPriceRules([]);
+    setPriceRuleSnapshot(null);
     setOutboxOps([]);
     setOutboxHealth(UNOPENED_HEALTH);
     setOutboxReady(false);
@@ -742,7 +986,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             setOutboxHealth({
               state: "unavailable",
               quarantined: [],
-              message: "אחסון הפעולות המקומי אינו זמין — לא ניתן לדעת אם יש פעולות שלא סונכרנו",
+              message: "אחסון הפעולות המקומי אינו זמין — לא ניתן לדעת אם יש שינויים שעוד לא עלו לענן",
             });
             setOutboxReady(true);
             return null;
@@ -773,12 +1017,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     if (cachedSettings) setSettings({ ...DEFAULT_SETTINGS, ...cachedSettings });
     if (cachedVehicles?.length) {
-      setVehicles(cachedVehicles);
+      setVehicleSnapshot({ scope: accountScope, records: cachedVehicles, documentImages: new Map(), identities: new Map(), pendingIds: new Set() });
       setFromCache(true);
     }
     if (cachedPrices) setPrices(cachedPrices);
     if (cachedSettings || cachedVehicles?.length) setReady(true);
-  }, [uid]);
+  }, [uid, accountScope]);
 
   useEffect(() => {
     const online = () => setOffline(false);
@@ -796,45 +1040,65 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user || !uid) return;
     const generation = generationRef.current;
-
     const userRef = doc(db, "users", uid);
+    const accountCurrent = captureAccountScope();
+    const identity: LoginProfile = { displayName: user.displayName, photoURL: user.photoURL, email: user.email };
+
+    // Auth telemetry and a late reconnect may both initialize this document.
+    // Every field value is derived from the transaction's current read, never
+    // from an earlier missing cache snapshot or a queued defaults merge.
+    const initializeProfileFields = () => {
+      void runTransaction(db, async transaction => {
+        assertMutationScope(accountCurrent);
+        if (isAccountDeleting(uid)) return;
+        const current = await transaction.get(userRef);
+        assertMutationScope(accountCurrent);
+        const existing = current.exists() ? current.data() : {};
+        if (isAccountDeleting(uid) || existing.deletionPending === true) return;
+        const patch = missingProfileFields(existing, identity, serverTimestamp());
+        if (Object.keys(patch).length) transaction.set(userRef, patch, { merge: true });
+      }).catch((error: unknown) => {
+        if (!accountCurrent()) return;
+        // eslint-disable-next-line no-console
+        console.warn("[tank-maleh] could not complete the profile document", error);
+      });
+    };
 
     return subscribeResilient<DocumentSnapshot<DocumentData>>(
-      (onNext, onError) => onSnapshot(userRef, onNext, onError),
+      (onNext, onError) => onSnapshot(userRef, { includeMetadataChanges: true }, onNext, onError),
       (snapshot) => {
+        let preferenceBase: OutboxPayload | null = null;
+        try { if (snapshot.exists()) preferenceBase = vehicleSelectionBase(snapshot.data()); } catch { /* An unverifiable preference grants no automatic selection. */ }
+        setPreferenceSnapshot({ scope: accountScope, base: preferenceBase, pending: snapshot.metadata.hasPendingWrites });
         if (deletingRef.current || isAccountDeleting(uid) || snapshot.data()?.deletionPending === true) {
           deletingRef.current = true;
           setAccountDeletionPending(true);
           setReady(true);
           return;
         }
+        // A cached absence supplies a local view only. A server snapshot on
+        // reconnect retries incomplete profiles, including an existing empty
+        // root. No attempted/in-flight flag may discard that later snapshot.
+        if (!snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites &&
+            Object.keys(missingProfileFields(snapshot.data() ?? {}, identity, null)).length) {
+          initializeProfileFields();
+        }
         if (!snapshot.exists()) {
-          // First sign-in: create the profile document.
-          // Not routed through the write tracker: this fires during the very
-          // first render for a new account, before the tracker callback is
-          // declared, and a profile that fails to create surfaces immediately
-          // as an unusable app rather than needing a pending-write badge.
-          void setDoc(
-            userRef,
-            {
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              email: user.email,
-              settings: DEFAULT_SETTINGS,
-              createdAt: serverTimestamp(),
-            },
-            { merge: true },
-          ).catch((error: unknown) => {
-            // eslint-disable-next-line no-console
-            console.warn("[tank-maleh] could not create the profile document", error);
-          });
-          setSettings(DEFAULT_SETTINGS);
+          // The local view is ready independently of server initialization.
+          // Only the guarded transactions above may supply profile defaults.
           setReady(true);
           return;
         }
 
         const data = snapshot.data();
+        // Account reset and UID cache hydration already supplied the local
+        // view. Missing fields in an incomplete profile must not reset it.
+        if (!Object.hasOwn(data, 'settings')) {
+          setReady(true);
+          return;
+        }
         const next: UserSettings = { ...DEFAULT_SETTINGS, ...(data.settings ?? {}) };
+        settingsCacheIntentRef.current = null;
         setSettings(next);
         writeCache(uid, "settings", next);
         setReady(true);
@@ -845,7 +1109,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         onError: () => setReady(true),
       },
     );
-  }, [user, uid, isCurrent]);
+  }, [user, uid, accountScope, isCurrent, captureAccountScope]);
 
   // The stored preference is the source of truth once it arrives; before that
   // the app runs on the localStorage value stamped in index.html.
@@ -870,14 +1134,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
           onError,
         ),
       (snapshot) => {
+        const documentImages = new Map<string, VehicleDocumentImages>();
+        const identities = new Map<string, OutboxPayload>();
+        const pendingIds = new Set<string>();
         vehicleDocumentsRef.current = new Map(snapshot.docs.map((entry) => {
           const data = entry.data();
+          documentImages.set(entry.id, captureVehicleDocumentImages(data));
+          try { identities.set(entry.id, immutableRawImage(rawVehicleIdentity(data))); } catch { /* No invented identity. */ }
+          if (entry.metadata.hasPendingWrites) pendingIds.add(entry.id);
           return [entry.id, { ...data, ...("createdAt" in data ? { createdAt: toMillis(data.createdAt) } : {}) }];
         }));
         const list = snapshot.docs.map((entry) => {
           const data = entry.data();
           return {
             id: entry.id,
+            ...(Object.hasOwn(data, 'docs') ? { docs: data.docs } : {}),
             make: String(data.make ?? ""),
             model: String(data.model ?? ""),
             year: toNumberOrNull(data.year),
@@ -904,7 +1175,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           } satisfies Vehicle;
         });
         list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
-        setVehicles(list);
+        setVehicleSnapshot({ scope: accountScope, records: list, documentImages, identities, pendingIds });
         writeCache(uid, "vehicles", list);
         if (!snapshot.metadata.fromCache) setFromCache(false);
 
@@ -912,9 +1183,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       },
       { isCurrent: isCurrent(generation), label: "vehicles" },
     );
-  }, [uid, isCurrent, reconcileLater]);
+  }, [uid, accountScope, isCurrent, reconcileLater]);
 
   const activeVehicles = useMemo(() => vehicles.filter((v) => !v.archived && !v.deletionPending), [vehicles]);
+
+  const committedSelectionRef = useRef<{ scope: object; preference: typeof preferenceSnapshot; catalog: typeof vehicleSnapshot } | null>(null);
+  useLayoutEffect(() => {
+    committedSelectionRef.current = { scope: accountScope, preference: preferenceSnapshot, catalog: vehicleSnapshot };
+    return () => { committedSelectionRef.current = null; };
+  }, [accountScope, preferenceSnapshot, vehicleSnapshot]);
 
   const activeVehicle = useMemo(() => {
     if (activeVehicles.length === 0) return null;
@@ -927,8 +1204,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const activeVehicleId = activeVehicle?.id ?? null;
   const tankInputScope = useMemo<TankInputScope>(() => ({ uid, vehicleId: activeVehicleId }), [uid, activeVehicleId]);
+  const fillupPriceKnown = useMemo<ReadonlyMap<string, boolean>>(() => fillupPriceSnapshot?.scope === tankInputScope
+    ? fillupPriceSnapshot.values : new Map(), [fillupPriceSnapshot, tankInputScope]);
+  const mutationScope = useMemo(() => ({ uid, vehicleId: activeVehicleId }), [uid, activeVehicleId]);
+  const currentMutationScope = useRef<typeof mutationScope | null>(null);
+  useLayoutEffect(() => {
+    currentMutationScope.current = mutationScope;
+    return () => { currentMutationScope.current = null; };
+  }, [mutationScope]);
+  const captureMutationScope = useCallback(() => {
+    const expected = mutationScope;
+    return () => currentMutationScope.current === expected && !deletingRef.current;
+  }, [mutationScope]);
+
+  const captureVehicleDocument = useCallback(function<K extends VehicleDocKey>(vehicle: Vehicle, key: K) {
+    return createVehicleDocumentCapture({ records: vehicles, vehicleId: activeVehicleId,
+      images: vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.documentImages : new Map(),
+      pendingIds: vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.pendingIds : new Set(),
+    }, captureMutationScope())(vehicle, key);
+  }, [vehicles, activeVehicleId, vehicleSnapshot, accountScope, captureMutationScope]);
+
   const { records: observations, status: observationsStatus } = readScopedTankInput(observationSnapshot, tankInputScope);
   const { records: plans, status: plansStatus } = readScopedTankInput(planSnapshot, tankInputScope);
+  const captureObservation = useCallback((record: TankObservation) => createObservationCapture({
+    vehicleId: activeVehicleId,
+    records: observations,
+    rawImages: observationSnapshot?.scope === tankInputScope ? observationSnapshot.rawImages : new Map(),
+    pendingIds: observationSnapshot?.scope === tankInputScope ? observationSnapshot.pendingIds : new Set(),
+  }, captureMutationScope())(record), [activeVehicleId, observations, observationSnapshot, tankInputScope, captureMutationScope]);
 
   useEffect(() => {
     // Keyed on the vehicle ID, not the vehicle object: a vehicle edit (a
@@ -969,8 +1272,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const list: Fillup[] = [];
         const malformed: { id: string; reason: string; raw: Record<string, unknown> }[] = [];
         const pending = new Set<string>();
+        const knownPrices = new Map<string, boolean>();
         for (const entry of snapshot.docs) {
-          const parsed = parseFillupDocument(entry.id, entry.data());
+          const raw = entry.data();
+          const parsed = parseFillupDocument(entry.id, raw);
+          knownPrices.set(entry.id, typeof raw.pricePerLiter === 'number' && Number.isFinite(raw.pricePerLiter) && raw.pricePerLiter >= 0);
           if (parsed.ok) list.push(parsed.fillup);
           else malformed.push({ id: parsed.id, reason: parsed.reason, raw: parsed.raw });
           if (entry.metadata.hasPendingWrites) pending.add(entry.id);
@@ -978,6 +1284,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         setFillupsFromCache(snapshot.metadata.fromCache);
         setFillups(list);
+        setFillupPriceSnapshot({ scope: tankInputScope, values: knownPrices });
         setMalformedFillups(malformed);
         setPendingFillupIds(pending);
         setFillupsError(null);
@@ -1003,7 +1310,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         },
       },
     );
-  }, [uid, activeVehicleId, isCurrent, reconcileLater]);
+  }, [uid, activeVehicleId, tankInputScope, isCurrent, reconcileLater]);
 
   const scopedFillups = useMemo(() => uid && activeVehicleId && fillupDataScope === `${uid}/${activeVehicleId}` ? fillups : [], [uid, activeVehicleId, fillupDataScope, fillups]);
   const scopedLoadingFillups = loadingFillups || (!!activeVehicleId && fillupDataScope !== `${uid}/${activeVehicleId}`);
@@ -1024,7 +1331,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     const generation = generationRef.current;
     const cached = readCache<TankObservation[]>(uid, `observations.${activeVehicleId}`);
-    setObservationSnapshot({ scope: tankInputScope, records: cached ?? [], status: cached ? "cached" : "loading" });
+    setObservationSnapshot({ scope: tankInputScope, records: cached ?? [], status: cached ? "cached" : "loading",
+      rawImages: new Map(), pendingIds: new Set() });
 
     return subscribeResilient<QuerySnapshot<DocumentData>>(
       (onNext, onError) =>
@@ -1035,8 +1343,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
           onError,
         ),
       (snapshot) => {
+        const rawImages = new Map<string, OutboxPayload>();
+        const pendingIds = new Set<string>();
         const list = snapshot.docs.map((entry) => {
           const data = entry.data();
+          if (entry.metadata.hasPendingWrites) pendingIds.add(entry.id);
+          try { rawImages.set(entry.id, immutableRawImage(data)); }
+          catch { /* Displayable legacy data is not an authenticated raw delete base. */ }
           return {
             id: entry.id,
             vehicleId: activeVehicleId,
@@ -1056,13 +1369,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           } satisfies TankObservation;
         });
         list.sort((a, b) => a.observedAt - b.observedAt);
-        setObservationSnapshot({ scope: tankInputScope, records: list, status: snapshot.metadata.fromCache ? "cached" : "ready" });
+        setObservationSnapshot({ scope: tankInputScope, records: list, status: snapshot.metadata.fromCache ? "cached" : "ready",
+          rawImages, pendingIds });
         writeCache(uid, `observations.${activeVehicleId}`, list);
 
         reconcileLater(snapshot, `users/${uid}/vehicles/${activeVehicleId}/observations`, genericPayloadMatches);
       },
       { isCurrent: isCurrent(generation), label: "tank observations", onError: () =>
-        setObservationSnapshot((previous) => ({ scope: tankInputScope, records: readScopedTankInput(previous, tankInputScope).records, status: "unavailable" })) },
+        setObservationSnapshot((previous) => previous?.scope === tankInputScope
+          ? { ...previous, status: 'unavailable' }
+          : { scope: tankInputScope, records: [], status: 'unavailable', rawImages: new Map(), pendingIds: new Set() }) },
     );
   }, [uid, activeVehicleId, tankInputScope, isCurrent, reconcileLater]);
 
@@ -1111,34 +1427,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!uid) return;
     const generation = generationRef.current;
-
     return subscribeResilient<QuerySnapshot<DocumentData>>(
-      (onNext, onError) =>
-        onSnapshot(collection(db, "users", uid, "personalPriceRules"), onNext, onError),
-      (snapshot) => {
-        setPriceRules(
-          snapshot.docs.map((entry) => {
-            const data = entry.data();
-            return {
-              id: entry.id,
-              vehicleId: data.vehicleId ?? null,
-              stationId: data.stationId ?? null,
-              stationName: data.stationName ?? null,
-              fuelType: (data.fuelType ?? null) as FuelType | null,
-              discountPerLiter:
-                typeof data.discountPerLiter === "number" ? data.discountPerLiter : 0,
-              fixedPricePerLiter: toNumberOrNull(data.fixedPricePerLiter),
-              label: data.label ?? null,
-              expiresAt: toNumberOrNull(data.expiresAt),
-              legacy: data.legacy === true,
-              reviewed: data.reviewed === true,
-            } satisfies StoredPriceRule;
-          }),
-        );
+      (onNext, onError) => onSnapshot(collection(db, "users", uid, "personalPriceRules"),
+        { includeMetadataChanges: true }, onNext, onError),
+      snapshot => {
+        const raw = new Map(snapshot.docs.map(entry => [entry.id, entry.data() as OutboxPayload]));
+        setPriceRuleSnapshot({ scope: priceRuleScope, raw, status: snapshot.metadata.fromCache ? 'loading' : 'ready' });
+        if (!snapshot.metadata.fromCache) reconcileLater(snapshot, `users/${uid}/personalPriceRules`, storedRawDocumentMatches);
       },
-      { isCurrent: isCurrent(generation), label: "price rules" },
+      { isCurrent: isCurrent(generation), label: "price rules", onError: () => setPriceRuleSnapshot(previous => ({
+        scope: priceRuleScope, raw: previous?.scope === priceRuleScope ? previous.raw : new Map(), status: 'unavailable',
+      })) },
     );
-  }, [uid, isCurrent]);
+  }, [uid, priceRuleScope, isCurrent, reconcileLater]);
 
   /* ---------- global fuel prices ---------- */
 
@@ -1195,15 +1496,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
      visible failure with the input intact instead of being swallowed while
      the UI says "saved". */
 
-  const track = useCallback(
-    (kind: MutationKind, promise: Promise<unknown>): MutationReceipt => {
-      const tracker = trackerRef.current;
-      if (!tracker) return { id: "", settled: Promise.resolve(false) };
-      return tracker.track(kind, promise);
-    },
-    [],
-  );
-
   const dismissWriteFailure = useCallback((id: string) => {
     trackerRef.current?.dismiss(id);
   }, []);
@@ -1246,42 +1538,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
       input: EnqueueInput,
       write: (operation: OutboxOperation) => Promise<unknown>,
       localMatch?: (operation: OutboxOperation, data: DocumentData) => boolean,
+      stillCurrent: () => boolean = () => true,
     ): Promise<MutationReceipt> => {
+      const attemptTracker = trackerRef.current;
+      const trackAttempt = (kind: MutationKind, promise: Promise<unknown>): MutationReceipt =>
+        attemptTracker ? attemptTracker.track(kind, promise) : { id: '', settled: Promise.resolve(false) };
+      assertMutationScope(stillCurrent);
       const outbox = await requireOutbox();
+      assertMutationScope(stillCurrent);
+      const ownerPath = `users/${outbox.uid}`;
+      if (input.path.startsWith('users/') && input.path !== ownerPath && !input.path.startsWith(`${ownerPath}/`)) {
+        throw new OutboxStorageError('החשבון התחלף — הפעולה לא נשלחה');
+      }
       let accepted = Promise.resolve();
       const [operation] = await submitMany(outbox, [input], (ops) => {
         if (!localMatch) return write(ops[0]);
         const receipt = writeWithLocalAcceptance(refFor(input.path), data => localMatch(ops[0], data), () => write(ops[0]));
         accepted = receipt.accepted;
         return receipt.settled;
-      }, track);
+      }, trackAttempt);
       await accepted;
       return operation;
     },
-    [requireOutbox, track, refFor],
+    [requireOutbox, refFor],
   );
 
   const updateAdminPrices = useCallback(async (payload: OutboxPayload) => {
     if (!user) throw new Error("not signed in");
     if (!isAdmin) throw new Error("admin required");
+    const stillCurrent = captureAccountScope();
+    assertMutationScope(stillCurrent);
     const path = "appConfig/fuelPrices";
     await submit({ kind: "adminPrice.update", path, vehicleId: null, payload, opType: "update" },
-      () => updateDoc(refFor(path), toFirestoreData(payload)),
-      (operation, data) => genericPayloadMatches(operation.payload ?? {}, data));
-  }, [user, isAdmin, submit, refFor]);
+      () => { assertMutationScope(stillCurrent); return updateDoc(refFor(path), toFirestoreData(payload)); },
+      (operation, data) => genericPayloadMatches(operation.payload ?? {}, data), stillCurrent);
+  }, [user, isAdmin, captureAccountScope, submit, refFor]);
 
   const updateSettings = useCallback(
     async (patch: Partial<UserSettings>) => {
       if (!uid) return;
+      const stillCurrent = captureAccountScope();
+      assertMutationScope(stillCurrent);
+      if (Object.hasOwn(patch, 'activeVehicleId')) {
+        selectionIntentRef.current = { scope: accountScope, version: selectionIntentRef.current.version + 1 };
+      }
       const next = { ...settings, ...patch };
+      const cacheIntent = {};
+      settingsCacheIntentRef.current = cacheIntent;
       setSettings(next);
       const payload = { settings: stripUndefined(next) as OutboxPayload };
       await submit(
         { kind: "settings.update", path: userPath(), vehicleId: null, payload, opType: "update" },
-        () => updateDoc(doc(db, "users", uid), payload),
+        // Own exactly the same whole settings map as updateDoc, while allowing
+        // this explicit preference to create an absent parent atomically. A
+        // separate empty parent write has no durable SDK overlay and can make
+        // a queued preference look absent during reconnect reconciliation.
+        () => { assertMutationScope(stillCurrent); return setDoc(doc(db, "users", uid), payload, { mergeFields: ["settings"] }); }, undefined, stillCurrent,
       );
+      // After durable local acceptance, retain the same UID-scoped view across
+      // offline reloads independently of the next SDK snapshot callback.
+      // A newer preference or an actual settings snapshot owns the cache first.
+      if (stillCurrent() && settingsCacheIntentRef.current === cacheIntent) writeCache(uid, 'settings', next);
     },
-    [uid, settings, submit, userPath],
+    [uid, settings, submit, userPath, captureAccountScope, accountScope],
   );
 
   const setActiveVehicle = useCallback(
@@ -1291,30 +1610,125 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [updateSettings],
   );
 
+  const submitVehicleSelection = useCallback(async (
+    payload: OutboxPayload, beforeImage: OutboxPayload, stillCurrent: () => boolean,
+    retained?: VehicleWriteSubmission,
+  ): Promise<VehicleSelectionResult> => {
+    const attemptTracker = trackerRef.current;
+    try {
+      assertMutationScope(stillCurrent);
+      const outbox = await requireOutbox();
+      assertMutationScope(stillCurrent);
+      if (retained) {
+        const original = await outbox.get(retained.opId);
+        assertMutationScope(stillCurrent);
+        if (!original) {
+          const targetId = vehicleSelectionTargetId(payload);
+          const target = targetId ? await getDocFromServer(refFor(userPath('vehicles', targetId))) : null;
+          const profile = await getDocFromServer(refFor(userPath()));
+          assertMutationScope(stillCurrent);
+          if (profile.exists() && !profile.metadata.fromCache && !profile.metadata.hasPendingWrites &&
+              (!target || !target.metadata.fromCache && !target.metadata.hasPendingWrites) &&
+              vehicleSelectionApplied(payload, beforeImage, profile.data(), target?.exists() ? target.data() : null)) {
+            return { state: 'not-required', reason: 'already-selected' };
+          }
+          throw vehicleWriteError('vehicle-selection-ended', 'הפעולה כבר אינה ממתינה — אפשר לבחור ברכב מתוך רשימת הרכבים');
+        }
+        if (original.version !== retained.version) throw vehicleWriteError('vehicle-operation-changed', 'פעולת הבחירה השתנתה — יש לפתוח את השינויים השמורים');
+        if (original.status === 'pending') return { state: 'submitted', ...retained };
+        if (!isVehicleSelectionOperation(original)) throw vehicleWriteError('vehicle-selection-unverified', 'פעולת הבחירה השתנתה — יש לפתוח את השינויים השמורים');
+        const operation = await outbox.claimRetry(original.opId);
+        assertMutationScope(stillCurrent);
+        if (!operation || operation.version !== original.version + 1) {
+          if (operation) await outbox.fail(operation.opId, operation.version, { code: 'operation-changed', message: 'פעולת הבחירה השתנתה — הפרטים נשמרו לבדיקה', at: Date.now() });
+          throw vehicleWriteError('vehicle-operation-changed', 'פעולת הבחירה השתנתה — יש לפתוח את השינויים השמורים');
+        }
+        ownWrites(outbox, [operation]);
+        const promise = writeVehicleSelectionOperation(db, outbox, operation, stillCurrent);
+        void promise.then(() => outbox.acknowledge(operation.opId, operation.version), error => error instanceof FillupConflictError
+          ? outbox.markConflict(operation.opId, operation.version, error.serverImage)
+          : outbox.fail(operation.opId, operation.version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }));
+        const receipt = attemptTracker ? attemptTracker.track('settings.update', promise) : { id: '', settled: Promise.resolve(false) };
+        return { state: 'submitted', opId: operation.opId, version: operation.version, receipt };
+      }
+      let issued: OutboxOperation | null = null;
+      const receipt = await submit({ kind: 'settings.update', path: userPath(), vehicleId: null, payload, beforeImage, opType: 'update' },
+        operation => { issued = operation; return writeVehicleSelectionOperation(db, outbox, operation, stillCurrent); }, undefined, stillCurrent);
+      return { state: 'submitted', opId: issued!.opId, version: issued!.version, receipt };
+    } catch (error) { return blockedVehicleSelection(error, retained); }
+  }, [requireOutbox, submit, userPath, refFor]);
+
   const addVehicle = useCallback(
-    async (vehicle: Omit<Vehicle, "id" | "createdAt">) => {
+    async (vehicle: Omit<Vehicle, "id" | "createdAt">, options: VehicleCreationOptions = {}) => {
       if (!uid) throw new Error("not signed in");
+      const accountCurrent = captureAccountScope();
+      assertMutationScope(accountCurrent);
+      const attemptTracker = trackerRef.current;
+      const opening = committedSelectionRef.current;
+      const initialPreference = opening?.scope === accountScope && opening.preference?.scope === accountScope && !opening.preference.pending
+        ? opening.preference.base : null;
+      const initialCatalog = opening?.scope === accountScope && opening.catalog?.scope === accountScope ? opening.catalog : null;
+      const firstVehicle = initialCatalog !== null && initialCatalog.records.every(row => row.archived || row.deletionPending);
+      const selectionVersion = selectionIntentRef.current.version;
       const ref = doc(collection(db, "users", uid, "vehicles"));
-      const payload = stripUndefined({
+      const payload = decodeRawDocument(immutableRawImage(stripUndefined({
         ...(vehicle as unknown as Record<string, unknown>),
         createdAt: SERVER_TIMESTAMP,
-      }) as OutboxPayload;
-      await submit(
-        { kind: "vehicle.add", path: userPath("vehicles", ref.id), vehicleId: ref.id, payload },
-        () => setDoc(ref, toFirestoreData(payload)),
-      );
-      // First vehicle becomes the active one automatically.
-      if (vehicles.filter((v) => !v.archived).length === 0) {
-        await updateSettings({ activeVehicleId: ref.id });
-      }
-      return ref.id;
+      })));
+      const outbox = await requireOutbox();
+      assertMutationScope(accountCurrent);
+      let retainedSelection: VehicleWriteSubmission | undefined;
+      let selectionPayload: OutboxPayload | null = null;
+      const select = async (creation: OutboxOperation, attempt: 'initial' | 'retry'): Promise<VehicleSelectionResult> => {
+        assertMutationScope(accountCurrent);
+        if (initialCatalog === null) throw vehicleWriteError('vehicle-selection-unverified', 'רשימת הרכבים לא אומתה — אפשר לבחור ברכב מתוך רשימת הרכבים');
+        if (!firstVehicle) return { state: 'not-required', reason: 'not-first-vehicle' };
+        if (!initialPreference) throw vehicleWriteError('vehicle-selection-unverified', 'הבחירה הקודמת לא אומתה — אפשר לבחור ברכב מתוך רשימת הרכבים');
+        if (attempt === 'initial') await retireVehicleAttempt(outbox, creation, accountCurrent);
+        else if (await outbox.get(creation.opId)) throw vehicleWriteError('creation-unconfirmed', 'יצירת הרכב עדיין ממתינה — יש להשלים את הפעולה השמורה');
+        assertMutationScope(accountCurrent);
+        if (!retainedSelection && selectionIntentRef.current.version !== selectionVersion) return { state: 'not-required', reason: 'newer-choice' };
+        if (retainedSelection && selectionPayload) {
+          const result = await submitVehicleSelection(selectionPayload, initialPreference, accountCurrent, retainedSelection);
+          if (result.state === 'submitted') retainedSelection = result;
+          return result;
+        }
+        const target = await getDocFromServer(ref);
+        assertMutationScope(accountCurrent);
+        if (!target.exists() || target.metadata.hasPendingWrites || target.metadata.fromCache || !vehicleCreationIdentityMatches(payload, target.data())) {
+          throw vehicleWriteError('vehicle-selection-unverified', 'הרכב לבחירה השתנה או לא אומת — אפשר לבחור מתוך רשימת הרכבים');
+        }
+        const capturedSelection = selectedVehicleFromBase(initialPreference);
+        selectionPayload = vehicleSelectionIntent({ vehicleId: ref.id, raw: target.data() }, typeof capturedSelection === 'string' ? capturedSelection : null);
+        const stillCurrent = () => accountCurrent() && selectionIntentRef.current.version === selectionVersion;
+        const result = await submitVehicleSelection(selectionPayload, initialPreference, stillCurrent);
+        if (result.state === 'submitted') retainedSelection = result;
+        return result;
+      };
+      return submitVehicleCreation({ vehicleId: ref.id, isCurrent: accountCurrent, select, onSubmitted: options.onSubmitted,
+        journal: async settled => {
+          let issued: OutboxOperation | null = null;
+          const [receipt] = await submitMany(outbox, [{ kind: 'vehicle.add', path: userPath('vehicles', ref.id), vehicleId: ref.id, payload }],
+            operations => { issued = operations[0]; return settled; },
+            (kind, promise) => attemptTracker ? attemptTracker.track(kind, promise) : { id: '', settled: Promise.resolve(false) });
+          return { operation: issued!, receipt };
+        },
+        start: () => writeWithLocalAcceptance(ref, data => genericPayloadMatches(payload, data), () => {
+          assertMutationScope(accountCurrent); return setDoc(ref, toFirestoreData(payload));
+        }),
+      });
     },
-    [uid, vehicles, updateSettings, submit, userPath],
+    [uid, accountScope, captureAccountScope, requireOutbox, submitVehicleSelection, userPath],
   );
 
   const updateVehicle = useCallback(
     async (vehicleId: string, patch: Partial<Vehicle>) => {
       if (!uid) throw new Error("not signed in");
+      const stillCurrent = captureAccountScope();
+      assertMutationScope(stillCurrent);
+      if (Object.keys(patch).some(key => key === 'docs' || key.startsWith('docs.'))) {
+        throw new Error('מסמכי רכב נשמרים מתוך מסך הרישוי והביטוח');
+      }
       const { id: _ignored, ...rest } = patch as Partial<Vehicle> & { id?: string };
       const payload = stripUndefined(rest as Record<string, unknown>) as OutboxPayload;
       return submit(
@@ -1326,22 +1740,82 @@ export function DataProvider({ children }: { children: ReactNode }) {
           opType: "update",
           beforeImage: vehicleDocumentsRef.current.get(vehicleId) ?? null,
         },
-        () => updateDoc(doc(db, "users", uid, "vehicles", vehicleId), payload),
+        () => { assertMutationScope(stillCurrent); return updateDoc(doc(db, "users", uid, "vehicles", vehicleId), payload); }, undefined, stillCurrent,
+      );
+    },
+    [uid, submit, userPath, captureAccountScope],
+  );
+
+  const updateVehicleDocument = useCallback(async <K extends VehicleDocKey,>(
+    vehicleId: string, key: K, changes: VehicleDocChanges<K>, options: { expected: VehicleDocumentSnapshot<K> },
+  ): Promise<MutationReceipt> => {
+    if (!uid || activeVehicleId !== vehicleId) throw new Error('הרכב או החשבון התחלפו');
+    const captured = readVehicleDocumentCapture(options.expected, vehicleId, key);
+    const current = captureMutationScope();
+    const stillCurrent = () => current() && captured.isCurrent();
+    assertMutationScope(stillCurrent);
+    const payload = vehicleDocumentIntent(key, changes);
+    const outbox = await requireOutbox();
+    assertMutationScope(stillCurrent);
+    return submit({ kind: 'vehicle.update', path: userPath('vehicles', vehicleId), vehicleId,
+      payload, beforeImage: captured.beforeImage, opType: 'update' },
+    operation => writeVehicleDocumentOperation(db, outbox, operation, stillCurrent), undefined, stillCurrent);
+  }, [uid, activeVehicleId, captureMutationScope, requireOutbox, submit, userPath]);
+
+  const enrichVehicleSpecs = useCallback(
+    async (vehicle: Vehicle, patch: Partial<Vehicle>, signal?: AbortSignal) => {
+      const generation = generationRef.current;
+      const stillCurrent = () => generation === generationRef.current && !signal?.aborted;
+      if (!uid || !stillCurrent()) return null;
+      const original = vehicleDocumentsRef.current.get(vehicle.id);
+      // A local display cache is not a raw before-image. Wait for the real
+      // vehicle listener rather than rebinding an old lookup to newer data.
+      if (!original || !vehicleSpecIdentityMatches(original, { ...vehicle })) return null;
+      const beforeImage = { ...original };
+      const payload = stripUndefined({ ...patch }) as OutboxPayload;
+      if (!isVehicleEnrichmentPatch(payload)) throw new Error('הצעת מפרט הרכב אינה תקינה');
+      const path = userPath('vehicles', vehicle.id);
+      return submit(
+        { kind: 'vehicle.update', path, vehicleId: vehicle.id, payload, opType: 'update', beforeImage },
+        op => writeVehicleEnrichment(path, op.payload, op.beforeImage, stillCurrent),
       );
     },
     [uid, submit, userPath],
   );
 
+  const selectAfterVehicleRemoval = useCallback(async (sourceId: string, accountCurrent: () => boolean, intentVersion: number): Promise<VehicleSelectionResult> => {
+    try {
+      assertMutationScope(accountCurrent);
+      if (selectionIntentRef.current.version !== intentVersion) return { state: 'not-required', reason: 'newer-choice' };
+      const latest = committedSelectionRef.current;
+      if (latest?.scope !== accountScope || latest.preference?.scope !== accountScope || latest.preference.pending ||
+          !latest.preference.base || latest.catalog?.scope !== accountScope) {
+        throw vehicleWriteError('vehicle-selection-unverified', 'בחירת הרכב הבאה לא אומתה — אפשר לבחור מתוך רשימת הרכבים');
+      }
+      if (selectedVehicleFromBase(latest.preference.base) !== sourceId) return { state: 'not-required', reason: 'newer-choice' };
+      const target = latest.catalog.records.find(row => row.id !== sourceId && !row.archived && !row.deletionPending);
+      const identity = target ? latest.catalog.identities.get(target.id) : null;
+      if (target && (!identity || latest.catalog.pendingIds.has(target.id))) {
+        throw vehicleWriteError('vehicle-selection-unverified', 'הרכב הבא עדיין לא אומת — הבחירה הקיימת נשמרה');
+      }
+      const payload = vehicleSelectionIntent(target && identity ? { vehicleId: target.id, raw: decodeRawDocument(identity) } : null, sourceId);
+      return submitVehicleSelection(payload, latest.preference.base,
+        () => accountCurrent() && selectionIntentRef.current.version === intentVersion);
+    } catch (error) { return blockedVehicleSelection(error); }
+  }, [accountScope, submitVehicleSelection]);
+
   const setVehicleArchived = useCallback(
-    async (vehicleId: string, archived: boolean) => {
+    async (vehicleId: string, archived: boolean, options: VehicleSelectionOptions = {}) => {
+      const accountCurrent = captureAccountScope(), intentVersion = selectionIntentRef.current.version;
+      assertMutationScope(accountCurrent);
       const receipt = await updateVehicle(vehicleId, { archived });
       if (!(await receipt.settled)) throw new Error("vehicle-archive-rejected");
-      if (archived && settings.activeVehicleId === vehicleId) {
-        const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
-        await updateSettings({ activeVehicleId: fallback?.id ?? null });
+      if (archived && accountCurrent()) {
+        const selection = await selectAfterVehicleRemoval(vehicleId, accountCurrent, intentVersion);
+        notifyVehicleSelection(options, selection, accountCurrent);
       }
     },
-    [updateVehicle, settings.activeVehicleId, vehicles, updateSettings],
+    [updateVehicle, captureAccountScope, selectAfterVehicleRemoval],
   );
 
   /** Remove a vehicle and every subcollection under it. */
@@ -1369,8 +1843,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteVehicle = useCallback(
-    async (vehicleId: string) => {
+    async (vehicleId: string, options: VehicleSelectionOptions = {}) => {
       if (!uid) return;
+      const accountCurrent = captureAccountScope(), intentVersion = selectionIntentRef.current.version;
+      assertMutationScope(accountCurrent);
       const previous = vehicles.find((v) => v.id === vehicleId) ?? null;
       const receipt = await submit(
         {
@@ -1380,16 +1856,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           payload: null,
           beforeImage: previous ? (JSON.parse(JSON.stringify(previous)) as OutboxPayload) : null,
         },
-        () => deleteVehicleTree(vehicleId),
+        () => { assertMutationScope(accountCurrent); return deleteVehicleTree(vehicleId); }, undefined, accountCurrent,
       );
       if (!(await receipt.settled)) throw new Error("vehicle-delete-rejected");
-      if (settings.activeVehicleId === vehicleId) {
-        const fallback = vehicles.find((v) => v.id !== vehicleId && !v.archived);
-        await updateSettings({ activeVehicleId: fallback?.id ?? null });
+      if (accountCurrent()) {
+        const selection = await selectAfterVehicleRemoval(vehicleId, accountCurrent, intentVersion);
+        notifyVehicleSelection(options, selection, accountCurrent);
       }
 
     },
-    [uid, settings.activeVehicleId, vehicles, updateSettings, submit, deleteVehicleTree, userPath],
+    [uid, vehicles, captureAccountScope, selectAfterVehicleRemoval, submit, deleteVehicleTree, userPath],
   );
 
   const fillupPath = useCallback(
@@ -1397,109 +1873,159 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [userPath],
   );
 
+  const restoreSubmittedFillup = useCallback(async (fillup: Readonly<Fillup>, vehicleId: string, stillCurrent: () => boolean) => {
+    assertMutationScope(stillCurrent);
+    const payload = fillupLifecycleImage({ ...fillup, version: (fillup.version ?? 0) + 1 });
+    const path = fillupPath(vehicleId, fillup.id);
+    return submit(
+      { kind: 'fillup.restore', path, vehicleId, payload, beforeImage: fillupLifecycleImage(fillup) },
+      op => conditionalFillupWrite(db, refFor(path), 'set', toFirestoreData(stamped(payload, op)), op.beforeImage, true, stillCurrent),
+      undefined, stillCurrent,
+    );
+  }, [submit, fillupPath, refFor]);
+
+  const deleteSubmittedFillup = useCallback(async (fillup: Readonly<Fillup>, vehicleId: string, stillCurrent: () => boolean) => {
+    assertMutationScope(stillCurrent);
+    const outbox = await requireOutbox();
+    assertMutationScope(stillCurrent);
+    const path = fillupPath(vehicleId, fillup.id);
+    return submit(
+      { kind: 'fillup.delete', path, vehicleId, payload: null, beforeImage: fillupLifecycleImage(fillup) },
+      op => writeFillupDeletion(db, outbox, op, stillCurrent), undefined, stillCurrent,
+    );
+  }, [requireOutbox, submit, fillupPath]);
+
   const addFillup = useCallback(
-    async (
-      fillup: FillupWrite,
-      options: { replaceOpId?: string | null; vehicleId?: string; onWritten?: (fillup: Fillup) => void } = {},
-    ) => {
+    async (fillup: FillupWrite, options: FillupSubmissionOptions & { onWritten?: (fillup: Fillup) => void } = {}) => {
       const vehicleId = options.vehicleId ?? activeVehicle?.id;
-      if (!uid || !vehicleId) throw new Error("no active vehicle");
+      if (!uid || !vehicleId) throw new Error('no active vehicle');
+      const stillCurrent = captureMutationScope();
+      assertMutationScope(stillCurrent);
       const outbox = await requireOutbox();
-      // An edited copy of a failed operation keeps its op id AND its document
-      // id, so a retry that happens to succeed twice cannot create two records.
+      assertMutationScope(stillCurrent);
       const replaced = options.replaceOpId ? await outbox.get(options.replaceOpId) : null;
-      const receiptId = receiptDocumentId(fillup.importSource,fillup.importRowHash);
-      if (!replaced && receiptId && (scopedFillups.some(row=>row.id===receiptId || row.importRowHash===fillup.importRowHash || (fillup.importBatchId && row.importBatchId===fillup.importBatchId)) || (await outbox.list()).some(op=>op.vehicleId===vehicleId && op.docId===receiptId))) throw new Error("הקבלה כבר קיימת או ממתינה לסנכרון ברכב הזה. פתחו אותה בהיסטוריה או בפעולות שלא סונכרנו.");
-      const docId = replaced ? replaced.docId : receiptId ?? doc(collection(db, "users", uid, "vehicles", vehicleId, "fillups")).id;
+      if (options.replaceOpId && !replaced) throw new Error('הפעולה כבר אינה ממתינה — פתחו את הרשומה המעודכנת');
+      if (replaced && options.replaceVersion !== undefined && replaced.version !== options.replaceVersion) {
+        throw new Error('הפעולה נערכה מאז שפתחתם אותה — הנתונים שהקלדתם נשארו כאן');
+      }
+      if (replaced && (replaced.uid !== uid || replaced.vehicleId !== vehicleId || !replaced.kind.startsWith('fillup.') ||
+          replaced.opType === 'delete' || replaced.status === 'pending' || replaced.path !== fillupPath(vehicleId, replaced.docId))) {
+        throw new Error('הפעולה השתנתה — פתחו אותה שוב לפני שליחה');
+      }
+      if (replaced && retainedCreationUndo(await outbox.list(), replaced)) {
+        throw new Error('לתדלוק הזה ממתינה פעולת ביטול — יש לפתור אותה לפני שליחה נוספת');
+      }
+      const receiptId = receiptDocumentId(fillup.importSource, fillup.importRowHash);
+      if (!replaced && receiptId && (scopedFillups.some(row => row.id === receiptId || row.importRowHash === fillup.importRowHash ||
+          (fillup.importBatchId && row.importBatchId === fillup.importBatchId)) || (await outbox.list()).some(op => op.vehicleId === vehicleId && op.docId === receiptId))) {
+        throw new Error('הקבלה כבר קיימת או ממתינה לסנכרון ברכב הזה. פתחו אותה ביומן או בשינויים שעוד לא עלו לענן.');
+      }
+      assertMutationScope(stillCurrent);
+      const docId = replaced ? replaced.docId : receiptId ?? doc(collection(db, 'users', uid, 'vehicles', vehicleId, 'fillups')).id;
       const path = fillupPath(vehicleId, docId);
       const payload = serializeFillup({ ...fillup, version: fillup.version ?? 1 });
-      await submit(
-        { kind: "fillup.add", path, vehicleId, payload, replaceOpId: options.replaceOpId ?? null },
-        (op) => {
+      let written: Fillup | null = null;
+      const receipt = await submit(
+        { kind: replaced?.kind ?? 'fillup.add', path, vehicleId, payload, opType: replaced?.opType ?? 'set',
+          beforeImage: replaced?.beforeImage ?? null, replaceOpId: options.replaceOpId ?? null },
+        async op => {
+          assertMutationScope(stillCurrent);
+          if (replaced) {
+            if (op.version !== replaced.version + 1 || retainedCreationUndo(await outbox.list(), op)) {
+              throw new Error('הפעולה השתנתה או ממתינה לביטול — הנתונים נשמרו לבדיקה');
+            }
+            assertMutationScope(stillCurrent);
+          }
           const outgoing = stamped(payload, op);
           const parsed = parseFillupDocument(docId, outgoing);
-          if (parsed.ok) options.onWritten?.(parsed.fillup);
+          if (!parsed.ok) throw new Error('לא ניתן לקרוא את התדלוק שנשמר');
+          written = parsed.fillup;
+          options.onWritten?.(immutableFillup(parsed.fillup));
           return replaced
-            ? conditionalFillupWrite(db, refFor(path), "set", toFirestoreData(outgoing), null)
+            ? conditionalFillupWrite(db, refFor(path), op.opType, toFirestoreData(outgoing), op.beforeImage, op.kind === 'fillup.restore', stillCurrent)
             : setDoc(refFor(path), toFirestoreData(outgoing));
         },
-        (op, data) => data.writeId === `${op.opId}.${op.version}`,
+        (op, data) => data.writeId === `${op.opId}.${op.version}`, stillCurrent,
       );
+      if (written) {
+        const snapshot = immutableFillup(written);
+        options.onSubmitted?.({ written: snapshot, receipt, isCurrent: stillCurrent,
+          ...(!replaced ? { undoCreation: () => deleteSubmittedFillup(snapshot, vehicleId, stillCurrent) } : {}) });
+      }
       return docId;
     },
-    [uid, activeVehicle, scopedFillups, submit, requireOutbox, fillupPath, refFor],
+    [uid, activeVehicle, scopedFillups, captureMutationScope, submit, requireOutbox, fillupPath, refFor, deleteSubmittedFillup],
   );
 
   const updateFillup = useCallback(
-    async (
-      fillupId: string,
-      next: FillupWrite,
-      previous?: Fillup | null,
-      options: { replaceOpId?: string | null; vehicleId?: string } = {},
-    ) => {
+    async (fillupId: string, next: FillupWrite, previous?: Fillup | null, options: FillupSubmissionOptions = {}) => {
       const vehicleId = options.vehicleId ?? activeVehicle?.id;
       if (!uid || !vehicleId) return null;
-      // The transaction checks content as well as markers on every attempt:
-      // a legacy patch can change content without incrementing version.
-      // Offline input is journaled for explicit retry, never sent unconditionally.
-      const base = previous?.version ?? 0;
+      const stillCurrent = captureMutationScope();
+      assertMutationScope(stillCurrent);
+      const capturedPrevious = previous ? immutableFillup(previous) : null;
+      const base = capturedPrevious?.version ?? 0;
       const patch = serializeFillupPatch({ ...next, version: base + 1 });
+      const outbox = await requireOutbox();
+      assertMutationScope(stillCurrent);
       const path = fillupPath(vehicleId, fillupId);
+      const replaced = options.replaceOpId ? await outbox.get(options.replaceOpId) : null;
+      if (options.replaceOpId && (!replaced || replaced.uid !== uid || replaced.path !== path || replaced.status === 'pending' || replaced.opType === 'delete')) {
+        throw new Error('הפעולה השתנתה — פתחו אותה שוב לפני שליחה');
+      }
+      if (replaced && options.replaceVersion !== undefined && replaced.version !== options.replaceVersion) {
+        throw new Error('הפעולה נערכה מאז שפתחתם אותה — הנתונים שהקלדתם נשארו כאן');
+      }
+      if (replaced && retainedCreationUndo(await outbox.list(), replaced)) {
+        throw new Error('לתדלוק הזה ממתינה פעולת ביטול — יש לפתור אותה לפני שליחה נוספת');
+      }
       let written: Fillup | null = null;
-      await submit(
-        {
-          kind: "fillup.update",
-          path,
-          vehicleId,
-          payload: patch,
-          opType: "update",
-          beforeImage: previous ? serializeFillupPatch(previous) : null,
-          replaceOpId: options.replaceOpId ?? null,
-        },
-        (op) => {
+      const receipt = await submit(
+        { kind: 'fillup.update', path, vehicleId, payload: patch, opType: 'update',
+          beforeImage: capturedPrevious ? fillupLifecyclePatch(capturedPrevious) : null, replaceOpId: options.replaceOpId ?? null },
+        async op => {
+          assertMutationScope(stillCurrent);
           const outgoing = stamped(patch, op);
-          written = { ...previous, ...next, createdAt: previous?.createdAt ?? undefined, id: fillupId, version: base + 1, writeId: outgoing.writeId as string };
-          return conditionalFillupWrite(db, refFor(path), "update", toFirestoreData(outgoing), op.beforeImage);
-        },
+          written = fillupAfterPatch(fillupId, capturedPrevious, outgoing);
+          if (replaced) {
+            if (op.version !== replaced.version + 1 || retainedCreationUndo(await outbox.list(), op)) {
+              throw new Error('הפעולה השתנתה או ממתינה לביטול — הנתונים נשמרו לבדיקה');
+            }
+            assertMutationScope(stillCurrent);
+          }
+          return conditionalFillupWrite(db, refFor(path), 'update', toFirestoreData(outgoing), op.beforeImage, false, stillCurrent);
+        }, undefined, stillCurrent,
       );
+      if (written) {
+        const snapshot = immutableFillup(written);
+        const undoEdit = createFillupEditUndo({ previous: capturedPrevious, written: snapshot, receipt,
+          replacement: !!replaced, isCurrent: stillCurrent,
+          submitPatch: (payload, beforeImage) => submit({ kind: 'fillup.update', path, vehicleId, payload,
+            beforeImage, opType: 'update' }, op => conditionalFillupWrite(db, refFor(path), 'update',
+            toFirestoreData(stamped(payload, op)), op.beforeImage, false, stillCurrent), undefined, stillCurrent),
+        });
+        options.onSubmitted?.({ written: snapshot, receipt, isCurrent: stillCurrent, ...(undoEdit ? { undoEdit } : {}) });
+      }
       return written;
     },
-    [uid, activeVehicle, submit, fillupPath, refFor],
+    [uid, activeVehicle, captureMutationScope, submit, requireOutbox, fillupPath, refFor],
   );
 
-  const deleteFillup = useCallback(
-    async (fillup: Fillup) => {
-      if (!uid || !activeVehicle) return;
-      const path = fillupPath(activeVehicle.id, fillup.id);
-      await submit(
-        {
-          kind: "fillup.delete",
-          path,
-          vehicleId: activeVehicle.id,
-          payload: null,
-          beforeImage: serializeFillup(fillup),
-        },
-        (op) => conditionalFillupWrite(db, refFor(path), "delete", null, op.beforeImage),
-      );
-    },
-    [uid, activeVehicle, submit, fillupPath, refFor],
-  );
+  const deleteFillup = useCallback(async (fillup: Fillup, options: FillupSubmissionOptions = {}) => {
+    const vehicleId = options.vehicleId ?? activeVehicle?.id;
+    if (!uid || !vehicleId) return;
+    const stillCurrent = captureMutationScope();
+    const snapshot = immutableFillup(fillup);
+    const receipt = await deleteSubmittedFillup(snapshot, vehicleId, stillCurrent);
+    options.onSubmitted?.({ written: snapshot, receipt, isCurrent: stillCurrent,
+      restoreDeleted: () => restoreSubmittedFillup(snapshot, vehicleId, stillCurrent) });
+  }, [uid, activeVehicle, captureMutationScope, deleteSubmittedFillup, restoreSubmittedFillup]);
 
-  const restoreFillup = useCallback(
-    async (fillup: Fillup) => {
-      if (!uid || !activeVehicle) return;
-      // Creation metadata travels with the record: a restore is not a new
-      // record and must not look like one. Its version follows the deleted
-      // one, so it is accepted whether the delete reached the server or not.
-      const payload = serializeFillup({ ...fillup, version: (fillup.version ?? 0) + 1 });
-      const path = fillupPath(activeVehicle.id, fillup.id);
-      await submit(
-        { kind: "fillup.restore", path, vehicleId: activeVehicle.id, payload, beforeImage: serializeFillup(fillup) },
-        (op) => conditionalFillupWrite(db, refFor(path), "set", toFirestoreData(stamped(payload, op)), op.beforeImage, true),
-      );
-    },
-    [uid, activeVehicle, submit, fillupPath, refFor],
-  );
+  const restoreFillup = useCallback(async (fillup: Fillup, options: { vehicleId?: string } = {}) => {
+    const vehicleId = options.vehicleId ?? activeVehicle?.id;
+    if (!uid || !vehicleId) return;
+    await restoreSubmittedFillup(immutableFillup(fillup), vehicleId, captureMutationScope());
+  }, [uid, activeVehicle, captureMutationScope, restoreSubmittedFillup]);
 
   /**
    * Re-submit a failed or conflicted operation, on the user's explicit request.
@@ -1518,19 +2044,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * second competing write for the same input is exactly what this avoids.
    */
   const retryOperation = useCallback(
-    async (opId: string) => {
+    async (opId: string, expected?: OutboxOperation) => {
       if (!uid) return;
+      const generation = generationRef.current;
+      const accountCurrent = captureAccountScope();
+      const attemptTracker = trackerRef.current;
+      const trackAttempt = (kind: MutationKind, promise: Promise<unknown>): MutationReceipt =>
+        attemptTracker ? attemptTracker.track(kind, promise) : { id: '', settled: Promise.resolve(false) };
       const outbox = await requireOutbox();
+      const stillCurrent = () => accountCurrent() && generation === generationRef.current;
+      assertMutationScope(stillCurrent);
+      const original = await outbox.get(opId);
+      if (expected && (!original || !sameVehicleAttempt(original, expected) || original.status !== expected.status)) {
+        throw vehicleWriteError('vehicle-conflict-changed', 'ההתנגשות השתנתה — יש לפתוח מחדש את הפרטים לפני שליחה');
+      }
+      if (!original) return;
+      if (retainedCreationUndo(await outbox.list(), original)) {
+        throw new Error('לתדלוק הזה ממתינה פעולת ביטול — יש לפתור אותה לפני ניסיון חוזר');
+      }
+      assertMutationScope(stillCurrent);
       const claimed = await outbox.claimRetry(opId);
       if (!claimed) return;
       ownWrites(outbox, [claimed]);
       const { version } = claimed;
+      if (!stillCurrent() || version !== original.version + 1 || expected && !sameVehicleAttempt(claimed, { ...expected, version }) || retainedCreationUndo(await outbox.list(), original) ||
+          retainedCreationUndo(await outbox.list(), claimed)) {
+        await outbox.fail(opId, version, { code: 'operation-changed', message: 'הפעולה השתנתה או ממתינה לביטול — לא נשלח ניסיון נוסף', at: Date.now() });
+        return;
+      }
       const settle = (promise: Promise<unknown>) => {
-        track(claimed.kind, promise);
+        trackAttempt(claimed.kind, promise);
         return promise.then(
           () => outbox.acknowledge(opId, version),
-          (error: unknown) =>
-            outbox.fail(opId, version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
+          (error: unknown) => error instanceof FillupConflictError
+            ? outbox.markConflict(opId, version, error.serverImage)
+            : outbox.fail(opId, version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
         );
       };
 
@@ -1550,14 +2098,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (isVehicleSelectionOperation(claimed)) {
+        await settle(writeVehicleSelectionOperation(db, outbox, claimed, stillCurrent));
+        return;
+      }
+
+      if (isVehicleDocumentOperation(claimed)) {
+        await settle(writeVehicleDocumentOperation(db, outbox, claimed, stillCurrent));
+        return;
+      }
+
+      if (isVehicleEnrichmentOperation(claimed)) {
+        await settle(writeVehicleEnrichment(claimed.path, claimed.payload, claimed.beforeImage,
+          () => generation === generationRef.current));
+        return;
+      }
+
+      if (claimed.kind.startsWith('priceRule.')) {
+        await settle(conditionalRawWrite(db, refFor(claimed.path), claimed.opType,
+          claimed.payload, claimed.beforeImage, stillCurrent));
+        return;
+      }
+
       if (claimed.kind === "backup.import") {
         const mutation = runTransaction(db, async transaction=>{const ref=refFor(claimed.path),snap=await transaction.get(ref);if(snap.exists()){if(!genericPayloadMatches(claimed.payload??{},snap.data()))throw new FillupConflictError(snap.data());return;}transaction.set(ref,toFirestoreData(claimed.payload??{}));});
-        track(claimed.kind,mutation);await mutation.then(()=>outbox.acknowledge(opId,version),error=>error instanceof FillupConflictError?outbox.markConflict(opId,version,error.serverImage):outbox.fail(opId,version,{code:errorCode(error),message:errorMessage(error),at:Date.now()}));return;
+        trackAttempt(claimed.kind,mutation);await mutation.then(()=>outbox.acknowledge(opId,version),error=>error instanceof FillupConflictError?outbox.markConflict(opId,version,error.serverImage):outbox.fail(opId,version,{code:errorCode(error),message:errorMessage(error),at:Date.now()}));return;
+      }
+
+      if (isRecordUndoOperation(claimed)) {
+        await settle(writeRecordOperation(db, outbox, claimed, stillCurrent));
+        return;
       }
 
       if (claimed.kind.startsWith("maintenance.")) {
         const mutation = conditionalCareWrite(db, refFor(claimed.path), claimed.opType, claimed.payload, claimed.beforeImage);
-        track(claimed.kind, mutation);
+        trackAttempt(claimed.kind, mutation);
         await mutation.then(() => outbox.acknowledge(opId, version), error => error instanceof FillupConflictError
           ? outbox.markConflict(opId, version, error.serverImage)
           : outbox.fail(opId, version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }));
@@ -1565,10 +2140,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       if (collectionOf(claimed.path).endsWith("/fillups")) {
+        if (claimed.opType === 'delete') {
+          await settle(writeFillupDeletion(db, outbox, claimed, stillCurrent));
+          return;
+        }
         const payload = claimed.payload;
         const current = await getDocFromServer(refFor(claimed.path)).catch(() => null);
         if (!current) {
           await outbox.fail(opId, version, unverified());
+          return;
+        }
+        if (!stillCurrent() || retainedCreationUndo(await outbox.list(), original) || retainedCreationUndo(await outbox.list(), claimed)) {
+          await outbox.fail(opId, version, { code: 'operation-changed', message: 'הפעולה השתנתה או ממתינה לביטול — לא נשלח ניסיון נוסף', at: Date.now() });
           return;
         }
         // Replays already acknowledged before a crash are idempotent. This
@@ -1579,8 +2162,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
         const mutation = conditionalFillupWrite(db, refFor(claimed.path), claimed.opType,
           payload ? toFirestoreData(stamped(payload, claimed)) : null,
-          claimed.beforeImage, claimed.kind === "fillup.restore");
-        track(claimed.kind, mutation);
+          claimed.beforeImage, claimed.kind === "fillup.restore", stillCurrent);
+        trackAttempt(claimed.kind, mutation);
         await mutation.then(
           () => outbox.acknowledge(opId, version),
           error => error instanceof FillupConflictError
@@ -1659,23 +2242,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       await settle(setDoc(refFor(claimed.path), outgoing(payload)));
     },
-    [uid, requireOutbox, track, refFor, deleteVehicleTree],
+    [uid, requireOutbox, captureAccountScope, refFor, deleteVehicleTree],
   );
 
   const resolveConflict = useCallback(
-    async (opId: string, choice: "keep-server" | "overwrite") => {
+    async (opId: string, choice: "keep-server" | "overwrite", reviewed?: OutboxOperation) => {
+      const accountCurrent = captureAccountScope();
+      const capturedReview = reviewed ? structuredClone(reviewed) : null;
+      assertMutationScope(accountCurrent);
       const outbox = await requireOutbox();
+      assertMutationScope(accountCurrent);
       if (choice === "keep-server") {
         await outbox.discard(opId);
         return;
       }
       const op = await outbox.get(opId);
-      if (!op || !op.serverImage) return;
+      if (!op) return;
+      if (retainedCreationUndo(await outbox.list(), op)) {
+        throw new Error('לתדלוק הזה ממתינה פעולת ביטול — יש לפתור אותה לפני החלפת הגרסה');
+      }
+      if (isVehicleSelectionOperation(op)) {
+        throw new Error('בחירת הרכב השתנתה — יש להשאיר את הבחירה המעודכנת ולבחור שוב מתוך רשימת הרכבים');
+      }
+      if (isVehicleDocumentOperation(op)) {
+        if (!capturedReview || capturedReview.opId !== opId) throw new Error('יש לפתוח את פרטי ההתנגשות לפני החלפת מסמך הרכב');
+        const rebased = await rebaseVehicleDocumentOperation(outbox, capturedReview, accountCurrent);
+        await retryOperation(opId, rebased);
+        return;
+      }
+      // Rebinding an old automatic lookup to a new car identity would make
+      // stale specifications appear current. Recheck its original guard.
+      if (isVehicleEnrichmentOperation(op)) {
+        await retryOperation(opId);
+        return;
+      }
+      if (!op.serverImage) return;
       // Overwrite deliberately: re-base on what the server holds now. For a
       // fill-up the payload's version becomes the server's plus one, so the
       // rules accept exactly this write and refuse any other stale one.
       const isFillup = op.kind.startsWith("fillup.") || op.kind === "import.batch";
-      const patch: OutboxPayload = isFillup || op.kind.startsWith("maintenance.")
+      const patch: OutboxPayload = isRecordUndoOperation(op) ? recordConflictPayloadPatch(op) : isFillup || op.kind.startsWith("maintenance.")
         ? { version: (typeof op.serverImage.version === "number" ? op.serverImage.version : 0) + 1 }
         : {};
       const rebased = await outbox.rebase(opId, op.serverImage, patch);
@@ -1701,7 +2307,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       await retryOperation(opId);
     },
-    [requireOutbox, retryOperation],
+    [requireOutbox, retryOperation, captureAccountScope],
   );
 
   const discardOperation = useCallback(
@@ -1730,9 +2336,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       meta: ImportBatchMeta,
     ) => {
       if (!uid) throw new Error("not signed in");
+      const stillCurrent = captureAccountScope(), attemptTracker = trackerRef.current;
+      assertMutationScope(stillCurrent);
       const batchId = list[0]?.importBatchId;
       if (!batchId) throw new Error("import records must carry a batch id");
       const outbox = await requireOutbox();
+      assertMutationScope(stillCurrent);
 
       const rows = list.map((fillup) => {
         const id = doc(collection(db, "users", uid, "vehicles", vehicleId, "fillups")).id;
@@ -1761,6 +2370,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         })),
         { kind: "import.batch" as const, path: batchPath, vehicleId, payload: batchPayload, batchId },
       ]);
+      try { assertMutationScope(stillCurrent); }
+      catch (error) {
+        await Promise.all(journaled.map(op => outbox.fail(op.opId, op.version,
+          { code: errorCode(error), message: errorMessage(error), at: Date.now() }))).catch(() => undefined);
+        throw error;
+      }
       const rowOps = journaled.slice(0, rows.length);
       ownWrites(outbox, journaled);
       const batchOp = journaled[rows.length];
@@ -1795,40 +2410,50 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // The receipt settles once EVERY commit has answered — including the
       // batch record's — so "done" on the import screen never precedes a
       // write that is still in flight. It rejects if any of them did.
-      const receipt = track("import.batch", allCommits(commits));
+      const committed = allCommits(commits);
+      const receipt = attemptTracker ? attemptTracker.track("import.batch", committed)
+        : { id: "", settled: committed.then(() => true, () => false) };
       return { written: list.length, receipt };
     },
-    [uid, requireOutbox, fillupPath, userPath, refFor, track],
+    [uid, captureAccountScope, requireOutbox, fillupPath, userPath, refFor],
   );
 
   const loadVehicleCatalog = useCallback(async (): Promise<Vehicle[]> => {
     if (!uid) throw new Error("not signed in");
-    const generation = generationRef.current;
+    const stillCurrent = captureAccountScope();
+    assertMutationScope(stillCurrent);
     const snapshot = await getDocsFromServer(collection(db, "users", uid, "vehicles"));
-    if (generation !== generationRef.current) throw new Error("account changed");
+    assertMutationScope(stillCurrent);
     return snapshot.docs.map((entry) => ({ ...entry.data(), id: entry.id, createdAt: toMillis(entry.data().createdAt) } as Vehicle));
-  }, [uid]);
+  }, [uid, captureAccountScope]);
 
   const loadVehicleFillups = useCallback(async (vehicleId: string): Promise<Fillup[]> => {
     if (!uid || !vehicleId || vehicleId.includes("/")) throw new Error("unknown vehicle");
-    const generation = generationRef.current;
+    const stillCurrent = captureAccountScope();
+    assertMutationScope(stillCurrent);
     if (!(await getDocFromServer(doc(db, "users", uid, "vehicles", vehicleId))).exists()) throw new Error("unknown vehicle");
+    assertMutationScope(stillCurrent);
     const snapshot = await getDocsFromServer(collection(db, "users", uid, "vehicles", vehicleId, "fillups"));
-    if (generation !== generationRef.current) throw new Error("account changed");
+    assertMutationScope(stillCurrent);
     return snapshot.docs.map((entry) => {
       const parsed = parseFillupDocument(entry.id, entry.data());
       if (!parsed.ok) throw new Error("unreadable existing record");
       return parsed.fillup;
     });
-  }, [uid]);
+  }, [uid, captureAccountScope]);
 
   const importTankUpdates = useCallback(async (vehicleId: string, records: TankImportRecord[]) => {
     if (!uid || !vehicleId || vehicleId.includes("/")) throw new Error("unknown vehicle");
+    const stillCurrent = captureAccountScope(), attemptTracker = trackerRef.current;
+    assertMutationScope(stillCurrent);
     const outbox = await requireOutbox();
+    assertMutationScope(stillCurrent);
     if (!(await getDocFromServer(doc(db, "users", uid, "vehicles", vehicleId))).exists()) throw new Error("unknown vehicle");
+    assertMutationScope(stillCurrent);
     const existing = new Set<string>();
     for (const name of ["observations", "tankPlans"]) {
       const snapshot = await getDocsFromServer(collection(db, "users", uid, "vehicles", vehicleId, name));
+      assertMutationScope(stillCurrent);
       snapshot.docs.forEach((entry) => existing.add(`${name}/${entry.id}`));
     }
     const inputs: EnqueueInput[] = [];
@@ -1843,57 +2468,91 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     if (!inputs.length) return { written: 0, duplicates, receipt: { id: "empty", settled: Promise.resolve(true) } };
     const receipts = await submitMany(outbox, inputs, async (ops) => {
+      assertMutationScope(stillCurrent);
       // Transactions make a repeated/concurrent import incapable of replacing
       // a reading that was edited after the export.
       for (const op of ops) await runTransaction(db, async (transaction) => {
+        assertMutationScope(stillCurrent);
         const ref = doc(db, op.path);
         const current = await transaction.get(ref);
+        assertMutationScope(stillCurrent);
         if (current.exists()) throw new Error("הרשומה כבר קיימת. יש לרענן את הייבוא");
         transaction.set(ref, toFirestoreData(op.payload!));
       });
-    }, track);
+    }, (kind, promise) => attemptTracker ? attemptTracker.track(kind, promise)
+      : { id: "", settled: promise.then(() => true, () => false) });
     return { written: inputs.length, duplicates, receipt: receipts[0] };
-  }, [uid, requireOutbox, userPath, track]);
+  }, [uid, captureAccountScope, requireOutbox, userPath]);
 
   const importBackupEntries = useCallback(async (entries: BackupEntry[]) => {
     if(!uid || entries.length>5000 || entries.some(e=>!backupPath(e.path)))throw new Error("גיבוי לא תקין");
-    const generation=generationRef.current;const receipts:MutationReceipt[]=[];let written=0;
+    const stillCurrent=captureAccountScope();assertMutationScope(stillCurrent);
+    const receipts:MutationReceipt[]=[];let written=0;
     // Parents precede children. Each create rechecks server identity in its transaction;
     // a retry can acknowledge identical content but never overwrite a different record.
     for(const entry of [...entries].sort((a,b)=>a.path.split('/').length-b.path.split('/').length)) {
-      if(generation!==generationRef.current)throw new Error("החשבון התחלף");
+      assertMutationScope(stillCurrent);
       const parts=entry.path.split('/');const payload={...entry.data};
       if(parts.length===4&&(CARE_COLLECTIONS as readonly string[]).includes(parts[2]))payload.version=1;
       const path=userPath(...parts);
       const receipt=await submit({kind:"backup.import",path,vehicleId:parts[0]==="vehicles"?parts[1]:null,payload,opType:"set"},()=>runTransaction(db,async transaction=>{
-        if(generation!==generationRef.current)throw new Error("החשבון התחלף");
-        const ref=refFor(path),snap=await transaction.get(ref);if(snap.exists()){if(!genericPayloadMatches(payload,snap.data()))throw new FillupConflictError(snap.data());return;}transaction.set(ref,toFirestoreData(payload));
-      }));receipts.push(receipt);if(!(await receipt.settled))throw new Error("השחזור נעצר. הפעולה נשמרה בתור הפעולות; לא הוחלפו רשומות קיימות.");written++;
+        assertMutationScope(stillCurrent);
+        const ref=refFor(path),snap=await transaction.get(ref);assertMutationScope(stillCurrent);
+        if(snap.exists()){if(!genericPayloadMatches(payload,snap.data()))throw new FillupConflictError(snap.data());return;}transaction.set(ref,toFirestoreData(payload));
+      }),undefined,stillCurrent);receipts.push(receipt);if(!(await receipt.settled))throw new Error("השחזור נעצר. הפעולה נשמרה בתור הפעולות; לא הוחלפו רשומות קיימות.");written++;
     }
     return {written,receipts};
-  },[uid,submit,userPath,refFor]);
+  },[uid,captureAccountScope,submit,userPath,refFor]);
 
   const saveCareRecord = useCallback(async (vehicleId: string, name: CareCollection, record: CareRecord, previous?: CareRecord) => {
     if (!uid || activeVehicle?.id !== vehicleId || !CARE_COLLECTIONS.includes(name)) throw new Error("הרכב או החשבון התחלפו");
-    const generation = generationRef.current;
+    const stillCurrent = captureMutationScope();
+    assertMutationScope(stillCurrent);
     const payload = carePayload(name, record);
     const path = userPath("vehicles", vehicleId, name, record.id);
     return submit({ kind: "maintenance.save", path, vehicleId, payload, opType: previous ? "update" : "set",
       beforeImage: previous ? carePayload(name, previous) : null }, () => {
-      if (generation !== generationRef.current || fillupVehicleRef.current !== vehicleId) throw new Error("הרכב או החשבון התחלפו");
+      assertMutationScope(stillCurrent);
       return previous ? updateDoc(refFor(path), payload) : setDoc(refFor(path), payload);
-    }, (_op, data) => carePayloadMatches(payload, data));
-  }, [uid, activeVehicle?.id, submit, userPath, refFor]);
+    }, (_op, data) => carePayloadMatches(payload, data), stillCurrent);
+  }, [uid, activeVehicle?.id, captureMutationScope, submit, userPath, refFor]);
 
-  const deleteCareRecord = useCallback(async (vehicleId: string, name: CareCollection, record: CareRecord) => {
-    if (!uid || activeVehicle?.id !== vehicleId || !CARE_COLLECTIONS.includes(name)) throw new Error("הרכב או החשבון התחלפו");
-    const generation = generationRef.current;
-    const path = userPath("vehicles", vehicleId, name, record.id);
-    return submit({ kind: "maintenance.delete", path, vehicleId, payload: null, beforeImage: carePayload(name, record) }, () => {
-      if (generation !== generationRef.current || fillupVehicleRef.current !== vehicleId) throw new Error("הרכב או החשבון התחלפו");
-      return conditionalCareWrite(db, refFor(path), "delete", null, carePayload(name, record));
+  const submitRecordDeletion = useCallback(async (
+    path: string, vehicleId: string, name: RecordCollection, beforeImage: OutboxPayload,
+    stillCurrent: () => boolean, options: RecordDeletionOptions,
+  ): Promise<MutationReceipt> => {
+    assertMutationScope(stillCurrent);
+    const outbox = await requireOutbox();
+    assertMutationScope(stillCurrent);
+    await assertRecordUncontended(outbox, path);
+    assertMutationScope(stillCurrent);
+    const payload = recordRestoreImage(beforeImage, name);
+    const undo = createRecordUndo(stillCurrent, async () => {
+      assertMutationScope(stillCurrent);
+      await assertRecordUncontended(outbox, path);
+      assertMutationScope(stillCurrent);
+      return submit({ kind: name === 'observations' ? 'tank.observation' : 'maintenance.save',
+        path, vehicleId, payload, beforeImage: null, opType: 'set' },
+      operation => writeRecordOperation(db, outbox, operation, stillCurrent), undefined, stillCurrent);
     });
-  }, [uid, activeVehicle?.id, submit, userPath, refFor]);
+    const receipt = await submit({ kind: name === 'observations' ? 'tank.observation.delete' : 'maintenance.delete',
+      path, vehicleId, payload: null, beforeImage, opType: 'delete' }, async operation => {
+      const result = await writeRecordOperation(db, outbox, operation, stillCurrent);
+      if (result === 'deleted') undo.deleted();
+    }, undefined, stillCurrent);
+    options.onSubmitted?.(undo.submission(receipt));
+    return receipt;
+  }, [requireOutbox, submit]);
+
+  const deleteCareRecord = useCallback(async (
+    vehicleId: string, name: CareCollection, record: CareRecord, options: RecordDeletionOptions = {},
+  ) => {
+    if (!uid || activeVehicle?.id !== vehicleId || !CARE_COLLECTIONS.includes(name)) throw new Error("הרכב או החשבון התחלפו");
+    const stillCurrent = captureMutationScope();
+    const path = userPath("vehicles", vehicleId, name, record.id);
+    const beforeImage = await captureCareImage(refFor(path), name, record, stillCurrent);
+    return submitRecordDeletion(path, vehicleId, name, beforeImage, stillCurrent, options);
+  }, [uid, activeVehicle?.id, captureMutationScope, submitRecordDeletion, userPath, refFor]);
 
   const addObservation = useCallback(
     async (observation: Omit<TankObservation, "id" | "vehicleId" | "recordedAt">) => {
@@ -1914,15 +2573,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const deleteObservation = useCallback(
-    async (observationId: string) => {
+    async (observationId: string, options: RecordDeletionOptions & { snapshot?: ObservationDeletionSnapshot } = {}) => {
       if (!uid || !activeVehicle) return;
-      const path = userPath("vehicles", activeVehicle.id, "observations", observationId);
-      await submit(
-        { kind: "tank.observation.delete", path, vehicleId: activeVehicle.id, payload: null },
-        () => deleteDoc(refFor(path)),
-      );
+      const record = observations.find(row => row.id === observationId);
+      const token = options.snapshot ?? (record ? captureObservation(record) : null);
+      if (!token) throw new Error('יש לפתוח מחדש את הרשומה לפני המחיקה');
+      const captured = readObservationCapture(token, observationId, activeVehicle.id);
+      const current = captureMutationScope();
+      const stillCurrent = () => current() && captured.isCurrent();
+      const path = userPath('vehicles', activeVehicle.id, 'observations', observationId);
+      await submitRecordDeletion(path, activeVehicle.id, 'observations', captured.beforeImage, stillCurrent, options);
     },
-    [uid, activeVehicle, submit, userPath, refFor],
+    [uid, activeVehicle, observations, captureObservation, captureMutationScope, submitRecordDeletion, userPath],
   );
 
   const addPlan = useCallback(
@@ -1970,37 +2632,50 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [uid, activeVehicle, tankPreferences, updateVehicle],
   );
 
-  const savePriceRule = useCallback(
-    async (rule: StoredPriceRule) => {
-      if (!uid) return;
-      const { id, ...rest } = rule;
-      const payload = stripUndefined(rest as unknown as Record<string, unknown>) as OutboxPayload;
-      const path = userPath("personalPriceRules", id);
-      await submit(
-        { kind: "priceRule.save", path, vehicleId: rule.vehicleId, payload },
-        () => setDoc(refFor(path), payload, { merge: true }),
-      );
-    },
-    [uid, submit, userPath, refFor],
-  );
+  const savePriceRule = useCallback(async (rule: StoredPriceRule, options: { expected?: OutboxPayload | null } = {}) => {
+    if (!uid) throw new Error('no account');
+    const stillCurrent = captureMutationScope();
+    assertMutationScope(stillCurrent);
+    if (!rule.id || rule.id.length > 128 || rule.id.includes('/')) throw new Error('מזהה כלל המחיר אינו תקין');
+    if (priceRulesStatus !== 'ready') throw new Error('כללי המחיר עדיין נטענים — נסו שוב לאחר החיבור');
+    const before = options.expected === undefined ? rawPriceRules.get(rule.id) ?? null : options.expected;
+    const payload: OutboxPayload = {
+      vehicleId: rule.vehicleId, stationId: rule.stationId, stationName: rule.stationName, fuelType: rule.fuelType,
+      discountPerLiter: rule.discountPerLiter, fixedPricePerLiter: rule.fixedPricePerLiter, label: rule.label,
+      expiresAt: rule.expiresAt, legacy: rule.legacy, reviewed: rule.reviewed,
+      ...(before && Object.hasOwn(before, 'migratedAt') ? { migratedAt: before.migratedAt } : {}),
+    };
+    if (before && Object.keys(before).some(key => !Object.hasOwn(payload, key))) {
+      throw new Error('לכלל המחיר יש נתונים שלא ניתן לערוך כאן — הם נשמרו ללא שינוי');
+    }
+    const path = userPath('personalPriceRules', rule.id);
+    return submit({ kind: 'priceRule.save', path, vehicleId: rule.vehicleId, payload: encodeRawDocument(payload),
+      opType: before ? 'update' : 'set', beforeImage: before ? encodeRawDocument(before) : null },
+    op => conditionalRawWrite(db, refFor(path), op.opType, op.payload, op.beforeImage, stillCurrent),
+    undefined, stillCurrent);
+  }, [uid, captureMutationScope, priceRulesStatus, rawPriceRules, submit, userPath, refFor]);
 
-  const deletePriceRule = useCallback(
-    async (ruleId: string) => {
-      if (!uid) return;
-      const path = userPath("personalPriceRules", ruleId);
-      await submit(
-        { kind: "priceRule.delete", path, vehicleId: null, payload: null },
-        () => deleteDoc(refFor(path)),
-      );
-    },
-    [uid, submit, userPath, refFor],
-  );
+  const deletePriceRule = useCallback(async (ruleId: string, options: { expected?: OutboxPayload | null } = {}) => {
+    if (!uid) throw new Error('no account');
+    const stillCurrent = captureMutationScope();
+    assertMutationScope(stillCurrent);
+    if (!ruleId || ruleId.length > 128 || ruleId.includes('/')) throw new Error('מזהה כלל המחיר אינו תקין');
+    if (priceRulesStatus !== 'ready') throw new Error('כללי המחיר עדיין נטענים — נסו שוב לאחר החיבור');
+    const before = options.expected === undefined ? rawPriceRules.get(ruleId) ?? null : options.expected;
+    const path = userPath('personalPriceRules', ruleId);
+    return submit({ kind: 'priceRule.delete', path, vehicleId: typeof before?.vehicleId === 'string' ? before.vehicleId : null,
+      payload: null, beforeImage: before ? encodeRawDocument(before) : null },
+    op => conditionalRawWrite(db, refFor(path), 'delete', null, op.beforeImage, stillCurrent), undefined, stillCurrent);
+  }, [uid, captureMutationScope, priceRulesStatus, rawPriceRules, submit, userPath, refFor]);
 
   const listImportBatches = useCallback(async (): Promise<ImportBatch[]> => {
     if (!uid) return [];
+    const stillCurrent = captureAccountScope();
+    assertMutationScope(stillCurrent);
     const snapshot = await getDocs(
       query(collection(db, "users", uid, "importBatches"), limit(50)),
     );
+    assertMutationScope(stillCurrent);
     return snapshot.docs
       .map((entry) => {
         const data = entry.data();
@@ -2015,7 +2690,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         } satisfies ImportBatch;
       })
       .sort((a, b) => b.importedAt - a.importedAt);
-  }, [uid]);
+  }, [uid, captureAccountScope]);
 
   /**
    * Undo one import.
@@ -2027,13 +2702,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * interrupted or rejected rollback is visible and retryable row by row.
    */
   const deleteImportBatch = useCallback(
-    async (batch: ImportBatch): Promise<ImportRollbackResult> => {
+    async (batch: Pick<ImportBatch, "id" | "vehicleId">): Promise<ImportRollbackResult> => {
       if (!uid) return { deleted: 0, ok: false, reason: "not signed in" };
+      const stillCurrent = captureAccountScope(), attemptTracker = trackerRef.current;
 
       try {
+        assertMutationScope(stillCurrent);
         const outbox = await requireOutbox();
+        assertMutationScope(stillCurrent);
         const fillupsRef = collection(db, "users", uid, "vehicles", batch.vehicleId, "fillups");
         const snapshot = await getDocs(query(fillupsRef, where("importBatchId", "==", batch.id)));
+        assertMutationScope(stillCurrent);
 
         const batchPath = userPath("importBatches", batch.id);
         const journaled = await outbox.enqueueMany([
@@ -2053,6 +2732,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
             batchId: batch.id,
           },
         ]);
+        try { assertMutationScope(stillCurrent); }
+        catch (error) {
+          await Promise.all(journaled.map(op => outbox.fail(op.opId, op.version,
+            { code: errorCode(error), message: errorMessage(error), at: Date.now() }))).catch(() => undefined);
+          throw error;
+        }
         const rowOps = journaled.slice(0, snapshot.docs.length);
         ownWrites(outbox, journaled);
         const batchOp = journaled[snapshot.docs.length];
@@ -2062,7 +2747,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const chunkOps = rowOps.slice(i, i + 400);
           const entries = snapshot.docs.slice(i, i + 400);
           const commit = runTransaction(db, async transaction => {
+            assertMutationScope(stillCurrent);
             const current = await Promise.all(entries.map(entry => transaction.get(entry.ref)));
+            assertMutationScope(stillCurrent);
             current.forEach((entry, index) => {
               if (!entry.exists()) return;
               const before = chunkOps[index].beforeImage;
@@ -2089,7 +2776,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
             outbox.fail(batchOp.opId, batchOp.version, { code: errorCode(error), message: errorMessage(error), at: Date.now() }),
         );
 
-        const receipt = track("import.rollback", allCommits(commits));
+        const committed = allCommits(commits);
+        const receipt = attemptTracker ? attemptTracker.track("import.rollback", committed)
+          : { id: "", settled: committed.then(() => true, () => false) };
 
         // Transactions delete only after server confirmation; pending means
         // the conditional check or commit has not answered yet.
@@ -2108,7 +2797,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return { deleted: 0, ok: false, reason: "המחיקה נכשלה" };
       }
     },
-    [uid, requireOutbox, userPath, refFor, track],
+    [uid, captureAccountScope, requireOutbox, userPath, refFor],
   );
 
   /**
@@ -2195,6 +2884,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<DataContextValue>(
     () => ({
+      captureAccountAction: captureAccountScope,
+      captureVehicleAction: captureMutationScope,
       importBackupEntries,
       saveCareRecord,
       deleteCareRecord,
@@ -2225,6 +2916,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       pendingFillupIds,
       fillupsError,
       malformedFillups,
+      fillupPriceKnown,
       retryOperation,
       resolveConflict,
       discardOperation,
@@ -2232,6 +2924,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setActiveVehicle,
       addVehicle,
       updateVehicle,
+      captureVehicleDocument,
+      updateVehicleDocument,
+      enrichVehicleSpecs,
       setVehicleArchived,
       deleteVehicle,
       addFillup,
@@ -2242,6 +2937,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       listImportBatches,
       deleteImportBatch,
       priceRules,
+      rawPriceRules,
+      eligiblePriceRules,
+      priceRulesStatus,
       savePriceRule,
       deletePriceRule,
       tankInputScope,
@@ -2249,6 +2947,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       plansStatus,
       observations,
       addObservation,
+      captureObservation,
       deleteObservation,
       plans,
       addPlan,
@@ -2258,6 +2957,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       deleteAccount,
     }),
     [
+      captureAccountScope,
+      captureMutationScope,
       importBackupEntries,
       saveCareRecord,
       deleteCareRecord,
@@ -2288,6 +2989,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       pendingFillupIds,
       fillupsError,
       malformedFillups,
+      fillupPriceKnown,
       retryOperation,
       resolveConflict,
       discardOperation,
@@ -2295,6 +2997,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setActiveVehicle,
       addVehicle,
       updateVehicle,
+      captureVehicleDocument,
+      updateVehicleDocument,
+      enrichVehicleSpecs,
       setVehicleArchived,
       deleteVehicle,
       addFillup,
@@ -2305,6 +3010,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       listImportBatches,
       deleteImportBatch,
       priceRules,
+      rawPriceRules,
+      eligiblePriceRules,
+      priceRulesStatus,
       savePriceRule,
       deletePriceRule,
       tankInputScope,
@@ -2312,6 +3020,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       plansStatus,
       observations,
       addObservation,
+      captureObservation,
       deleteObservation,
       plans,
       addPlan,

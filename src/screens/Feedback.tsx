@@ -1,163 +1,112 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
+import { useData } from "../context/DataContext";
+import { useAccountScope } from "../components/account/useAccountScope";
 import { ScreenHeader } from "../components/AppHeader";
 import { Button } from "../components/Button";
 import { Segmented } from "../components/Segmented";
-import { Card } from "../components/Card";
+import { Num } from "../components/Num";
+import { ChevronDown } from "../components/icons";
 import { APP_VERSION } from "../lib/version";
-import { CheckIcon, HeartIcon, LightbulbIcon, WarningIcon } from "../components/icons";
+import "../secondary-design.css";
 
 type Sentiment = "good" | "idea" | "bug";
-
-const OPTIONS: { value: Sentiment; label: string; Icon: (p: { size?: number }) => React.ReactElement }[] =
-  [
-    { value: "good", label: "מחמאה", Icon: HeartIcon },
-    { value: "idea", label: "רעיון", Icon: LightbulbIcon },
-    { value: "bug", label: "תקלה", Icon: WarningIcon },
-  ];
-
+const OPTIONS: { value: Sentiment; label: string }[] = [
+  { value: "idea", label: "רעיון" },
+  { value: "bug", label: "תקלה" },
+  { value: "good", label: "מחמאה" },
+];
 const PLACEHOLDERS: Record<Sentiment, string> = {
-  good: "מה עבד לכם טוב?",
-  idea: "מה הייתם רוצים שנוסיף?",
-  bug: "מה נשבר, ואיפה בדיוק?",
+  good: "מה עובד לכם טוב?",
+  idea: "מה הייתם רוצים שיהיה?",
+  bug: "מה קרה, ובאיזה מסך?",
 };
-
 const MAX = 2000;
 
-/** Feedback form. Deliberately one screen, one field, no account questions. */
+/** A new account gets a fresh form; an old completion cannot acknowledge its message. */
 export function Feedback() {
+  const { user } = useAuth();
+  return <AccountFeedback key={user?.uid ?? "signed-out"} />;
+}
+
+function AccountFeedback() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
+  const { captureAccountAction } = useData();
+  const captureMount = useAccountScope(user?.uid);
+  const inFlight = useRef(false);
   const [sentiment, setSentiment] = useState<Sentiment>("idea");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const trimmed = message.trim();
-  const canSend = trimmed.length >= 3 && trimmed.length <= MAX && !sending;
+  const canSend = !!user && trimmed.length >= 3 && trimmed.length <= MAX && !sending;
 
   async function send() {
-    if (!canSend || !user) return;
+    const accountCurrent = captureAccountAction();
+    const mounted = captureMount();
+    const current = () => accountCurrent() && mounted();
+    if (!canSend || !user || inFlight.current || !current()) return;
+    const sender = user;
+    const submitted = { message: trimmed, sentiment };
+    inFlight.current = true;
     setSending(true);
     setError(null);
     try {
+      // Keep the existing append-only feedback contract. No handled/read state is written.
       await addDoc(collection(db, "feedback"), {
-        uid: user.uid,
-        displayName: user.displayName ?? null,
-        email: user.email ?? null,
-        message: trimmed,
-        sentiment,
+        uid: sender.uid,
+        displayName: sender.displayName ?? null,
+        email: sender.email ?? null,
+        message: submitted.message,
+        sentiment: submitted.sentiment,
         appVersion: APP_VERSION,
         screen: null,
         createdAt: serverTimestamp(),
       });
-      setSent(true);
+      if (current()) setSent(true);
     } catch {
-      setError("השליחה נכשלה. בדקו את החיבור ונסו שוב.");
+      if (current()) setError("השליחה נכשלה. המשוב נשאר כאן, ואפשר לנסות שוב.");
     } finally {
-      setSending(false);
+      inFlight.current = false;
+      if (current()) setSending(false);
     }
   }
 
-  if (sent) {
-    return (
-      <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-        <ScreenHeader title="משוב" onBack={() => navigate("/settings")} />
-
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center">
-          <span className="tm-pop flex size-[84px] items-center justify-center rounded-[28px] bg-success-soft text-success-ink">
-            <CheckIcon size={38} />
-          </span>
-
-          <div className="tm-rise flex flex-col gap-2" style={{ animationDelay: "80ms" }}>
-            <h1 className="text-balance text-[23px] font-bold text-ink">תודה על המשוב!</h1>
-            <p className="text-pretty max-w-[290px] text-[14.5px] leading-relaxed text-muted">
-              ההודעה התקבלה. תודה שעזרתם לשפר את האפליקציה.
-            </p>
-          </div>
-
-          <div
-            className="tm-rise flex w-full max-w-[280px] flex-col gap-2"
-            style={{ animationDelay: "160ms" }}
-          >
-            <Button full onClick={() => navigate("/settings")}>
-              חזרה להגדרות
-            </Button>
-            <button
-              type="button"
-              onClick={() => {
-                setSent(false);
-                setMessage("");
-              }}
-              className="min-h-[44px] text-[14px] font-semibold text-muted transition-transform active:scale-[0.96]"
-            >
-              שליחת משוב נוסף
-            </button>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  return (
-    <main className="flex flex-1 flex-col pb-[104px] pt-safe">
-      <ScreenHeader title="משוב" onBack={() => navigate("/settings")} />
-
-      <div className="flex flex-col gap-6 px-5">
-        <div className="tm-rise flex flex-col gap-1.5">
-          <h2 className="font-display text-[26px] font-bold text-ink">מה חסר לכם?</h2>
-          <p className="text-pretty text-[14px] leading-relaxed text-muted">
-            רעיון, תקלה או משהו שעבד טוב — נשמח לשמוע.
-          </p>
-        </div>
-
-        <Segmented ariaLabel="סוג המשוב" value={sentiment} onChange={setSentiment}
-          options={OPTIONS.map(({ value, label }) => ({ value, label }))} />
-
-        <Card
-          className="tm-rise flex flex-col gap-2 p-3.5"
-          style={{ animationDelay: "120ms" }}
-        >
-          <textarea
-            value={message}
-            onChange={(event) => setMessage(event.target.value.slice(0, MAX))}
-            placeholder={PLACEHOLDERS[sentiment]}
-            rows={7}
-            aria-label="תוכן המשוב"
-            className="min-h-[150px] w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-muted/70"
-          />
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] text-muted">
-              {user?.email ? `יישלח מהחשבון ${""}` : ""}
-              <span dir="ltr">{user?.email ?? ""}</span>
-            </span>
-            <span className="num text-[13px] text-muted/80">
-              {trimmed.length}/{MAX}
-            </span>
-          </div>
-        </Card>
-
-        {error ? (
-          <p role="alert" className="text-[13px] font-semibold text-danger">
-            {error}
-          </p>
-        ) : null}
-
-        <div className="tm-rise" style={{ animationDelay: "180ms" }}>
-          <Button full disabled={!canSend} loading={sending} onClick={() => void send()}>
-            שליחת משוב
-          </Button>
-        </div>
-
-        <p className="text-pretty px-1 text-center text-[13px] leading-relaxed text-muted/80">
-          המשוב נשמר יחד עם השם והמייל שבחשבון, כדי שנוכל להבין הקשר ולחזור אליכם.
-        </p>
+  return <main className="tm-secondary-page" data-testid="feedback-page">
+    <ScreenHeader title="משוב" onBack={() => navigate("/account")} />
+    {sent ? <div className="tm-secondary-body tm-feedback-result" role="status">
+      <h2 className="tm-secondary-title tm-secondary-title-result">תודה!</h2>
+      <p className="tm-secondary-copy">ההודעה התקבלה. תודה שעזרתם לשפר את טנק מלא.</p>
+      <Button full variant="ink" onClick={() => navigate("/account")}>חזרה לחשבון</Button>
+      <button type="button" className="tm-secondary-link" onClick={() => { setSent(false); setMessage(""); setError(null); }}>
+        שליחת משוב נוסף
+      </button>
+    </div> : <div className="tm-secondary-body">
+      <h2 className="tm-secondary-title">מה חסר לכם?</h2>
+      <Segmented ariaLabel="סוג המשוב" value={sentiment} onChange={setSentiment} options={OPTIONS} />
+      <div className="tm-secondary-stack">
+        <textarea value={message} onChange={event => setMessage(event.target.value.slice(0, MAX))}
+          placeholder={PLACEHOLDERS[sentiment]} rows={7} maxLength={MAX} disabled={sending}
+          aria-label="תוכן המשוב" aria-describedby="feedback-counter" className="tm-feedback-input" />
+        <span id="feedback-counter" className="tm-feedback-counter"><Num>{message.length}/{MAX}</Num></span>
       </div>
-    </main>
-  );
+      {error ? <p role="alert" className="tm-secondary-notice tm-secondary-notice-error">{error}</p> : null}
+      {sending ? <p role="status" className="tm-secondary-note">ממתינים לאישור השליחה. ההודעה תישלח כשהחיבור זמין.</p> : null}
+      <details className="tm-secondary-disclosure">
+        <summary>מה נשמר עם המשוב?<ChevronDown size={18} /></summary>
+        <div className="tm-secondary-disclosure-content tm-secondary-note">
+          <p>השם והמייל שבחשבון נשמרים עם ההודעה, כדי שנוכל להבין את ההקשר ולחזור אליכם.</p>
+          {user?.email ? <p className="tm-feedback-account">החשבון השולח: <bdi dir="ltr">{user.email}</bdi></p> : null}
+        </div>
+      </details>
+      <div className="tm-secondary-bottom">
+        <Button full disabled={!canSend} loading={sending} onClick={() => void send()}>שליחת משוב</Button>
+      </div>
+    </div>}
+  </main>;
 }

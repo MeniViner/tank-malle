@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { resetEmulators, seedFillups, setActiveVehicle } from "./helpers/emulator";
+import { expectConsumptionCounts, expectOpenConsumption } from "./helpers/design-v2-home";
 import {
   ALICE,
   addFillup,
@@ -26,7 +27,7 @@ async function freshVehicle(page: import("@playwright/test").Page): Promise<{
 }> {
   await resetEmulators();
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   const uid = await uidOf(ALICE);
   return { uid, vehicleId: await firstVehicleId(uid) };
 }
@@ -37,20 +38,20 @@ test("the first filled-to-full record creates a baseline and shows no consumptio
   const scope = await freshVehicle(page);
 
   const toast = await addFillup(page, { odometer: 100_000, liters: 40, pricePerLiter: 7 }, scope);
-  expect(toast).toContain("נקודת התחלה נוצרה");
+  expect(toast).toContain("נקודת ההתחלה נקבעה");
   expect(toast).not.toMatch(/קמ״ל|ל׳\/100/);
 
   await page.goto("/");
-  await expect(page.getByText("הצריכה תחושב אחרי מקטע רציף שמתחיל ומסתיים במיכל מלא")).toBeVisible();
+  await expect(page.getByText("עוד תדלוק מלא אחד ונדע", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("consumption-chart")).toHaveCount(0);
 });
 
 /**
  * Partial fill-ups are SEEDED, not entered.
  *
- * The full-tank toggle is gone from the form: a manual entry is a full
- * tank, and a partial now only reaches the app through an import or a record
- * created before the toggle was removed. Those records must still compute
- * correctly, which is exactly what these tests establish.
+ * Seeding keeps these scenarios focused on canonical interval arithmetic.
+ * Partial records imported or entered in the form must retain their litres
+ * without becoming a measured endpoint.
  */
 test("a partial fill-up retains its liters and shows no consumption figure", async ({
   page,
@@ -71,9 +72,8 @@ test("a partial fill-up retains its liters and shows no consumption figure", asy
 
   // The old formula would have produced 300 / 20 = 15 km/L here.
   await page.goto("/");
-  await expect(page.getByText(/במקטע הפתוח נשמרו/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/20/).first()).toBeVisible();
-  await expect(page.getByText(/ממוצע כולל/)).toHaveCount(0);
+  await expectOpenConsumption(page, "20.0", 1);
+  await expect(page.getByTestId("consumption-chart")).toHaveCount(0);
 });
 
 test("multiple partials accumulate into the open segment", async ({ page }) => {
@@ -100,8 +100,7 @@ test("multiple partials accumulate into the open segment", async ({ page }) => {
 
   await page.goto("/");
   // 12 + 14.8 = 26.8 L pending across two partial fill-ups.
-  await expect(page.getByText(/26\.8/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/מ־\s*2\s*תדלוקים/)).toBeVisible();
+  await expectOpenConsumption(page, "26.8", 2);
 });
 
 test("the closing full fill-up produces the canonical segment result", async ({ page }) => {
@@ -121,21 +120,21 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
   await page.reload();
   // The fixture was written outside this browser. Wait for its listener to
   // receive it before navigating away and evaluating a new draft.
-  await expect(page.getByText(/במקטע הפתוח נשמרו/)).toBeVisible();
-  await expect(page.getByRole("link", { name: /20\.0 ל׳/ })).toBeVisible();
+  await expectOpenConsumption(page, "20.0", 1);
+  await expect(page.getByTestId("journal-entry-fillups/b")).toContainText("20.0 ל׳");
 
   const toast = await addFillup(page, { odometer: 100_600, liters: 25, pricePerLiter: 7 }, { uid, vehicleId });
 
   // 600 km / (20 + 25) L = 13.33 km/L — NOT 300 / 25 = 12, which is what the
   // pre-upgrade toast computed.
   expect(toast).toContain("13.3");
-  expect(toast).toContain("מאז התדלוק הקודם");
+  expect(toast).toContain("ק״מ לליטר במקטע שנסגר");
   expect(toast).not.toContain("12.0");
 
   // The dashboard agrees with the toast, because both come from one engine.
   await page.goto("/");
-  await expect(page.getByText(/ממוצע כולל 13\.3 קמ״ל/)).toBeVisible();
-  await expect(page.getByText(/1 מקטעים · 3 תדלוקים/)).toBeVisible();
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 13\.3/)).toBeVisible();
+  await expectConsumptionCounts(page, 1, 3);
 });
 
 test("a continuity break stops every calculation from crossing the gap", async ({ page }) => {
@@ -150,14 +149,14 @@ test("a continuity break stops every calculation from crossing the gap", async (
   await page.reload();
 
   // The break record opens a new period.
-  await expect(page.getByText(/1 מקטעים · 2 תדלוקים/)).toBeVisible();
+  await expectConsumptionCounts(page, 1, 2);
   const toast = await addFillup(page, {
     odometer: 103_000,
     liters: 40,
     pricePerLiter: 7,
     continuityBreak: true,
   }, { uid, vehicleId });
-  expect(toast).toContain("התחילה תקופת חישוב חדשה");
+  expect(toast).toContain("נקודת התחלה חדשה נקבעה");
   // The 100,400 → 103,000 stretch must not be attributed to anyone.
   expect(toast).not.toMatch(/קמ״ל/);
 
@@ -165,10 +164,14 @@ test("a continuity break stops every calculation from crossing the gap", async (
 
   await page.goto("/");
   // Tracked distance is 400 + 400, never 3,400.
-  await expect(page.getByText(/2 מקטעים · 4 תדלוקים/)).toBeVisible();
+  await expectConsumptionCounts(page, 2, 4);
+  await expect(page.getByTestId("consumption-chart").locator('button[data-testid^="consumption-point-"]')).toHaveCount(2);
+  // The two real points are separated by undocumented driving; no line may
+  // visually join them into a measured interval that the engine rejected.
+  await expect(page.getByTestId("consumption-island")).toHaveCount(0);
 
   await page.goto("/history");
-  await expect(page.getByText("התחלת תקופה חדשה")).toBeVisible();
+  await expect(page.getByText("אחרי תדלוקים שלא נרשמו")).toBeVisible();
 
   // Records from BEFORE the break are still listed — a break hides nothing,
   // it only stops calculations crossing it. Two seeded plus two added.
@@ -185,8 +188,8 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await setActiveVehicle(uid, vehicleId);
   await page.goto("/");
   // 600 km / 50 L = 12.0 km/L
-  await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/1 מקטעים · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 12\.0/)).toBeVisible({ timeout: 25_000 });
+  await expectConsumptionCounts(page, 1, 2);
 
   // A BACKDATED partial lands between them and changes the answer: the same
   // 600 km is now covered by 50 + 10 L.
@@ -204,14 +207,17 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   // 600 / 60 = 10.0 — the same distance, now covered by 50 + 10 litres. The
   // fill-up count is asserted in the same string so the check cannot pass
   // against a list that has not finished loading the third record.
-  await expect(page.getByText(/ממוצע כולל 10\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/1 מקטעים · 3 תדלוקים/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 10\.0/)).toBeVisible({ timeout: 25_000 });
+  await expectConsumptionCounts(page, 1, 3);
 
-  // Delete the backdated record; the figure returns to 12.0. History rows are
-  // identified by their litres — the odometer is not shown in the list.
+  // Delete the exact backdated record through its entry sheet and original
+  // editor; the canonical figure must return to 12.0.
   await page.goto("/history");
-  await page.getByText(/10\.0 ל׳/).first().click();
-  await page.getByRole("button", { name: "מחיקת רשומה" }).click();
+  await page.getByTestId("journal-entry-fillups/b").click();
+  await expect(page.getByTestId("journal-entry-sheet")).toHaveAttribute("data-entry-key", "fillups/b");
+  await page.getByTestId("journal-entry-edit").click();
+  await expect(page).toHaveURL(/\/fillup\/b$/);
+  await page.getByTestId("fillup-delete").click();
 
   // Waited for, not conditionally clicked: a `if (await count())` here races
   // the dialog's own render, and when it loses it skips the confirmation
@@ -224,6 +230,6 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await expect(page.getByText("התדלוק נמחק")).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/");
-  await expect(page.getByText(/ממוצע כולל 12\.0 קמ״ל/)).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText(/1 מקטעים · 2 תדלוקים/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 12\.0/)).toBeVisible({ timeout: 25_000 });
+  await expectConsumptionCounts(page, 1, 2);
 });

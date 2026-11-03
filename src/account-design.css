@@ -1,0 +1,42 @@
+.account-page { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.account-body { display: flex; flex-direction: column; gap: 22px; padding: 4px 20px calc(32px + env(safe-area-inset-bottom)); }
+.account-section { display: grid; gap: 8px; min-width: 0; }
+.account-section-title { color: var(--ink); font: 700 26px/1 var(--font-display); }
+.tm-group { display: grid; min-width: 0; border-top: 1.5px solid var(--ink); }
+.account-identity { display: flex; width: 100%; min-height: 76px; align-items: center; gap: 14px; border: 0; background: transparent; padding: 0; color: var(--ink); text-align: right; cursor: pointer; }
+.account-avatar { display: grid; width: 64px; height: 64px; flex: none; place-items: center; overflow: hidden; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--surface); }
+.account-identity-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: flex-start; gap: 3px; }
+.account-name { max-width: 100%; overflow: hidden; color: var(--ink); font: 700 34px/1 var(--font-display); text-overflow: ellipsis; white-space: nowrap; }
+.account-email { max-width: 100%; overflow: hidden; color: var(--ink-2); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.account-sheet-stack { display: flex; min-width: 0; flex-direction: column; gap: 16px; color: var(--ink); }
+.account-sheet-stack > p { line-height: 1.6; }
+.account-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1.5px solid var(--ink); }
+.account-metric { display: flex; min-width: 0; flex-direction: column; gap: 6px; border-bottom: 1px solid var(--line); padding: 14px 0; }
+.account-metric:nth-child(odd) { padding-inline-end: 14px; }
+.account-metric:nth-child(even) { padding-inline-start: 14px; border-inline-start: 1px solid var(--line); }
+.account-metric-label { color: var(--ink-2); font-size: 13px; font-weight: 600; }
+.account-metric-reading { display: flex; align-items: baseline; gap: 5px; text-align: right; }
+.account-metric-reading > .tm-number { font: 700 clamp(30px, 8vw, 40px)/1 var(--font-display); }
+.account-metric-reading > span { font-size: 13px; }
+.account-note { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
+.account-error { color: var(--danger); font-size: 14px; line-height: 1.6; }
+.account-text-action { min-height: 44px; width: fit-content; border: 0; background: transparent; padding: 4px 0; color: var(--ink); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.account-text-action:disabled { cursor: default; opacity: .5; }
+.account-price-reading { color: var(--ink); font: 700 96px/.9 var(--font-display); }
+.account-accent-preview { width: 22px; height: 22px; flex: none; border: 1.5px solid #111; border-radius: 50%; background: var(--accent); }
+.account-accent-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 14px; }
+.account-accent-choice { display: flex; min-width: 0; min-height: 92px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 2px solid transparent; border-radius: 16px; background: transparent; padding: 8px 4px; color: var(--ink); font-size: 13px; font-weight: 600; cursor: pointer; }
+.account-accent-choice[aria-pressed="true"] { border-color: var(--ink); background: var(--surface-2); }
+.account-accent-swatch { display: grid; width: 52px; height: 52px; flex: none; place-items: center; border: 1.5px solid #111; border-radius: 50%; color: #111; }
+.account-checkbox-row { display: flex; min-height: 44px; align-items: center; gap: 12px; color: var(--ink); font-size: 14px; line-height: 1.5; cursor: pointer; }
+.account-checkbox-row > input { width: 20px; height: 20px; flex: none; accent-color: var(--ink); }
+.account-file-row { cursor: pointer; }
+.account-file-row:focus-within { outline: 2px solid var(--ink); outline-offset: 3px; }
+.account-file-disabled { cursor: default; opacity: .5; }
+.account-recovery { border-inline-start: 3px solid var(--danger); background: var(--danger-soft); padding: 14px; color: var(--danger); font-size: 14px; line-height: 1.6; }
+.account-page .tm-group-row-value, .account-sheet-stack .tm-group-row-value { max-width: 52%; overflow-wrap: anywhere; }
+.account-page .tm-group-row > svg, .account-sheet-stack .tm-group-row > svg { flex: none; }
+@media (max-width: 359px) {
+  .account-body { padding-inline: 16px; }
+  .account-page .tm-group-row { gap: 8px; }
+}

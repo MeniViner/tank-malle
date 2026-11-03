@@ -53,7 +53,7 @@ export function Field({
             ? "border-danger"
             : warning
               ? "border-warning"
-              : "border-line focus-within:border-accent"
+              : "border-line focus-within:border-ink"
         }`}
       >
         {icon}
@@ -62,7 +62,7 @@ export function Field({
           dir={rest.inputMode === 'decimal' || rest.inputMode === 'numeric' || rest.type === 'number' || rest.type === 'date' ? 'ltr' : 'rtl'}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
-          className={`num min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted/60 ${
+          className={`num min-h-[44px] min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted placeholder:opacity-100 ${
             row ? "text-[17px] font-semibold" : big ? "text-[26px] font-bold" : "text-[16px] font-semibold"
           }`}
           {...rest}

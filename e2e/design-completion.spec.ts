@@ -12,26 +12,27 @@ test('entry previews, editable plate and registry confirmation remain usable at 
   await resetEmulators();
   await page.setViewportSize({width:320,height:740});
   await page.goto('/');
-  await expect(page.getByRole('heading',{name:'רישום תדלוק ב־15 שניות'})).toBeVisible();
-  await page.getByRole('button',{name:'הבא',exact:true}).click();
-  await expect(page.getByTestId('consumption-chart')).toBeVisible();
-  await page.getByRole('button',{name:'הבא',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'מזהים את הרכב לפי הלוחית'})).toBeVisible();
-  await page.getByRole('button',{name:'מתחילים',exact:true}).click();
-  await expect(page.getByText('נתונים לדוגמה',{exact:true})).toBeVisible();
+  await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','1');
+  await page.getByTestId('onboarding-next').click();
+  await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','2');
+  await expect(page.getByTestId('onboarding-art')).toBeVisible();
+  await page.getByTestId('onboarding-next').click();
+  await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','3');
+  await page.getByTestId('onboarding-next').click();
+  await expect(page.getByTestId('signin-consent')).not.toBeChecked();
   await signIn(page, ALICE);
   let registryRequests = 0;
   await page.route('**/data.gov.il/**', route => { registryRequests += 1; return route.fulfill({contentType:'application/json',body:JSON.stringify({success:true,result:{records:[{mispar_rechev:12345678,tozeret_nm:'מאזדה יפן',kinuy_mishari:'3',shnat_yitzur:2018,sug_delek_nm:'בנזין'}]}})}); });
   const plate = page.getByRole('textbox',{name:'מספר רכב'});
   await plate.fill('123-45-678');
   await plate.press('Enter');
-  await expect(page.getByLabel('יצרן',{exact:true})).toHaveValue('מאזדה');
+  await expect(page.getByTestId('wizard-make-value')).toHaveText('מאזדה');
   expect(registryRequests).toBeGreaterThan(0);
-  await expect(page.getByLabel('יצרן',{exact:true})).not.toBeEditable();
-  await page.getByRole('button',{name:'תיקון פרטים',exact:true}).click();
+  await expect(page.getByTestId('wizard-make')).toHaveCount(0);
+  await page.getByTestId('wizard-correct').click();
   await page.getByLabel('דגם',{exact:true}).fill('3 Active');
-  await page.getByRole('button',{name:'המשך',exact:true}).click();
-  await expect(page.getByLabel('כינוי לרכב',{exact:false})).toBeVisible();
+  await page.getByTestId('wizard-confirm-next').click();
+  await expect(page.getByLabel('איך קוראים לרכב?',{exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -43,7 +44,7 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
   ]});
   for (const theme of ['בהיר','כהה']) {
     await page.goto('/settings');
-    await page.getByRole('button',{name:/^ערכת נושא/}).click();
+    await page.getByRole('button',{name:/^מראה/}).click();
     await page.getByRole('radio',{name:theme,exact:true}).click();
     await page.getByRole('dialog').getByRole('button',{name:'סגירה',exact:true}).click();
     for (const width of [320,360,390,430,600,820,1024,1366,1440,1920]) {
@@ -54,9 +55,12 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
         // Assert populated surfaces, so a narrow loading skeleton cannot pass.
         if (path === '/') await expect(page.getByTestId('consumption-chart')).toBeVisible();
         if (path === '/history') await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
-        if (path === '/stats') await expect(page.getByText('ממוצע חודשי', {exact:true})).toBeVisible();
+        if (path === '/stats') {
+          await page.getByTestId('insights-tab-spend').click();
+          await expect(page.getByTestId('running-total')).toContainText('₪560');
+        }
         if (path === '/fillup/new') await expect(page.getByLabel('מחיר לליטר', {exact:true})).toHaveValue('7.77');
-        if (path === '/settings') await expect(page.getByRole('button', {name:/^הנחה מהמחיר הרשמי/})).toBeVisible();
+        if (path === '/settings') await expect(page.getByTestId('account-discount')).toBeVisible();
         expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${theme} ${width} ${path}`).toBe(true);
       }
     }
@@ -65,8 +69,9 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
   await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
   await page.goto('/');
   await expect(page.getByTestId('consumption-chart').getByRole('img')).toHaveAccessibleName(/12.5 קמ״ל/);
-  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
-  await expect(page.getByTestId('tank-level-bar')).toBeVisible();
+  await page.getByTestId("tank-hero").click();
+  await expect(page.getByTestId("tank-gauge")).toBeVisible();
+  await page.keyboard.press("Escape");
   const logo = page.getByTestId('recent-fillups-timeline').locator('img').first();
   await expect(logo).toHaveAttribute('src','/brands/sonol.svg');
   expect(await logo.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
@@ -76,8 +81,8 @@ test('sheet choices support keyboard navigation and feedback preserves the chose
   await signedInWithData(page);
   await page.goto('/settings');
   await page.getByRole('button',{name:/^יחידת צריכה/}).click();
-  await page.getByRole('radio',{name:'קמ״ל',exact:true}).press('ArrowDown');
-  await expect(page.getByRole('radio',{name:'ל׳/100 ק״מ',exact:true})).toBeChecked();
+  await page.getByRole('radio',{name:'ק״מ לליטר',exact:true}).press('ArrowDown');
+  await expect(page.getByRole('radio',{name:'ליטר ל-100 ק״מ',exact:true})).toBeChecked();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.goto('/feedback');

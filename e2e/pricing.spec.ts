@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { waitForDocument, type SeedFillup } from "./helpers/emulator";
+import { listDocuments, waitForDocument, type SeedFillup } from "./helpers/emulator";
 import { signedInWithData } from "./helpers/app";
+import { finishFillupSave } from "./helpers/fillup";
 
 /**
  * Fuel-type-aware pricing.
@@ -28,7 +29,7 @@ test("a 95 vehicle is offered the regulated maximum, named as such", async ({ pa
   await page.goto("/fillup/new");
   await expect(page.getByLabel("מחיר לליטר")).toHaveValue("7.31", { timeout: 25_000 });
   // The figure is attributed, every time, rather than appearing unexplained.
-  await expect(page.getByText(/מחיר מרבי מפוקח לבנזין 95/)).toBeVisible();
+  await expect(page.getByText(/מחיר מרבי מפוקח/)).toBeVisible();
 });
 
 test("a diesel vehicle is never given the 95 figure", async ({ page }) => {
@@ -39,7 +40,7 @@ test("a diesel vehicle is never given the 95 figure", async ({ page }) => {
   });
 
   await page.goto("/fillup/new");
-  await expect(page.getByText(/אין מחיר מרבי מפוקח לסולר/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("fillup-price")).toBeVisible({ timeout: 25_000 });
   // The field is left for the driver to fill, not pre-filled with a lie.
   await expect(page.getByLabel("מחיר לליטר")).toHaveValue("");
   await expect(page.getByText("7.31")).toHaveCount(0);
@@ -53,7 +54,7 @@ test("a 98 vehicle is never given the 95 figure", async ({ page }) => {
   });
 
   await page.goto("/fillup/new");
-  await expect(page.getByText(/אין מחיר מרבי מפוקח לבנזין 98/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("fillup-price")).toBeVisible({ timeout: 25_000 });
   await expect(page.getByLabel("מחיר לליטר")).toHaveValue("");
   await expect(page.getByText("7.31")).toHaveCount(0);
 });
@@ -71,7 +72,7 @@ test("a station row shows the national ceiling as a ceiling, not as the station'
     fillups: RECORDS,
   });
   await page.goto("/fillup/new");
-  await page.getByRole("button", { name: /תחנה|ללא מיקום|שינוי/ }).first().click();
+  await page.getByTestId("fillup-station").click();
 
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
 
@@ -89,7 +90,7 @@ test("the diesel station list shows no price at all", async ({ page }) => {
   });
 
   await page.goto("/fillup/new");
-  await page.getByRole("button", { name: /תחנה|ללא מיקום|שינוי/ }).first().click();
+  await page.getByTestId("fillup-station").click();
 
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
 
@@ -111,20 +112,18 @@ test("a personal discount is not published as the station's price", async ({ pag
   await page.getByLabel("מחיר לליטר").fill("6.90");
 
   // A station must be named before the question is worth asking.
-  await page.getByRole("button", { name: /תחנה|ללא מיקום|שינוי/ }).first().click();
+  await page.getByTestId("fillup-station").click();
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
   await page.getByRole("button", { name: /^פז/ }).first().click();
 
-  await expect(page.getByText("האם זה גם המחיר שהופיע במשאבה?")).toBeVisible({
-    timeout: 20_000,
-  });
-
-  // "I had a discount" — so the paid price is explicitly NOT the pump price.
-  await page.getByRole("button", { name: "לא, הייתה לי הנחה" }).click();
-  await expect(page.getByText("לא ידווח כמחיר התחנה")).toBeVisible();
-
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page.locator("[data-toast-title]").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("fillup-saved")).toBeVisible();
+  await expect(page.getByTestId("fillup-pump-no")).toBeEnabled({ timeout: 20_000 });
+  await page.getByTestId("fillup-pump-no").click();
+  await page.getByTestId("fillup-pump-price").fill("7.31");
+  await page.getByTestId("fillup-pump-confirm").click();
+  await expect(page.getByTestId("fillup-pump-confirmed")).toBeVisible();
+  await finishFillupSave(page);
 
   // Nothing was stored as a posted station price.
   const saved = await waitForDocument(
@@ -133,6 +132,11 @@ test("a personal discount is not published as the station's price", async ({ pag
   );
   expect(saved.postedPricePerLiter ?? null).toBeNull();
   expect(saved.pricePerLiter).toBeCloseTo(6.9, 2);
+  const rules = await listDocuments(`users/${uid}/personalPriceRules`);
+  expect(rules).toHaveLength(1);
+  expect(rules[0].data).toMatchObject({ vehicleId, fuelType: "95", discountPerLiter: 7.31 - 6.9,
+    fixedPricePerLiter: null, reviewed: true, legacy: false });
+  expect(rules[0].data.stationId).toBe((saved.station as { stationId: string }).stationId);
 });
 
 test("confirming the pump price does record it as the station's posted price", async ({
@@ -149,13 +153,16 @@ test("confirming the pump price does record it as the station's posted price", a
   await page.getByLabel("ליטרים", { exact: true }).fill("40");
   await page.getByLabel("מחיר לליטר").fill("7.20");
 
-  await page.getByRole("button", { name: /תחנה|ללא מיקום|שינוי/ }).first().click();
+  await page.getByTestId("fillup-station").click();
   await page.locator('input[placeholder*="חיפוש"], input[placeholder*="תחנה"]').first().fill("פז");
   await page.getByRole("button", { name: /^פז/ }).first().click();
 
-  await page.getByRole("button", { name: "כן", exact: true }).click();
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page.locator("[data-toast-title]").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("fillup-saved")).toBeVisible();
+  await expect(page.getByTestId("fillup-pump-yes")).toBeEnabled({ timeout: 20_000 });
+  await page.getByTestId("fillup-pump-yes").click();
+  await expect(page.getByTestId("fillup-pump-confirmed")).toBeVisible();
+  await finishFillupSave(page);
 
   const saved = await waitForDocument(
     `users/${uid}/vehicles/${vehicleId}/fillups`,

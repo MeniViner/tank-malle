@@ -63,7 +63,7 @@ test("A → B → A never shows the other account's data", async ({ page }) => {
 
   // Alice signs in and gets a distinctive vehicle.
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   const aliceUid = await uidOf(ALICE);
   await seedFillups(aliceUid, await firstVehicleId(aliceUid), [
     { id: "a1", date: new Date(2026, 0, 5), odometer: 111111, liters: 40 },
@@ -76,7 +76,7 @@ test("A → B → A never shows the other account's data", async ({ page }) => {
   await watchForLeak(page, ["מאזדה", "111,111"]);
 
   await signIn(page, BOB);
-  await createVehicle(page, { make: "יונדאי", model: "i20" });
+  await createVehicle(page, { account: BOB, make: "יונדאי", model: "i20" });
   await page.goto("/");
   await expect(page.getByText("יונדאי i20", { exact: false }).first()).toBeVisible();
 
@@ -99,7 +99,7 @@ test("an account with vehicles → an account with none shows the empty state", 
   await resetEmulators();
 
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   await signOut(page);
 
   await signIn(page, BOB);
@@ -119,7 +119,7 @@ test("an account with no vehicles → an account with vehicles loads them", asyn
   await signOut(page);
 
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   await page.goto("/");
   await expect(page.getByText("מאזדה 3", { exact: false }).first()).toBeVisible();
 });
@@ -128,7 +128,7 @@ test("rapid switching settles on the account that signed in last", async ({ page
   await resetEmulators();
 
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
 
   for (let round = 0; round < 2; round += 1) {
     await signOut(page);
@@ -149,7 +149,7 @@ test("a second tab does not keep the previous account's listeners alive", async 
   await resetEmulators();
 
   await signIn(first, ALICE);
-  await createVehicle(first, { make: "מאזדה", model: "3" });
+  await createVehicle(first, { account: ALICE, make: "מאזדה", model: "3" });
 
   // A second tab in the SAME context shares auth and the Firestore cache.
   const second = await context.newPage();
@@ -161,7 +161,7 @@ test("a second tab does not keep the previous account's listeners alive", async 
   // Sign out in tab one, sign in as Bob, and give tab two a fresh load.
   await signOut(first);
   await signIn(first, BOB);
-  await createVehicle(first, { make: "יונדאי", model: "i20" });
+  await createVehicle(first, { account: BOB, make: "יונדאי", model: "i20" });
 
   await second.reload();
   await expect(second.getByText("יונדאי i20", { exact: false }).first()).toBeVisible({
@@ -180,12 +180,12 @@ test("a refresh does not invent a new previous login", async ({ page }) => {
   await resetEmulators();
 
   await signIn(page, ALICE);
-  // Without a vehicle the app holds the user in the first-run wizard, so the
-  // profile screen is not reachable.
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  // Keep a vehicle fixture so reloads also exercise the mounted data listeners.
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   const uid = await uidOf(ALICE);
 
   await page.goto("/settings/profile");
+  await page.getByTestId("account-identity").click();
   // The very first sign-in has no predecessor, and says so rather than
   // showing the current session. (The profile was rebuilt in 7a72538; this
   // is its wording.)
@@ -206,6 +206,7 @@ test("a refresh does not invent a new previous login", async ({ page }) => {
   expect(afterReloads?.previousLoginAt ?? null).toBeNull();
 
   await page.goto("/settings/profile");
+  await page.getByTestId("account-identity").click();
   await expect(page.getByText("זו ההתחברות הראשונה")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText("עכשיו")).toHaveCount(0);
 });
@@ -216,7 +217,7 @@ test("previous login advances only after a genuine new authentication", async ({
   await resetEmulators();
 
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   const uid = await uidOf(ALICE);
   const first = await getDocument(`users/${uid}`);
   const firstLogin = first?.currentLoginAt as number;
@@ -233,6 +234,7 @@ test("previous login advances only after a genuine new authentication", async ({
   expect(second?.currentLoginAt).not.toBe(firstLogin);
 
   await page.goto("/settings/profile");
+  await page.getByTestId("account-identity").click();
   // The rebuilt profile (7a72538) words the previous login as "נכנס לאחרונה …".
   const row = page.getByText(/נכנס לאחרונה/);
   await expect(row).toBeVisible({ timeout: 20_000 });

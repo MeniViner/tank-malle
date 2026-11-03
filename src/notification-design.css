@@ -1,0 +1,34 @@
+.notes-plate { max-width: 640px; margin-inline: auto; padding-inline: 20px; color: var(--ink); }
+.notes-plate .notes-header { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 20px 0 18px; border-bottom: 1.5px solid var(--ink); background: transparent; }
+.notes-plate .notes-header > button { flex: 0 0 44px; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); }
+.notes-plate .notes-header h1 { margin: 0; font: 700 62px/.9 var(--font-display); letter-spacing: 0; }
+.notes-eyebrow { display: block; margin-bottom: 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.notes-plate .notes-content { padding: 0 0 30px; }
+.notes-plate .notes-mark-read { display: flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 8px; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+.notes-plate .notes-section { margin-top: 22px; }
+.notes-plate .notes-group-head { display: flex; align-items: center; gap: 8px; padding-block: 12px 10px; border-top: 1.5px solid var(--ink); }
+.notes-plate .notes-group-head h2 { margin: 0; font: 700 28px/1.15 var(--font-display); }
+.notes-plate .notes-group-head small { margin-inline-start: auto; color: var(--muted); font-size: 12px; }
+.notes-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); font-size: 12px; font-family: var(--font-mono); }
+.notes-plate .notes-group { overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.notes-plate .notes-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 44px; align-items: start; gap: 9px; padding: 16px 12px; background: transparent; border: 0; border-radius: 0; }
+.notes-plate .notes-row + .notes-row { border-top: 1px solid var(--line); }
+.notes-plate .notes-row[data-urgent="true"] { border-inline-start: 3px solid var(--accent); }
+.notes-plate .notes-glyph { margin-top: 3px; color: var(--ink); }
+.notes-plate .notes-main { min-width: 0; overflow-wrap: anywhere; }
+.notes-plate .notes-main h3 { display: block; margin: 0 0 6px; color: var(--ink); font-size: 16px; font-weight: 600; line-height: 1.4; }
+.notes-plate .notes-main p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.notes-plate .notes-main small { display: block; margin-top: 8px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+.notes-plate .notes-unread { display: inline-block; width: 8px; height: 8px; margin-inline-end: 6px; margin-bottom: 1px; border: 1px solid var(--ink); border-radius: 50%; background: var(--accent); }
+.notes-plate .notes-mini { display: flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: var(--bg); }
+.notes-actions { display: flex; flex-wrap: wrap; column-gap: 16px; }
+.notes-plate .notes-text-action { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding-block: 8px; color: var(--ink); font-size: 14px; text-decoration: underline; text-underline-offset: 4px; }
+.notes-plate .notes-archived { opacity: 1; }
+.notes-plate .notes-archived .notes-glyph { color: var(--muted); }
+.notes-plate .v-empty { margin-block: 28px; padding: 30px 20px; border: 1px dashed var(--line); border-radius: 12px; background: var(--surface); }
+.notes-plate .v-empty h2 { font: 700 34px/1.15 var(--font-display); }
+.notes-plate .v-empty p { max-width: 34ch; margin-inline: auto; font-size: 16px; line-height: 1.65; }
+.notes-plate .helper { margin-top: 16px; font-size: 12px; line-height: 1.7; }
+.notes-error { color: var(--danger); font-size: 14px; line-height: 1.6; }
+.notes-plate button:disabled { opacity: .5; cursor: default; }
+@media (max-width: 359px) { .notes-plate { padding-inline: 16px; } .notes-plate .notes-row { padding-inline: 10px; gap: 6px; } }

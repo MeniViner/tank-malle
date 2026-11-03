@@ -47,14 +47,13 @@ import { NotificationPreferences } from '../components/NotificationPreferences';
 import type { ThemeSetting, Units } from "../lib/types";
 
 const THEME_OPTIONS: { value: ThemeSetting; label: string; icon: React.ReactNode }[] = [
-  // "לפי המכשיר" wrapped onto two lines inside a third of a 360px screen.
-  { value: "system", label: "אוטומטי", icon: <DeviceIcon size={15} /> },
+  { value: "system", label: "לפי המכשיר", icon: <DeviceIcon size={15} /> },
   { value: "light", label: "בהיר", icon: <SunIcon size={15} /> },
   { value: "dark", label: "כהה", icon: <MoonIcon size={15} /> },
 ];
 
 const UNIT_OPTIONS: { value: Units; label: string }[] = [
-  { value: "kmPerLiter", label: "קמ״ל" },
+  { value: "kmPerLiter", label: "ק״מ לליטר" },
   { value: "litersPer100", label: "ל׳/100 ק״מ" },
 ];
 
@@ -64,7 +63,7 @@ export function Settings() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { user, isAdmin } = useAuth();
-  const { theme, setTheme, accent, accentId, accents, setAccent } = useTheme();
+  const { theme, setTheme, accent, accentId, accents, setAccent, resolvedTheme } = useTheme();
   const {
     settings,
     updateSettings,
@@ -145,10 +144,10 @@ export function Settings() {
         <section className="flex flex-col gap-2">
           <Label>תצוגה</Label>
           <ListCard>
-            <div className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז מד־דרך. אפשר לחזור להזנה ידנית.</small></span><Toggle ariaLabel="פתח תמיד תדלוק מהיר" checked={settings.quickEntry===true} onChange={checked=>{void updateSettings({quickEntry:checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></div>
+            <div className="v-row"><span>פתח תמיד תדלוק מהיר<small>צילום משאבה ואז לוח הקילומטרים. אפשר לחזור להזנה ידנית.</small></span><Toggle ariaLabel="פתח תמיד תדלוק מהיר" checked={settings.quickEntry===true} onChange={checked=>{void updateSettings({quickEntry:checked}).catch(()=>showToast({tone:'error',title:'העדפת התדלוק לא נשמרה'}));}}/></div>
             <button type="button" className="v-row" onClick={()=>setNotificationPreferencesOpen(true)}>העדפות התראות <ChevronStart size={17}/></button>
-            <RowButton icon={<DeviceIcon size={19} className="text-muted" />} title="ערכת נושא" value={THEME_OPTIONS.find((option) => option.value === theme)?.label} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setThemeOpen(true)} />
-            <RowButton icon={<PaletteIcon size={19} className="text-muted" />} title="צבע הדגשה" value={accent.label} trailing={<span className="size-4 flex-none rounded-full" style={{ background: "var(--accent)" }} />} onClick={() => setAccentSheetOpen(true)} />
+            <RowButton icon={<DeviceIcon size={19} className="text-muted" />} title="מראה" value={THEME_OPTIONS.find((option) => option.value === theme)?.label} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setThemeOpen(true)} />
+            <RowButton icon={<PaletteIcon size={19} className="text-muted" />} title="צבע" value={accent.label} trailing={<span className="size-4 flex-none rounded-full" style={{ background: "var(--accent)" }} />} onClick={() => setAccentSheetOpen(true)} />
             <RowButton title="יחידת צריכה" value={UNIT_OPTIONS.find((option) => option.value === settings.units)?.label} trailing={<ChevronStart size={17} className="text-muted" />} onClick={() => setUnitsOpen(true)} />
           </ListCard>
         </section>
@@ -200,8 +199,8 @@ export function Settings() {
           <UpdateCheckButton />
         </section>
       </div>
-      <Sheet open={themeOpen} onClose={() => setThemeOpen(false)} title={<h2 className="text-[18px] font-bold">ערכת נושא</h2>}>
-        <ChoiceList value={theme} options={THEME_OPTIONS} ariaLabel="ערכת נושא" onChange={(value) => { setTheme(value); void updateSettings({ theme: value }); }} />
+      <Sheet open={themeOpen} onClose={() => setThemeOpen(false)} title={<h2 className="text-[18px] font-bold">מראה</h2>}>
+        <ChoiceList value={theme} options={THEME_OPTIONS} ariaLabel="מראה" onChange={(value) => { setTheme(value); void updateSettings({ theme: value }); }} />
       </Sheet>
       <Sheet open={unitsOpen} onClose={() => setUnitsOpen(false)} title={<h2 className="text-[18px] font-bold">יחידת צריכה</h2>}>
         <ChoiceList value={settings.units} options={UNIT_OPTIONS} ariaLabel="יחידת צריכה" onChange={(value) => void updateSettings({ units: value })} />
@@ -211,54 +210,41 @@ export function Settings() {
       <Sheet
         open={accentSheetOpen}
         onClose={() => setAccentSheetOpen(false)}
-        title={<h2 className="text-[18px] font-semibold text-ink">צבע הדגשה</h2>}
+        title={<h2 className="text-[18px] font-semibold text-ink">צבע</h2>}
       >
         <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-x-5 gap-y-6">
             {accents.map((option) => (
               <button
                 key={option.id}
                 type="button"
+                aria-pressed={accentId === option.id}
+                data-testid={`accent-${option.id}`}
                 onClick={() => {
                   setAccent(option.id);
-                  void updateSettings({ accentColor: option.id });
+                  void updateSettings({ accentColor: option.id, customAccent: null });
                 }}
-                className="flex flex-col items-center gap-1.5 transition-transform duration-200 active:scale-[0.96]"
+                className="flex flex-col items-center gap-2 rounded-[16px] border-2 border-transparent p-2 transition-transform duration-200 active:scale-[0.96] aria-pressed:border-ink aria-pressed:bg-surface-2"
               >
                 <span
-                  className="flex size-12 items-center justify-center rounded-full border-2 transition-[border-color] duration-200"
+                  className="flex size-[52px] items-center justify-center rounded-full border-2 transition-[border-color] duration-200"
                   style={{
-                    background: option.light,
-                    borderColor: accentId === option.id ? "var(--ink)" : "transparent",
+                    background: resolvedTheme === "dark" ? option.dark : option.light,
+                    borderColor: "#111",
                   }}
                 >
                   {accentId === option.id ? (
-                    <CheckIcon size={20} className="text-white" />
+                    <CheckIcon size={20} className="text-[#111]" />
                   ) : null}
                 </span>
-                <span className="text-center text-[11px] leading-tight text-muted">
+                <span className="text-center text-[13px] leading-tight text-ink-2">
                   {option.label}
                 </span>
               </button>
             ))}
           </div>
 
-          <label className="flex min-h-[52px] items-center gap-3 rounded-[14px] bg-surface-2 px-4">
-            <span className="flex-1 text-[14px] font-semibold text-ink">צבע מותאם אישית</span>
-            <input
-              type="color"
-              aria-label="צבע מותאם אישית"
-              defaultValue={accent.light}
-              onChange={(event) => {
-                setAccent("custom", event.target.value);
-                void updateSettings({
-                  accentColor: "custom",
-                  customAccent: event.target.value,
-                });
-              }}
-              className="size-9 cursor-pointer rounded-full border border-line bg-transparent"
-            />
-          </label>
+
         </div>
       </Sheet>
 
@@ -324,7 +310,7 @@ function ShareSection() {
                   .then(() => showToast({ tone: "success", title: "הקישור הועתק" }))
                   .catch(() => undefined);
               }}
-              className="flex size-10 flex-none items-center justify-center rounded-full text-accent"
+              className="flex size-10 flex-none items-center justify-center rounded-full text-ink"
             >
               <CopyIcon size={18} />
             </button>
@@ -373,7 +359,7 @@ function InstallSection() {
           disabled={state !== "available"}
           trailing={
             state === "installed" ? (
-              <CheckIcon size={18} className="text-accent" />
+              <CheckIcon size={18} className="text-ink" />
             ) : state === "available" ? (
               <ChevronStart size={17} className="text-muted" />
             ) : null

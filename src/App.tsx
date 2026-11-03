@@ -1,3 +1,4 @@
+import { Atmosphere } from "./components/Atmosphere";
 import { VehicleYear, ReminderDetail, IssueDetail } from "./screens/VehicleDetails";
 import { Notifications } from "./screens/Notifications";
 import { VehicleRecordEditor } from "./components/VehicleRecordEditor";
@@ -20,9 +21,9 @@ import { Home } from "./screens/Home";
 import { FillupForm } from "./screens/FillupForm";
 import { History } from "./screens/History";
 const Maintenance = lazy(() => import("./screens/Maintenance").then(m => ({ default: m.Maintenance })));
-const Settings = lazy(() => import("./screens/Settings").then((m) => ({ default: m.Settings })));
-const Profile = lazy(() => import("./screens/Profile").then((m) => ({ default: m.Profile })));
+const Account = lazy(() => import("./screens/Account").then((m) => ({ default: m.Account })));
 const VehicleManager = lazy(() => import("./screens/VehicleManager").then((m) => ({ default: m.VehicleManager })));
+const VehicleEdit = lazy(() => import("./screens/VehicleEdit").then((m) => ({ default: m.VehicleEdit })));
 const ImportData = lazy(() => import("./screens/ImportData").then((m) => ({ default: m.ImportData })));
 const Unsynced = lazy(() => import("./screens/Unsynced").then((m) => ({ default: m.Unsynced })));
 const Legal = lazy(() => import("./screens/Legal").then((m) => ({ default: m.Legal })));
@@ -39,10 +40,25 @@ const Statistics = lazy(() =>
 const Admin = lazy(() => import("./screens/Admin").then((m) => ({ default: m.Admin })));
 
 const ONBOARDING_KEY = "tm.onboarded";
+const ALWAYS_REACHABLE = ["/vehicles/new", "/admin", "/legal", "/account", "/settings", "/feedback", "/notifications"];
+const needsFirstVehicle = (pathname: string, vehicleCount: number) => vehicleCount === 0
+  && !ALWAYS_REACHABLE.some(path => pathname === path || pathname.startsWith(`${path}/`));
+
+/** Entry screens can replace a route; keep the one atmosphere on that screen. */
+function AppAtmosphere() {
+  const { pathname } = useLocation();
+  const { user, loading, signingOut } = useAuth();
+  const { ready, vehicles, accountDeletionPending } = useData();
+  const route = pathname.startsWith("/legal") ? pathname : !user ? "/"
+    : !loading && !signingOut && ready && !accountDeletionPending && needsFirstVehicle(pathname, vehicles.length)
+      ? "/vehicles/new" : pathname;
+  return <Atmosphere route={route} />;
+}
 
 export default function App() {
   return (
     <>
+      <AppAtmosphere />
       {import.meta.env.VITE_LOCAL_CARE === "1" ? <div className="mx-auto max-w-[430px] bg-warning-soft px-3 py-1.5 text-center text-xs text-warning-ink">תצוגה מקומית · נתוני הדגמה</div> : null}
       <RouteScroll />
       <Suspense fallback={<Splash />}><Shell /></Suspense>
@@ -76,7 +92,7 @@ function Shell() {
   // when someone wants to read them.
   if (location.pathname.startsWith("/legal")) {
     return (
-      <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
+      <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
         <Routes>
           <Route path="/legal/:doc" element={<Legal />} />
           <Route path="*" element={<Navigate to="/legal/terms" replace />} />
@@ -104,40 +120,22 @@ function Shell() {
   }
 
   if (!ready) return <Splash />;
-  if (accountDeletionPending && location.pathname !== "/settings/profile") return <Navigate to="/settings/profile" replace />;
+  if (accountDeletionPending && location.pathname !== "/account") return <Navigate to="/account" replace />;
 
   // A signed-in user with no vehicle at all goes straight to the wizard —
-  // except on routes that are meaningful without one (admin, legal, profile),
+  // except on routes that are meaningful without one (admin, legal, account),
   // which must stay reachable.
-  const ALWAYS_REACHABLE = [
-    "/vehicles/new",
-    "/admin",
-    "/legal",
-    "/settings/profile",
-    "/settings/unsynced",
-  ];
-  const needsFirstVehicle =
-    vehicles.length === 0 &&
-    !ALWAYS_REACHABLE.some((path) => location.pathname.startsWith(path));
+  if (needsFirstVehicle(location.pathname, vehicles.length)) return <VehicleWizard key={user.uid} firstRun />;
 
-  if (needsFirstVehicle) return <VehicleWizard firstRun />;
-
-  // Full-screen flows (the fill-up form, the vehicle wizard, import) replace
-  // the tab bar rather than sitting under it. Import is on this list because
-  // its primary action sat directly behind the centre fuel FAB.
-  const showTabBar =
-    !location.pathname.startsWith("/fillup/") &&
-    !location.pathname.startsWith("/vehicles/new") &&
-    !location.pathname.startsWith("/settings/import") &&
-    !location.pathname.startsWith("/admin") &&
-    !location.pathname.startsWith("/notifications") &&
-    !location.pathname.startsWith("/legal");
+  // Only the four primary destinations keep tabs. Pushed screens have a back control.
+  const showTabBar = ["/", "/history", "/stats", "/vehicle"].includes(location.pathname.replace(/\/+$/, "") || "/");
 
   return (
-    <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg">
+    <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/vehicle" element={<Maintenance />} />
+        <Route path="/vehicle/edit/:vehicleId" element={<VehicleEdit key={user.uid} />} />
         <Route path="/vehicle/years/:year" element={<VehicleYear />} />
         <Route path="/vehicle/reminders/:planId" element={<ReminderDetail />} />
         <Route path="/vehicle/issues/:issueId" element={<IssueDetail />} />
@@ -151,8 +149,9 @@ function Shell() {
             </Suspense>
           }
         />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/settings/profile" element={<Profile />} />
+        <Route path="/account" element={<Account />} />
+        <Route path="/settings" element={<Navigate to="/account" replace />} />
+        <Route path="/settings/profile" element={<Navigate to="/account" replace />} />
         <Route path="/settings/vehicles" element={<VehicleManager />} />
         <Route path="/settings/import" element={<ImportData />} />
         <Route path="/settings/unsynced" element={<Unsynced />} />
@@ -166,7 +165,7 @@ function Shell() {
             </Suspense>
           }
         />
-        <Route path="/vehicles/new" element={<VehicleWizard />} />
+        <Route path="/vehicles/new" element={<VehicleWizard key={user.uid} />} />
         <Route path="/fillup/new" element={<FillupForm />} />
         <Route path="/fillup/:fillupId" element={<FillupForm />} />
         <Route path="*" element={<Navigate to="/" replace />} />

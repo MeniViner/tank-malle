@@ -81,6 +81,20 @@ async function offlineRestart(page: Page): Promise<void> {
   test.info().annotations.push({ type: "offline-navigation", description: JSON.stringify({ ...delivery, fromServiceWorker: response?.fromServiceWorker() }) });
   expect(delivery.transferSize, "nothing for the document came over the network").toBe(0);
   await expectNetworkCut(page);
+  // V2's display, Hebrew UI and pump readout faces must be available on a
+  // genuinely offline cold restart, including faces not used by this route.
+  const fonts = await page.evaluate(async () => Promise.all([
+    ['700 64px "Karantina"', 'אבג123'],
+    ['400 16px "IBM Plex Sans Hebrew"', 'אבג123'],
+    ['600 30px "IBM Plex Mono"', '123456'],
+  ].map(async ([font, text]) => {
+    const faces = await document.fonts.load(font, text);
+    return { font, count: faces.length, loaded: faces.every(face => face.status === "loaded") };
+  })));
+  for (const font of fonts) {
+    expect(font.count, `${font.font} has a precached local font face`).toBeGreaterThan(0);
+    expect(font.loaded, `${font.font} loads while the entire browser is offline`).toBe(true);
+  }
 }
 
 test.afterEach(async () => {
@@ -95,7 +109,7 @@ test("Sonol Shfeya remains searchable without history after a fully offline PWA 
   try {
     await offlineRestart(page);
     await page.goto("/fillup/new");
-    const trigger = page.getByRole("button", { name: /^תחנה / });
+    const trigger = page.getByTestId("fillup-station");
     await trigger.click();
     const dialog = page.getByRole("dialog");
     const search = dialog.getByPlaceholder("חיפוש תחנה…");
@@ -133,7 +147,9 @@ test("two fill-ups saved across offline restarts are kept through a server rejec
   await fillForm(page, { odometer: 100_400, liters: 32, price: 7 });
 
   // Honestly labelled — saved on the device, not "synced" — and durably kept.
-  await expect(page.getByRole("button", { name: "פעולות שממתינות לסנכרון" })).toBeVisible();
+  await page.getByTestId("open-account").click();
+  await expect(page.getByTestId("account-unsynced")).toBeVisible();
+  await expect(page.getByTestId("account-unsynced-count")).toHaveText("2");
   expect(await outboxCount(page, uid)).toBe(2);
 
   // A second cold start, still offline: both records are listed and pending.
@@ -188,7 +204,9 @@ test("a fill-up saved after an offline restart reaches the server exactly once w
   await expect(page.getByText("מאזדה", { exact: false }).first()).toBeVisible({ timeout: 20_000 });
 
   await fillForm(page, { odometer: 120_000, liters: 35, price: 7.2 });
-  await expect(page.getByRole("button", { name: "פעולות שממתינות לסנכרון" })).toBeVisible();
+  await page.getByTestId("open-account").click();
+  await expect(page.getByTestId("account-unsynced")).toBeVisible();
+  await expect(page.getByTestId("account-unsynced-count")).toHaveText("1");
   expect(await outboxCount(page, uid)).toBe(1);
   expect(await listDocuments(fillups)).toHaveLength(0);
 

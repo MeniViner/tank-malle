@@ -1,6 +1,8 @@
+import { finishFillupSave, openFillupMore, openFillupTankAdvanced, setFillupEndState } from "./helpers/fillup";
 import { test, expect, type Page } from "@playwright/test";
-import { listDocuments, resetEmulators, seedFillups } from "./helpers/emulator";
+import { getDocument, listDocuments, resetEmulators, seedFillups } from "./helpers/emulator";
 import { outboxCount } from './helpers/pwa';
+import { journalOperations } from './helpers/journal';
 import {
   ALICE,
   addFillup,
@@ -47,13 +49,18 @@ async function waitForDocuments(
 async function freshVehicle(page: Page): Promise<{ uid: string; vehicleId: string }> {
   await resetEmulators();
   await signIn(page, ALICE);
-  await createVehicle(page, { make: "מאזדה", model: "3" });
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   const uid = await uidOf(ALICE);
   const vehicleId = await firstVehicleId(uid);
   // These tests inspect the tank UI, after online fixture creation. The
-  // vehicle can be acknowledged before its active-vehicle settings write.
-  // Wait for both setup receipts before an unrelated full navigation.
+  // vehicle can be acknowledged before its active-vehicle settings write,
+  // with a briefly empty journal between the two. Confirm the actual server
+  // selection, then wait for both setup receipts before a full navigation.
   // Intentional queued-write reloads live in the separate offline PWA rig.
+  await expect.poll(async () => {
+    const profile = await getDocument(`users/${uid}`);
+    return (profile?.settings as Record<string, unknown> | undefined)?.activeVehicleId;
+  }, { timeout: 20_000 }).toBe(vehicleId);
   await expect.poll(() => outboxCount(page, uid), { timeout: 20_000 }).toBe(0);
   return { uid, vehicleId };
 }
@@ -62,7 +69,7 @@ async function freshVehicle(page: Page): Promise<{ uid: string; vehicleId: strin
  * History
  * ------------------------------------------------------------------ */
 
-test("§15.20 tapping a fill-up opens its editor directly, with the odometer readable", async ({
+test("§15.20 a fill-up entry sheet opens its original editor with the odometer readable", async ({
   page,
 }) => {
   const { uid, vehicleId } = await freshVehicle(page);
@@ -78,18 +85,18 @@ test("§15.20 tapping a fill-up opens its editor directly, with the odometer rea
 
   await page.goto("/history");
 
-  // The mileage is its own small metric on the row, separate from economy.
-  await expect(page.getByText("169,994", { exact: false }).first()).toBeVisible({
-    timeout: 20_000,
-  });
+  const row = page.getByTestId("journal-entry-fillups/f1");
+  await expect(row).toContainText("40.0");
+  await row.click();
 
-  await page.getByRole("button", { name: /169,994/ }).click();
-
-  // Straight to the record's own editor — no intermediate action sheet.
-  await expect(page).toHaveURL(/\/fillup\/[^/]+$/, { timeout: 20_000 });
+  await expect(page.getByTestId("journal-entry-sheet")).toHaveAttribute("data-entry-key", "fillups/f1");
+  await expect(page.getByTestId("entry-odometer")).toContainText("169,994");
+  await page.getByTestId("journal-entry-edit").click();
+  await expect(page).toHaveURL(/\/fillup\/f1$/, { timeout: 20_000 });
   await expect(page.getByRole("heading", { name: "עריכת תדלוק" })).toBeVisible();
-  // Deletion still lives here, which is why the sheet had nothing left to do.
-  await expect(page.getByRole("button", { name: "מחיקת רשומה" })).toBeVisible();
+  await expect(page.getByLabel(/^קילומטראז׳/)).toHaveValue("169994");
+  // The original direct editor keeps its own deletion action too.
+  await expect(page.getByTestId("fillup-delete")).toBeVisible();
 });
 
 /* ------------------------------------------------------------------ *
@@ -127,20 +134,29 @@ test("§16.15.10 dragging the gauge sets a level and leaves the page scrollable"
 
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("20");
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await openFillupMore(page);
 
   const gauge = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
   await expect(gauge).toBeVisible();
-
+  // More expands below the fold. Center the real horizontal range before raw
+  // pointer input so its target is not behind the fixed Save footer.
+  await gauge.evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
   const box = (await gauge.boundingBox())!;
-  // Three quarters of the way DOWN the track is a quarter of a tank.
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.75);
+  expect(await gauge.evaluate(element => {
+    const box = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.x + box.width * .25, box.y + box.height / 2);
+    return hit === element || !!hit && element.contains(hit);
+  })).toBe(true);
+  // The v2 range is horizontal and physically LTR: a quarter from the left
+  // retains the same 25% observation as the previous vertical control.
+  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2);
   await page.mouse.down();
   expect((await gauge.boundingBox())!.y).toBeCloseTo(box.y, 0);
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height * 0.75, { steps: 4 });
+  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2, { steps: 4 });
   await page.mouse.up();
 
-  await expect(gauge).toHaveAttribute("aria-valuenow", "25");
+  await expect(gauge).toHaveValue("0.25");
+  await expect(gauge).toHaveAttribute("aria-valuetext", "25%");
 
   // Nothing must be left holding the pointer once the finger lifts.
   expect(
@@ -150,39 +166,36 @@ test("§16.15.10 dragging the gauge sets a level and leaves the page scrollable"
     ),
   ).toBe(false);
 
-  // `touch-action: none` is scoped to the gauge itself, so panning anywhere
-  // else on the form was never disabled and needs no restoring.
-  expect(await gauge.evaluate((element) => getComputedStyle(element).touchAction)).toBe(
-    "none",
-  );
-  const scroller = page.locator("main div.overflow-y-auto").first();
+  // The native range must not leave the surrounding form locked.
+  const scroller = page.getByTestId("fillup-form");
   expect(
     await scroller.evaluate((element) => getComputedStyle(element).touchAction),
   ).not.toBe("none");
-  expect(await scroller.evaluate((element) => getComputedStyle(element).overflowY)).toBe(
-    "auto",
-  );
 
   // And the body scroll lock the sheets use is not engaged: this is an inline
   // expansion, not a modal.
   expect(await page.evaluate(() => document.body.style.overflow)).not.toBe("hidden");
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await page.mouse.move(12, 400);
+  await page.mouse.wheel(0, scrollBefore > 50 ? -300 : 300);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).not.toBe(scrollBefore);
 });
 
 test("§16.15.9 the gauge is operable from the keyboard", async ({ page }) => {
   await freshVehicle(page);
   await page.goto("/fillup/new");
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await openFillupMore(page);
 
   const gauge = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
   await gauge.focus();
   await gauge.press("Home");
-  await expect(gauge).toHaveAttribute("aria-valuenow", "0");
+  await expect(gauge).toHaveValue("0");
   await gauge.press("ArrowUp");
-  await expect(gauge).toHaveAttribute("aria-valuenow", "5");
+  await expect(gauge).toHaveValue("0.05");
   await gauge.press("PageUp");
-  await expect(gauge).toHaveAttribute("aria-valuenow", "25");
+  await expect(gauge).toHaveValue("0.25");
   await gauge.press("End");
-  await expect(gauge).toHaveAttribute("aria-valuenow", "100");
+  await expect(gauge).toHaveValue("1");
 });
 
 test("§16.15.1 a before level plus a partial fill produces the after level", async ({
@@ -199,22 +212,22 @@ test("§16.15.1 a before level plus a partial fill produces the after level", as
   await page.getByLabel("ליטרים", { exact: true }).fill("20");
   // No regulated price is seeded, so the price is typed the way a user would.
   await page.getByLabel("מחיר לליטר").fill("7");
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
+  await openFillupMore(page);
 
   const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
   await before.focus();
   await before.press("Home");
   await before.press("PageUp"); // 0 → 20%
   await before.press("ArrowUp"); // 20% → 25%
-  await expect(before).toHaveAttribute("aria-valuenow", "25");
+  await expect(before).toHaveValue("0.25");
 
-  // 10 L before + 20 L added = 30 L of 40 = 75%, on the left gauge and echoed
-  // in the collapsed row's summary.
-  await expect(page.getByText("כ־75%", { exact: true })).toBeVisible();
-  await expect(page.getByText("לפני כ־25% · אחרי כ־75%")).toBeVisible();
+  // 10 L before + 20 L added = 30 L of 40 = 75%. Disclosure never supplies
+  // a new reading or changes the source of this derived result.
+  await openFillupTankAdvanced(page);
+  await expect(page.getByRole("meter", { name: "מצב המיכל אחרי התדלוק" })).toHaveAttribute("aria-valuenow", "75");
 
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
+  await finishFillupSave(page);
 
   const records = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
   const data = records[0].data as Record<string, number | string>;
@@ -236,14 +249,14 @@ test("§16.15.3 confirming a full tank derives the pre-fill level from the litre
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("30");
   await page.getByLabel("מחיר לליטר").fill("7");
-  if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
-  await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+  await setFillupEndState(page, "full");
 
   // 40 L − 30 L ⇒ about a quarter was left, shown as an estimate.
-  await expect(page.getByText("משוער לפי הכמות")).toBeVisible();
+  await openFillupMore(page);
+  await expect(page.getByText(/משוער לפי הכמות/)).toBeVisible();
 
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
+  await finishFillupSave(page);
 
   const records = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
   const data = records[0].data as Record<string, unknown>;
@@ -259,50 +272,48 @@ test("§16.15.3 confirming a full tank derives the pre-fill level from the litre
  * Home
  * ------------------------------------------------------------------ */
 
-test("Home carries the tank card alongside the two summary tiles", async ({ page }) => {
+test("a new Home has one starting block, honest unknown metrics and a direct gauge action", async ({ page }) => {
   await freshVehicle(page);
   await page.goto("/");
-
-  await expect(page.getByText("המיכל שלי")).toBeVisible({ timeout: 20_000 });
-  // The month-spend and fuel-price tiles keep their place above it.
-  await expect(page.locator(".tm-statpair").getByText("הוצאות החודש",{exact:true})).toBeVisible();
-  await expect(page.getByText("מחיר דלק נוכחי")).toBeVisible();
-  // The full-tank range strip is gone: the tank card carries the range that
-  // matters, which is the one to the refuelling threshold.
-  await expect(page.getByText("טווח נסיעה משוער במיכל מלא")).toHaveCount(0);
-
-  // Learned usage stays visible; the optional tank opens only on request.
-  await expect(page.getByLabel("מה למדנו מהשימוש שלך")).toBeVisible();
-  await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeHidden();
-  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
-  await expect(page.getByTestId("current-tank-level")).toHaveText("לא ידוע");
-  await expect(page.getByText("כמה דלק נשאר?")).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "עדכון מד הדלק" })).toBeVisible();
+  await expect(page.getByText("מתחילים מהתדלוק הבא", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("home-km-day")).toContainText("—");
+  await expect(page.getByTestId("home-fuel-month")).toContainText("—");
+  await expect(page.getByTestId("home-fuel-price")).toContainText("—");
+  await expect(page.getByText("טווח נסיעה משוער בתדלוק עד הסוף")).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "עדכון המחוון", exact: true }).click();
+  await expect(page.getByTestId("tank-sheet")).toBeVisible();
+  await expect(page.getByRole("slider", { name: "כמה דלק יש עכשיו במיכל" })).toHaveAttribute("aria-valuetext", "עדיין לא סומן");
+  await expect(page.getByTestId("tank-save-gauge")).toBeDisabled();
 });
 
-test("an odometer update is a reading, not a fill-up", async ({ page }) => {
+test("an odometer update is a reading, not a fill-up", async ({ page }, testInfo) => {
   const { uid, vehicleId } = await freshVehicle(page);
 
   await page.goto("/");
-  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
   // A gauge reading first, so the card has something to show and offers the
   // odometer action; the point of the test is that the odometer update is a
   // reading and not a fill-up.
-  await page.getByRole("button", { name: "עדכון מד הדלק" }).click();
+  await page.getByRole("button", { name: "עדכון המחוון", exact: true }).click();
   const gauge = page.getByRole("slider", { name: "כמה דלק יש עכשיו במיכל" });
   await gauge.focus();
   await gauge.press("Home");
   await gauge.press("PageUp");
-  await page.getByRole("button", { name: "שמירה" }).click();
-  await expect(page.getByText("מצב המיכל נשמר — התחזית תשתפר")).toBeVisible({
+  await page.getByTestId("tank-save-gauge").click();
+  await expect(page.getByText("עדכון המחוון נשמר במכשיר")).toBeVisible({
     timeout: 20_000,
   });
 
-  await page.getByRole("button", { name: "עדכון קילומטראז׳" }).click();
+  await page.getByTestId("tank-hero").click();
+  await page.getByTestId("tank-open-odometer").click();
   await page.getByLabel("קילומטראז׳ נוכחי").fill("123456");
-  await page.getByRole("button", { name: "שמירה" }).click();
+  await testInfo.attach("tank-journal-before-odometer-save", {
+    body: Buffer.from(JSON.stringify(await journalOperations(page, uid), null, 2)),
+    contentType: "application/json",
+  });
+  await page.getByTestId("tank-odometer-sheet").getByRole("button", { name: "שמירה", exact: true }).click();
 
-  await expect(page.getByText("הקילומטראז׳ עודכן")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("עדכון הקילומטראז׳ נשמר במכשיר")).toBeVisible({ timeout: 20_000 });
 
   const observations = await waitForDocuments(
     `users/${uid}/vehicles/${vehicleId}/observations`,
@@ -317,6 +328,10 @@ test("an odometer update is a reading, not a fill-up", async ({ page }) => {
   // No spending and no litres were invented.
   const fillups = await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`);
   expect(fillups).toHaveLength(0);
+  await testInfo.attach("tank-journal-after-server-readings", {
+    body: Buffer.from(JSON.stringify(await journalOperations(page, uid), null, 2)),
+    contentType: "application/json",
+  });
 });
 
 /* ------------------------------------------------------------------ *
@@ -382,20 +397,19 @@ test("unknown endpoint preserves before evidence through server read and reopeni
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("12");
   await page.getByLabel("מחיר לליטר").fill("7");
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-  await page.getByRole("button", { name: "לא יודע", exact: true }).click();
+  await setFillupEndState(page, "unknown");
   const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
   await before.press("Home");
   await before.press("PageUp");
   await before.press("ArrowUp");
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
+  await finishFillupSave(page);
   const [record] = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
   expect(record.data).toMatchObject({ fillEndState: "unknown", preFillLevel: 0.25, preFillLevelSource: "direct-gauge", postFillLevel: null });
   await page.goto(`/fillup/${record.id}`);
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-  await expect(page.getByRole("button", { name: "לא יודע", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveAttribute("aria-valuenow", "25");
+  await openFillupTankAdvanced(page);
+  await expect(page.getByTestId("fillup-end-unknown")).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveValue("0.25");
 });
 
 test("after-only entry without capacity survives editor close and server reload", async ({ page }) => {
@@ -404,24 +418,26 @@ test("after-only entry without capacity survives editor close and server reload"
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("12");
   await page.getByLabel("מחיר לליטר").fill("7");
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-  await page.getByRole("button", { name: "הזנת המצב אחרי", exact: true }).click();
+  await openFillupTankAdvanced(page);
+  await page.getByRole("button", { name: "לא נראה נכון?", exact: true }).click();
   const after = page.getByRole("slider", { name: "מצב המיכל אחרי התדלוק" });
   await after.press("Home");
   await after.press("PageUp");
   await after.press("PageUp");
   await after.press("PageUp");
-  await expect(after).toHaveAttribute("aria-valuenow", "60");
-  await page.getByRole("button", { name: "סגירה", exact: true }).last().click();
+  await expect(after).toHaveValue("0.6");
+  await page.getByRole("button", { name: "סיום תיקון המד", exact: true }).click();
   await page.getByRole("button", { name: "תיקון המד אחרי", exact: true }).click();
-  await page.getByRole("button", { name: "סגירה", exact: true }).last().click();
+  await page.getByRole("button", { name: "סיום תיקון המד", exact: true }).click();
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/);
+  await finishFillupSave(page);
   const [record] = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 1);
   expect(record.data).toMatchObject({ fillEndState: "partial", preFillLevel: null, postFillLevelSource: "user-correction" });
   expect(record.data.postFillLevel).toBeCloseTo(0.6, 10);
   await page.goto(`/fillup/${record.id}`);
-  await page.getByRole("button", { name: "פתיחת מצב המיכל" }).click();
-  await expect(page.getByText("לפני", { exact: true })).toBeVisible();
-  await expect(page.getByText("כ־60%", { exact: true })).toBeVisible();
+  await openFillupTankAdvanced(page);
+  await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveAttribute("aria-valuetext", "עדיין לא סומן");
+  const meter = page.getByRole("meter", { name: "מצב המיכל אחרי התדלוק" });
+  await expect(meter).toHaveAttribute("aria-valuetext", "60%");
+  expect(Number(await meter.getAttribute("aria-valuenow"))).toBeCloseTo(60, 10);
 });
