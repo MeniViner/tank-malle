@@ -28,8 +28,8 @@ test('refunds reduce costs and unknown amounts remain explicit beyond the first 
   await Promise.all(Array.from({length:55},(_,i)=>setDocument(`${base}/vehicleExpenses/e${i}`,{schemaVersion:1,version:1,day:'2026-10-01',title:`הוצאה ${i}`,category:'other',costAgorot:i===0?null:10000,notes:''})));
   await page.goto('/vehicle');await startCareEditor(page,'expense');await setCareTitle(page,'החזר');await page.getByLabel('עלות כוללת',{exact:true}).fill('40');await setExpenseKind(page,'החזר / זיכוי');await page.getByRole('button',{name:'שמירת הוצאה לרכב'}).click();
   await openCareHistory(page);await expect(page.getByRole('button',{name:/הצגת רשומות נוספות/})).toBeVisible();
-  await openCareCosts(page);await expect(page.getByTestId('running-total')).toContainText('5,360');await expect(page.getByText(/1 עלות חסרה/)).toBeVisible();
-  await page.context().setOffline(true);await expect(page.getByText(/הנתונים עדיין חלקיים/)).toBeVisible();await page.context().setOffline(false);
+  await openCareCosts(page);await expect(page.getByTestId('running-total')).toContainText('5,360');await expect(page.getByRole('region',{name:'עלויות הרכב',exact:true}).getByText(/1 עלות חסרה/)).toBeVisible();
+  await page.context().setOffline(true);await expect(page.getByRole('region',{name:'עלויות הרכב',exact:true}).getByText(/הנתונים עדיין חלקיים/)).toBeVisible();await page.context().setOffline(false);
 });
 test('device A offline care write cannot resurrect a vehicle deleted on device B',async({page,browser,baseURL})=>{
   const scope=await signedInWithData(page,{fillups:[]});const base=`users/${scope.uid}/vehicles/${scope.vehicleId}`;

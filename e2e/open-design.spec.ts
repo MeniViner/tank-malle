@@ -56,7 +56,7 @@ test('the same advance window drives Home, the vehicle badge and the notificatio
 
 test('a remote active-vehicle switch closes an old snooze sheet and scopes subsequent updates',async({page})=>{
   const {base,uid}=await setup(page);await setDocument(base+'/maintenancePlans/p',plan('תזכורת לרכב הראשון'));await seedVehicle(uid,'second',{make:'רכב',model:'שני'});await setDocument(`users/${uid}/vehicles/second/maintenancePlans/p`,plan('תזכורת לרכב השני'));await page.goto('/notifications');await page.getByRole('button',{name:'דחיית הופעה',exact:true}).click();await expect(page.getByRole('dialog')).toBeVisible();await setActiveVehicle(uid,'second');await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'תזכורת לרכב השני',exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'סימון כנקרא',exact:true}).click();await expect.poll(async()=>listDocuments(`users/${uid}/vehicles/second/notificationStates`)).not.toHaveLength(0);expect(await listDocuments(base+'/notificationStates')).toHaveLength(0);
+  await page.getByRole('button',{name:/^סימון כנקרא \(\d+\)$/}).click();await expect.poll(async()=>listDocuments(`users/${uid}/vehicles/second/notificationStates`)).not.toHaveLength(0);expect(await listDocuments(base+'/notificationStates')).toHaveLength(0);
 });
 
 test('notification Undo survives navigation in the same vehicle but cannot act after a vehicle switch',async({page})=>{
