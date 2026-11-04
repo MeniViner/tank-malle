@@ -6,8 +6,8 @@ import { useStats } from "../hooks/useStats";
 import { useTankEstimate, type TankEstimateHandle } from "../hooks/useTankEstimate";
 import { useVehicleEnrichment } from "../hooks/useVehicleEnrichment";
 import { useSpotlight } from "../hooks/useSpotlight";
-import { int, vehicleLabel } from "../lib/format";
-import { averageMonthlyFuel } from "../lib/home/presentation";
+import { useTco } from "../hooks/useTco";
+import { dayMonthShort, int, vehicleLabel } from "../lib/format";
 import type { SpotlightItem } from "../lib/home/spotlight";
 import type { Stats } from "../lib/stats";
 import type { LedgerRow } from "../lib/vehicle/derived";
@@ -26,6 +26,7 @@ import { HomeFuelPrice } from "../components/home/HomeFuelPrice";
 import { SegmentSheet } from "../components/home/SegmentSheet";
 import { TankHero, type TankSheetEntry } from "../components/tank/TankHero";
 import { TankSheets } from "../components/tank/TankSheets";
+import { TcoBlock } from "../components/TcoBlock";
 import "../home-design.css";
 
 /** One model/enrichment lifetime, including a vehicle with no fill-ups yet. */
@@ -56,8 +57,9 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
   const hasFillups = data.fillups.length > 0;
   const incompleteHistory = !!data.fillupsError || data.malformedFillups.length > 0;
   const recent = vehicle.ledger.filter(row => row.day <= vehicle.today).slice(0, 3);
-  const monthly = averageMonthlyFuel(vehicle.ledger, vehicle.today);
   const kmPerDay = tank.estimate.mobility.kmPerDay;
+  const tco = useTco(kmPerDay);
+  const monthly = hasFillups ? tco.parts[0].value : null;
   const segmentValues = new Map(stats.segments.map(segment => [segment.endId, segment.kmPerLiter]));
   const flagged = new Set(stats.anomalies.map(anomaly => anomaly.fillupId));
   const pendingPaths = new Set(data.outbox.filter(operation => operation.status === "pending").map(operation => operation.path));
@@ -110,6 +112,7 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
             : "התדלוקים נשמרו. למדידת צריכה צריך שני תדלוקים עד הסוף."}</p>
         </div>}
       </section> : null}
+      <TcoBlock tco={tco} />
       <div className="home-trio" data-testid="home-trio">
         <button type="button" className="home-trio-cell" data-testid="home-km-day" onClick={() => navigate("/vehicle")}>
           <span className="home-trio-label">נוסע ביום</span>
@@ -117,9 +120,9 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
           <span className="home-trio-caption">{kmPerDay !== null && kmPerDay > 0 ? kmPerDay < .5 ? "פחות מקילומטר ביום" : <>כ־<NumRun>{int(kmPerDay * 30)}</NumRun> בחודש</> : "אחרי כמה רישומים"}</span>
         </button>
         <button type="button" className="home-trio-cell" data-testid="home-fuel-month" onClick={() => navigate("/stats?tab=spend")}>
-          <span className="home-trio-label">דלק לחודש</span>
-          {monthly !== null && monthly >= .5 ? <Money block value={monthly} className="home-trio-value" /> : <NumRun block className="home-trio-value">—</NumRun>}
-          <span className="home-trio-caption">{monthly === null ? "אין ממוצע מלא" : monthly === 0 ? "לא נרשמה הוצאה" : monthly < .5 ? "פחות משקל לחודש" : incompleteHistory ? "לפי הרישומים הזמינים" : "בממוצע"}</span>
+          <span className="home-trio-label">דלק {dayMonthShort(vehicle.now).replace(/^\d+\s+/, '')}</span>
+          {tco.fuelThisMonth !== null ? <Money block value={tco.fuelThisMonth} className="home-trio-value" /> : <NumRun block className="home-trio-value">—</NumRun>}
+          <span className="home-trio-caption">{monthly === null ? "אין ממוצע מלא" : <>בד״כ <Money value={monthly} /></>}</span>
         </button>
         <HomeFuelPrice vehicle={active} now={vehicle.now} open={priceOpen} onOpen={() => setPriceOpen(true)} onClose={() => setPriceOpen(false)} />
       </div>

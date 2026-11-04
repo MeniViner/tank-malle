@@ -101,7 +101,25 @@ export function VehicleDocuments() {
   </section>;
 }
 
-function VehicleDocumentSheet({ opening, onClose, captureParentScope }: { opening: Opening; onClose: () => void; captureParentScope: () => () => boolean }) {
+/** Reuse the same captured document intent when a cost breakdown opens an editor. */
+export function VehicleDocumentDialog({ docKey, onClose, returnFocus, captureParentScope }: {
+  docKey: VehicleDocKey; onClose: () => void; returnFocus?: () => HTMLElement | null; captureParentScope: () => () => boolean;
+}) {
+  const { activeVehicle, captureVehicleDocument } = useData();
+  const { scope, today } = useVehicleData();
+  const [opening] = useState<Opening | null>(() => {
+    if (!activeVehicle) return null;
+    const view = readVehicleDocument(activeVehicle.docs, docKey, today);
+    return { scope, vehicleId: activeVehicle.id, key: docKey, view, isCurrent: captureParentScope(),
+      expected: view.state === 'unavailable' ? null : captureVehicleDocument(activeVehicle, docKey) };
+  });
+  if (!opening || opening.scope !== scope || opening.vehicleId !== activeVehicle?.id || !opening.isCurrent()) return null;
+  return <VehicleDocumentSheet opening={opening} captureParentScope={captureParentScope} onClose={onClose} returnFocus={returnFocus} />;
+}
+
+function VehicleDocumentSheet({ opening, onClose, captureParentScope, returnFocus }: {
+  opening: Opening; onClose: () => void; captureParentScope: () => () => boolean; returnFocus?: () => HTMLElement | null;
+}) {
   const { updateVehicleDocument } = useData();
   const { showToast } = useToast();
   const captureScope = useAccountScope(opening.scope);
@@ -161,7 +179,7 @@ function VehicleDocumentSheet({ opening, onClose, captureParentScope }: { openin
   }
 
   return <Sheet open title={VEHICLE_DOC_TITLES[opening.key]} atmosphereRoute="/vehicle" onClose={onClose}
-    returnFocus={() => opening.isCurrent() ? document.querySelector<HTMLElement>(`[data-testid="vehicle-doc-${opening.key}"]`) : null}>
+    returnFocus={() => opening.isCurrent() ? returnFocus ? returnFocus() : document.querySelector<HTMLElement>(`[data-testid="vehicle-doc-${opening.key}"]`) : null}>
     {opening.view.state === 'unavailable' ? <div className="tm-vehicle-form"><p role="status" className="tm-vehicle-warning"><WarningIcon size={20}/>הפרטים השמורים אינם בפורמט שניתן לערוך כאן. הם נשמרו כפי שהם ולא הוחלפו בפרטים ריקים.</p><p className="tm-vehicle-note">אפשר להוריד גיבוי של הנתונים ממסך החשבון לפני בירור או תיקון.</p><Button full variant="secondary" onClick={onClose}>סגירה</Button></div>
       : !opening.expected ? <div className="tm-vehicle-form"><p role="status" className="tm-vehicle-warning"><WarningIcon size={20}/>הפרטים עדיין לא אומתו לשמירה. המתינו לסנכרון ואז סגרו ופתחו את המסמך שוב.</p><Button full variant="secondary" onClick={onClose}>סגירה</Button></div>
         : <form ref={form} className="tm-vehicle-form tm-vehicle-document-form" data-testid="vehicle-doc-form" data-doc-key={opening.key} noValidate onSubmit={event => { event.preventDefault(); void save(); }}>
@@ -170,9 +188,9 @@ function VehicleDocumentSheet({ opening, onClose, captureParentScope }: { openin
             {none ? <p className="tm-vehicle-note">לא יוצגו תזכורות לביטוח מקיף או צד ג׳. בחירה זו מנקה את פרטי החברה, התוקף והעלות שהוזנו למסמך הזה.</p> : <>
               {insurance ? <div className="tm-vehicle-field-group"><Field label="חברת ביטוח" data-doc-insurer data-testid="vehicle-doc-insurer" dir="auto" value={insurer} error={insurerError ? <NumericText>{insurerError}</NumericText> : null} maxLength={VEHICLE_DOC_INSURER_MAX} placeholder="בחירת חברה או כתיבה חופשית" onChange={event => { setInsurer(event.target.value); touch('insurer'); setInsurerError(''); }}/><div className="tm-vehicle-insurers" aria-label="חברות ביטוח נפוצות">{INSURERS.map(name => <button key={name} type="button" className="tm-vehicle-chip" aria-pressed={insurer === name} onClick={() => { setInsurer(name); touch('insurer'); setInsurerError(''); }}><NumericText>{name}</NumericText></button>)}</div></div> : null}
               <CivilDateField ref={dateInput} id="vehicle-doc-due" label={opening.key === 'test' ? 'תוקף הטסט' : 'בתוקף עד'} draftText={dueDraft} error={dateError} onDraftTextChange={text => { setDueDraft(text); touch('due'); setDateError(''); }}/>
-              {insurance ? <Field label="עלות שנתית (רשות)" suffix="₪" data-doc-cost data-testid="vehicle-doc-cost" inputMode="decimal" dir="ltr" value={costDraft} error={costError ? <NumericText>{costError}</NumericText> : null} placeholder="0" onChange={event => { setCostDraft(event.target.value); touch('cost'); setCostError(''); }}/> : null}
+              <Field label={insurance ? 'עלות שנתית (רשות)' : 'אגרת רישוי + טסט, בשנה (רשות)'} suffix="₪" data-doc-cost data-testid="vehicle-doc-cost" inputMode="decimal" dir="ltr" value={costDraft} error={costError ? <NumericText>{costError}</NumericText> : null} placeholder="0" onChange={event => { setCostDraft(event.target.value); touch('cost'); setCostError(''); }}/>
             </>}
-            {insurance ? <p className="tm-vehicle-note">העלות נשמרת כאן כפרט של הביטוח. לרישום הוצאה ביומן יש להוסיף אותה בנפרד.</p> : null}
+            {!none ? <p className="tm-vehicle-note">נכנס לחישוב ״כמה הרכב עולה לך בחודש״.</p> : null}
             <VehicleInfo title="על תזכורות הרישוי"><p>נזכיר באפליקציה חודש לפני המועד ושבוע לפניו. בחירה ב״אין״ לביטוח מקיף או צד ג׳ מבטלת את התזכורות למסמך הזה.</p></VehicleInfo>
           </fieldset>
           {error ? <p ref={errorNode} tabIndex={-1} role="alert" className="tm-vehicle-error" data-testid="vehicle-doc-error"><NumericText>{error}</NumericText></p> : null}

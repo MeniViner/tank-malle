@@ -2,6 +2,9 @@ import { useId, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Area, AreaChart, Bar, BarChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { useVehicleData } from "../../context/VehicleDataContext";
+import { useTankEstimate } from "../../hooks/useTankEstimate";
+import { useTco } from "../../hooks/useTco";
+import { TcoBlock } from "../TcoBlock";
 import { int, num } from "../../lib/format";
 import { bucketSpend, GROUPING_LABELS, inRange, summariseSpend, type DateRange } from "../../lib/periods";
 import type { Stats } from "../../lib/stats";
@@ -20,6 +23,8 @@ export function SpendingInsights({ stats, consumption, range, from, to, historyR
   stats: Stats; consumption: ConsumptionSummary; range: DateRange; from: string; to: string; historyReady: boolean;
 }) {
   const vehicle = useVehicleData();
+  const tank = useTankEstimate();
+  const tco = useTco(tank.estimate.mobility.kmPerDay);
   const summary = useMemo(() => spendingSummary(vehicle.ledger, from, to), [vehicle.ledger, from, to]);
   const ownership = useMemo(() => periodSummary(vehicle.ledger, vehicle.mileage, from, to, vehicle.incomplete), [vehicle.ledger, vehicle.mileage, from, to, vehicle.incomplete]);
   const patternId = useId().replace(/:/g, "");
@@ -31,6 +36,7 @@ export function SpendingInsights({ stats, consumption, range, from, to, historyR
     { kind: "expense" as const, label: "הוצאות אחרות", amount: summary.expenseAmount, count: summary.expenseCount },
   ];
   return <div className="insights-stack" data-testid="insights-panel-spend">
+    <TcoBlock tco={tco} compact />
     <InsightCard label={<>הוצאות הרכב · <NumericText>{range.compactLabel}</NumericText></>}
       title={<>תועדו ברכב <span className="insights-total" data-testid="running-total"><LedgerAmount value={amount} /></span> נטו</>}>
       <p className="insights-note" data-testid="insights-spend-coverage" role="status">

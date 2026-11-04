@@ -375,8 +375,8 @@ service cloud.firestore {
       // retained by exact presence/type/value comparison, without a fallback
       // that re-evaluates the valid leaves of a maximum-size legacy vehicle.
       return (!changed.hasAny(['due']) || vehicleDocumentDay(after.get('due', null)))
-        && (!insurance || ((!changed.hasAny(['insurer']) || stringOrNull(after.get('insurer', null), 160))
-          && (!changed.hasAny(['cost']) || vehicleDocumentCost(after.get('cost', null)))))
+        && (!changed.hasAny(['cost']) || vehicleDocumentCost(after.get('cost', null)))
+        && (!insurance || !changed.hasAny(['insurer']) || stringOrNull(after.get('insurer', null), 160))
         && (!coverage || !changed.hasAny(['type']) || vehicleDocumentCoverage(after.get('type', null)));
     }
     function validVehicleDocumentRow(before, after, insurance, coverage) {
@@ -389,17 +389,19 @@ service cloud.firestore {
         && (!changed.hasAny(['mandatory']) || validVehicleDocumentRow(previous.get('mandatory', null), after.get('mandatory', null), true, false))
         && (!changed.hasAny(['coverage']) || validVehicleDocumentRow(previous.get('coverage', null), after.get('coverage', null), true, true));
     }
-    function validVehicleDocuments(before, after) {
+    function validVehicleWrite(before, after) {
       let changed = after.diff(before).affectedKeys().hasAny(['docs']);
       let next = after.get('docs', null);
       // When docs do not change, retain the original irreversible deletion
       // latch. Changing docs requires two writable images, which also implies
       // that latch and avoids evaluating it a second time.
-      return !changed ? (!before.get('deletionPending', false) || after.get('deletionPending', false) == true) : (
+      // Keep the common vehicle and document checks in one call frame: the
+      // optional test-cost leaf must also fit the 1,000-expression limit.
+      return validVehicle(after) && (!changed ? (!before.get('deletionPending', false) || after.get('deletionPending', false) == true) : (
         before.get('deletionPending', false) == false
         && after.get('deletionPending', false) == false
         && (next == null || (next is map && validVehicleDocumentMap(before.get('docs', null), next)))
-      );
+      ));
     }
 
     // Pass each optional value once, as validFillup already does. Repeating
@@ -454,10 +456,6 @@ service cloud.firestore {
         && stringOrNull(data.get('nickname', null), 60)
         && vehicleTankPrefsOrNull(data.get('tankPrefs', null));
     }
-    function validVehicleWrite(before, after) {
-      return validVehicle(after) && validVehicleDocuments(before, after);
-    }
-
     /**
      * Tank preferences.
      *

@@ -12,11 +12,11 @@ export const VEHICLE_COVERAGE_LABELS: Record<VehicleCoverage, string> = {
 export const VEHICLE_DOC_INSURER_MAX = 160;
 export const VEHICLE_DOC_COST_MAX = 1_000_000;
 export const VEHICLE_DOC_FIELDS: Record<VehicleDocKey, readonly string[]> = {
-  test: ['due'], mandatory: ['insurer', 'due', 'cost'], coverage: ['type', 'insurer', 'due', 'cost'],
+  test: ['due', 'cost'], mandatory: ['insurer', 'due', 'cost'], coverage: ['type', 'insurer', 'due', 'cost'],
 };
 
 export interface VehicleDocValues {
-  test: { due?: string | null };
+  test: { due?: string | null; cost?: number | null };
   mandatory: { insurer?: string | null; due?: string | null; cost?: number | null };
   coverage: { type?: VehicleCoverage | null; insurer?: string | null; due?: string | null; cost?: number | null };
 }
