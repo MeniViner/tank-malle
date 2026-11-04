@@ -14,4 +14,3 @@ export const restorablePreferences = (raw: Record<string, unknown>): Partial<Use
   if (typeof raw.customAccent === "string" && /^#[0-9a-f]{6}$/i.test(raw.customAccent)) out.customAccent = raw.customAccent;
   return out;
 };
-
