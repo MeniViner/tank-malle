@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { signedInWithData } from "./helpers/app";
 import { getDocument } from "./helpers/emulator";
+import { outboxCount } from './helpers/pwa';
 
 test("display choices persist through the new settings sheets and convert consumption", async ({ page }) => {
   const { uid } = await signedInWithData(page, { fillups: [
@@ -49,7 +50,7 @@ test("legacy settings reaches Account and its data sheets without narrow-screen 
 
 test("design surfaces retain real fixture values and fit mobile layouts", async ({ page }, testInfo) => {
   const dates = ["2026-08-01", "2026-08-15", "2026-08-29", "2026-09-12", "2026-09-26", "2026-10-04", "2026-10-15"];
-  await signedInWithData(page, { vehicle: { make: "מבחן", model: "עיצוב", tankLiters: 50, tankLitersSource: "user", declaredKmPerLiter: 14 }, regulatedPrice: 7.77,
+  const { uid } = await signedInWithData(page, { vehicle: { make: "מבחן", model: "עיצוב", tankLiters: 50, tankLitersSource: "user", declaredKmPerLiter: 14 }, regulatedPrice: 7.77,
     fillups: dates.map((date, i) => ({ id: `design-${i}`, date: new Date(`${date}T09:00:00Z`), odometer: 100000 + i * 450, liters: [40, 34, 45, 39, 35, 38, 41][i], pricePerLiter: 7.77, stationName: i === 5 ? "סונול שפיה" : "תחנת בדיקה" })),
   });
   async function capture(name: string) {
@@ -61,6 +62,8 @@ test("design surfaces retain real fixture values and fit mobile layouts", async 
     await page.getByRole("button", { name: /^מראה/ }).click();
     await page.getByRole("radio", { name: label, exact: true }).click();
     await page.getByRole("dialog").getByRole("button", { name: "סגירה", exact: true }).click();
+    await expect.poll(async () => (await getDocument(`users/${uid}`))?.settings).toMatchObject({ theme: mode });
+    await expect.poll(() => outboxCount(page, uid)).toBe(0);
     await page.goto("/");
     await expect(page.getByTestId("consumption-summary").getByText("11.0", { exact: true }).first()).toBeVisible();
     await expect(page.getByTestId("consumption-summary").getByTestId("consumption-chart").getByRole("img")).toBeVisible();
@@ -72,6 +75,8 @@ test("design surfaces retain real fixture values and fit mobile layouts", async 
   await page.getByRole("button", { name: /^מראה/ }).click();
   await page.getByRole("radio", { name: "בהיר", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "סגירה", exact: true }).click();
+  await expect.poll(async () => (await getDocument(`users/${uid}`))?.settings).toMatchObject({ theme: "light" });
+  await expect.poll(() => outboxCount(page, uid)).toBe(0);
   await capture("settings");
   for (const [route, title] of [["/history", "יומן"], ["/settings/profile", "חשבון"], ["/settings/vehicles", "הרכבים שלי"], ["/settings/import", "ייבוא נתונים"], ["/settings/unsynced", "סנכרון"], ["/feedback", "משוב"]]) {
     await page.goto(route);

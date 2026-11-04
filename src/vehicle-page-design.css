@@ -83,6 +83,8 @@
 .tm-vehicle-manager .tm-page{gap:18px;padding-block-start:18px}
 .tm-vehicle-edit .tm-page{gap:16px;padding-block-start:16px}
 .tm-vehicle-edit .tm-plate-xl{height:64px}
+/* Leave room for Linux font bounds inside the compact plate's 58px interior. */
+.tm-vehicle-edit .tm-plate-number{font-size:clamp(30px,11.2vw,36px)}
 .tm-vehicle-edit .tm-vehicle-form,.tm-vehicle-edit .tm-vehicle-form fieldset{gap:16px}
 .tm-vehicle-edit .tm-vehicle-field-pair{gap:12px;align-items:start}
 .tm-vehicle-edit-tank{display:grid;gap:8px;min-width:0}
