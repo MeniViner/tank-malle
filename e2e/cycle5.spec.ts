@@ -43,7 +43,11 @@ test('device A offline care write cannot resurrect a vehicle deleted on device B
     await second.goto('/settings/vehicles');await second.getByRole('article').getByRole('button',{name:/^מחיקת /}).click();await second.getByRole('alertdialog').getByRole('button',{name:'מחיקת הרכב',exact:true}).click();
     await expect(async()=>expect(await getDocument(base)).toBeNull()).toPass();
     await page.context().setOffline(false);await page.goto('/settings/unsynced');
-    await expect(page.locator('[data-outbox-op]').filter({hasText:'שמירת תחזוקת רכב'})).toBeVisible();
+    const rejected = page.locator('[data-outbox-op]').filter({hasText:'שמירת תחזוקת רכב'});
+    await expect(rejected).toBeVisible();
+    // Await the server decision before tearing down both clients and clearing
+    // the emulator. A merely visible pending intent can still own a transaction.
+    await expect(rejected).toHaveAttribute('data-outbox-status', /^(failed|conflict)$/);
     await expect(async()=>expect(await listDocuments(`${base}/vehicleExpenses`)).toHaveLength(0)).toPass();
     expect(await getDocument(base)).toBeNull();
   } finally {await context.close();await page.context().setOffline(false);}
