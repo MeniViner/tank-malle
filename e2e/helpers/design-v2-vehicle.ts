@@ -119,10 +119,11 @@ export async function vehiclePlateGeometry(plate: Locator, height: number) {
     const box = element.getBoundingClientRect(), text = range.getBoundingClientRect(), style = getComputedStyle(number);
     return { height: box.height, width: box.width, textFits: text.left >= box.left && text.right <= box.right
       && text.top >= box.top && text.bottom <= box.bottom, fontSize: style.fontSize,
-      fontFamily: style.fontFamily, fontWeight: style.fontWeight, textAlign: style.textAlign };
+      fontFamily: style.fontFamily, fontWeight: style.fontWeight, textAlign: style.textAlign,
+      plateBounds: box.toJSON(), textBounds: text.toJSON() };
   });
   expect(sample.height).toBeCloseTo(height, 2);
-  expect(sample.textFits).toBe(true);
+  expect(sample.textFits, JSON.stringify(sample)).toBe(true);
   return sample;
 }
 

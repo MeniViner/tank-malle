@@ -88,7 +88,7 @@ test('sheet choices support keyboard navigation and feedback preserves the chose
   await page.goto('/feedback');
   await page.getByRole('radio',{name:'רעיון',exact:true}).press('ArrowLeft');
   await expect(page.getByRole('radio',{name:'תקלה',exact:true})).toBeChecked();
-  await expect(page.getByPlaceholder('מה נשבר, ואיפה בדיוק?')).toBeVisible();
+  await expect(page.getByRole('textbox',{name:'תוכן המשוב',exact:true})).toHaveAttribute('placeholder','מה קרה, ובאיזה מסך?');
 });
 
 test('admin feedback filters and detail sheet show the full message at phone width', async ({page}) => {
