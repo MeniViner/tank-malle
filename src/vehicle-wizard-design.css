@@ -32,8 +32,8 @@
 .wizard-notice .wizard-text-action { display: flex; justify-content: flex-start; padding-inline: 0; color: inherit; }
 .wizard-notice p { margin-top: 4px; }
 .vehicle-wizard .wizard-confirm-plate { height: 60px; min-height: 60px; flex: none; }
-/* Keep the digits inside the compact plate across browser font metrics. */
-.vehicle-wizard .wizard-confirm-plate .tm-plate-number { font-size: clamp(30px, 11.2vw, 40px); }
+/* Linux font bounds need room inside the 54px inner height of this compact plate. */
+.vehicle-wizard .wizard-confirm-plate .tm-plate-number { font-size: clamp(30px, 11.2vw, 34px); }
 .wizard-scroll > .tm-pill { align-self: flex-start; }
 .wizard-readonly { display: grid; margin: 0; border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--line); }
 .wizard-readonly > div { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 58px; padding-block: 12px; border-bottom: 1px solid var(--line); }

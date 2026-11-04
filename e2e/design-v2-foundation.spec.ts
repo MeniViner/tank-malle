@@ -182,7 +182,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
       ["atmosphere-fillup-missing", "/fillup/missing-foundation", "entry", "left", "0.35", "עריכת תדלוק"],
       ["atmosphere-legal", "/legal/terms", "legal", "left", "0.1", "תנאי שימוש"],
       ["atmosphere-import", "/settings/import", "account", "right", "0.16", "ייבוא נתונים"],
-      ["atmosphere-unsynced", "/settings/unsynced", "account", "right", "0.16", "לא סונכרן"],
+      ["atmosphere-unsynced", "/settings/unsynced", "account", "right", "0.16", "סנכרון"],
       ["atmosphere-profile", "/settings/profile", "account", "right", "0.16", "חשבון"],
       ["atmosphere-feedback", "/feedback", "account", "right", "0.16", "משוב"],
       ["atmosphere-notifications", "/notifications", "account", "right", "0.16", "התראות"],

@@ -247,7 +247,7 @@ test("an archived-only import returns through Vehicle to management without chan
     await setDocument(path, { ...await getDocument(path), archived: true });
   }
   await page.goto("/settings/import");
-  await expect(page.getByText(/בחרו רכב פעיל ואז חזרו לכאן/)).toBeVisible();
+  await expect(page.getByText("בחרו רכב פעיל כדי לשייך אליו את ההיסטוריה.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "לרכב שלי", exact: true }).click();
   await expect(page).toHaveURL(/\/vehicle$/);
   const manage = page.getByRole("link", { name: "ניהול רכבים", exact: true });

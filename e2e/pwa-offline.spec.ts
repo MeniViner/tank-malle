@@ -166,8 +166,8 @@ test("two fill-ups saved across offline restarts are kept through a server rejec
   await context.setOffline(false);
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(2, { timeout: 45_000 });
   await expect(page.locator("[data-outbox-op]")).toHaveCount(2);
-  await expect(page.getByText("30.00", { exact: false }).first()).toBeVisible();
-  await expect(page.getByText("32.00", { exact: false }).first()).toBeVisible();
+  await expect(page.locator('[data-outbox-status="failed"]').getByText("30.0", { exact: true })).toBeVisible();
+  await expect(page.locator('[data-outbox-status="failed"]').getByText("32.0", { exact: true })).toBeVisible();
   expect(await listDocuments(fillups)).toHaveLength(0);
   expect(await outboxCount(page, uid)).toBe(2);
 

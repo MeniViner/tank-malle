@@ -328,7 +328,7 @@ test("a stale edit is refused by the server, kept as a conflict, and never overw
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="conflict"]')).toHaveCount(1, { timeout: 20_000 });
   expect((await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`))[0].data.liters).toBe(42);
-  await expect(page.locator('[data-outbox-op]').getByText("35.00")).toBeVisible();
+  await expect(page.locator('[data-outbox-status="conflict"]').getByText("35.0", { exact: true })).toBeVisible();
 
   // Only an explicit overwrite moves the server, and it does so on the new base.
   await page.getByRole("button", { name: "לדרוס עם הגרסה שלי" }).click();
@@ -400,7 +400,8 @@ test("an import interrupted by a reload settles every journal entry — rows and
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
-  await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
+  await expect(page.locator('h2[role="status"]')).toHaveText("נשמר במכשיר", { timeout: 25_000 });
+  await expect(page.getByText("הייבוא הסתיים", { exact: true })).toHaveCount(0);
   await expect.poll(() => outboxCount(page, uid), { timeout: 15_000 }).toBe(8);
 
   await page.goto("/settings/unsynced");
@@ -455,13 +456,16 @@ test("an import rejected by the server keeps every row with its error, and retri
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
-  // "Done" is shown only once every commit — the batch record's included —
-  // has been answered.
-  await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
+  // Every commit, including the batch record, has answered with rejection.
+  // The result must report incomplete delivery, never successful import.
+  await expect(page.locator('h2[role="status"]')).toHaveText("הייבוא לא הושלם", { timeout: 25_000 });
+  await expect(page.getByText("הייבוא הסתיים", { exact: true })).toHaveCount(0);
 
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(8, { timeout: 25_000 });
-  await expect(page.getByText("permission-denied").first()).toBeVisible();
+  const rejectedRow = page.locator('[data-outbox-status="failed"]').first();
+  await rejectedRow.locator('summary').filter({ hasText: "פרטי הפעולה" }).click();
+  await expect(rejectedRow.getByText("permission-denied")).toBeVisible();
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
   await restoreRules();

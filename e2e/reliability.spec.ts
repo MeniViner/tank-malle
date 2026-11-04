@@ -214,8 +214,10 @@ test("a fill-up the server rejects is kept with its input, and a retry after the
   await expect(page.getByTestId("account-unsynced-count")).toHaveText("1");
   await page.getByTestId("account-unsynced").click();
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1, { timeout: 20_000 });
-  await expect(page.getByText("permission-denied")).toBeVisible();
-  await expect(page.getByText("40.00", { exact: false }).first()).toBeVisible();
+  const rejectedRow = page.locator('[data-outbox-status="failed"]');
+  await rejectedRow.locator('summary').filter({ hasText: "פרטי הפעולה" }).click();
+  await expect(rejectedRow.getByText("permission-denied")).toBeVisible();
+  await expect(rejectedRow.getByText("40.0", { exact: true })).toBeVisible();
 
   // Nothing reached the server, and the rollback did not erase the input.
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
