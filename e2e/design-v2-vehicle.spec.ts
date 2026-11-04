@@ -513,8 +513,18 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
     await visibleManagedFocus(card);
     await captureJournal(page, `vehicle-restored-${suffix}`);
-    await expect(card.getByRole("button", { name: /^בחירה ברכב/ })).toBeEnabled();
-    await card.getByRole("button", { name: /^בחירה ברכב/ }).click();
+    // Restoration can supersede the automatic archive selection. In that
+    // valid server-confirmed case this card is already active, with no select
+    // button; otherwise select it through the same accessible manager action.
+    const restoredSelect = card.getByRole("button", { name: /^בחירה ברכב/ });
+    const restoredActive = card.locator(".tm-vehicle-status[data-active]");
+    await expect(restoredSelect.or(restoredActive)).toBeVisible();
+    if (await restoredSelect.isVisible()) {
+      await expect(restoredSelect).toBeEnabled();
+      await restoredSelect.click();
+    } else {
+      await expect(restoredActive).toHaveText("פעיל");
+    }
     await expect.poll(async () => (await getDocument(`users/${scope.uid}`))?.settings).toMatchObject({ activeVehicleId: targetId });
     await page.goto("/vehicle");
     await vehicleReady(page);
