@@ -1,0 +1,106 @@
+{
+ "format": "tank-maleh-scan-photo-sessions-v1",
+ "transcription": "Read by eye from the full-resolution photographs by one annotator (this work), checked against amount = volume x price where all three are shown. Not independently double-checked.",
+ "sessions": [
+  {
+   "id": "commons:Defective Gas Station Pump Screen",
+   "kind": "pump",
+   "file": "commons-pumps/12.jpg",
+   "sha256": "e05fd70a2663bc65d0afe9d34e79bb31337612af74c752e3ec0aaf70d4c9df6a",
+   "bytes": 1534183,
+   "source": "https://commons.wikimedia.org/wiki/File:Defective_Gas_Station_Pump_Screen.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Defective_Gas_Station_Pump_Screen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Lionel Allorge",
+   "country": "FR",
+   "labels": "French (Prix, Volume, Litres, Prix par litre)",
+   "displayed": {
+    "total": "58,57",
+    "liters": "52,81",
+    "unitPrice": "1,109"
+   },
+   "expected": null,
+   "notes": "Complete display in euros (decimal commas): 52.81 x 1.109 = 58.566, shown as 58,57. The form stores shekels, so the correct outcome is to fill nothing; the digits are kept in displayed for diagnosis.",
+   "currency": "EUR"
+  },
+  {
+   "id": "commons:שגיאת מחשב בתחנת דלק 2",
+   "kind": "pump",
+   "file": "commons-pumps/32.jpg",
+   "sha256": "be997d3dc1d2eac19a20ef3118128984d304a8592e6f8b93babf16f523fac6ed",
+   "bytes": 1478861,
+   "source": "https://commons.wikimedia.org/wiki/File:%D7%A9%D7%92%D7%99%D7%90%D7%AA_%D7%9E%D7%97%D7%A9%D7%91_%D7%91%D7%AA%D7%97%D7%A0%D7%AA_%D7%93%D7%9C%D7%A7_2.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/d/d7/%D7%A9%D7%92%D7%99%D7%90%D7%AA_%D7%9E%D7%97%D7%A9%D7%91_%D7%91%D7%AA%D7%97%D7%A0%D7%AA_%D7%93%D7%9C%D7%A7_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "טבעת-זרם",
+   "country": "IL",
+   "labels": "Gilbarco Veeder-Root console; only the price per litre is visible",
+   "displayed": {
+    "unitPrice": "6.03"
+   },
+   "expected": null,
+   "notes": "No amount or volume is shown: the correct outcome is to fill nothing."
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "file": "commons-pumps/13.jpg",
+   "sha256": "a39cb29d307e4f66acb4505ea8c2896f7382e01bced8c06799823399a19265de",
+   "bytes": 3421364,
+   "source": "https://commons.wikimedia.org/wiki/File:Fuel_limit_notice_(closeup),_Mobil_Petrol,_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27,_2022.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Fuel_limit_notice_%28closeup%29%2C_Mobil_Petrol%2C_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27%2C_2022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Xbspiro",
+   "country": "HU",
+   "labels": "Hungarian (Forint, Liter, Ft/L)",
+   "displayed": {
+    "total": "000000",
+    "liters": "0000,00"
+   },
+   "expected": null,
+   "notes": "The pump shows zeros (no sale): the correct outcome is to fill nothing."
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "file": "commons-pumps/more/9.jpg",
+   "sha256": "b732869ec73a8e61b357113a32c6e1ce34a82189747fe49515ee4c9d9f34cba2",
+   "bytes": 3112985,
+   "source": "https://commons.wikimedia.org/wiki/File:Fuel_limit_notice_(closeup),_Lukoil,_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27,_2022.jpg",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/9/98/Fuel_limit_notice_%28closeup%29%2C_Lukoil%2C_H%C3%B3dmez%C5%91v%C3%A1s%C3%A1rhely_-_March_27%2C_2022.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 3.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Xbspiro",
+   "country": "HU",
+   "labels": "Hungarian (Ft, L, Ft/L)",
+   "displayed": {
+    "total": "0",
+    "liters": "0.00"
+   },
+   "expected": null,
+   "notes": "The pump shows zeros and the right edge of the display is outside the photograph: the correct outcome is to fill nothing."
+  },
+  {
+   "id": "commons:TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser",
+   "kind": "pump",
+   "file": "commons-pumps/more/19.png",
+   "sha256": "8ca641c3c33e85350520576d970b98f3c2ae79823475a0e77ba74bf7d2fca664",
+   "bytes": 3395730,
+   "source": "https://commons.wikimedia.org/wiki/File:TATSUNO_Corporation,_SUNNY-X(Fuel_Dispenser)_and_AdBlue_Dispenser.png",
+   "original": "https://upload.wikimedia.org/wikipedia/commons/4/49/TATSUNO_Corporation%2C_SUNNY-X%28Fuel_Dispenser%29_and_AdBlue_Dispenser.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "licence": "CC BY-SA 4.0",
+   "licenceUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Mj-bird",
+   "country": "JP",
+   "labels": "Japanese; two volume-only displays",
+   "displayed": {
+    "liters": "35.36 and 32.50 (two hoses; legible at full size)"
+   },
+   "expected": null,
+   "notes": "Showroom dispenser: volumes only, no amount: the correct outcome is to fill nothing."
+  }
+ ]
+}

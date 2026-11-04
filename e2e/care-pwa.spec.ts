@@ -100,3 +100,23 @@ test('maintenance also waits for a durable SDK write before closing the editor',
   await expect(async()=>{const rows=await listDocuments(path);expect(rows).toHaveLength(1);expect(rows[0].data.costAgorot).toBe(2500);}).toPass({timeout:30000});
   await expect.poll(()=>outboxCount(page,scope.uid)).toBe(0);
 });
+
+test('the local recogniser downloaded once keeps reading printed digits after an offline PWA restart',async({page,context})=>{
+  test.setTimeout(120_000);
+  const sharp=(await import('sharp')).default;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560"><rect width="900" height="560" fill="#16181c"/><rect x="170" y="170" width="560" height="200" rx="18" fill="#0d0f12"/><text x="215" y="310" font-family="Helvetica, Arial, sans-serif" font-size="110" fill="#ffcf73">128450</text><text x="600" y="310" font-family="Helvetica, Arial, sans-serif" font-size="48" fill="#ffcf73">km</text><text x="215" y="225" font-family="Helvetica, Arial, sans-serif" font-size="36" fill="#ffcf73">ODO</text></svg>`;
+  const odometer=await sharp(Buffer.from(svg)).png().toBuffer();
+  const scan=async()=>{
+    await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();await page.getByRole('button',{name:'דילוג לקילומטראז׳',exact:true}).click();
+    await page.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:odometer});
+    await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:90_000});await expect(page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/)).toHaveValue('128450');
+  };
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await waitForServiceWorkerControl(page);
+  // First use, online: the recogniser is fetched, verified and stored.
+  await scan();
+  await context.setOffline(true);const response=await page.reload();expect(response?.fromServiceWorker()).toBe(true);await expectNetworkCut(page);
+  const fetched:string[]=[];page.on('request',request=>{if(/scan-models|ort-wasm/.test(request.url()))fetched.push(request.url());});
+  await scan();
+  // Offline, nothing reached the network for it: every file came from Cache Storage.
+  expect(fetched).toEqual([]);
+});

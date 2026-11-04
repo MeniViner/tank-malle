@@ -1,0 +1,26 @@
+{
+ "format": "tank-maleh-replay-scenes-v1",
+ "font": {
+  "file": "e2e/fixtures/fonts/Assistant-Bold.ttf",
+  "sha256": "93ecab56b243eea4f4f2a890bc340341042898f484f46b9919c365017942d153"
+ },
+ "width": 1280,
+ "height": 720,
+ "fps": 3,
+ "scenes": {
+  "pump": "fd0472ea127e35f29e80fbe1b65351158f24ba3df5492b8cbf5c8c7b970331e4",
+  "odometer": "6563f2d88ff47980aad9832474f3cbcc18553401bbc88f0cbef73b228d1d9e45",
+  "blur-to-clear": "37800b33c07022d948196519cc6d7b4e0b94d613365e351397411bd44e7386c8",
+  "movement": "c493288d12e6f6f30162b6b5efb6a59d681e314032c8ada44417083ffe65d694",
+  "counting-pump": "f259be17e96ce2b95f0b3ec4b57f01c9424598db389ad7d9272a89263ea42d0b",
+  "trip-and-odo": "5f8a90ea0219917a606f6aef224392e20cf3526b91fa4d349c106520e127e881",
+  "labelled-pump": "f4c468764d249547c81283b51754e407897dfc0e5285b7de65283f55b76fd83d",
+  "segment-pump": "af5cead88687f7ec748b09081be91c420be25ba8b7a88962ad07ef0a51d3bbd9",
+  "segment-odometer": "1fb5f096bb258d2f210b06c5c5b22cb80d420905f997b8174cc80ab8df256e4d",
+  "dashboard": "fe1fc2d8ac5807261361ad49586c4fd47bd8645ddc5768e0b6cc3af78bbd1acb",
+  "pump-then-odometer": "575f189f3e0cc75bca2e20e6114ba9937b9f1e232b437e15b32ddee9709bf30f",
+  "segment-pump-then-odometer": "b20a9dedfac1d3698b6d50dbb2b266267054df989c8004f30852a4d3417e4ca8",
+  "trip-only": "6e24e9d342c48a41191b2ef44c18a52828c0f420c240e2441cca87c008145036",
+  "euro-pump": "8e2e50877b9a325a19e1c5f9d955c2f20bd3ea19f24ab2a7fb0c2a1c49dc8bf2"
+ }
+}

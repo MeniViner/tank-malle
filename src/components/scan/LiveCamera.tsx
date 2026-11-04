@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '../Button';
 
-/** No shutter or crop UI. The camera samples until two consecutive frames
- * agree. Every effect owns its stream, including late permission results. */
-export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isActive:()=>boolean)=>Promise<boolean>;onClose:()=>void }) {
+/** No shutter or crop UI. The camera samples whole frames until the capture
+ * session decides (or reaches its bound). Every effect owns its stream,
+ * including late permission results. */
+export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isActive:()=>boolean,frame:number)=>Promise<boolean>;onClose:()=>void }) {
   const video=useRef<HTMLVideoElement>(null),frame=useRef(onFrame);
   useEffect(()=>{frame.current=onFrame;},[onFrame]);
   const [state,setState]=useState<'opening'|'ready'|'paused'|'error'>('opening');
@@ -17,12 +18,12 @@ export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isAct
     async function sample() {
       const input=video.current;if(cancelled||!input||!context)return;
       if(input.readyState>=2 && input.videoWidth) {
-        // Two frames at each scale preserve the agreement check at either size.
-        const maximum=Math.floor(samples++/2)%2===0?960:1280;
-        const ratio=Math.min(1,maximum/Math.max(input.videoWidth,input.videoHeight));
+        // The whole frame at up to 1920 px: the worker reads a working copy and
+        // recrops the display it finds from these full-resolution pixels.
+        const ratio=Math.min(1,1920/Math.max(input.videoWidth,input.videoHeight));
         canvas.width=Math.round(input.videoWidth*ratio);canvas.height=Math.round(input.videoHeight*ratio);
         context.drawImage(input,0,0,canvas.width,canvas.height);
-        try {if(await frame.current(context.getImageData(0,0,canvas.width,canvas.height),()=>!cancelled&&document.visibilityState!=='hidden')){stop();return;}}catch{/* Retry the next local frame. */}
+        try {if(await frame.current(context.getImageData(0,0,canvas.width,canvas.height),()=>!cancelled&&document.visibilityState!=='hidden',samples++)){stop();return;}}catch{/* Retry the next local frame. */}
       }
       if(!cancelled)timer=setTimeout(()=>void sample(),180);
     }
@@ -30,7 +31,7 @@ export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isAct
       try {
         if(document.visibilityState==='hidden'){background();return;}
         if(!navigator.mediaDevices?.getUserMedia)throw new Error('unsupported');
-        const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:960}},audio:false});
+        const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1440}},audio:false});
         if(cancelled){next.getTracks().forEach(track=>track.stop());return;}
         ownedStream=next;if(!video.current)throw new Error('closed');
         video.current.srcObject=next;await video.current.play();

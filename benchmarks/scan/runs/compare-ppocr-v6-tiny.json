@@ -1,0 +1,2266 @@
+{
+ "format": "tank-maleh-scan-run-v1",
+ "at": "2026-10-31T22:50:11.792Z",
+ "commit": "4a13c416d0761d24291c7f951ece5e3b00b7952b",
+ "reader": "current",
+ "text": "ppocr-v6-tiny",
+ "live": null,
+ "splits": [
+  "tuning"
+ ],
+ "sessionsFile": "benchmarks/scan/trodo-sessions.json",
+ "wallMs": 10992,
+ "workers": 7,
+ "node": "v26.7.0",
+ "status": "complete",
+ "missing": [],
+ "counts": {
+  "requested": 60,
+  "run": 60,
+  "scored": 40,
+  "byRole": {
+   "eligible": 33,
+   "unscored-analog-register": 20,
+   "negative-trip-or-clock": 7
+  }
+ },
+ "summary": {
+  "sessions": 40,
+  "eligibleSessions": 33,
+  "groups": 24,
+  "acceptedSessions": 18,
+  "completeSessionCorrect": {
+   "estimate": 0.5151515151515151,
+   "low": 0.35218375332643687,
+   "high": 0.6749595800367185,
+   "k": 17,
+   "n": 33
+  },
+  "acceptedPrecision": {
+   "estimate": 0.9444444444444444,
+   "low": 0.7424269900391908,
+   "high": 0.990124809131223,
+   "k": 17,
+   "n": 18
+  },
+  "acceptedPrecisionGroupBootstrap": {
+   "low": 0.8181818181818182,
+   "high": 1,
+   "groups": 24
+  },
+  "wrongAcceptanceAmongAll": {
+   "estimate": 0.025,
+   "low": 0.004426831453704344,
+   "high": 0.12881369088183614,
+   "k": 1,
+   "n": 40
+  },
+  "wrongAcceptanceAmongIneligible": {
+   "estimate": 0,
+   "low": 0,
+   "high": 0.35433043867586833,
+   "k": 0,
+   "n": 7
+  },
+  "coverageEligible": {
+   "estimate": 0.5151515151515151,
+   "low": 0.35218375332643687,
+   "high": 0.6749595800367185,
+   "k": 17,
+   "n": 33
+  },
+  "coverageEligibleGroupBootstrap": {
+   "low": 0.34375,
+   "high": 0.7,
+   "groups": 20
+  },
+  "coverageAll": {
+   "estimate": 0.425,
+   "low": 0.2850939246378106,
+   "high": 0.5780493157309589,
+   "k": 17,
+   "n": 40
+  },
+  "fields": {
+   "odometer": {
+    "correct": {
+     "estimate": 0.5151515151515151,
+     "low": 0.35218375332643687,
+     "high": 0.6749595800367185,
+     "k": 17,
+     "n": 33
+    },
+    "acceptedPrecision": {
+     "estimate": 0.9444444444444444,
+     "low": 0.7424269900391908,
+     "high": 0.990124809131223,
+     "k": 17,
+     "n": 18
+    }
+   }
+  },
+  "sessionReasons": {
+   "uncorroborated": 4,
+   "unreadable": 13,
+   "conflict": 5
+  },
+  "frameReasons": {
+   "format": 11,
+   "no-reading": 29,
+   "identity-ambiguous": 20,
+   "conflict": 5
+  },
+  "latencyMs": {
+   "p50": 991.8483124999998,
+   "p95": 1719.8120729499985,
+   "max": 2295.6060420000003
+  }
+ },
+ "targets": {
+  "correctAutomaticCompletionEligible": {
+   "target": 0.95,
+   "verdict": "not-met"
+  },
+  "acceptedPrecision": {
+   "target": 0.995,
+   "verdict": "not-met"
+  }
+ },
+ "unscored": {
+  "unscored-analog-register": {
+   "sessions": 20,
+   "accepted": 1,
+   "acceptedMatchingLabel": 1,
+   "acceptedMatchingLabelWithoutLastDigit": 0
+  },
+  "excluded-label-check": {
+   "sessions": 0,
+   "accepted": 0,
+   "acceptedMatchingLabel": 0,
+   "acceptedMatchingLabelWithoutLastDigit": 0
+  },
+  "unscored-ambiguous-label": {
+   "sessions": 0,
+   "accepted": 0,
+   "acceptedMatchingLabel": 0,
+   "acceptedMatchingLabelWithoutLastDigit": 0
+  }
+ },
+ "byFamily": {
+  "digital-dark-on-light-neutral": {
+   "sessions": 3,
+   "eligible": 3,
+   "correctEligible": {
+    "estimate": 0,
+    "low": 0,
+    "high": 0.5614970356393196,
+    "k": 0,
+    "n": 3
+   },
+   "acceptedPrecision": {
+    "estimate": null,
+    "low": null,
+    "high": null,
+    "k": 0,
+    "n": 0
+   },
+   "wrongAccepted": 0
+  },
+  "digital-light-on-dark-amber": {
+   "sessions": 30,
+   "eligible": 25,
+   "correctEligible": {
+    "estimate": 0.56,
+    "low": 0.37067331734646203,
+    "high": 0.7333436123222912,
+    "k": 14,
+    "n": 25
+   },
+   "acceptedPrecision": {
+    "estimate": 0.9333333333333333,
+    "low": 0.7018346989112435,
+    "high": 0.9881331046384677,
+    "k": 14,
+    "n": 15
+   },
+   "wrongAccepted": 1
+  },
+  "digital-light-on-dark-blue": {
+   "sessions": 1,
+   "eligible": 1,
+   "correctEligible": {
+    "estimate": 1,
+    "low": 0.2065493117918027,
+    "high": 1,
+    "k": 1,
+    "n": 1
+   },
+   "acceptedPrecision": {
+    "estimate": 1,
+    "low": 0.2065493117918027,
+    "high": 1,
+    "k": 1,
+    "n": 1
+   },
+   "wrongAccepted": 0
+  },
+  "digital-light-on-dark-red": {
+   "sessions": 6,
+   "eligible": 4,
+   "correctEligible": {
+    "estimate": 0.5,
+    "low": 0.15003898774401986,
+    "high": 0.8499610122559802,
+    "k": 2,
+    "n": 4
+   },
+   "acceptedPrecision": {
+    "estimate": 1,
+    "low": 0.3423802239546494,
+    "high": 1,
+    "k": 2,
+    "n": 2
+   },
+   "wrongAccepted": 0
+  }
+ },
+ "byRole": {
+  "eligible": {
+   "sessions": 33,
+   "eligible": 33,
+   "correctEligible": {
+    "estimate": 0.5151515151515151,
+    "low": 0.35218375332643687,
+    "high": 0.6749595800367185,
+    "k": 17,
+    "n": 33
+   },
+   "acceptedPrecision": {
+    "estimate": 0.9444444444444444,
+    "low": 0.7424269900391908,
+    "high": 0.990124809131223,
+    "k": 17,
+    "n": 18
+   },
+   "wrongAccepted": 1
+  },
+  "negative-trip-or-clock": {
+   "sessions": 7,
+   "eligible": 0,
+   "correctEligible": {
+    "estimate": null,
+    "low": null,
+    "high": null,
+    "k": 0,
+    "n": 0
+   },
+   "acceptedPrecision": {
+    "estimate": null,
+    "low": null,
+    "high": null,
+    "k": 0,
+    "n": 0
+   },
+   "wrongAccepted": 0
+  }
+ },
+ "byDevice": {
+  "unknown-smartphone": {
+   "sessions": 40,
+   "eligible": 33,
+   "correctEligible": {
+    "estimate": 0.5151515151515151,
+    "low": 0.35218375332643687,
+    "high": 0.6749595800367185,
+    "k": 17,
+    "n": 33
+   },
+   "acceptedPrecision": {
+    "estimate": 0.9444444444444444,
+    "low": 0.7424269900391908,
+    "high": 0.990124809131223,
+    "k": 17,
+    "n": 18
+   },
+   "wrongAccepted": 1
+  }
+ },
+ "acceptedPaths": {
+  "ppocr-v6-tiny@960+ppocr-v6-tiny@roi": 17,
+  "ppocr-v6-tiny@centre+ppocr-v6-tiny@roi": 1
+ },
+ "stageMs": {
+  "resample": {
+   "p50": 20.751917000000276,
+   "p95": 119.17770385000004
+  },
+  "segment": {
+   "p50": 314.18510400000105,
+   "p95": 1000.7892374999998
+  },
+  "ppocr-v6-tiny": {
+   "p50": 544.6093959999997,
+   "p95": 874.3303104000012
+  }
+ },
+ "component": null,
+ "rows": [
+  {
+   "id": "trodo:00000004-PHOTO-2020-11-20-11-21-25",
+   "kind": "odometer",
+   "group": "trodo-g0050",
+   "family": "digital-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "159073"
+   },
+   "label": "159073",
+   "frames": 1,
+   "ms": {
+    "resample": 98.47495800000002,
+    "segment": 517.6147500000001,
+    "ppocr-v6-tiny": 570.5996660000001
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 22.03
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "159073"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 1217.5774999999999
+  },
+  {
+   "id": "trodo:00000042-PHOTO-2020-11-20-22-30-21",
+   "kind": "odometer",
+   "group": "trodo-g0040",
+   "family": "analog-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "5490",
+   "frames": 1,
+   "ms": {
+    "resample": 47.749209000000064,
+    "segment": 1114.2228329999998,
+    "ppocr-v6-tiny": 545.20225
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 16.43
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 1734.185042
+  },
+  {
+   "id": "trodo:00000089-PHOTO-2020-12-16-20-30-00",
+   "kind": "odometer",
+   "group": "trodo-g1852",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "235320"
+   },
+   "label": "235320",
+   "frames": 1,
+   "ms": {
+    "resample": 170.25537499999973,
+    "segment": 1102.1017499999998,
+    "ppocr-v6-tiny": 958.0107089999997
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 10.34
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 2295.6060420000003
+  },
+  {
+   "id": "trodo:00000105-PHOTO-2020-12-17-19-27-28",
+   "kind": "odometer",
+   "group": "trodo-g0110",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "117.6",
+   "frames": 1,
+   "ms": {
+    "resample": 132.5441249999999,
+    "segment": 1360.7729159999997,
+    "ppocr-v6-tiny": 628.9382510000003
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 5.61
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 2152.631084
+  },
+  {
+   "id": "trodo:00000132-PHOTO-2020-11-22-10-58-08",
+   "kind": "odometer",
+   "group": "trodo-g0152",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "26475"
+   },
+   "label": "26475",
+   "frames": 1,
+   "ms": {
+    "resample": 61.84220900000014,
+    "segment": 789.4882499999999,
+    "ppocr-v6-tiny": 559.5913759999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 18.29
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "no-reading": 2
+   },
+   "latencyMs": 1438.1187919999998
+  },
+  {
+   "id": "trodo:00000148-PHOTO-2020-12-19-17-40-59",
+   "kind": "odometer",
+   "group": "trodo-g0179",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "318589"
+   },
+   "label": "318589",
+   "frames": 1,
+   "ms": {
+    "resample": 143.29037500000004,
+    "segment": 995.4570000000001,
+    "ppocr-v6-tiny": 491.55508299999997
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 19.49
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "318589"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "long-integer",
+    "polarity:light",
+    "unit:km",
+    "unit:not-visible"
+   ],
+   "latencyMs": 1650.697083
+  },
+  {
+   "id": "trodo:00000180-PHOTO-2020-12-21-19-01-47",
+   "kind": "odometer",
+   "group": "trodo-g0262",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "119843"
+   },
+   "label": "119843",
+   "frames": 1,
+   "ms": {
+    "resample": 118.47420800000009,
+    "segment": 994.0382500000003,
+    "ppocr-v6-tiny": 562.35375
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 19.5
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "119843"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "long-integer",
+    "polarity:light",
+    "unit:not-visible"
+   ],
+   "latencyMs": 1697.0321249999997
+  },
+  {
+   "id": "trodo:00000200-PHOTO-2020-12-22-19-01-19",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "133.6",
+   "frames": 1,
+   "ms": {
+    "resample": 57.691791000000194,
+    "segment": 707.2733759999996,
+    "ppocr-v6-tiny": 693.4169580000002
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 36.38
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 2
+   },
+   "latencyMs": 1479.752333
+  },
+  {
+   "id": "trodo:00000219-PHOTO-2020-12-23-19-47-49",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "188954"
+   },
+   "label": "188954",
+   "frames": 1,
+   "ms": {
+    "resample": 62.136708,
+    "segment": 905.9782930000001,
+    "ppocr-v6-tiny": 517.7009580000004
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 27.42
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "188954"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:odometer",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 1495.706041
+  },
+  {
+   "id": "trodo:00000241-PHOTO-2020-12-24-19-22-14",
+   "kind": "odometer",
+   "group": "trodo-g1852",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "236965"
+   },
+   "label": "236965",
+   "frames": 1,
+   "ms": {
+    "resample": 78.28570899999977,
+    "segment": 749.9603750000006,
+    "ppocr-v6-tiny": 713.4369160000001
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 18.35
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 1563.516
+  },
+  {
+   "id": "trodo:00000260-PHOTO-2020-12-25-19-42-48",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "189272"
+   },
+   "label": "189272",
+   "frames": 1,
+   "ms": {
+    "resample": 55.781958999999915,
+    "segment": 604.5043740000001,
+    "ppocr-v6-tiny": 548.2374580000001
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 39.04
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "189272"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:odometer",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 1220.8806249999998
+  },
+  {
+   "id": "trodo:00000283-PHOTO-2020-12-26-17-03-31",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "189407"
+   },
+   "label": "189407",
+   "frames": 1,
+   "ms": {
+    "resample": 62.20979199999965,
+    "segment": 757.7612909999998,
+    "ppocr-v6-tiny": 513.170333
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 34.17
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "189407"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:odometer",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 1360.364083
+  },
+  {
+   "id": "trodo:00000307-PHOTO-2020-12-27-17-58-08",
+   "kind": "odometer",
+   "group": "trodo-g1819",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "94.8",
+   "frames": 1,
+   "ms": {
+    "resample": 81.23979199999985,
+    "segment": 591.8783339999995,
+    "ppocr-v6-tiny": 880.1197499999998
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 15.53
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 1581.8352920000002
+  },
+  {
+   "id": "trodo:00000332-PHOTO-2020-11-26-00-44-36",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-dark-on-light-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "189723"
+   },
+   "label": "189723",
+   "frames": 1,
+   "ms": {
+    "resample": 34.62883299999976,
+    "segment": 249.2439999999997,
+    "ppocr-v6-tiny": 773.9736669999998
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 29.15
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 1081.0435829999997
+  },
+  {
+   "id": "trodo:00000380-PHOTO-2020-11-26-21-23-48",
+   "kind": "odometer",
+   "group": "trodo-g0600",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "191840"
+   },
+   "label": "191840",
+   "frames": 1,
+   "ms": {
+    "resample": 11.170999999999822,
+    "segment": 196.20049999999992,
+    "ppocr-v6-tiny": 527.9468330000004
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 17.14
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 748.0104579999997
+  },
+  {
+   "id": "trodo:00000431-PHOTO-2020-11-27-13-58-26",
+   "kind": "odometer",
+   "group": "trodo-g0599",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "8304",
+   "frames": 1,
+   "ms": {
+    "resample": 13.840625000000273,
+    "segment": 188.20062499999995,
+    "ppocr-v6-tiny": 498.429709
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 21.44
+   },
+   "status": "abstained",
+   "reason": "conflict",
+   "reasons": {
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "latencyMs": 717.0251250000001
+  },
+  {
+   "id": "trodo:00000453-PHOTO-2020-11-27-21-30-52",
+   "kind": "odometer",
+   "group": "trodo-g0674",
+   "family": "digital-light-on-dark-blue",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "118860"
+   },
+   "label": "118860",
+   "frames": 1,
+   "ms": {
+    "resample": 17.53729199999998,
+    "segment": 265.84825,
+    "ppocr-v6-tiny": 372.6039579999997
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 12.24
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "118860"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 676.7419580000005
+  },
+  {
+   "id": "trodo:00000478-PHOTO-2020-11-28-20-58-32",
+   "kind": "odometer",
+   "group": "trodo-g0666",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "316495"
+   },
+   "label": "316495",
+   "frames": 1,
+   "ms": {
+    "resample": 17.844457999999577,
+    "segment": 177.02020899999934,
+    "ppocr-v6-tiny": 375.16641699999946
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 2.95
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "316495"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "long-integer",
+    "polarity:light",
+    "unit:not-visible"
+   ],
+   "latencyMs": 584.909709
+  },
+  {
+   "id": "trodo:00000520-PHOTO-2020-11-29-11-15-49",
+   "kind": "odometer",
+   "group": "trodo-g1852",
+   "family": "digital-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "232137"
+   },
+   "label": "232137",
+   "frames": 1,
+   "ms": {
+    "resample": 18.352334000000155,
+    "segment": 279.6324589999999,
+    "ppocr-v6-tiny": 715.9920419999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 5.67
+   },
+   "status": "abstained",
+   "reason": "conflict",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "latencyMs": 1032.0878339999995
+  },
+  {
+   "id": "trodo:00000549-PHOTO-2020-11-29-11-16-41",
+   "kind": "odometer",
+   "group": "trodo-g0736",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "1518",
+   "frames": 1,
+   "ms": {
+    "resample": 12.802000000000135,
+    "segment": 165.11116700000002,
+    "ppocr-v6-tiny": 482.69566600000053
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 21.59
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 681.5729159999996
+  },
+  {
+   "id": "trodo:00000582-PHOTO-2020-11-30-13-26-03",
+   "kind": "odometer",
+   "group": "trodo-g1651",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "10330",
+   "frames": 1,
+   "ms": {
+    "resample": 21.255916999999954,
+    "segment": 492.6090409999997,
+    "ppocr-v6-tiny": 524.4551250000004
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 33.35
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 1057.756417
+  },
+  {
+   "id": "trodo:00000659-PHOTO-2020-12-02-10-25-33",
+   "kind": "odometer",
+   "group": "trodo-g0836",
+   "family": "analog-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "5522",
+   "frames": 1,
+   "ms": {
+    "resample": 12.169041999999536,
+    "segment": 163.97112500000003,
+    "ppocr-v6-tiny": 574.8427919999995
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 8.64
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 757.2012500000001
+  },
+  {
+   "id": "trodo:00000708-PHOTO-2020-12-02-17-32-04",
+   "kind": "odometer",
+   "group": "trodo-g1929",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "159982"
+   },
+   "label": "159982",
+   "frames": 1,
+   "ms": {
+    "resample": 19.71204200000011,
+    "segment": 297.05491600000005,
+    "ppocr-v6-tiny": 662.456083
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 14.25
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 986.9272499999997
+  },
+  {
+   "id": "trodo:00000741-PHOTO-2020-12-02-23-36-54",
+   "kind": "odometer",
+   "group": "trodo-g1852",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "232699"
+   },
+   "label": "232699",
+   "frames": 1,
+   "ms": {
+    "resample": 16.635792000000038,
+    "segment": 330.7044999999998,
+    "ppocr-v6-tiny": 569.5266249999995
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 13.94
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "232699"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:tripLetter",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 925.2209579999999
+  },
+  {
+   "id": "trodo:00000772-PHOTO-2020-12-03-13-12-15",
+   "kind": "odometer",
+   "group": "trodo-g0950",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "313",
+   "frames": 1,
+   "ms": {
+    "resample": 12.479332999999315,
+    "segment": 243.44654199999968,
+    "ppocr-v6-tiny": 450.25916700000016
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 19.3
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 711.4301659999992
+  },
+  {
+   "id": "trodo:00000803-PHOTO-2020-12-03-22-12-37",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "176.9",
+   "frames": 1,
+   "ms": {
+    "resample": 16.93708300000071,
+    "segment": 255.21395800000028,
+    "ppocr-v6-tiny": 616.0832500000006
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 31.47
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 898.8317500000003
+  },
+  {
+   "id": "trodo:00000841-PHOTO-2020-12-06-19-04-32",
+   "kind": "odometer",
+   "group": "trodo-g1018",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "186351"
+   },
+   "label": "186351",
+   "frames": 1,
+   "ms": {
+    "resample": 11.762542000000394,
+    "segment": 246.51420899999994,
+    "ppocr-v6-tiny": 417.33637499999986
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 33.13
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "186351"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:odometer",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 680.2607919999991
+  },
+  {
+   "id": "trodo:00000878-PHOTO-2020-12-06-19-05-30",
+   "kind": "odometer",
+   "group": "trodo-g1060",
+   "family": "digital-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "172.7",
+   "frames": 1,
+   "ms": {
+    "resample": 16.685167000000547,
+    "segment": 212.04649999999947,
+    "ppocr-v6-tiny": 548.6614589999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 2.93
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 781.689875
+  },
+  {
+   "id": "trodo:00000888-PHOTO-2020-12-18-10-59-10",
+   "kind": "odometer",
+   "group": "trodo-g1080",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "19331",
+   "frames": 1,
+   "ms": {
+    "resample": 42.92845800000032,
+    "segment": 509.84141699999964,
+    "ppocr-v6-tiny": 538.8805409999995
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 23.43
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 1098.489125
+  },
+  {
+   "id": "trodo:00000911-PHOTO-2020-12-06-19-07-28",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-dark-on-light-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "190325"
+   },
+   "label": "190325",
+   "frames": 1,
+   "ms": {
+    "resample": 17.595957999999882,
+    "segment": 217.45575000000008,
+    "ppocr-v6-tiny": 483.02933399999984
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 29.04
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 721.440208
+  },
+  {
+   "id": "trodo:00000943-PHOTO-2020-12-09-20-30-13",
+   "kind": "odometer",
+   "group": "trodo-g1784",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "10478",
+   "frames": 1,
+   "ms": {
+    "resample": 32.10758299999998,
+    "segment": 244.73174999999992,
+    "ppocr-v6-tiny": 553.6328749999993
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 26.07
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 834.7662909999999
+  },
+  {
+   "id": "trodo:00000972-PHOTO-2020-12-09-20-34-13",
+   "kind": "odometer",
+   "group": "trodo-g1175",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "150863"
+   },
+   "label": "150863",
+   "frames": 1,
+   "ms": {
+    "resample": 13.073374999999942,
+    "segment": 177.47504200000003,
+    "ppocr-v6-tiny": 419.4312909999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 27.77
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "150863"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 626.807084
+  },
+  {
+   "id": "trodo:00001034-PHOTO-2020-12-09-20-36-47",
+   "kind": "odometer",
+   "group": "trodo-g1236",
+   "family": "digital-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "190465"
+   },
+   "label": "190465",
+   "frames": 1,
+   "ms": {
+    "resample": 18.84137499999997,
+    "segment": 291.3142090000001,
+    "ppocr-v6-tiny": 474.66270800000075
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 30.41
+   },
+   "status": "abstained",
+   "reason": "conflict",
+   "reasons": {
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "latencyMs": 788.6095839999998
+  },
+  {
+   "id": "trodo:00001086-PHOTO-2020-12-09-21-02-08",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "187094"
+   },
+   "label": "187094",
+   "frames": 1,
+   "ms": {
+    "resample": 13.978500000000167,
+    "segment": 217.64866699999948,
+    "ppocr-v6-tiny": 390.62895899999967
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 30.62
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "187094"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:odometer",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 627.7688750000007
+  },
+  {
+   "id": "trodo:00001127-PHOTO-2020-12-10-11-20-27",
+   "kind": "odometer",
+   "group": "trodo-g1327",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "66229"
+   },
+   "label": "66229",
+   "frames": 1,
+   "ms": {
+    "resample": 14.365499999999884,
+    "segment": 160.4359999999997,
+    "ppocr-v6-tiny": 342.2797930000006
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 13.33
+   },
+   "status": "abstained",
+   "reason": "conflict",
+   "reasons": {
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "latencyMs": 520.8157080000001
+  },
+  {
+   "id": "trodo:00001172-PHOTO-2020-12-10-11-46-08",
+   "kind": "odometer",
+   "group": "trodo-g1370",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "6266",
+   "frames": 1,
+   "ms": {
+    "resample": 13.791167000000314,
+    "segment": 198.464833,
+    "ppocr-v6-tiny": 580.3480840000002
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 34.67
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 797.3275830000002
+  },
+  {
+   "id": "trodo:00001247-PHOTO-2020-12-18-23-43-06",
+   "kind": "odometer",
+   "group": "trodo-g1604",
+   "family": "analog-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "15331",
+   "frames": 1,
+   "ms": {
+    "resample": 54.73620800000117,
+    "segment": 551.4978330000004,
+    "ppocr-v6-tiny": 692.226917
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 15.07
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "identity-ambiguous": 1,
+    "no-reading": 2
+   },
+   "latencyMs": 1312.0682080000006
+  },
+  {
+   "id": "trodo:00001293-PHOTO-2020-12-10-20-02-06",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "187249"
+   },
+   "label": "187249",
+   "frames": 1,
+   "ms": {
+    "resample": 16.07325000000037,
+    "segment": 191.55020800000057,
+    "ppocr-v6-tiny": 421.85191699999996
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 32.79
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "187249"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "label:odometer",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 635.8684579999999
+  },
+  {
+   "id": "trodo:00001326-PHOTO-2020-12-11-13-27-55",
+   "kind": "odometer",
+   "group": "trodo-g1528",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "8866",
+   "frames": 1,
+   "ms": {
+    "resample": 13.746417000000292,
+    "segment": 330.56933299999946,
+    "ppocr-v6-tiny": 483.0245409999998
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 14.66
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 832.7400829999997
+  },
+  {
+   "id": "trodo:00001348-PHOTO-2020-12-12-10-55-01",
+   "kind": "odometer",
+   "group": "trodo-g1929",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "160851"
+   },
+   "label": "160851",
+   "frames": 1,
+   "ms": {
+    "resample": 17.790334000000257,
+    "segment": 326.1256659999999,
+    "ppocr-v6-tiny": 498.5836669999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 9.92
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "160851"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 848.338334
+  },
+  {
+   "id": "trodo:00001390-PHOTO-2020-12-12-11-00-04",
+   "kind": "odometer",
+   "group": "trodo-g1852",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "234352"
+   },
+   "label": "234352",
+   "frames": 1,
+   "ms": {
+    "resample": 17.34245800000008,
+    "segment": 233.66091700000015,
+    "ppocr-v6-tiny": 605.9184160000004
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 12.46
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 863.4089590000003
+  },
+  {
+   "id": "trodo:00001427-PHOTO-2020-12-15-22-17-24",
+   "kind": "odometer",
+   "group": "trodo-g1977",
+   "family": "digital-dark-on-light-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "190912"
+   },
+   "label": "190912",
+   "frames": 1,
+   "ms": {
+    "resample": 19.72004200000083,
+    "segment": 216.7357919999995,
+    "ppocr-v6-tiny": 828.5621250000004
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 27.91
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 1085.1770830000005
+  },
+  {
+   "id": "trodo:00001470-PHOTO-2020-12-15-22-18-44",
+   "kind": "odometer",
+   "group": "trodo-g1680",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "231617"
+   },
+   "label": "231617",
+   "frames": 1,
+   "ms": {
+    "resample": 18.36370799999986,
+    "segment": 206.1497500000005,
+    "ppocr-v6-tiny": 764.5536659999998
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 14.13
+   },
+   "status": "abstained",
+   "reason": "conflict",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1,
+    "conflict": 1
+   },
+   "latencyMs": 996.7693749999999
+  },
+  {
+   "id": "trodo:00001533-PHOTO-2020-12-15-22-20-40",
+   "kind": "odometer",
+   "group": "trodo-g1762",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "83541"
+   },
+   "label": "83541",
+   "frames": 1,
+   "ms": {
+    "resample": 20.247917000000598,
+    "segment": 225.04258299999947,
+    "ppocr-v6-tiny": 731.8722499999985
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 22.94
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 982.9732089999998
+  },
+  {
+   "id": "trodo:00001578-PHOTO-2020-12-15-22-23-28",
+   "kind": "odometer",
+   "group": "trodo-g1867",
+   "family": "analog-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "10092",
+   "frames": 1,
+   "ms": {
+    "resample": 17.610584000000017,
+    "segment": 236.84199999999964,
+    "ppocr-v6-tiny": 669.5822079999998
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 25.14
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 930.9289170000002
+  },
+  {
+   "id": "trodo:00001623-PHOTO-2020-12-15-22-26-20",
+   "kind": "odometer",
+   "group": "trodo-g1819",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "102.5",
+   "frames": 1,
+   "ms": {
+    "resample": 18.090250000000196,
+    "segment": 238.72220800000014,
+    "ppocr-v6-tiny": 544.0165419999994
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 2.34
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 1
+   },
+   "latencyMs": 805.3946249999999
+  },
+  {
+   "id": "trodo:00001662-PHOTO-2020-12-16-20-20-57",
+   "kind": "odometer",
+   "group": "trodo-g1857",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "negative-trip-or-clock",
+   "eligible": false,
+   "expected": null,
+   "label": "161.9",
+   "frames": 1,
+   "ms": {
+    "resample": 13.898791999999958,
+    "segment": 288.1177090000001,
+    "ppocr-v6-tiny": 498.7589170000001
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 18.64
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 1
+   },
+   "latencyMs": 807.2210420000001
+  },
+  {
+   "id": "trodo:00001877-PHOTO-2020-12-19-23-42-55",
+   "kind": "odometer",
+   "group": "trodo-g1894",
+   "family": "digital-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "67657"
+   },
+   "label": "67657",
+   "frames": 1,
+   "ms": {
+    "resample": 53.27491599999939,
+    "segment": 620.9600419999997,
+    "ppocr-v6-tiny": 525.574834
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 25.31
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "67657"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:odometer",
+    "polarity:light",
+    "unit:not-visible"
+   ],
+   "latencyMs": 1205.997542
+  },
+  {
+   "id": "trodo:00002067-PHOTO-2020-12-20-18-48-02",
+   "kind": "odometer",
+   "group": "trodo-g1641",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "18711"
+   },
+   "label": "18711",
+   "frames": 1,
+   "ms": {
+    "resample": 50.61308300000019,
+    "segment": 471.71108300000014,
+    "ppocr-v6-tiny": 507.3739169999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 2.54
+   },
+   "status": "abstained",
+   "reason": "conflict",
+   "reasons": {
+    "no-reading": 2,
+    "conflict": 1
+   },
+   "latencyMs": 1034.5704999999998
+  },
+  {
+   "id": "trodo:00002528-PHOTO-2020-12-21-11-21-44",
+   "kind": "odometer",
+   "group": "trodo-g1965",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "9033",
+   "frames": 1,
+   "ms": {
+    "resample": 48.00395899999967,
+    "segment": 445.1605010000003,
+    "ppocr-v6-tiny": 439.7023339999978
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 15.23
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "latencyMs": 955.5903330000001
+  },
+  {
+   "id": "trodo:00002985-PHOTO-2020-12-22-10-03-33",
+   "kind": "odometer",
+   "group": "trodo-g1999",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "191716"
+   },
+   "label": "191716",
+   "frames": 1,
+   "ms": {
+    "resample": 49.09795899999881,
+    "segment": 583.7890419999985,
+    "ppocr-v6-tiny": 495.13329200000226
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 27.09
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "191716"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 1134.0364999999983
+  },
+  {
+   "id": "trodo:00003227-PHOTO-2020-12-22-20-43-37",
+   "kind": "odometer",
+   "group": "trodo-g2048",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "16588",
+   "frames": 1,
+   "ms": {
+    "resample": 48.19504099999904,
+    "segment": 619.072666,
+    "ppocr-v6-tiny": 877.8203329999997
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 50.96
+   },
+   "status": "abstained",
+   "reason": "uncorroborated",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 1565.0835829999996
+  },
+  {
+   "id": "trodo:00003490-PHOTO-2020-12-23-10-44-57",
+   "kind": "odometer",
+   "group": "trodo-g2075",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "11479",
+   "frames": 1,
+   "ms": {
+    "resample": 56.88104199999907,
+    "segment": 722.1362919999992,
+    "ppocr-v6-tiny": 687.4982909999999
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 24.2
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 1481.4673749999993
+  },
+  {
+   "id": "trodo:00003882-PHOTO-2020-12-24-10-32-34",
+   "kind": "odometer",
+   "group": "trodo-g2104",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "10132",
+   "frames": 1,
+   "ms": {
+    "resample": 35.017791999998735,
+    "segment": 426.0441669999982,
+    "ppocr-v6-tiny": 449.18695800000023
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 19.07
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 920.7611670000006
+  },
+  {
+   "id": "trodo:00004364-PHOTO-2020-12-25-11-22-45",
+   "kind": "odometer",
+   "group": "trodo-g2165",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "13290",
+   "frames": 1,
+   "ms": {
+    "resample": 67.60275000000001,
+    "segment": 680.4228330000005,
+    "ppocr-v6-tiny": 874.1466250000012
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 37.17
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "013290"
+   },
+   "paths": [
+    "ppocr-v6-tiny@centre",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "long-integer",
+    "polarity:light",
+    "unit:not-visible"
+   ],
+   "latencyMs": 1644.8372080000008
+  },
+  {
+   "id": "trodo:00004804-PHOTO-2020-12-26-09-22-24",
+   "kind": "odometer",
+   "group": "trodo-g2197",
+   "family": "analog-light-on-dark-red",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "18844",
+   "frames": 1,
+   "ms": {
+    "resample": 47.815042000000176,
+    "segment": 618.988542000001,
+    "ppocr-v6-tiny": 683.9786249999997
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 26.72
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "format": 1,
+    "no-reading": 2
+   },
+   "latencyMs": 1365.3059170000006
+  },
+  {
+   "id": "trodo:00005024-PHOTO-2020-12-26-19-29-54",
+   "kind": "odometer",
+   "group": "trodo-g1929",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "161974"
+   },
+   "label": "161974",
+   "frames": 1,
+   "ms": {
+    "resample": 46.34712600000057,
+    "segment": 677.5628339999985,
+    "ppocr-v6-tiny": 690.2402920000004
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 10.34
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "61974"
+   },
+   "paths": [
+    "ppocr-v6-tiny@centre",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "long-integer",
+    "polarity:light",
+    "unit:km",
+    "unit:not-visible"
+   ],
+   "latencyMs": 1439.1082079999996
+  },
+  {
+   "id": "trodo:00005422-PHOTO-2020-12-27-17-44-00",
+   "kind": "odometer",
+   "group": "trodo-g2273",
+   "family": "digital-light-on-dark-amber",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "eligible",
+   "eligible": true,
+   "expected": {
+    "odometer": "118647"
+   },
+   "label": "118647",
+   "frames": 1,
+   "ms": {
+    "resample": 6.387500000000728,
+    "segment": 163.77687499999956,
+    "ppocr-v6-tiny": 329.3652499999989
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 12.82
+   },
+   "status": "accepted",
+   "values": {
+    "odometer": "118647"
+   },
+   "paths": [
+    "ppocr-v6-tiny@960",
+    "ppocr-v6-tiny@roi"
+   ],
+   "evidence": [
+    "label:km",
+    "polarity:light",
+    "unit:km"
+   ],
+   "latencyMs": 503.8355840000004
+  },
+  {
+   "id": "trodo:00005806-PHOTO-2020-12-28-11-16-13",
+   "kind": "odometer",
+   "group": "trodo-g2315",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "25762",
+   "frames": 1,
+   "ms": {
+    "resample": 26.40454200000022,
+    "segment": 302.2445420000022,
+    "ppocr-v6-tiny": 370.26416600000084
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 27.27
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 705.1489590000001
+  },
+  {
+   "id": "trodo:00006188-PHOTO-2020-12-29-10-34-21",
+   "kind": "odometer",
+   "group": "trodo-g2353",
+   "family": "analog-light-on-dark-neutral",
+   "device": "unknown-smartphone",
+   "split": "tuning",
+   "role": "unscored-analog-register",
+   "eligible": false,
+   "expected": null,
+   "label": "4545",
+   "frames": 1,
+   "ms": {
+    "resample": 29.987667000001238,
+    "segment": 365.1790000000001,
+    "ppocr-v6-tiny": 485.2530829999996
+   },
+   "quality": {
+    "hint": null,
+    "sharpness": 28.02
+   },
+   "status": "abstained",
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 2,
+    "no-reading": 2
+   },
+   "latencyMs": 890.6190829999996
+  }
+ ]
+}

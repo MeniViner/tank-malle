@@ -1,0 +1,112 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T14:37:49.685Z",
+ "commit": "afd6b5b33e2f40e9c4a04ef43ed60932b0141e6b",
+ "sessionsFile": "benchmarks/scan/commons-pump-sessions.json",
+ "text": "ppocr-v5+v6",
+ "note": "Individual real photographs; too few for an accuracy estimate.",
+ "outcomes": {
+  "correctly-empty": 5
+ },
+ "rows": [
+  {
+   "id": "commons:Defective Gas Station Pump Screen",
+   "kind": "pump",
+   "group": "commons:Defective Gas Station Pump Screen",
+   "labels": "French (Prix, Volume, Litres, Prix par litre)",
+   "expected": null,
+   "displayed": {
+    "total": "58,57",
+    "liters": "52,81",
+    "unitPrice": "1,109"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 4,
+    "no-reading": 1
+   },
+   "paths": null
+  },
+  {
+   "id": "commons:שגיאת מחשב בתחנת דלק 2",
+   "kind": "pump",
+   "group": "commons:שגיאת מחשב בתחנת דלק 2",
+   "labels": "Gilbarco Veeder-Root console; only the price per litre is visible",
+   "expected": null,
+   "displayed": {
+    "unitPrice": "6.03"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "group": "commons:Fuel limit notice (closeup), Mobil Petrol, Hódmezővásárhely - March 27, 2022",
+   "labels": "Hungarian (Forint, Liter, Ft/L)",
+   "expected": null,
+   "displayed": {
+    "total": "000000",
+    "liters": "0000,00"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "commons:Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022",
+   "kind": "pump",
+   "group": "commons:Fuel limit notice (closeup), Lukoil, Hódmezővásárhely - March 27, 2022",
+   "labels": "Hungarian (Ft, L, Ft/L)",
+   "expected": null,
+   "displayed": {
+    "total": "0",
+    "liters": "0.00"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null
+  },
+  {
+   "id": "commons:TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser",
+   "kind": "pump",
+   "group": "commons:TATSUNO Corporation, SUNNY-X(Fuel Dispenser) and AdBlue Dispenser",
+   "labels": "Japanese; two volume-only displays",
+   "expected": null,
+   "displayed": {
+    "liters": "35.36 and 32.50 (two hoses; legible at full size)"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null
+  }
+ ]
+}

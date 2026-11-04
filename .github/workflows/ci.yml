@@ -219,3 +219,45 @@ jobs:
           name: unified-pwa-failure
           path: test-results/unified/
           retention-days: 7
+
+  camera-replay:
+    # The live scan with Chromium's fake camera playing rendered displays:
+    # the real worker, models, session, form, save and reload. Software
+    # replays of synthetic displays, not phone validation. The scenes are
+    # checked against their pinned pixels (e2e/fixtures/replay-scenes.json)
+    # before any test runs.
+    name: Camera replay (live scan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config playwright.replay.config.ts --reporter=list,json
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: replay-report/playwright.json
+      - name: Scan outcomes apart from test results
+        if: always()
+        run: test ! -f replay-report/playwright.json || node scripts/scan-benchmark/replay-report.mjs replay-report/playwright.json replay-report/replay-ci.json
+      - name: Keep the replay report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: camera-replay-report
+          path: replay-report/
+          retention-days: 30
+      - name: Keep failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: camera-replay-failure
+          path: test-results/replay/
+          retention-days: 7

@@ -1,4 +1,5 @@
-import { recognizeLine, validateReading, type PixelImage } from './sevenSegment';
+import { recognizeLine, type PixelImage } from './sevenSegment';
+import { resolveOdometer, resolvePump, type IdentityReason, type LabelToken, type NumericLine } from './identity';
 
 /** Classical image processing only: local contrast, connected components and
  * the electrical seven-segment alphabet. No trained weights, OCR or network.
@@ -7,7 +8,14 @@ import { recognizeLine, validateReading, type PixelImage } from './sevenSegment'
  */
 export type DisplayKind = 'pump' | 'odometer';
 export type DisplayReading = { total: string; liters: string } | { odometer: string };
-export type DisplayResult = { status: 'read'; values: DisplayReading } | { status: 'unreadable' };
+export type RejectReason = IdentityReason | 'invalid-image' | 'unstable' | 'conflict';
+export type DisplayResult = { status: 'read'; values: DisplayReading; evidence: string[] } | { status: 'unreadable'; reason?: RejectReason };
+/** Light: emissive digits (luminance). Value: emissive digits of any colour
+ * (brightest channel — red/amber/green LEDs have little luminance). Blue: the
+ * blue-tinted LCD backlight. Dark: reflective LCD, dark segments on light. */
+export type Polarity = 'light' | 'value' | 'blue' | 'dark';
+/** One line, merged over the thresholds of one polarity that found it. */
+export type StableLine = NumericLine & { polarity: Polarity; support: number };
 type Component = { x: number; y: number; w: number; h: number; area: number; cx: number; cy: number };
 type Geometry = { cx: number; top: number; width: number; height: number; shear: number };
 type Digit = Geometry & { digit: string; score: number };
@@ -36,7 +44,7 @@ function components(mask: Uint8Array, width: number, height: number): Component[
   }
   return result;
 }
-function feature(image:PixelImage, gray:Float32Array, integral:Float64Array, threshold:number, mode:'light'|'dark'|'blue') {
+function feature(image:PixelImage, gray:Float32Array, integral:Float64Array, threshold:number, mode:Polarity) {
   const {width:w,height:h,data}=image, stride=w+1, mask=new Uint8Array(w*h);
   const radius=Math.max(8,Math.round(w*(mode==='blue'?.0125:.01875)));
   for(let y=0;y<h;y++)for(let x=0;x<w;x++) {
@@ -72,7 +80,7 @@ function distinctDigits(digits:Digit[], distance=.7):Digit[] {
   }
   return result;
 }
-function findLines(mask:Uint8Array,w:number,h:number,blue:boolean,kind:DisplayKind):Line[] {
+function findLines(mask:Uint8Array,channel:Float32Array,w:number,h:number,blue:boolean,dark:boolean,kind:DisplayKind):Line[] {
   // Horizontal opening isolates the bars even when glare joins neighbouring
   // digits. Pairing bars supplies scale, vertical perspective and italic slant.
   const radius=Math.max(2,Math.round(w*(blue?.003125:.0073))), horizontal=new Uint8Array(mask.length);
@@ -102,6 +110,32 @@ function findLines(mask:Uint8Array,w:number,h:number,blue:boolean,kind:DisplayKi
         const digit=readDigit(mask,w,h,{cx:cx+dx*height,top:top+dt*height,width:width*scale,height,shear});
         if(digit&&digit.digit!=='1'&&digit.digit!=='7')candidates.push(digit);
       }
+    }
+  }
+  // Ones and sevens have fewer than two horizontal bars, so a row made only of
+  // them has no bar anchors. Their two stacked vertical strokes (b over c)
+  // supply the height and slant instead. Such a digit must still pass the full
+  // segment check, including empty space on both sides.
+  const vertical=new Uint8Array(mask.length);
+  for(let x=0;x<w;x++) {
+    let sum=0;
+    for(let y=0;y<h;y++) {
+      sum+=mask[y*w+x];if(y>=radius*2+1)sum-=mask[(y-radius*2-1)*w+x];
+      if(sum===radius*2+1)vertical[(y-radius)*w+x]=1;
+    }
+  }
+  const posts=components(vertical,w,h).map(c=>({...c,h:c.h+radius*2,y:c.y-radius}))
+    .filter(c=>c.h>10&&c.h<h*.2&&c.w>1&&c.h/c.w>2&&c.h/c.w<14&&c.area>10);
+  if(posts.length<=500)for(let i=0;i<posts.length;i++)for(let j=0;j<posts.length;j++) {
+    const a=posts[i],b=posts[j],gap=b.y-(a.y+a.h),span=b.y+b.h-a.y;
+    if(i===j||gap<-span*.04||gap>span*.16||a.h/b.h<.7||a.h/b.h>1.4||Math.abs(a.cx-b.cx)>span*.2)continue;
+    const height=span/.84,top=a.y-height*.08,shear=(a.cx-b.cx)/(.28-.72),postX=(a.cx+b.cx)/2;
+    if(height<22||height>h*.35)continue;
+    for(const ratio of blue?[1.4,1.8,2.2]:[1.9,2.2,2.6])for(const dt of [-.015,0,.015]) {
+      const width=height/ratio;
+      // The strokes are the right column of a one/seven cell.
+      const digit=readDigit(mask,w,h,{cx:postX-.385*width,top:top+dt*height,width,height,shear});
+      if(digit&&(digit.digit==='1'||digit.digit==='7'))candidates.push({...digit,score:digit.score-.04});
     }
   }
   const anchors=distinctDigits(candidates), groups:Digit[][]=[];
@@ -142,15 +176,18 @@ function findLines(mask:Uint8Array,w:number,h:number,blue:boolean,kind:DisplayKi
       if(!last || digit.cx-last.at(-1)!.cx>width*2.05)clusters.push([digit]);else last.push(digit);
     }
     for(const digits of clusters) {
-      if(digits.length<3||digits.length>7)continue;
+      if(digits.length<(kind==='pump'?3:2)||digits.length>7)continue;
       const gaps=digits.slice(1).map((d,i)=>d.cx-digits[i].cx);
       const pitch=[...gaps].sort((a,b)=>a-b)[Math.floor(gaps.length/2)];
       if(gaps.some(g=>g<pitch*.7||g>pitch*1.35))continue;
       // A bar at the next character position means the line may be truncated.
       // Do not accept a shorter number just because that last digit is unclear.
+      // So does a digit-height vertical stroke there (a 4, or a 1 or 7 that was
+      // not decoded), which has fewer than two bars.
       const hasUnresolvedEnd=[digits[0].cx-pitch,digits.at(-1)!.cx+pitch].some(x=>
         [.065,.5,.935].filter(y=>bars.some(b=>Math.abs(b.cx-x)<width*.4 && b.w/width>.6 && b.w/width<1.4 &&
-          Math.abs(b.cy-(top+(b.cx-cx)*slope+y*height))<height*.08)).length>=2);
+          Math.abs(b.cy-(top+(b.cx-cx)*slope+y*height))<height*.08)).length>=2 ||
+        posts.some(p=>Math.abs(p.cx-x)<width*.6 && p.h>=height*.3 && p.y>=top+(p.cx-cx)*slope-height*.1 && p.y+p.h<=top+(p.cx-cx)*slope+height*1.1));
       if(hasUnresolvedEnd)continue;
       let text='';
       for(let i=0;i<digits.length;i++) {
@@ -161,42 +198,121 @@ function findLines(mask:Uint8Array,w:number,h:number,blue:boolean,kind:DisplayKi
       if(text)lines.push({text,left:digits[0].cx-width/2,right:digits.at(-1)!.cx+width/2,top:digits[0].top,height,digits});
     }
   }
-return lines;
+  // Segments cover well under half of their own row, and are clearly brighter
+  // (or darker) than the row's background. A "row" failing either is the
+  // background read in the opposite polarity: the gaps between bright segments.
+  return lines.filter(line=>{
+    let on=0,ink=0;const background:number[]=[];
+    for(let y=Math.max(0,Math.round(line.top));y<Math.min(h,Math.round(line.top+line.height));y++)for(let x=Math.max(0,Math.round(line.left));x<Math.min(w,Math.round(line.right));x++){
+      const i=y*w+x;if(mask[i]){on++;ink+=channel[i];}else background.push(channel[i]);
+    }
+    if(!on||on/(on+background.length)>=.5)return false;
+    background.sort((a,b)=>a-b);const median=background[background.length>>1]??0;
+    return dark?median-ink/on>20:ink/on-median>20;
+  });
 }
-function selectReading(lines:Line[],kind:DisplayKind):DisplayReading|null {
-  if(kind==='odometer') {
-    const candidates=lines.filter(row=>/^\d{4,7}$/.test(row.text));
-    // A second equally plausible display is ambiguous; blue alone does not
-    // establish that a value is the lifetime odometer. The final form says so.
-    const texts=[...new Set(candidates.map(row=>row.text))];
-    return texts.length===1?{odometer:texts[0]}:null;
-  }
-  const pairs:{values:DisplayReading;size:number}[]=[];
-  for(const top of lines)for(const bottom of lines) {
-    const dy=bottom.top-top.top,overlap=Math.min(top.right,bottom.right)-Math.max(top.left,bottom.left);
-    if(dy<top.height*.75||dy>top.height*2.5||bottom.height/top.height<.6||bottom.height/top.height>1.4||overlap/Math.max(top.right-top.left,bottom.right-bottom.left)<.7)continue;
-    if(!validateReading(top.text,'total')||!validateReading(bottom.text,'liters'))continue;
-    pairs.push({values:{total:top.text,liters:bottom.text},size:top.height+bottom.height});
-  }
-  pairs.sort((a,b)=>b.size-a.size);
-  if(!pairs.length || pairs.some(p=>p.size>pairs[0].size*.8 && JSON.stringify(p.values)!==JSON.stringify(pairs[0].values)))return null;
-  return pairs[0].values;
+const overlapX=(a:NumericLine,b:NumericLine)=>Math.min(a.right,b.right)-Math.max(a.left,b.left);
+function sameLine(a:NumericLine,b:NumericLine) {
+  return Math.abs(a.top+a.height/2-b.top-b.height/2)<Math.min(a.height,b.height)*.35 && a.height/b.height>.75 && a.height/b.height<1.33 && overlapX(a,b)>Math.min(a.right-a.left,b.right-b.left)*.5;
 }
-export function recognizeDisplay(image:PixelImage,kind:DisplayKind):DisplayResult {
-  const {width:w,height:h,data}=image;
-  if(!Number.isInteger(w)||!Number.isInteger(h)||w<32||h<32||w*h>1_600_000||data.length!==w*h*4)return {status:'unreadable'};
-  const gray=new Float32Array(w*h),integral=new Float64Array((w+1)*(h+1));
-  for(let y=0;y<h;y++) {
-    let sum=0;for(let x=0;x<w;x++) {
-      const i=y*w+x;gray[i]=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2];sum+=gray[i];
-      integral[(y+1)*(w+1)+x+1]=integral[y*(w+1)+x+1]+sum;
+/** Thresholds of one polarity vote per line. A line is stable when at least
+ * two thresholds read it and none reads it differently. */
+function mergeThresholds(perThreshold:Line[][],polarity:Polarity) {
+  const merged:{line:Line;texts:Map<string,number>}[]=[];
+  for(const lines of perThreshold)for(const line of lines) {
+    let entry=merged.find(m=>sameLine(m.line,line));
+    if(!entry){entry={line,texts:new Map()};merged.push(entry);}
+    entry.texts.set(line.text,(entry.texts.get(line.text)??0)+1);
+  }
+  const stable:StableLine[]=[],conflicts:NumericLine[]=[];
+  for(const {line,texts} of merged) {
+    const box={left:line.left,right:line.right,top:line.top,height:line.height};
+    if(texts.size>1)conflicts.push({...box,text:[...texts.keys()].join('|')});
+    else {const [[text,support]]=[...texts];if(support>=2)stable.push({...box,text,polarity,support});}
+  }
+  return {polarity,stable,conflicts};
+}
+export type PolarityLines = ReturnType<typeof mergeThresholds>;
+/** Stacked rows of one display panel. Another panel elsewhere in the frame is
+ * a second display, not more evidence. */
+function panels(lines:NumericLine[]) {
+  const parent=lines.map((_,i)=>i),find=(i:number):number=>parent[i]===i?i:(parent[i]=find(parent[i]));
+  lines.forEach((a,i)=>lines.forEach((b,j)=>{
+    if(j<=i)return;const size=Math.max(a.height,b.height),ratio=a.height/b.height;
+    const gap=Math.max(a.top,b.top)-Math.min(a.top+a.height,b.top+b.height),dx=-overlapX(a,b);
+    if(ratio>.4&&ratio<2.5&&gap<size*2.5&&dx<size)parent[find(i)]=find(j);
+  }));
+  const groups=new Map<number,NumericLine[]>();
+  lines.forEach((line,i)=>groups.set(find(i),[...(groups.get(find(i))??[]),line]));
+  return [...groups.values()];
+}
+const SEVERITY:RejectReason[]=['no-reading','unstable','format','unit-miles','trip-meter','identity-ambiguous','foreign-currency','conflict'];
+/** The light and value channels see the same bright digits on a dark
+ * panel; a camera's colour subsampling (4:2:0 video) can leave each with only
+ * some of a pump's rows (gray: the volume, value: the amount). Their rows
+ * together are one more candidate, when they agree wherever they overlap. */
+function bothChannels(polarities:PolarityLines[]):PolarityLines[] {
+  const light=polarities.find(p=>p.polarity==='light'),value=polarities.find(p=>p.polarity==='value');
+  if(!light?.stable.length||!value?.stable.length)return [];
+  const same=(a:NumericLine,b:NumericLine)=>Math.min(a.top+a.height,b.top+b.height)-Math.max(a.top,b.top)>.5*Math.min(a.height,b.height)&&overlapX(a,b)>0;
+  if(value.stable.some(v=>light.stable.some(l=>same(l,v)&&l.text!==v.text)))return [];
+  const extra=value.stable.filter(v=>!light.stable.some(l=>same(l,v)));
+  return extra.length?[{polarity:'light',stable:[...light.stable,...extra],conflicts:[...light.conflicts,...value.conflicts]}]:[];
+}
+/** Decide from the lines of every polarity plus any recognised labels. A
+ * different reading in a second polarity is a conflict, not a fallback. */
+export function decideDisplay(polarities:PolarityLines[],kind:DisplayKind,labels:LabelToken[]=[]):DisplayResult {
+  const outcomes:{values:DisplayReading;evidence:string[]}[]=[];let reason:RejectReason='no-reading';
+  const worse=(next:RejectReason)=>{if(SEVERITY.indexOf(next)>SEVERITY.indexOf(reason))reason=next;};
+  for(const {polarity,stable,conflicts} of kind==='pump'?[...polarities,...bothChannels(polarities)]:polarities) {
+    if(kind==='pump') {
+      const groups=panels(stable.filter(line=>line.text.includes('.'))).filter(group=>group.length>=2);
+      if(!groups.length){if(stable.length)worse('format');continue;}
+      if(groups.length>1){worse('identity-ambiguous');continue;}
+      const [group]=groups;
+      if(conflicts.some(c=>panels([...group,c]).length===1)){worse('conflict');continue;}
+      // A decimal row left out of the panel but in its column (a row cut by
+      // the crop, a misread amount) is unexplained: the panel may be missing
+      // the amount, and a 2-place volume beside a 3-place price would then
+      // look like an amount and a volume.
+      const size=Math.max(...group.map(l=>l.height)),left=Math.min(...group.map(l=>l.left)),right=Math.max(...group.map(l=>l.right)),top=Math.min(...group.map(l=>l.top)),bottom=Math.max(...group.map(l=>l.top+l.height));
+      if(stable.some(l=>l.text.includes('.')&&!group.includes(l)&&Math.min(l.right,right)-Math.max(l.left,left)>.3*(l.right-l.left)&&l.top<bottom+size*3&&l.top+l.height>top-size*3)){worse('identity-ambiguous');continue;}
+      const identity=resolvePump(group,labels);
+      if(identity.status==='resolved')outcomes.push({values:{total:identity.values.total,liters:identity.values.liters},evidence:[...identity.evidence,...(identity.values.unitPrice?[`observed-unit-price:${identity.values.unitPrice}`]:[]),`polarity:${polarity}`]});
+      else worse(identity.reason);
+    } else {
+      if(conflicts.some(c=>/^\d+(\|\d+)+$/.test(c.text))){worse('conflict');continue;}
+      if(!stable.length)continue;
+      const identity=resolveOdometer(stable,labels);
+      if(identity.status==='resolved')outcomes.push({values:identity.values,evidence:[...identity.evidence,`unit:${identity.unit}`,`polarity:${polarity}`]});
+      else worse(identity.reason);
     }
   }
-  const modes:('light'|'dark'|'blue')[]=kind==='pump'?['light','dark']:['blue','light'];
-  for(const mode of modes) {
-    const thresholds=mode==='blue'?[7,10]:[10,12,14,16];
-    const readings=thresholds.map(threshold=>selectReading(findLines(feature(image,gray,integral,threshold,mode),w,h,mode==='blue',kind),kind)).filter((reading):reading is DisplayReading=>reading!==null);
-    if(readings.length>=2 && readings.every(reading=>JSON.stringify(reading)===JSON.stringify(readings[0])))return {status:'read',values:readings[0]};
+  if(new Set(outcomes.map(o=>JSON.stringify(o.values))).size>1)return {status:'unreadable',reason:'conflict'};
+  if(outcomes.length)return {status:'read',values:outcomes[0].values,evidence:[...new Set(outcomes.flatMap(o=>o.evidence))]};
+  return {status:'unreadable',reason};
+}
+const POLARITIES:Record<DisplayKind,Polarity[]>={pump:['light','value','dark'],odometer:['blue','light','value','dark']};
+/** Lines of every supported polarity, before any field is assigned. */
+export function analyzeDisplay(image:PixelImage,kind:DisplayKind,polarities=POLARITIES[kind]):PolarityLines[]|null {
+  const {width:w,height:h,data}=image;
+  if(!Number.isInteger(w)||!Number.isInteger(h)||w<32||h<32||w*h>1_600_000||data.length!==w*h*4)return null;
+  const channels={gray:new Float32Array(w*h),value:new Float32Array(w*h)};
+  const integrals={gray:new Float64Array((w+1)*(h+1)),value:new Float64Array((w+1)*(h+1))};
+  for(let y=0;y<h;y++) {
+    let sum=0,sumValue=0;for(let x=0;x<w;x++) {
+      const i=y*w+x,r=data[i*4],g=data[i*4+1],b=data[i*4+2];
+      channels.gray[i]=.299*r+.587*g+.114*b;channels.value[i]=Math.max(r,g,b);sum+=channels.gray[i];sumValue+=channels.value[i];
+      integrals.gray[(y+1)*(w+1)+x+1]=integrals.gray[y*(w+1)+x+1]+sum;
+      integrals.value[(y+1)*(w+1)+x+1]=integrals.value[y*(w+1)+x+1]+sumValue;
+    }
   }
-  return {status:'unreadable'};
+  return polarities.map(polarity=>{
+    const channel=polarity==='value'?'value':'gray',thresholds=polarity==='blue'?[7,10]:[10,12,14,16];
+    return mergeThresholds(thresholds.map(threshold=>findLines(feature(image,channels[channel],integrals[channel],threshold,polarity),channels[channel],w,h,polarity==='blue',polarity==='dark',kind)),polarity);
+  });
+}
+export function recognizeDisplay(image:PixelImage,kind:DisplayKind,labels:LabelToken[]=[]):DisplayResult {
+  const polarities=analyzeDisplay(image,kind);
+  return polarities?decideDisplay(polarities,kind,labels):{status:'unreadable',reason:'invalid-image'};
 }

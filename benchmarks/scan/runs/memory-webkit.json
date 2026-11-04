@@ -1,0 +1,155 @@
+{
+ "format": "tank-maleh-scan-memory-v1",
+ "at": "2026-11-01T14:11:34.166Z",
+ "commit": "c35d40286d9ab5dd913afec900a51bf19566f05c",
+ "engine": "webkit",
+ "browserVersion": "27.2",
+ "profile": "fresh persistent profile",
+ "machine": "Apple M5",
+ "note": "Resident memory of the renderer / web-content processes (page + worker), sampled after a requested garbage collection. Each cycle opens a recogniser worker, reads 8 photos, cancels a 9th mid-read by terminating the worker.",
+ "photosPerCycle": 8,
+ "opens": [
+  {
+   "cycle": 1,
+   "readyMs": 511,
+   "recognizer": "ready",
+   "downloadedBytes": 31377477
+  },
+  {
+   "cycle": 2,
+   "readyMs": 202,
+   "recognizer": "ready",
+   "downloadedBytes": 0
+  },
+  {
+   "cycle": 3,
+   "readyMs": 182,
+   "recognizer": "ready",
+   "downloadedBytes": 0
+  },
+  {
+   "cycle": 4,
+   "readyMs": 172,
+   "recognizer": "ready",
+   "downloadedBytes": 0
+  },
+  {
+   "cycle": 5,
+   "readyMs": 163,
+   "recognizer": "ready",
+   "downloadedBytes": 0
+  }
+ ],
+ "samples": [
+  {
+   "cycle": 0,
+   "step": "page open",
+   "rssMb": 106
+  },
+  {
+   "cycle": 1,
+   "step": "recogniser ready",
+   "rssMb": 435
+  },
+  {
+   "cycle": 1,
+   "step": "4 photos read",
+   "rssMb": 826
+  },
+  {
+   "cycle": 1,
+   "step": "8 photos read",
+   "rssMb": 990
+  },
+  {
+   "cycle": 1,
+   "step": "cancelled; worker terminated",
+   "rssMb": 916
+  },
+  {
+   "cycle": 2,
+   "step": "recogniser ready",
+   "rssMb": 839
+  },
+  {
+   "cycle": 2,
+   "step": "4 photos read",
+   "rssMb": 1031
+  },
+  {
+   "cycle": 2,
+   "step": "8 photos read",
+   "rssMb": 1093
+  },
+  {
+   "cycle": 2,
+   "step": "cancelled; worker terminated",
+   "rssMb": 1090
+  },
+  {
+   "cycle": 3,
+   "step": "recogniser ready",
+   "rssMb": 970
+  },
+  {
+   "cycle": 3,
+   "step": "4 photos read",
+   "rssMb": 994
+  },
+  {
+   "cycle": 3,
+   "step": "8 photos read",
+   "rssMb": 1018
+  },
+  {
+   "cycle": 3,
+   "step": "cancelled; worker terminated",
+   "rssMb": 1020
+  },
+  {
+   "cycle": 4,
+   "step": "recogniser ready",
+   "rssMb": 949
+  },
+  {
+   "cycle": 4,
+   "step": "4 photos read",
+   "rssMb": 1027
+  },
+  {
+   "cycle": 4,
+   "step": "8 photos read",
+   "rssMb": 1015
+  },
+  {
+   "cycle": 4,
+   "step": "cancelled; worker terminated",
+   "rssMb": 961
+  },
+  {
+   "cycle": 5,
+   "step": "recogniser ready",
+   "rssMb": 939
+  },
+  {
+   "cycle": 5,
+   "step": "4 photos read",
+   "rssMb": 1044
+  },
+  {
+   "cycle": 5,
+   "step": "8 photos read",
+   "rssMb": 970
+  },
+  {
+   "cycle": 5,
+   "step": "cancelled; worker terminated",
+   "rssMb": 958
+  },
+  {
+   "cycle": 5,
+   "step": "idle 10 s after the last teardown",
+   "rssMb": 707
+  }
+ ]
+}

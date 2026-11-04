@@ -1,0 +1,3207 @@
+{
+ "format": "tank-maleh-scan-photo-sessions-v1",
+ "set": "dev",
+ "seed": 7,
+ "generator": "scripts/scan-benchmark/fixture-set.mjs",
+ "note": "Synthetic labelled displays. A scene and its degraded copy share a group. expected: null means nothing may be filled (foreign currency).",
+ "sessions": [
+  {
+   "id": "dev-g000-clean",
+   "group": "dev-g000",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g000-clean.png",
+   "sha256": "bbc3028c23a157545db055ace5c55283271477b1f237a0189deedfd3024f223c",
+   "expected": {
+    "total": "395.78",
+    "liters": "58.34"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "58.34"
+    },
+    {
+     "role": "total",
+     "text": "395.78"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "liters/total 2-place"
+  },
+  {
+   "id": "dev-g000-blur",
+   "group": "dev-g000",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g000-blur.png",
+   "sha256": "a080e771021b28cc36a89a1330b638572b9655716b8dcccaca3871f5ffb7de14",
+   "expected": {
+    "total": "395.78",
+    "liters": "58.34"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "58.34"
+    },
+    {
+     "role": "total",
+     "text": "395.78"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "liters/total 2-place"
+  },
+  {
+   "id": "dev-g001-clean",
+   "group": "dev-g001",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g001-clean.png",
+   "sha256": "0f3d913c4b138ad69fbeb1c602b853b858e735013cbcb059113a3a46603a228d",
+   "expected": {
+    "odometer": "70274"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "10:24"
+    },
+    {
+     "role": "odometer",
+     "text": "70274"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "random, clock"
+  },
+  {
+   "id": "dev-g001-jpeg",
+   "group": "dev-g001",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g001-jpeg.png",
+   "sha256": "5cf4158edbac0e87e234813c5454ab49a22cab9afd5d5fea682104aa5797dad6",
+   "expected": {
+    "odometer": "70274"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "10:24"
+    },
+    {
+     "role": "odometer",
+     "text": "70274"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "note": "random, clock"
+  },
+  {
+   "id": "dev-g002-clean",
+   "group": "dev-g002",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g002-clean.png",
+   "sha256": "d667e059aa1e92467c1121f071eca9aaf6e7e8c792818e8f77d57c8d2e453522",
+   "expected": null,
+   "rows": [
+    {
+     "role": "total",
+     "text": "310,44"
+    },
+    {
+     "role": "liters",
+     "text": "48,811"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6,36"
+    }
+   ],
+   "labels": "none",
+   "currency": "€",
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 3-place, decimal comma, euros"
+  },
+  {
+   "id": "dev-g002-blur",
+   "group": "dev-g002",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g002-blur.png",
+   "sha256": "45ab4638c2c336846c7c32c32f90886b3b6920831a8b32f89caa830479520679",
+   "expected": null,
+   "rows": [
+    {
+     "role": "total",
+     "text": "310,44"
+    },
+    {
+     "role": "liters",
+     "text": "48,811"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6,36"
+    }
+   ],
+   "labels": "none",
+   "currency": "€",
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "blur",
+   "note": "total/liters/unitPrice 3-place, decimal comma, euros"
+  },
+  {
+   "id": "dev-g003-clean",
+   "group": "dev-g003",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g003-clean.png",
+   "sha256": "d8c749408e1cddf9fedc28a04e71bdafa4dad3896bc7a913c1e77b9afb54c2b1",
+   "expected": {
+    "odometer": "89661"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "89661"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "trailing-one, none"
+  },
+  {
+   "id": "dev-g003-jpeg",
+   "group": "dev-g003",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g003-jpeg.png",
+   "sha256": "0fec598d6c7360ccbe03691de5f08127f278a179f9d57c76e58320380e869302",
+   "expected": {
+    "odometer": "89661"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "89661"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "trailing-one, none"
+  },
+  {
+   "id": "dev-g004-clean",
+   "group": "dev-g004",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g004-clean.png",
+   "sha256": "5adb4605162a06a2b32307c2440631b8cdff94dfd9a873ee1a367357188cbd64",
+   "expected": {
+    "total": "232.26",
+    "liters": "34.661"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "232,26"
+    },
+    {
+     "role": "liters",
+     "text": "34,661"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters 3-place, decimal comma"
+  },
+  {
+   "id": "dev-g004-tilt",
+   "group": "dev-g004",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g004-tilt.png",
+   "sha256": "6672b4995a70505caf68b7884e564240b9f83995141fa5e5e8f4d82c912d433e",
+   "expected": {
+    "total": "232.26",
+    "liters": "34.661"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "232,26"
+    },
+    {
+     "role": "liters",
+     "text": "34,661"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "total/liters 3-place, decimal comma"
+  },
+  {
+   "id": "dev-g005-clean",
+   "group": "dev-g005",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g005-clean.png",
+   "sha256": "fe98f8499462272cf1e5973fa8d441766fcf64b5ac68c7850cfc487629f9e6d5",
+   "expected": {
+    "odometer": "137972"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "137972"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g005-jpeg",
+   "group": "dev-g005",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g005-jpeg.png",
+   "sha256": "c7c60354172c6ea08f2ec569af64f261589cecfc8aa642c55a21a5f2c76da348",
+   "expected": {
+    "odometer": "137972"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "137972"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g006-clean",
+   "group": "dev-g006",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g006-clean.png",
+   "sha256": "df838efc9e9b97bf24211092e87774d5118f8bd4597161a0d6cc560b9a79791a",
+   "expected": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "191.49"
+    },
+    {
+     "role": "liters",
+     "text": "29.325"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters 3-place"
+  },
+  {
+   "id": "dev-g006-blur",
+   "group": "dev-g006",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g006-blur.png",
+   "sha256": "c6833019cb448d8d9cf98bb26a3ffa496cdb75771bbf8c473f0cf92ca9ae5e39",
+   "expected": {
+    "total": "191.49",
+    "liters": "29.325"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "191.49"
+    },
+    {
+     "role": "liters",
+     "text": "29.325"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "total/liters 3-place"
+  },
+  {
+   "id": "dev-g007-clean",
+   "group": "dev-g007",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g007-clean.png",
+   "sha256": "43a5b1966668d94bb66e8350b3132069e981d4b01bfca4e442d4f38ba1efb8c3",
+   "expected": {
+    "odometer": "145264"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "909.3"
+    },
+    {
+     "role": "odometer",
+     "text": "145264"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "ones, trip"
+  },
+  {
+   "id": "dev-g007-blur",
+   "group": "dev-g007",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g007-blur.png",
+   "sha256": "c36f0fb419a576b4d1b48afc5f53409065b118282d9a6010d1112047d1cdc231",
+   "expected": {
+    "odometer": "145264"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "909.3"
+    },
+    {
+     "role": "odometer",
+     "text": "145264"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "blur",
+   "note": "ones, trip"
+  },
+  {
+   "id": "dev-g008-clean",
+   "group": "dev-g008",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g008-clean.png",
+   "sha256": "3dab9f2fb394aebfe78118c7ed8db98cf0d2ef0a36e9a28358d892bba7aa00ce",
+   "expected": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "244.88"
+    },
+    {
+     "role": "liters",
+     "text": "32.87"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.45"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g008-noise",
+   "group": "dev-g008",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g008-noise.png",
+   "sha256": "ded6efaa8d5046b06a3b1e7f23a16b402900dcec3248bb2ba1b6d3c491f9816b",
+   "expected": {
+    "total": "244.88",
+    "liters": "32.87"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "244.88"
+    },
+    {
+     "role": "liters",
+     "text": "32.87"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.45"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "noise",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g009-clean",
+   "group": "dev-g009",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g009-clean.png",
+   "sha256": "e6a9380bd58be3a96bccf00997eb710fb2e8a43a5448023d06091eaaa0f73734",
+   "expected": {
+    "odometer": "197221"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "11:05"
+    },
+    {
+     "role": "odometer",
+     "text": "197221"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "trailing-one, clock"
+  },
+  {
+   "id": "dev-g009-jpeg",
+   "group": "dev-g009",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g009-jpeg.png",
+   "sha256": "2ce16cb8448ccf498de7b06acc5d5673157c7d6021ae9caab2d435717bdaf001",
+   "expected": {
+    "odometer": "197221"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "11:05"
+    },
+    {
+     "role": "odometer",
+     "text": "197221"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "note": "trailing-one, clock"
+  },
+  {
+   "id": "dev-g010-clean",
+   "group": "dev-g010",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g010-clean.png",
+   "sha256": "b4c0e076f95919341fd38d5ca317e1c3d61e3109f98c2899e23e7f569e0552a3",
+   "expected": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "60,54"
+    },
+    {
+     "role": "total",
+     "text": "388,49"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "liters/total 2-place, decimal comma"
+  },
+  {
+   "id": "dev-g010-tilt",
+   "group": "dev-g010",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g010-tilt.png",
+   "sha256": "ce5feb71ce087fb7dc2b5a32599302ab9ef1a4ea29fed2f6b62b2f1b69b56f3a",
+   "expected": {
+    "total": "388.49",
+    "liters": "60.54"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "60,54"
+    },
+    {
+     "role": "total",
+     "text": "388,49"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "liters/total 2-place, decimal comma"
+  },
+  {
+   "id": "dev-g011-clean",
+   "group": "dev-g011",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g011-clean.png",
+   "sha256": "cadbc8635f6fcc88b0bc50fec0ead26d4ede4560e9fb351f796599967172f4c9",
+   "expected": {
+    "odometer": "118342"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "118342"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g011-noise",
+   "group": "dev-g011",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g011-noise.png",
+   "sha256": "e5ad842235b6786283b8451137c49660995e555cc0156673c51a2649954bd36a",
+   "expected": {
+    "odometer": "118342"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "118342"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "noise",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g012-clean",
+   "group": "dev-g012",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g012-clean.png",
+   "sha256": "7d316beffa8a1c4d01a96776397133975a2fa7c5252e219ba4bc3a3cca01b1f7",
+   "expected": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "292.33"
+    },
+    {
+     "role": "liters",
+     "text": "44.36"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.59"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g012-jpeg",
+   "group": "dev-g012",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g012-jpeg.png",
+   "sha256": "c592ef65c26fd3cf8341cc020be763e084454104ee671e27007f4ee2b96023de",
+   "expected": {
+    "total": "292.33",
+    "liters": "44.36"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "292.33"
+    },
+    {
+     "role": "liters",
+     "text": "44.36"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.59"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g013-clean",
+   "group": "dev-g013",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g013-clean.png",
+   "sha256": "4a25b1e6f578665da16075bea3c5d3a3298d3a457b43369d45685f6eadf12bf0",
+   "expected": {
+    "odometer": "191311"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "191311"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "ones, none"
+  },
+  {
+   "id": "dev-g013-blur",
+   "group": "dev-g013",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g013-blur.png",
+   "sha256": "d6d14edaa002a1605e837f6a06ca7a71aacf0400e538dc59ae2861b23fc28cdd",
+   "expected": {
+    "odometer": "191311"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "191311"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "ones, none"
+  },
+  {
+   "id": "dev-g014-clean",
+   "group": "dev-g014",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g014-clean.png",
+   "sha256": "3607068c26f018419a128b6770b5855e6571a80bb316388490686d564804541c",
+   "expected": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "76.87"
+    },
+    {
+     "role": "liters",
+     "text": "10.819"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.105"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g014-tilt",
+   "group": "dev-g014",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g014-tilt.png",
+   "sha256": "bbc1818c708d2d356fa75918d07fe0589133fe14f5ac017e04d5aa219430aec1",
+   "expected": {
+    "total": "76.87",
+    "liters": "10.819"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "76.87"
+    },
+    {
+     "role": "liters",
+     "text": "10.819"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.105"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g015-clean",
+   "group": "dev-g015",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g015-clean.png",
+   "sha256": "ec14ac3593a156823521be8817b08f24a3f5c4d760e8bfa403bb234c4f17b7a4",
+   "expected": {
+    "odometer": "168921"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "168921"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "trailing-one, none"
+  },
+  {
+   "id": "dev-g015-tilt",
+   "group": "dev-g015",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g015-tilt.png",
+   "sha256": "f6278c6d3945c60193f49aa8e1373bf911ffe15d7b578f18cd93d919762452b2",
+   "expected": {
+    "odometer": "168921"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "168921"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "trailing-one, none"
+  },
+  {
+   "id": "dev-g016-clean",
+   "group": "dev-g016",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g016-clean.png",
+   "sha256": "42c75c88367667988089461f90ed98e512a34b91807d7f59c0e8ab277d1d1dac",
+   "expected": {
+    "total": "285.37",
+    "liters": "36.409"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "285.37"
+    },
+    {
+     "role": "liters",
+     "text": "36.409"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.838"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g016-blur",
+   "group": "dev-g016",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g016-blur.png",
+   "sha256": "e95c6f0d179c1427d49ccb68d7f9bb77c37f817ef27591a7325c18f582077e21",
+   "expected": {
+    "total": "285.37",
+    "liters": "36.409"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "285.37"
+    },
+    {
+     "role": "liters",
+     "text": "36.409"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.838"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g017-clean",
+   "group": "dev-g017",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g017-clean.png",
+   "sha256": "8773fb94d8bd45eb794d71338e9eead676ffee65f2006d6c7cb8ed48045babfe",
+   "expected": {
+    "odometer": "51041"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "69971"
+    },
+    {
+     "role": "odometer",
+     "text": "51041"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "ones, trip-integer"
+  },
+  {
+   "id": "dev-g017-blur",
+   "group": "dev-g017",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g017-blur.png",
+   "sha256": "8f2c47b9c2f1f519899e4ec0b3009cf33d800eada9ba524fb8b726cc330046ac",
+   "expected": {
+    "odometer": "51041"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "69971"
+    },
+    {
+     "role": "odometer",
+     "text": "51041"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "ones, trip-integer"
+  },
+  {
+   "id": "dev-g018-clean",
+   "group": "dev-g018",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g018-clean.png",
+   "sha256": "1281132d9d5999910013b73ae13621a8f8bcad85eb3eb614746b6ed3e78ed1c5",
+   "expected": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "23.99"
+    },
+    {
+     "role": "total",
+     "text": "156.34"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "liters/total 2-place"
+  },
+  {
+   "id": "dev-g018-tilt",
+   "group": "dev-g018",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g018-tilt.png",
+   "sha256": "ee14689cea22307786d8673c382bc4ab3c9d01abcbeead0ab5b92ada99f70220",
+   "expected": {
+    "total": "156.34",
+    "liters": "23.99"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "23.99"
+    },
+    {
+     "role": "total",
+     "text": "156.34"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "liters/total 2-place"
+  },
+  {
+   "id": "dev-g019-clean",
+   "group": "dev-g019",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g019-clean.png",
+   "sha256": "8705eaffc6a53dfae6a98c00ccbf355f8c7cdc4d3163528f076a515c4974b8c3",
+   "expected": {
+    "odometer": "263091"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "374.6"
+    },
+    {
+     "role": "odometer",
+     "text": "263091"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "trailing-one, trip"
+  },
+  {
+   "id": "dev-g019-jpeg",
+   "group": "dev-g019",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g019-jpeg.png",
+   "sha256": "fc078c4fb5ac059a5b6cd6ab7d6a86886182d8ad4c01fddb1ef9c1e94f54d325",
+   "expected": {
+    "odometer": "263091"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "374.6"
+    },
+    {
+     "role": "odometer",
+     "text": "263091"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "trailing-one, trip"
+  },
+  {
+   "id": "dev-g020-clean",
+   "group": "dev-g020",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g020-clean.png",
+   "sha256": "dc0642b4e3c27bfb398c713874a5b04485434e00f4725744f759dddcc32ec2ac",
+   "expected": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "426.00"
+    },
+    {
+     "role": "liters",
+     "text": "62.740"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters 3-place"
+  },
+  {
+   "id": "dev-g020-tilt",
+   "group": "dev-g020",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g020-tilt.png",
+   "sha256": "5857507b7d81e4ef251ebfc3e906e0d050265f0d0a085fd8496c449264342210",
+   "expected": {
+    "total": "426.00",
+    "liters": "62.740"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "426.00"
+    },
+    {
+     "role": "liters",
+     "text": "62.740"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "total/liters 3-place"
+  },
+  {
+   "id": "dev-g021-clean",
+   "group": "dev-g021",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g021-clean.png",
+   "sha256": "376de0f3e00031bbfa0dad426ead2bd9bd76a04af556166bc458d178a4fd2f62",
+   "expected": {
+    "odometer": "82381"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "13:40"
+    },
+    {
+     "role": "odometer",
+     "text": "82381"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "trailing-one, clock"
+  },
+  {
+   "id": "dev-g021-tilt",
+   "group": "dev-g021",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g021-tilt.png",
+   "sha256": "f98f4932ace891b503423f7c580fb3046644477df9b35b17439197af2e6b3d75",
+   "expected": {
+    "odometer": "82381"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "13:40"
+    },
+    {
+     "role": "odometer",
+     "text": "82381"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "note": "trailing-one, clock"
+  },
+  {
+   "id": "dev-g022-clean",
+   "group": "dev-g022",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g022-clean.png",
+   "sha256": "5ab1cfe982882ffb6538724cab79e7f7ebc408a021a4c5a18830354aaa161cc8",
+   "expected": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6.364"
+    },
+    {
+     "role": "total",
+     "text": "412.45"
+    },
+    {
+     "role": "liters",
+     "text": "64.81"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "unitPrice/total/liters 2-place"
+  },
+  {
+   "id": "dev-g022-blur",
+   "group": "dev-g022",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g022-blur.png",
+   "sha256": "22aecfd0c56dd3eb7db0561b8f241360f16f45cfd30d81d13e56b5cb0ddf12ec",
+   "expected": {
+    "total": "412.45",
+    "liters": "64.81"
+   },
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6.364"
+    },
+    {
+     "role": "total",
+     "text": "412.45"
+    },
+    {
+     "role": "liters",
+     "text": "64.81"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "unitPrice/total/liters 2-place"
+  },
+  {
+   "id": "dev-g023-clean",
+   "group": "dev-g023",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g023-clean.png",
+   "sha256": "fa0a74de8513e66fb11bdc94ecb61f84a07c491cc30ceff46d3dde08fb59c2ba",
+   "expected": {
+    "odometer": "101699"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "48690"
+    },
+    {
+     "role": "odometer",
+     "text": "101699"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g023-tilt",
+   "group": "dev-g023",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g023-tilt.png",
+   "sha256": "1804be232ab57ce163952c5d05c7e5a3fbce1298ff8d5c03eb7f1f05b5942717",
+   "expected": {
+    "odometer": "101699"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "48690"
+    },
+    {
+     "role": "odometer",
+     "text": "101699"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g024-clean",
+   "group": "dev-g024",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g024-clean.png",
+   "sha256": "b10f0a4bfa31719a025ad384c895dc60ed362c0ffb9043141ef9fd1083eec890",
+   "expected": {
+    "total": "470.91",
+    "liters": "64.42"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "470.91"
+    },
+    {
+     "role": "liters",
+     "text": "64.42"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters 2-place"
+  },
+  {
+   "id": "dev-g024-jpeg",
+   "group": "dev-g024",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g024-jpeg.png",
+   "sha256": "8422edece07e21e60b40edb93ba1e9ff786c230771688bf859bb260699c72536",
+   "expected": {
+    "total": "470.91",
+    "liters": "64.42"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "470.91"
+    },
+    {
+     "role": "liters",
+     "text": "64.42"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "total/liters 2-place"
+  },
+  {
+   "id": "dev-g025-clean",
+   "group": "dev-g025",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g025-clean.png",
+   "sha256": "fa836dc2e7f36e5709586a9ec846fdd674b0e47aa0497d79260eb6c100a37a3b",
+   "expected": {
+    "odometer": "231941"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "254.5"
+    },
+    {
+     "role": "odometer",
+     "text": "231941"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "trailing-one, trip"
+  },
+  {
+   "id": "dev-g025-jpeg",
+   "group": "dev-g025",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g025-jpeg.png",
+   "sha256": "2f4418b8b6fb452b30a1037e69b0d2496064b02775357fae356bd1e353226b16",
+   "expected": {
+    "odometer": "231941"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "254.5"
+    },
+    {
+     "role": "odometer",
+     "text": "231941"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "trailing-one, trip"
+  },
+  {
+   "id": "dev-g026-clean",
+   "group": "dev-g026",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g026-clean.png",
+   "sha256": "4c2c5040ec29f9abb67fc8e11cb029c81e54c6412cb504308cdcb6e49dc5db6a",
+   "expected": {
+    "total": "94.46",
+    "liters": "12.236"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "94.46"
+    },
+    {
+     "role": "liters",
+     "text": "12.236"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.72"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g026-noise",
+   "group": "dev-g026",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g026-noise.png",
+   "sha256": "5c3564e5c10a565794b7e84018994803abbe06fc0af023f2ef051f57b9e54c96",
+   "expected": {
+    "total": "94.46",
+    "liters": "12.236"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "94.46"
+    },
+    {
+     "role": "liters",
+     "text": "12.236"
+    },
+    {
+     "role": "unitPrice",
+     "text": "7.72"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "noise",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g027-clean",
+   "group": "dev-g027",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g027-clean.png",
+   "sha256": "b8bf3c6a1323a42f2e35837b347147b5ed276944bfe550d3b85bce93838a38bf",
+   "expected": {
+    "odometer": "12111"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "59812"
+    },
+    {
+     "role": "odometer",
+     "text": "12111"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "ones, trip-integer"
+  },
+  {
+   "id": "dev-g027-blur",
+   "group": "dev-g027",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g027-blur.png",
+   "sha256": "0e7ee7173d2e260ae50c5824e7df33739270be92a2722e18e9cf27c493e5b728",
+   "expected": {
+    "odometer": "12111"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "59812"
+    },
+    {
+     "role": "odometer",
+     "text": "12111"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "blur",
+   "note": "ones, trip-integer"
+  },
+  {
+   "id": "dev-g028-clean",
+   "group": "dev-g028",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g028-clean.png",
+   "sha256": "7991c3996d685225ca46c2ac443f9a1422d36a4c71d21fb1805a28d33a3d4ef0",
+   "expected": {
+    "total": "212.27",
+    "liters": "31.17"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "212.27"
+    },
+    {
+     "role": "liters",
+     "text": "31.17"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "total/liters 2-place"
+  },
+  {
+   "id": "dev-g028-noise",
+   "group": "dev-g028",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g028-noise.png",
+   "sha256": "34d2a60adc7d3b9c62ae6aaaf86f83808ce64e3af5b9102bad6287b69b6c549b",
+   "expected": {
+    "total": "212.27",
+    "liters": "31.17"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "212.27"
+    },
+    {
+     "role": "liters",
+     "text": "31.17"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "noise",
+   "note": "total/liters 2-place"
+  },
+  {
+   "id": "dev-g029-clean",
+   "group": "dev-g029",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g029-clean.png",
+   "sha256": "987d0c62b337daffcc973e3b1ff426e976793f6643336bae62c18cd08ad75fc0",
+   "expected": {
+    "odometer": "140796"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "66823"
+    },
+    {
+     "role": "odometer",
+     "text": "140796"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g029-tilt",
+   "group": "dev-g029",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g029-tilt.png",
+   "sha256": "168a37568184ad049b845fa536f0e759122c27a4eb8f8e5adea56f652d53e702",
+   "expected": {
+    "odometer": "140796"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "66823"
+    },
+    {
+     "role": "odometer",
+     "text": "140796"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g030-clean",
+   "group": "dev-g030",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g030-clean.png",
+   "sha256": "66895660bee85c7886ef7e840ac7f516af1827c8e8319e66169f753ddf0f9222",
+   "expected": null,
+   "rows": [
+    {
+     "role": "liters",
+     "text": "35,15"
+    },
+    {
+     "role": "total",
+     "text": "262,22"
+    }
+   ],
+   "labels": "none",
+   "currency": "€",
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "liters/total 2-place, decimal comma, euros"
+  },
+  {
+   "id": "dev-g030-tilt",
+   "group": "dev-g030",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g030-tilt.png",
+   "sha256": "cc8e11a34e75313f607ea0d90a93884320b8198d1e42adbc4701cd9590f55456",
+   "expected": null,
+   "rows": [
+    {
+     "role": "liters",
+     "text": "35,15"
+    },
+    {
+     "role": "total",
+     "text": "262,22"
+    }
+   ],
+   "labels": "none",
+   "currency": "€",
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "liters/total 2-place, decimal comma, euros"
+  },
+  {
+   "id": "dev-g031-clean",
+   "group": "dev-g031",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g031-clean.png",
+   "sha256": "b3dda9417cd43f2fc9b0759c337c80a20e570cec2de87a9c68327b265b05177e",
+   "expected": {
+    "odometer": "162963"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "88188"
+    },
+    {
+     "role": "odometer",
+     "text": "162963"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g031-tilt",
+   "group": "dev-g031",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g031-tilt.png",
+   "sha256": "8c9b2031cefd317068062ddbdfb44818a9e45b3e884b3904232df190800b7936",
+   "expected": {
+    "odometer": "162963"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "88188"
+    },
+    {
+     "role": "odometer",
+     "text": "162963"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g032-clean",
+   "group": "dev-g032",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g032-clean.png",
+   "sha256": "342d11c3669c98b1e6cfd9d4ca87bc45815693ec98740eb4a2fe48f55459a1c9",
+   "expected": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "310,58"
+    },
+    {
+     "role": "liters",
+     "text": "46,76"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6,642"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 2-place, decimal comma"
+  },
+  {
+   "id": "dev-g032-tilt",
+   "group": "dev-g032",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g032-tilt.png",
+   "sha256": "e6f11b368aa2dc5d26670a8d5df92bbff51e3b1ba4c3dd9bb53fdd87b9ac35d4",
+   "expected": {
+    "total": "310.58",
+    "liters": "46.76"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "310,58"
+    },
+    {
+     "role": "liters",
+     "text": "46,76"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6,642"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "note": "total/liters/unitPrice 2-place, decimal comma"
+  },
+  {
+   "id": "dev-g033-clean",
+   "group": "dev-g033",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g033-clean.png",
+   "sha256": "f4f5a4da42bf0509811b232e00cda74b10525ec25d43d2771d97780e1dfc0eb2",
+   "expected": {
+    "odometer": "164250"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "164250"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, none"
+  },
+  {
+   "id": "dev-g033-jpeg",
+   "group": "dev-g033",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g033-jpeg.png",
+   "sha256": "07f78ca3d77f3fcb89a5c471511246b80fdc131242ae478df9a32c2d5b02a115",
+   "expected": {
+    "odometer": "164250"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "164250"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "random, none"
+  },
+  {
+   "id": "dev-g034-clean",
+   "group": "dev-g034",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g034-clean.png",
+   "sha256": "9ae9806fd7fef17695e64f9ea632a72f94136982f3f04b05c42a38e5c93a51bb",
+   "expected": {
+    "total": "382.91",
+    "liters": "56.98"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "382.91"
+    },
+    {
+     "role": "liters",
+     "text": "56.98"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.72"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g034-noise",
+   "group": "dev-g034",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g034-noise.png",
+   "sha256": "67f8cdbbc6b9c19037f8d823865800954e0cda923391d89c8633f0d054d7dadd",
+   "expected": {
+    "total": "382.91",
+    "liters": "56.98"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "382.91"
+    },
+    {
+     "role": "liters",
+     "text": "56.98"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.72"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "noise",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g035-clean",
+   "group": "dev-g035",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g035-clean.png",
+   "sha256": "b809b1c988afb6e504c8b6932139b20e52c16fe109f59046e9d545702e9a6474",
+   "expected": {
+    "odometer": "136694"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "136694"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g035-jpeg",
+   "group": "dev-g035",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g035-jpeg.png",
+   "sha256": "f261b6bf6a7e11b8e617a88075fc8a7c26b89ea940aa9220d38bd96de04785d4",
+   "expected": {
+    "odometer": "136694"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "136694"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g036-clean",
+   "group": "dev-g036",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g036-clean.png",
+   "sha256": "8e647c1b6b0de28ad78e2546456089fcf3c56e41471c6735200674a3fa9e19f0",
+   "expected": {
+    "total": "410.03",
+    "liters": "59.27"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "59,27"
+    },
+    {
+     "role": "total",
+     "text": "410,03"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "liters/total 2-place, decimal comma"
+  },
+  {
+   "id": "dev-g036-jpeg",
+   "group": "dev-g036",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g036-jpeg.png",
+   "sha256": "53e452ba52c72ee2db6db9e067fed9d766de92f09fe87013e11c8ce0526bbb81",
+   "expected": {
+    "total": "410.03",
+    "liters": "59.27"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "59,27"
+    },
+    {
+     "role": "total",
+     "text": "410,03"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "jpeg",
+   "note": "liters/total 2-place, decimal comma"
+  },
+  {
+   "id": "dev-g037-clean",
+   "group": "dev-g037",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g037-clean.png",
+   "sha256": "44c6df6d25e1ca8d5928cd0a3234e73821138412f77305100a78cfb658d61ba0",
+   "expected": {
+    "odometer": "262862"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "94987"
+    },
+    {
+     "role": "odometer",
+     "text": "262862"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g037-noise",
+   "group": "dev-g037",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g037-noise.png",
+   "sha256": "b1754faea806201d97935d2bda024ee2e275f0ea83246bd6dc72758fc8c8678c",
+   "expected": {
+    "odometer": "262862"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "94987"
+    },
+    {
+     "role": "odometer",
+     "text": "262862"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "noise",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g038-clean",
+   "group": "dev-g038",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g038-clean.png",
+   "sha256": "3488d34f28fecdbd8bd15a21ced260b8de54eb88c3331be457d4d1b9b47140df",
+   "expected": null,
+   "rows": [
+    {
+     "role": "liters",
+     "text": "21.75"
+    },
+    {
+     "role": "total",
+     "text": "151.71"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "€",
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "liters/total 2-place, euros"
+  },
+  {
+   "id": "dev-g038-noise",
+   "group": "dev-g038",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g038-noise.png",
+   "sha256": "8e255b5c390a7a21a777f31c109eccb01f75bef0ae7f8d3041bd9519649fed68",
+   "expected": null,
+   "rows": [
+    {
+     "role": "liters",
+     "text": "21.75"
+    },
+    {
+     "role": "total",
+     "text": "151.71"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "€",
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "noise",
+   "note": "liters/total 2-place, euros"
+  },
+  {
+   "id": "dev-g039-clean",
+   "group": "dev-g039",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g039-clean.png",
+   "sha256": "86b59a406dd56c3e8d9078abb08826ba3a627d26b1e393d37c598adef1acc4d9",
+   "expected": {
+    "odometer": "11051"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "17:08"
+    },
+    {
+     "role": "odometer",
+     "text": "11051"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "leading-one, clock"
+  },
+  {
+   "id": "dev-g039-tilt",
+   "group": "dev-g039",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g039-tilt.png",
+   "sha256": "e1a1cacc7d6a43dee3a94ed6443940fce9a1b3bdf62ffb889696411ea89e6625",
+   "expected": {
+    "odometer": "11051"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "17:08"
+    },
+    {
+     "role": "odometer",
+     "text": "11051"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "note": "leading-one, clock"
+  },
+  {
+   "id": "dev-g040-clean",
+   "group": "dev-g040",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g040-clean.png",
+   "sha256": "f381845758036ff908180b038b61afac693b54e0c66af10bf73e579ccd66d687",
+   "expected": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "123.54"
+    },
+    {
+     "role": "liters",
+     "text": "18.69"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.61"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g040-jpeg",
+   "group": "dev-g040",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g040-jpeg.png",
+   "sha256": "ef8d3b9538322273128f26195136b65fe862ff8b560660a83d5580adb371d4ac",
+   "expected": {
+    "total": "123.54",
+    "liters": "18.69"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "123.54"
+    },
+    {
+     "role": "liters",
+     "text": "18.69"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.61"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "total/liters/unitPrice 2-place"
+  },
+  {
+   "id": "dev-g041-clean",
+   "group": "dev-g041",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g041-clean.png",
+   "sha256": "7cf290b983dec07a6241aaa8c8c12ccf4bdfb1832eebb0cba45aaa0261d44fd5",
+   "expected": {
+    "odometer": "14939"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "11:33"
+    },
+    {
+     "role": "odometer",
+     "text": "14939"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "leading-one, clock"
+  },
+  {
+   "id": "dev-g041-jpeg",
+   "group": "dev-g041",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g041-jpeg.png",
+   "sha256": "232a922b9b4e97bba3f0a85438fbdad6466f5bab2c4a440fbd6f5de903802152",
+   "expected": {
+    "odometer": "14939"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "11:33"
+    },
+    {
+     "role": "odometer",
+     "text": "14939"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "leading-one, clock"
+  },
+  {
+   "id": "dev-g042-clean",
+   "group": "dev-g042",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g042-clean.png",
+   "sha256": "e30acae8237be687a7082f5b1479dd3385f8f7545fcb06dffa97b46bef8197a3",
+   "expected": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "45.848"
+    },
+    {
+     "role": "total",
+     "text": "292.37"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "liters/total 3-place"
+  },
+  {
+   "id": "dev-g042-noise",
+   "group": "dev-g042",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g042-noise.png",
+   "sha256": "b0f5353b3ce8596e6edd0ba8870c2ab8ca5bf06ea7dc4dafe725f7f9b8c8b172",
+   "expected": {
+    "total": "292.37",
+    "liters": "45.848"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "45.848"
+    },
+    {
+     "role": "total",
+     "text": "292.37"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "lcd",
+   "degradation": "noise",
+   "note": "liters/total 3-place"
+  },
+  {
+   "id": "dev-g043-clean",
+   "group": "dev-g043",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g043-clean.png",
+   "sha256": "5396f643517e3b1089003b5cc653ff00a550cd1b3ae8c84e12a37ddf97e9d7d5",
+   "expected": {
+    "odometer": "117711"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "17:59"
+    },
+    {
+     "role": "odometer",
+     "text": "117711"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "ones, clock"
+  },
+  {
+   "id": "dev-g043-blur",
+   "group": "dev-g043",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g043-blur.png",
+   "sha256": "b7cbc67c12dab3608cc824d4d5c9a3ea49c45ca889974a54eee634b0cd0425ad",
+   "expected": {
+    "odometer": "117711"
+   },
+   "rows": [
+    {
+     "role": "clock",
+     "text": "17:59"
+    },
+    {
+     "role": "odometer",
+     "text": "117711"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "ones, clock"
+  },
+  {
+   "id": "dev-g044-clean",
+   "group": "dev-g044",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g044-clean.png",
+   "sha256": "56ec943dac0d1e2c34d2f9a4c74f85976bc7a39a7dc863c148637b03e80b5a20",
+   "expected": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "153.71"
+    },
+    {
+     "role": "liters",
+     "text": "19.790"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters 3-place"
+  },
+  {
+   "id": "dev-g044-blur",
+   "group": "dev-g044",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g044-blur.png",
+   "sha256": "9de861b7721ee66df5bcba981418932d7e182c9f3a9d33855681fcf302283bb2",
+   "expected": {
+    "total": "153.71",
+    "liters": "19.790"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "153.71"
+    },
+    {
+     "role": "liters",
+     "text": "19.790"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "total/liters 3-place"
+  },
+  {
+   "id": "dev-g045-clean",
+   "group": "dev-g045",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g045-clean.png",
+   "sha256": "9bc96cca2d99231aea6789c04ee131be9e6017b5f17cb797f7441ecca8477028",
+   "expected": {
+    "odometer": "255140"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "55.9"
+    },
+    {
+     "role": "odometer",
+     "text": "255140"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, trip"
+  },
+  {
+   "id": "dev-g045-noise",
+   "group": "dev-g045",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g045-noise.png",
+   "sha256": "3ed35d1edc0633d2caa1e0ef4ba3163088bf9b71b78320b037a33dca73da0e90",
+   "expected": {
+    "odometer": "255140"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "55.9"
+    },
+    {
+     "role": "odometer",
+     "text": "255140"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "noise",
+   "note": "random, trip"
+  },
+  {
+   "id": "dev-g046-clean",
+   "group": "dev-g046",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g046-clean.png",
+   "sha256": "c3f2e82d66764d096191f0a1e4677478bf9952334e1e779d71becbddb304aba0",
+   "expected": {
+    "total": "238.20",
+    "liters": "35.82"
+   },
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6.65"
+    },
+    {
+     "role": "total",
+     "text": "238.20"
+    },
+    {
+     "role": "liters",
+     "text": "35.82"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "unitPrice/total/liters 2-place"
+  },
+  {
+   "id": "dev-g046-blur",
+   "group": "dev-g046",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g046-blur.png",
+   "sha256": "0ab0f742f9646f749150ad6e36aff9f76a6d977473a14622878ad4290f3b0eb9",
+   "expected": {
+    "total": "238.20",
+    "liters": "35.82"
+   },
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6.65"
+    },
+    {
+     "role": "total",
+     "text": "238.20"
+    },
+    {
+     "role": "liters",
+     "text": "35.82"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "blur",
+   "note": "unitPrice/total/liters 2-place"
+  },
+  {
+   "id": "dev-g047-clean",
+   "group": "dev-g047",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g047-clean.png",
+   "sha256": "c39c2c643f8bf0f8e156296a9c76e49c75d130eace0385917de5a864b5aad660",
+   "expected": {
+    "odometer": "38860"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "50740"
+    },
+    {
+     "role": "odometer",
+     "text": "38860"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g047-jpeg",
+   "group": "dev-g047",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g047-jpeg.png",
+   "sha256": "dbef1da0e2445ea3905b9ceed99f75569ac88f348047b4572353cd77b115f78b",
+   "expected": {
+    "odometer": "38860"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "50740"
+    },
+    {
+     "role": "odometer",
+     "text": "38860"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g048-clean",
+   "group": "dev-g048",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g048-clean.png",
+   "sha256": "829fe96f80874796493457dc23b3da0501f902c8d66cffab563232adc3338c0e",
+   "expected": null,
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6.672"
+    },
+    {
+     "role": "total",
+     "text": "90.21"
+    },
+    {
+     "role": "liters",
+     "text": "13.52"
+    }
+   ],
+   "labels": "none",
+   "currency": "€",
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "unitPrice/total/liters 2-place, euros"
+  },
+  {
+   "id": "dev-g048-blur",
+   "group": "dev-g048",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g048-blur.png",
+   "sha256": "3adf4fc5fdab8d15815d291cd3fba4c410ee9a5938125c71f408735581c4b0a6",
+   "expected": null,
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6.672"
+    },
+    {
+     "role": "total",
+     "text": "90.21"
+    },
+    {
+     "role": "liters",
+     "text": "13.52"
+    }
+   ],
+   "labels": "none",
+   "currency": "€",
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "blur",
+   "note": "unitPrice/total/liters 2-place, euros"
+  },
+  {
+   "id": "dev-g049-clean",
+   "group": "dev-g049",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g049-clean.png",
+   "sha256": "22dce8d893bd9623800893803a6a0e1fae0c78b54efaa0226369f0a4886b36b8",
+   "expected": {
+    "odometer": "113611"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "476.9"
+    },
+    {
+     "role": "odometer",
+     "text": "113611"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "ones, trip"
+  },
+  {
+   "id": "dev-g049-blur",
+   "group": "dev-g049",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g049-blur.png",
+   "sha256": "6438ea1e59327f834363254e32fb04afc6064efd5ef27892b6385fab773c923b",
+   "expected": {
+    "odometer": "113611"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "476.9"
+    },
+    {
+     "role": "odometer",
+     "text": "113611"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "ones, trip"
+  },
+  {
+   "id": "dev-g050-clean",
+   "group": "dev-g050",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g050-clean.png",
+   "sha256": "a1035ea7bc1c85704cef993450e6bc1bf2486e088d046fc8fb252ee224a66ac0",
+   "expected": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "63.398"
+    },
+    {
+     "role": "total",
+     "text": "429.78"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "liters/total 3-place"
+  },
+  {
+   "id": "dev-g050-tilt",
+   "group": "dev-g050",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g050-tilt.png",
+   "sha256": "ea9b39074502743b3c08dce17e1f86e4a78b6ff4504b61f5ad58944595cefdd5",
+   "expected": {
+    "total": "429.78",
+    "liters": "63.398"
+   },
+   "rows": [
+    {
+     "role": "liters",
+     "text": "63.398"
+    },
+    {
+     "role": "total",
+     "text": "429.78"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "liters/total 3-place"
+  },
+  {
+   "id": "dev-g051-clean",
+   "group": "dev-g051",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g051-clean.png",
+   "sha256": "c35b9bac6394aeae3046886b1761b78f3d3390a550e8968dbd21bca43355720c",
+   "expected": {
+    "odometer": "154091"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "154091"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g051-tilt",
+   "group": "dev-g051",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g051-tilt.png",
+   "sha256": "4c06bd89e892e97af3ab026eb0802d0f7be7fcacdc9fe1703871a5700bb4ee9f",
+   "expected": {
+    "odometer": "154091"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "154091"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "leading-one, none"
+  },
+  {
+   "id": "dev-g052-clean",
+   "group": "dev-g052",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g052-clean.png",
+   "sha256": "13fa64ba0a660dbdedc5a51d1f06780cd8be01c481844fd380aec0cf578959e1",
+   "expected": {
+    "total": "185.56",
+    "liters": "24.193"
+   },
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "7.67"
+    },
+    {
+     "role": "total",
+     "text": "185.56"
+    },
+    {
+     "role": "liters",
+     "text": "24.193"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "unitPrice/total/liters 3-place"
+  },
+  {
+   "id": "dev-g052-jpeg",
+   "group": "dev-g052",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g052-jpeg.png",
+   "sha256": "dee39f0626f5bbcb103c546fe375cca538276b6c98034b39839c9544c23cf1e6",
+   "expected": {
+    "total": "185.56",
+    "liters": "24.193"
+   },
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "7.67"
+    },
+    {
+     "role": "total",
+     "text": "185.56"
+    },
+    {
+     "role": "liters",
+     "text": "24.193"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "unitPrice/total/liters 3-place"
+  },
+  {
+   "id": "dev-g053-clean",
+   "group": "dev-g053",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g053-clean.png",
+   "sha256": "f0b2181817075d244164f3f63c678db3edd4fdd83532cbad49e99a470cae46bc",
+   "expected": {
+    "odometer": "111071"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "129.2"
+    },
+    {
+     "role": "odometer",
+     "text": "111071"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "ones, trip"
+  },
+  {
+   "id": "dev-g053-blur",
+   "group": "dev-g053",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g053-blur.png",
+   "sha256": "85e20afe979d7f8bb25bbeb4ed499c1a3b5edfc3d3f5946de4830a84480fc31f",
+   "expected": {
+    "odometer": "111071"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "129.2"
+    },
+    {
+     "role": "odometer",
+     "text": "111071"
+    }
+   ],
+   "labels": "english",
+   "currency": null,
+   "font": "Andale Mono",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "ones, trip"
+  },
+  {
+   "id": "dev-g054-clean",
+   "group": "dev-g054",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g054-clean.png",
+   "sha256": "e1d392a442d5a2e591faea92a2f08ef3b8bd3e90d7214772ef7d39ac27189c3d",
+   "expected": null,
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6,67"
+    },
+    {
+     "role": "total",
+     "text": "169,31"
+    },
+    {
+     "role": "liters",
+     "text": "25,384"
+    }
+   ],
+   "labels": "english",
+   "currency": "€",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "unitPrice/total/liters 3-place, decimal comma, euros"
+  },
+  {
+   "id": "dev-g054-blur",
+   "group": "dev-g054",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g054-blur.png",
+   "sha256": "e11d077950d48dd4126fb68c7898da3e666611431e5088145f1f7ac0203b0efc",
+   "expected": null,
+   "rows": [
+    {
+     "role": "unitPrice",
+     "text": "6,67"
+    },
+    {
+     "role": "total",
+     "text": "169,31"
+    },
+    {
+     "role": "liters",
+     "text": "25,384"
+    }
+   ],
+   "labels": "english",
+   "currency": "€",
+   "font": "Courier New",
+   "polarity": "lcd",
+   "degradation": "blur",
+   "note": "unitPrice/total/liters 3-place, decimal comma, euros"
+  },
+  {
+   "id": "dev-g055-clean",
+   "group": "dev-g055",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g055-clean.png",
+   "sha256": "8df5eaaf162df953a6b4b5834e0bd0d7ae4a02370d358b77105c9c6181f217eb",
+   "expected": {
+    "odometer": "227731"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "227731"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "clean",
+   "note": "trailing-one, none"
+  },
+  {
+   "id": "dev-g055-tilt",
+   "group": "dev-g055",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g055-tilt.png",
+   "sha256": "8391f18bc28a6628012e39cdb9051f71d8f08be25e0f270df74d0b86d62743d5",
+   "expected": {
+    "odometer": "227731"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "227731"
+    }
+   ],
+   "labels": "none",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "lcd",
+   "degradation": "tilt",
+   "note": "trailing-one, none"
+  },
+  {
+   "id": "dev-g056-clean",
+   "group": "dev-g056",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g056-clean.png",
+   "sha256": "d14c50bd7809e86ca3c2ca16b41e28dd656bbae2c880910894a0adc56aaab175",
+   "expected": {
+    "total": "195.80",
+    "liters": "28.625"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "195,80"
+    },
+    {
+     "role": "liters",
+     "text": "28,625"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6,840"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 3-place, decimal comma"
+  },
+  {
+   "id": "dev-g056-tilt",
+   "group": "dev-g056",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g056-tilt.png",
+   "sha256": "ce62a447b676655e7292666445aa01aa4ba5f5d1bb740c0f2adeaa2b13c6a461",
+   "expected": {
+    "total": "195.80",
+    "liters": "28.625"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "195,80"
+    },
+    {
+     "role": "liters",
+     "text": "28,625"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6,840"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "DIN Condensed",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "total/liters/unitPrice 3-place, decimal comma"
+  },
+  {
+   "id": "dev-g057-clean",
+   "group": "dev-g057",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g057-clean.png",
+   "sha256": "3d129eed609fba90283752b43284838df21629c1e84cab3d84218f28e1c4f4e3",
+   "expected": {
+    "odometer": "135356"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "135356"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, none"
+  },
+  {
+   "id": "dev-g057-tilt",
+   "group": "dev-g057",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g057-tilt.png",
+   "sha256": "11dbfdd8bf83d7f82f487b597382d643548bdcdf54a4a156f816b16593c760b7",
+   "expected": {
+    "odometer": "135356"
+   },
+   "rows": [
+    {
+     "role": "odometer",
+     "text": "135356"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "Courier New",
+   "polarity": "night",
+   "degradation": "tilt",
+   "note": "random, none"
+  },
+  {
+   "id": "dev-g058-clean",
+   "group": "dev-g058",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g058-clean.png",
+   "sha256": "73ba7b49684cd64c0e842f53f8f11f540e536026c391cf3cbfb6e75ba369b75f",
+   "expected": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "342.99"
+    },
+    {
+     "role": "liters",
+     "text": "54.790"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.26"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g058-blur",
+   "group": "dev-g058",
+   "kind": "pump",
+   "file": "fixtures/dev/dev-g058-blur.png",
+   "sha256": "2935fc75ccaeeafb512de94c4efcdf3b535133399b137b8cc6dcd91f6c79f222",
+   "expected": {
+    "total": "342.99",
+    "liters": "54.790"
+   },
+   "rows": [
+    {
+     "role": "total",
+     "text": "342.99"
+    },
+    {
+     "role": "liters",
+     "text": "54.790"
+    },
+    {
+     "role": "unitPrice",
+     "text": "6.26"
+    }
+   ],
+   "labels": "english",
+   "currency": "₪",
+   "font": "Arial",
+   "polarity": "night",
+   "degradation": "blur",
+   "note": "total/liters/unitPrice 3-place"
+  },
+  {
+   "id": "dev-g059-clean",
+   "group": "dev-g059",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g059-clean.png",
+   "sha256": "8f5d6d63e181b72138a72bb946028d90dacbdfdbd13b664fb6fc979c6c1db1ca",
+   "expected": {
+    "odometer": "252324"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "10828"
+    },
+    {
+     "role": "odometer",
+     "text": "252324"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "clean",
+   "note": "random, trip-integer"
+  },
+  {
+   "id": "dev-g059-jpeg",
+   "group": "dev-g059",
+   "kind": "odometer",
+   "file": "fixtures/dev/dev-g059-jpeg.png",
+   "sha256": "37bcf94a88a3637e27715c2198c2155e0c9dd2412050228e9eb3847beb6e6748",
+   "expected": {
+    "odometer": "252324"
+   },
+   "rows": [
+    {
+     "role": "trip",
+     "text": "10828"
+    },
+    {
+     "role": "odometer",
+     "text": "252324"
+    }
+   ],
+   "labels": "hebrew",
+   "currency": null,
+   "font": "seven-segment",
+   "polarity": "night",
+   "degradation": "jpeg",
+   "note": "random, trip-integer"
+  }
+ ]
+}

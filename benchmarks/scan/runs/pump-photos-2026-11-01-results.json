@@ -1,0 +1,964 @@
+{
+ "format": "tank-maleh-scan-photos-v1",
+ "at": "2026-11-01T22:41:51.431Z",
+ "commit": "b01d609f2e593836f1380fe8ebbe97d0f62f8337",
+ "sessionsFile": "benchmarks/scan/pump-photos-2026-11-01.json",
+ "text": "ppocr-v5+v6",
+ "note": "Individual real photographs; too few for an accuracy estimate.",
+ "outcomes": {
+  "abstained": 3,
+  "correctly-empty": 5
+ },
+ "rows": [
+  {
+   "id": "commons:20190421 163852 April 2019 in Israel",
+   "kind": "pump",
+   "group": "commons:20190421 163852 April 2019 in Israel",
+   "labels": "Hebrew and English (סה\"כ לתשלום This Sale, ליטרים Litres, מחיר לליטר)",
+   "expected": {
+    "total": "150.00",
+    "liters": "23.734"
+   },
+   "displayed": {
+    "total": "150.00",
+    "liters": "23.734",
+    "unitPrice": "6.32"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 1,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 67,
+    "segment": 1247,
+    "ppocr-v5+v6": 1603
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "2~0",
+      "yellow",
+      "TUunn",
+      "95",
+      "20.00-17:00 13'n-'w 0~20.:00-17:0ora 'n-wDw",
+      "minu",
+      "7710~751o",
+      "A",
+      "@",
+      "15000",
+      "YCE",
+      "23734~23034",
+      "NID",
+      "232~532",
+      "C000~70700",
+      "OL",
+      "OTON",
+      "56",
+      "50on qin~7m2n ηin s"
+     ],
+     "lines": [
+      "2?verifier",
+      "95",
+      "20.00?verifier",
+      "0?verifier",
+      "7710?verifier",
+      "15000",
+      "23734?verifier",
+      "232?verifier",
+      "000?verifier",
+      "56?stroke",
+      "50?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Gas station. Jordan Valley, West Bank 033 - Aug 2011",
+   "kind": "pump",
+   "group": "commons:Gas station. Jordan Valley, West Bank 033 - Aug 2011",
+   "labels": "Hebrew (ש\"ח, סה\"כ לתשלום, סה\"כ ליטרים)",
+   "expected": {
+    "total": "320.08",
+    "liters": "44.332"
+   },
+   "displayed": {
+    "total": "320.08",
+    "liters": "44.332",
+    "unitPrice": "07.22"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 115,
+    "segment": 1046,
+    "ppocr-v5+v6": 4035
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "&",
+      "32008~320.08",
+      "n'v",
+      "DIDO",
+      "XVIJ",
+      "44332~44.332",
+      "2  ",
+      "722",
+      "95",
+      "Wayne",
+      "95",
+      "95",
+      "P",
+      "95",
+      "8"
+     ],
+     "lines": [
+      "32008?verifier",
+      "44332?verifier",
+      "2",
+      "722?stroke",
+      "95",
+      "95",
+      "95?stroke",
+      "95",
+      "8"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "XVIJ",
+      "44.332",
+      "D0D~D701770",
+      "V'O NIVI DVUD",
+      "7722~0722",
+      "71~73",
+      "95",
+      "95",
+      "77772~7717712"
+     ],
+     "lines": [
+      "44.332",
+      "0?verifier",
+      "7722?verifier",
+      "71?verifier",
+      "95",
+      "95",
+      "77772?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:20160731 112358 July 2016 in Israel",
+   "kind": "pump",
+   "group": "commons:20160731 112358 July 2016 in Israel",
+   "labels": "none legible",
+   "expected": {
+    "total": "163.06",
+    "liters": "26.514"
+   },
+   "displayed": {
+    "total": "16306",
+    "liters": "26.514",
+    "unitPrice": "6.15"
+   },
+   "status": "abstained",
+   "outcome": "abstained",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 59,
+    "segment": 732,
+    "ppocr-v5+v6": 1842
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "1010~季010",
+      "'TA'I",
+      "0'701 7010~D*7n3 71010",
+      "50pood Dr~Scood F",
+      "7~2",
+      "H"
+     ],
+     "lines": [
+      "1010?verifier",
+      "50?verifier",
+      "7?verifier"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "0'7n1 7110~017n1 7110",
+      "07n17~01701 7",
+      "SOgood",
+      "02",
+      "@",
+      "•..",
+      "16306~15306",
+      "E"
+     ],
+     "lines": [
+      "17110?verifier",
+      "07?verifier",
+      "17?verifier",
+      "02?stroke",
+      "16306?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Plein de diesel Station service près de Grenoble (26 septembre 2026)",
+   "kind": "pump",
+   "group": "commons:Plein de diesel Station service près de Grenoble (26 septembre 2026)",
+   "labels": "French (PRIX €, VOLUME LITRES, PRIX DU LITRE)",
+   "expected": null,
+   "displayed": {
+    "total": "40,00",
+    "liters": "17,78",
+    "unitPrice": "2,250"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "identity-ambiguous": 1,
+    "no-reading": 1,
+    "format": 1
+   },
+   "paths": null,
+   "ms": {
+    "resample": 90,
+    "segment": 1077,
+    "ppocr-v5+v6": 1985
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "DIESEL",
+      "Note du service de la Metrologie",
+      "Seules lis indicati",
+      "aiswnt sur le adran du distributeur",
+      "as de prix et de volume apt",
+      "sont gun",
+      "GAZOLE",
+      "40,00",
+      "PRIX",
+      "17.78~7.78",
+      "LITRES",
+      "VOLUME",
+      "2,250~2.250",
+      "PRIX DU LITRE",
+      "SAT",
+      "TOKHEIM"
+     ],
+     "lines": [
+      "40.00",
+      "17.78?verifier",
+      "2250?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": [
+      "17.78"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "identity-ambiguous"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Une pompe à essence Petrom à Casablanca-photo Bertrand SOUBEYRAND",
+   "kind": "pump",
+   "group": "commons:Une pompe à essence Petrom à Casablanca-photo Bertrand SOUBEYRAND",
+   "labels": "Arabic and French (DIRHAMS, LITRES, Prix du Litre)",
+   "expected": null,
+   "displayed": {
+    "total": "70.00 | 300.00",
+    "liters": "4.61 | 19.62",
+    "unitPrice": "15.16 | 15.29"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 72,
+    "segment": 1042,
+    "ppocr-v5+v6": 3166
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "2",
+      "4",
+      "3",
+      "o",
+      "30000",
+      "5~0",
+      "5",
+      "DIRHAMS",
+      "7000",
+      "1962",
+      "2~E",
+      "8",
+      "84~34",
+      "461",
+      "LITRES",
+      "O",
+      "9",
+      "6",
+      "5",
+      "Waye",
+      "8",
+      "7~0",
+      "1529",
+      "0",
+      "9",
+      "1516~:515",
+      "X",
+      "P10 "
+     ],
+     "lines": [
+      "2",
+      "4",
+      "3",
+      "30000",
+      "5?verifier",
+      "5",
+      "7000",
+      "1962?stroke",
+      "2?verifier",
+      "8",
+      "84?verifier",
+      "461",
+      "9",
+      "6?adjacent",
+      "5?adjacent",
+      "8?adjacent",
+      "7?adjacent",
+      "1529",
+      "0?adjacent",
+      "9?adjacent",
+      "1516?verifier",
+      "10?text"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "DIRHAMS",
+      "7000",
+      "2",
+      "461",
+      "4",
+      "LITRES",
+      "Wayne",
+      "8",
+      "15.29~1529",
+      "Px u L",
+      "1516~1515",
+      "Prix du Lite",
+      "10",
+      "PPM"
+     ],
+     "lines": [
+      "7000",
+      "2",
+      "461",
+      "4",
+      "8",
+      "15.29?verifier",
+      "1516?verifier",
+      "10?stroke"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Gas pump display, Jacksonville, FL",
+   "kind": "pump",
+   "group": "commons:Gas pump display, Jacksonville, FL",
+   "labels": "English (THIS SALE $, GALLONS)",
+   "expected": null,
+   "displayed": {
+    "total": "8.34",
+    "liters": "2.076 (gallons)"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "foreign-currency": 1,
+    "format": 4
+   },
+   "paths": null,
+   "ms": {
+    "resample": 109,
+    "segment": 1139,
+    "ppocr-v5+v6": 2147,
+    "segment-roi": 596,
+    "paint": 11
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "THIS SALE $",
+      "DANGER",
+      "8.34",
+      "ENCYHUT",
+      "EXTREMELY FLAMMABLE",
+      "Use as Motor Fuel Only",
+      "GALLONS",
+      "NO SMOKING",
+      "te",
+      "2.076~2.07.6",
+      "electricity before fucling",
+      "e away from t",
+      "nozzle",
+      "a fire starts,",
+      "do not remove nozzle- back an",
+      " C",
+      "storiee",
+      "gasoline",
+      "eperation.",
+      "our ay",
+      "Mare"
+     ],
+     "lines": [
+      "8.34",
+      "2.076?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": [
+      "2076"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "2076"
+     ]
+    },
+    {
+     "path": "segment@roi",
+     "text": [],
+     "lines": [
+      "2076"
+     ]
+    },
+    {
+     "path": "segment-painted@960",
+     "text": [],
+     "lines": [
+      "2076"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": [
+      "2076"
+     ]
+    },
+    {
+     "path": "segment-painted@roi",
+     "text": [],
+     "lines": [
+      "2076"
+     ]
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "foreign-currency"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment-painted@roi",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Paz-petrol-station-computer-december-2015-jabotinsky-ramat-gan",
+   "kind": "pump",
+   "group": "commons:Paz-petrol-station-computer-december-2015-jabotinsky-ramat-gan",
+   "labels": "Hebrew and English",
+   "expected": null,
+   "displayed": {
+    "total": "103.11 (segments missing)",
+    "liters": "17.269",
+    "unitPrice": "5.99"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 60,
+    "segment": 906,
+    "ppocr-v5+v6": 2233
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "034~0314",
+      "anum 3n0~anumt y'no",
+      "U",
+      "This Sale",
+      "4~7",
+      "2 0~24",
+      "0",
+      "6~E",
+      "Litres",
+      "10 1'00~10*5 'nn",
+      "FJ",
+      "599",
+      "OG",
+      "NO"
+     ],
+     "lines": [
+      "034?verifier",
+      "3?verifier",
+      "0?verifier",
+      "4?verifier",
+      "20?adjacent",
+      "0?stroke",
+      "6?adjacent",
+      "599"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "Litres",
+      "Thio",
+      "05 'nn~70*55 'nn",
+      "F",
+      "599",
+      "3",
+      "GILBARCO",
+      "VEEDER-ROOT",
+      "6~0"
+     ],
+     "lines": [
+      "05?verifier",
+      "599",
+      "3",
+      "6?edge"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  },
+  {
+   "id": "commons:Expensive gas (145411944)",
+   "kind": "pump",
+   "group": "commons:Expensive gas (145411944)",
+   "labels": "none legible",
+   "expected": null,
+   "displayed": {
+    "total": "8.888 / 88888 (segment test)"
+   },
+   "status": "abstained",
+   "outcome": "correctly-empty",
+   "values": null,
+   "reason": "unreadable",
+   "reasons": {
+    "format": 2,
+    "no-reading": 2
+   },
+   "paths": null,
+   "ms": {
+    "resample": 36,
+    "segment": 879,
+    "ppocr-v5+v6": 1290
+   },
+   "seen": [
+    {
+     "path": "ppocr-v5+v6@960",
+     "text": [
+      "96"
+     ],
+     "lines": [
+      "96"
+     ]
+    },
+    {
+     "path": "ppocr-v5+v6@centre",
+     "text": [
+      "8888~8.888",
+      "RARE",
+      "19~C"
+     ],
+     "lines": [
+      "8888?verifier",
+      "19?verifier"
+     ]
+    },
+    {
+     "path": "segment@960",
+     "text": [],
+     "lines": []
+    },
+    {
+     "path": "segment@1280",
+     "text": [],
+     "lines": []
+    }
+   ],
+   "attempts": [
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "ppocr-v5+v6@centre",
+     "result": {
+      "status": "unreadable",
+      "reason": "format"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@960",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    },
+    {
+     "frame": 0,
+     "path": "segment@1280",
+     "result": {
+      "status": "unreadable",
+      "reason": "no-reading"
+     }
+    }
+   ]
+  }
+ ]
+}

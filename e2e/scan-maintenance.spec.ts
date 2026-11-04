@@ -4,6 +4,16 @@ import { expect,test } from '@playwright/test';
 import { signedInWithData } from './helpers/app';
 import { listDocuments } from './helpers/emulator';
 
+// The seven-segment fixtures below exercise the segment reader on its own: the
+// local text recogniser is kept from loading, as when it has never been
+// downloaded and the device is offline. Its own tests are further down.
+async function withoutRecogniser(page:import('@playwright/test').Page){await page.route(/\/scan-models\/|ort-wasm-simd-threaded[^/]*\.wasm/,route=>route.abort());}
+async function renderedOdometer(){
+  const sharp=(await import('sharp')).default;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560"><rect width="900" height="560" fill="#16181c"/><rect x="170" y="170" width="560" height="200" rx="18" fill="#0d0f12"/><text x="215" y="310" font-family="Helvetica, Arial, sans-serif" font-size="110" fill="#ffcf73">128450</text><text x="600" y="310" font-family="Helvetica, Arial, sans-serif" font-size="48" fill="#ffcf73">km</text><text x="215" y="225" font-family="Helvetica, Arial, sans-serif" font-size="36" fill="#ffcf73">ODO</text></svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
 test('two-photo flow offers manual entry in the normal review form without saving early',async({page})=>{
   const scope=await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByTestId("fillup-camera").click();
   await page.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
@@ -76,6 +86,7 @@ test('stale edits retain input and explicit conflict resolution advances the ver
 });
 
 test('synthetic pixel selection advances both steps while preserving manually authored values',async({page})=>{
+  await withoutRecogniser(page);
   const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');
   const png=async(kind:string)=>{const image=demoPhoto(kind);return sharp(Buffer.from(image.data),{raw:{width:image.width,height:image.height,channels:4}}).png().toBuffer();};
   await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByTestId("fillup-total").fill('280');await page.getByTestId("fillup-camera").click();
@@ -120,6 +131,7 @@ test('backup import deduplicates, CSV and date calendar export work on mobile',a
 for(const fixture of ['synthetic','supplied'] as const)test(`live scanning reads two ${fixture} displays automatically and stops every stream`,async({page,browserName})=>{
   test.skip(fixture==='supplied'&&(!process.env.CARE_PUMP_PHOTO||!process.env.CARE_ODO_PHOTO),'Private local photographs required.');
   test.skip(browserName!=='chromium','canvas.captureStream fixture is Chromium-only; this is not a physical camera test');
+  if(fixture==='synthetic')await withoutRecogniser(page);
   const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');
   const urls=await Promise.all(['pump','odometer'].map(async kind=>{const raw=demoPhoto(kind);const source=fixture==='supplied'?sharp((kind==='pump'?process.env.CARE_PUMP_PHOTO:process.env.CARE_ODO_PHOTO)!).rotate():sharp(Buffer.from(raw.data),{raw:{width:raw.width,height:raw.height,channels:4}});return 'data:image/png;base64,'+(await source.png().toBuffer()).toString('base64');}));
   await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByTestId("fillup-camera").click();
@@ -179,7 +191,11 @@ test('a pending camera result cannot reopen the camera after the page goes to th
     (window as any).__deliver=[];(window as any).__cameras=[];
     window.Worker=class {
       onmessage:any;onerror:any;
-      postMessage(){(window as any).__deliver.push(()=>this.onmessage?.({data:{status:'read',values:{total:'287.40',liters:'40.000'}}}));}
+      postMessage(message:{id:number;frame:number}){
+        // Two agreeing paths per frame; acceptance needs a second frame.
+        const read={status:'read',values:{total:'287.40',liters:'40.000'},evidence:['precision']};
+        (window as any).__deliver.push(()=>this.onmessage?.({data:{type:'analysis',id:message.id,recognizer:'ready',analysis:{quality:{usable:true,hint:null,mean:100,clipped:0,dark:0,sharpness:5},region:null,ms:{},attempts:[{frame:message.frame,path:'segment@960',result:read},{frame:message.frame,path:'segment@roi',result:read}]}}}));
+      }
       terminate(){}
     } as any;
     Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async()=>{
@@ -193,4 +209,83 @@ test('a pending camera result cannot reopen the camera after the page goes to th
   await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'));(window as any).__deliver[1]();});
   await expect(page.getByText(/המצלמה נעצרה ברקע/)).toBeVisible();await expect(page.getByText('המשאבה נקראה',{exact:true})).toHaveCount(0);
   expect(await page.evaluate(()=>(window as any).__cameras.every((stream:MediaStream)=>stream.getTracks().every(track=>track.readyState==='ended')))).toBe(true);
+});
+
+/** A camera whose stream draws one fixed image (Chromium captureStream); every stream is kept for checks. */
+async function fakeCamera(page:import('@playwright/test').Page,png:Buffer){
+  await page.evaluate(async url=>{
+    const image=new Image();image.src=url;await image.decode();(window as any).__cameras=[];
+    Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async()=>{
+      const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+      const stream=canvas.captureStream(5);(window as any).__cameras.push(stream);
+      const draw=()=>canvas.getContext('2d')!.drawImage(image,0,0);draw();const timer=setInterval(()=>{if(stream.active)draw();else clearInterval(timer);},100);return stream;
+    }});
+  },'data:image/png;base64,'+png.toString('base64'));
+}
+test('a first live scan waits for a slow recogniser download instead of timing out, and can be cancelled meanwhile',async({page,browserName})=>{
+  test.skip(browserName!=='chromium','canvas.captureStream fixture is Chromium-only; this is not a physical camera test');
+  test.setTimeout(120_000);
+  // Every recogniser file arrives 30 s after it is requested: well past the
+  // 15 s scanning bound. Printed digits need the recogniser; the segment
+  // reader alone cannot read them.
+  let requested=0;
+  await page.route(/\/scan-models\/|ort-wasm-simd-threaded[^/]*\.wasm/,async route=>{requested||=Date.now();await new Promise(r=>setTimeout(r,30_000));await route.continue();});
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.getByRole('button',{name:'דילוג לקילומטראז׳',exact:true}).click();
+  await fakeCamera(page,await renderedOdometer());
+  const dialog=page.getByRole('dialog'),loading=dialog.getByText(/מכינים את הקורא המקומי/),odometer=page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/);
+  // Closing the camera during the download stops its stream and fills nothing.
+  await dialog.getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();await expect(loading).toBeVisible();await page.waitForTimeout(3000);
+  await dialog.getByRole('button',{name:'סגירת מצלמה',exact:true}).click();
+  expect(await page.evaluate(()=>(window as any).__cameras.every((s:MediaStream)=>s.getTracks().every(t=>t.readyState==='ended')))).toBe(true);
+  const reopened=Date.now();await dialog.getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();
+  // 17 s later the session is still waiting, not abstaining with a timeout.
+  await page.waitForTimeout(17_000);
+  expect(Date.now()-requested).toBeLessThan(30_000);
+  await expect(loading).toBeVisible();await expect(dialog.getByLabel('תצוגת מצלמה')).toBeVisible();await expect(dialog.getByText(/לא ברורות|לא מילאנו|עדיין נטען/)).toHaveCount(0);
+  await expect(dialog).toHaveCount(0,{timeout:60_000});await expect(odometer).toHaveValue('128450');
+  const total=Date.now()-reopened;test.info().annotations.push({type:'user-perceived latency',description:`${total} ms from opening the camera to the filled form, ${requested+30_000-reopened} ms of it waiting for the recogniser files`});
+  expect(await page.evaluate(()=>(window as any).__cameras.every((s:MediaStream)=>s.getTracks().every(t=>t.readyState==='ended')))).toBe(true);
+});
+test('a live seven-segment scan can still succeed before the recogniser has finished loading',async({page,browserName})=>{
+  test.skip(browserName!=='chromium','canvas.captureStream fixture is Chromium-only; this is not a physical camera test');
+  test.setTimeout(90_000);
+  let arrived=false;
+  await page.route(/\/scan-models\/|ort-wasm-simd-threaded[^/]*\.wasm/,async route=>{await new Promise(r=>setTimeout(r,40_000));arrived=true;await route.continue();});
+  const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');const raw=demoPhoto('odometer');
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.getByRole('button',{name:'דילוג לקילומטראז׳',exact:true}).click();
+  await fakeCamera(page,await sharp(Buffer.from(raw.data),{raw:{width:raw.width,height:raw.height,channels:4}}).png().toBuffer());
+  const opened=Date.now();await page.getByRole('dialog').getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:30_000});await expect(page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/)).toHaveValue('128450');
+  expect(arrived).toBe(false);
+  test.info().annotations.push({type:'user-perceived latency',description:`${Date.now()-opened} ms from opening the camera to the filled form (segment reader only)`});
+});
+
+test('the local recogniser loads once, verifies its files and reads a printed odometer on the device',async({page})=>{
+  test.setTimeout(120_000);
+  const requests:string[]=[];page.on('request',request=>{if(/scan-models|ort-wasm/.test(request.url()))requests.push(request.url());});
+  const scope=await signedInWithData(page,{fillups:[]});void scope;await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.getByRole('button',{name:'דילוג לקילומטראז׳',exact:true}).click();
+  await page.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:await renderedOdometer()});
+  await expect(page.getByRole('dialog')).toHaveCount(0,{timeout:90_000});
+  await expect(page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/)).toHaveValue('128450');
+  // Four pinned files, each verified and kept for offline use; no photo left the page.
+  const cached=await page.evaluate(async()=>{const names=await caches.keys();const name=names.find(key=>key.startsWith('tank-maleh-scan-'));return {names,entries:name?(await (await caches.open(name)).keys()).map(r=>r.url.split('/').pop()):[]};});
+  expect(cached.entries).toHaveLength(4);
+  expect(requests.every(url=>new URL(url).origin===new URL(page.url()).origin)).toBe(true);
+  expect(await page.evaluate(()=>Object.values(localStorage).some(value=>String(value).includes('data:image')))).toBe(false);
+});
+
+test('a model file that fails its integrity check is not used, and manual entry still works',async({page})=>{
+  test.setTimeout(120_000);
+  await page.route(/\/scan-models\/[^/]+\/rec\.onnx/,route=>route.fulfill({status:200,contentType:'application/octet-stream',body:Buffer.from('not the pinned model')}));
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.getByRole('button',{name:'דילוג לקילומטראז׳',exact:true}).click();
+  await page.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:await renderedOdometer()});
+  // Without the recogniser the printed (non-segment) digits are not read: nothing is filled in.
+  await expect(page.getByText(/לא ברור|לא ברורות/)).toBeVisible({timeout:90_000});
+  expect(await page.evaluate(async()=>{const name=(await caches.keys()).find(key=>key.startsWith('tank-maleh-scan-'));return name?(await (await caches.open(name)).keys()).some(request=>request.url.endsWith('/rec.onnx')):false;})).toBe(false);
+  await page.getByRole('button',{name:'השלמה בטופס הידני',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/)).toHaveValue('');
 });

@@ -1,0 +1,4132 @@
+{
+ "format": "tank-maleh-scan-diagnosis-v1",
+ "run": {
+  "file": "node scripts/scan-benchmark/run.mjs --split tuning --text ppocr-v5+v6 --diagnose (at 98972ae; traces not kept in Git)",
+  "commit": "98972aea213b5f328971aac235b9f07225b41171",
+  "at": "2026-11-01T10:44:40.714Z",
+  "text": "ppocr-v5+v6",
+  "splits": [
+   "tuning"
+  ]
+ },
+ "note": "Development (tuning) split only. The annotated box locates the odometer and gives an oracle crop; neither is part of any headline result. Variants are recomputed from the same recorded paths and are post-hoc.",
+ "eligible": 371,
+ "correct": 170,
+ "byStage": [
+  {
+   "stage": "unsure-line",
+   "sessions": 61,
+   "details": {
+    "verifier": 40,
+    "stroke": 1,
+    "stroke+verifier": 2,
+    "adjacent": 10,
+    "text+verifier": 1,
+    "text": 1,
+    "adjacent+verifier": 5,
+    "adjacent+stroke": 1
+   },
+   "oracleCropRead": 7,
+   "oracleCropRawDigits": 45,
+   "oracleReasons": {
+    "identity-ambiguous": 47,
+    "read-other": 1,
+    "read": 7,
+    "format": 4,
+    "no-reading": 2
+   }
+  },
+  {
+   "stage": "raw-recognition",
+   "sessions": 54,
+   "details": {
+    "other number": 10,
+    "one digit dropped": 24,
+    "one digit substituted": 8,
+    "two digits off": 10,
+    "one digit inserted": 2
+   },
+   "oracleCropRead": 4,
+   "oracleCropRawDigits": 9,
+   "oracleReasons": {
+    "format": 6,
+    "identity-ambiguous": 40,
+    "trip-meter": 1,
+    "read": 4,
+    "read-other": 3
+   }
+  },
+  {
+   "stage": "session:uncorroborated",
+   "sessions": 50,
+   "details": {
+    "segment@960": 1,
+    "ppocr-v5+v6@roi": 1,
+    "ppocr-v5+v6@centre": 21,
+    "ppocr-v5+v6@960": 27
+   },
+   "oracleCropRead": 19,
+   "oracleCropRawDigits": 37,
+   "oracleReasons": {
+    "identity-ambiguous": 25,
+    "read": 19,
+    "read-other": 4,
+    "format": 2
+   }
+  },
+  {
+   "stage": "identity",
+   "sessions": 28,
+   "details": {
+    "identity-ambiguous": 18,
+    "format": 10
+   },
+   "oracleCropRead": 6,
+   "oracleCropRawDigits": 28,
+   "oracleReasons": {
+    "identity-ambiguous": 19,
+    "format": 3,
+    "read": 6
+   }
+  },
+  {
+   "stage": "session:conflict",
+   "sessions": 3,
+   "details": {
+    "ppocr-v5+v6@960": 2,
+    "ppocr-v5+v6@roi": 1
+   },
+   "oracleCropRead": 2,
+   "oracleCropRawDigits": 2,
+   "oracleReasons": {
+    "read": 2,
+    "identity-ambiguous": 1
+   }
+  },
+  {
+   "stage": "localisation",
+   "sessions": 3,
+   "details": {},
+   "oracleCropRead": 2,
+   "oracleCropRawDigits": 3,
+   "oracleReasons": {
+    "identity-ambiguous": 1,
+    "read": 2
+   }
+  },
+  {
+   "stage": "wrong-accepted",
+   "sessions": 2,
+   "details": {
+    "18948 via ppocr-v5+v6@centre+ppocr-v5+v6@roi": 2
+   },
+   "oracleCropRead": 0,
+   "oracleCropRawDigits": 0,
+   "oracleReasons": {
+    "read-other": 2
+   }
+  }
+ ],
+ "variants": [
+  {
+   "name": "recorded paths",
+   "policy": "current",
+   "correct": 170,
+   "eligible": 371,
+   "wrong": 2,
+   "scored": 436,
+   "accepted": 172,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "recomputed from recorded lines (consistency check)",
+   "policy": "current",
+   "correct": 170,
+   "eligible": 371,
+   "wrong": 2,
+   "scored": 436,
+   "accepted": 172,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "without the verifier (its disagreements ignored)",
+   "policy": "current",
+   "correct": 200,
+   "eligible": 371,
+   "wrong": 9,
+   "scored": 436,
+   "accepted": 209,
+   "wrongOnNegatives": 1
+  },
+  {
+   "name": "without full-resolution recrops (@roi paths dropped)",
+   "policy": "current",
+   "correct": 0,
+   "eligible": 371,
+   "wrong": 0,
+   "scored": 436,
+   "accepted": 0,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "without the central-region retry",
+   "policy": "current",
+   "correct": 146,
+   "eligible": 371,
+   "wrong": 0,
+   "scored": 436,
+   "accepted": 146,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "text recogniser only (segment paths dropped)",
+   "policy": "current",
+   "correct": 170,
+   "eligible": 371,
+   "wrong": 2,
+   "scored": 436,
+   "accepted": 172,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "segment reader only",
+   "policy": "current",
+   "correct": 0,
+   "eligible": 371,
+   "wrong": 0,
+   "scored": 436,
+   "accepted": 0,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "policy: any single path, no disagreement",
+   "policy": "single-path",
+   "correct": 220,
+   "eligible": 371,
+   "wrong": 6,
+   "scored": 436,
+   "accepted": 226,
+   "wrongOnNegatives": 0
+  },
+  {
+   "name": "policy: segment and text recogniser must agree",
+   "policy": "cross-family",
+   "correct": 0,
+   "eligible": 371,
+   "wrong": 0,
+   "scored": 436,
+   "accepted": 0,
+   "wrongOnNegatives": 0
+  }
+ ],
+ "corroboration": [
+  {
+   "families": "text",
+   "accepted": 172,
+   "correct": 170
+  }
+ ],
+ "conflicts": [
+  {
+   "id": "trodo:00000127-PHOTO-2020-12-18-21-17-27",
+   "values": [
+    "ppocr-v5+v6@960=188331",
+    "ppocr-v5+v6@roi=18833"
+   ],
+   "sameRegion": true
+  },
+  {
+   "id": "trodo:00000763-PHOTO-2020-12-02-23-38-11",
+   "values": [
+    "ppocr-v5+v6@centre=16001",
+    "ppocr-v5+v6@roi=160068"
+   ],
+   "sameRegion": true
+  },
+  {
+   "id": "trodo:00000836-PHOTO-2020-12-06-19-04-32",
+   "values": [
+    "ppocr-v5+v6@960=118323",
+    "ppocr-v5+v6@roi=18323"
+   ],
+   "sameRegion": true
+  }
+ ],
+ "consistency": {
+  "sessions": 436,
+  "sameDecisionWhenRecomputed": 436
+ },
+ "oracle": {
+  "note": "Annotated odometer box (+15% / +25% margin) read by the same text recogniser; diagnostic only.",
+  "rawDigits": 124,
+  "readCorrect": 40,
+  "of": 201
+ },
+ "sessions": [
+  {
+   "id": "trodo:00000004-PHOTO-2020-11-20-11-21-25",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000023-PHOTO-2020-11-20-15-22-22",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000024-PHOTO-2020-11-20-15-22-40",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000045-PHOTO-2020-11-20-22-59-59",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000048-PHOTO-2020-11-20-23-40-17",
+   "family": "digital-light-on-dark-red",
+   "stage": "session:uncorroborated",
+   "detail": "segment@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 3
+   }
+  },
+  {
+   "id": "trodo:00000053-PHOTO-2020-11-21-09-54-07",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@roi",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 5,
+    "segment": 4
+   }
+  },
+  {
+   "id": "trodo:00000055-PHOTO-2020-11-21-10-15-21",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000082-PHOTO-2020-11-21-20-47-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000089-PHOTO-2020-12-16-20-30-00",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 13,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000097-PHOTO-2020-12-17-10-18-15",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000098-PHOTO-2020-12-17-10-41-48",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000101-PHOTO-2020-12-17-11-04-50",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000102-PHOTO-2020-12-17-18-58-17",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000104-PHOTO-2020-12-17-19-27-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000109-PHOTO-2020-11-21-22-36-12",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 2,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000112-PHOTO-2020-11-22-00-14-07",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000113-PHOTO-2020-12-17-21-40-52",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000114-PHOTO-2020-11-22-10-57-28",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "stroke",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000114-PHOTO-2020-12-18-10-08-47",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000115-PHOTO-2020-12-18-10-11-53",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000120-PHOTO-2020-12-18-11-08-24",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000121-PHOTO-2020-12-18-20-35-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000123-PHOTO-2020-11-22-10-58-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000127-PHOTO-2020-12-18-21-17-27",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:conflict",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000132-PHOTO-2020-11-22-10-58-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000132-PHOTO-2020-12-18-22-05-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "trip-meter"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000134-PHOTO-2020-11-22-12-33-17",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000139-PHOTO-2020-12-19-11-10-17",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000143-PHOTO-2020-12-19-17-36-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000146-PHOTO-2020-11-22-20-01-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000147-PHOTO-2020-11-22-20-01-26",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000148-PHOTO-2020-12-19-17-40-59",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000154-PHOTO-2020-12-19-18-27-43",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000167-PHOTO-2020-11-22-21-02-40",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000171-PHOTO-2020-12-20-19-03-29",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 12,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000179-PHOTO-2020-12-21-10-59-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000180-PHOTO-2020-12-21-19-01-47",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000182-PHOTO-2020-12-21-19-51-36",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000193-PHOTO-2020-12-21-22-00-52",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000194-PHOTO-2020-12-22-10-08-56",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000195-PHOTO-2020-11-23-12-32-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000198-PHOTO-2020-11-23-12-32-28",
+   "family": "digital-dark-on-light-red",
+   "stage": "unsure-line",
+   "detail": "stroke+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000199-PHOTO-2020-12-22-11-15-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000201-PHOTO-2020-12-22-19-02-00",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000207-PHOTO-2020-11-23-15-48-48",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000208-PHOTO-2020-12-22-20-42-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 16,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000211-PHOTO-2020-11-23-18-03-52",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000212-PHOTO-2020-11-23-18-03-52",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000213-PHOTO-2020-12-23-09-58-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000215-PHOTO-2020-11-23-21-05-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000216-PHOTO-2020-12-23-10-50-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000217-PHOTO-2020-11-23-21-05-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000219-PHOTO-2020-12-23-19-47-49",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000222-PHOTO-2020-11-23-21-05-59",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000223-PHOTO-2020-11-23-21-05-59",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000228-PHOTO-2020-12-23-21-38-34",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000232-PHOTO-2020-11-24-08-54-09",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000234-PHOTO-2020-11-24-08-54-09",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000238-PHOTO-2020-11-24-08-54-09",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000241-PHOTO-2020-11-24-08-54-09",
+   "family": "digital-light-on-dark-amber",
+   "stage": "localisation",
+   "detail": null,
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 0,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000241-PHOTO-2020-12-24-19-22-14",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000244-PHOTO-2020-11-24-08-54-09",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000246-PHOTO-2020-11-24-13-52-44",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000248-PHOTO-2020-11-24-13-52-44",
+   "family": "digital-light-on-dark-red",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000250-PHOTO-2020-12-24-20-58-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000258-PHOTO-2020-12-25-10-35-45",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000260-PHOTO-2020-12-25-19-42-48",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000264-PHOTO-2020-11-24-13-52-44",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000267-PHOTO-2020-12-25-20-19-48",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000272-PHOTO-2020-12-25-21-25-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000273-PHOTO-2020-12-26-10-16-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 12,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000277-PHOTO-2020-12-26-10-36-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000278-PHOTO-2020-11-24-20-43-46",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000283-PHOTO-2020-12-26-17-03-31",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000285-PHOTO-2020-12-26-17-28-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000288-PHOTO-2020-12-26-18-16-33",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000293-PHOTO-2020-11-25-07-47-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000294-PHOTO-2020-12-27-09-57-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000295-PHOTO-2020-11-25-09-55-35",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000299-PHOTO-2020-11-25-12-10-15",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000302-PHOTO-2020-12-27-17-40-17",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000308-PHOTO-2020-11-25-12-10-15",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000308-PHOTO-2020-12-27-17-58-10",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000313-PHOTO-2020-12-28-10-07-27",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000314-PHOTO-2020-12-28-10-20-40",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000315-PHOTO-2020-11-25-12-11-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000318-PHOTO-2020-11-25-12-11-04",
+   "family": "digital-dark-on-light-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000319-PHOTO-2020-12-28-10-43-58",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000325-PHOTO-2020-11-26-00-44-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000329-PHOTO-2020-12-28-21-04-09",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000330-PHOTO-2020-12-28-21-52-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 14,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000331-PHOTO-2020-11-26-00-44-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000331-PHOTO-2020-12-29-09-43-34",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "text+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000332-PHOTO-2020-11-26-00-44-36",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000335-PHOTO-2020-12-29-10-50-24",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000339-PHOTO-2020-12-29-19-54-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000341-PHOTO-2020-11-26-00-45-22",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000341-PHOTO-2020-12-29-20-37-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000348-PHOTO-2020-12-16-21-18-57",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000374-PHOTO-2020-11-26-11-14-18",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000379-PHOTO-2020-11-26-13-36-11",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000380-PHOTO-2020-11-26-21-23-48",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000388-PHOTO-2020-11-26-21-23-48",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000394-PHOTO-2020-11-26-21-23-48",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000396-PHOTO-2020-11-26-21-24-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000397-PHOTO-2020-11-26-21-24-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000409-PHOTO-2020-11-27-13-56-50",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000426-PHOTO-2020-11-27-13-57-59",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000432-PHOTO-2020-11-27-13-58-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000434-PHOTO-2020-12-16-23-05-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000437-PHOTO-2020-11-27-13-58-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000447-PHOTO-2020-11-27-20-22-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000449-PHOTO-2020-11-27-20-22-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 18,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000452-PHOTO-2020-11-27-21-30-52",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 12,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000453-PHOTO-2020-11-27-21-30-52",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000454-PHOTO-2020-11-27-21-30-52",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000455-PHOTO-2020-12-17-09-57-43",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000456-PHOTO-2020-12-17-10-11-15",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000462-PHOTO-2020-12-17-10-34-18",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "text",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 2,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000469-PHOTO-2020-11-28-08-39-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000470-PHOTO-2020-11-28-20-58-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000470-PHOTO-2020-12-17-10-55-53",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "stroke+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000474-PHOTO-2020-12-17-11-11-31",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000478-PHOTO-2020-11-28-20-58-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000480-PHOTO-2020-11-28-20-58-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000484-PHOTO-2020-11-28-20-59-30",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000486-PHOTO-2020-11-28-20-59-30",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000489-PHOTO-2020-11-28-20-59-30",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000505-PHOTO-2020-11-28-20-59-30",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "no-reading"
+   },
+   "located": {
+    "text": 2,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000506-PHOTO-2020-11-28-21-01-29",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000507-PHOTO-2020-11-28-21-01-29",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 13,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000513-PHOTO-2020-11-28-21-01-29",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000520-PHOTO-2020-11-29-11-15-49",
+   "family": "digital-light-on-dark-red",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 12,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000520-PHOTO-2020-12-17-17-45-51",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 13,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000526-PHOTO-2020-11-29-11-16-41",
+   "family": "digital-light-on-dark-blue",
+   "stage": "wrong-accepted",
+   "detail": "18948 via ppocr-v5+v6@centre+ppocr-v5+v6@roi",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000533-PHOTO-2020-11-29-11-16-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000534-PHOTO-2020-11-29-11-16-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000540-PHOTO-2020-11-29-11-16-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 14,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000548-PHOTO-2020-11-29-11-16-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000554-PHOTO-2020-11-29-19-35-41",
+   "family": "digital-light-on-dark-blue",
+   "stage": "wrong-accepted",
+   "detail": "18948 via ppocr-v5+v6@centre+ppocr-v5+v6@roi",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000555-PHOTO-2020-11-29-19-35-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000557-PHOTO-2020-11-29-19-35-41",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000559-PHOTO-2020-11-30-13-25-25",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000569-PHOTO-2020-11-30-13-25-25",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000571-PHOTO-2020-12-17-19-22-57",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000579-PHOTO-2020-11-30-13-26-03",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000581-PHOTO-2020-11-30-13-26-03",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000602-PHOTO-2020-11-30-13-27-18",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000605-PHOTO-2020-11-30-13-27-18",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000614-PHOTO-2020-11-30-23-25-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000623-PHOTO-2020-11-30-23-25-32",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "unsure-line",
+   "detail": "adjacent+stroke",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000637-PHOTO-2020-11-30-23-26-16",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 14,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000674-PHOTO-2020-12-02-17-31-21",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000674-PHOTO-2020-12-17-20-34-34",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000686-PHOTO-2020-12-02-17-31-21",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000697-PHOTO-2020-12-02-17-32-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000708-PHOTO-2020-12-02-17-32-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000718-PHOTO-2020-12-02-17-33-36",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000723-PHOTO-2020-12-02-17-33-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000725-PHOTO-2020-12-02-17-33-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000740-PHOTO-2020-12-02-23-36-54",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000741-PHOTO-2020-12-02-23-36-54",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000750-PHOTO-2020-12-02-23-38-11",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000762-PHOTO-2020-12-02-23-38-11",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000763-PHOTO-2020-12-02-23-38-11",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:conflict",
+   "detail": "ppocr-v5+v6@roi",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000773-PHOTO-2020-12-03-13-12-15",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000778-PHOTO-2020-12-03-13-12-15",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000779-PHOTO-2020-12-03-13-12-15",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000786-PHOTO-2020-12-03-13-12-16",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000798-PHOTO-2020-12-03-22-12-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000804-PHOTO-2020-12-03-22-12-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000805-PHOTO-2020-12-03-22-12-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000811-PHOTO-2020-12-03-22-13-36",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000814-PHOTO-2020-12-03-22-13-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000829-PHOTO-2020-12-06-19-04-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000836-PHOTO-2020-12-06-19-04-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:conflict",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000841-PHOTO-2020-12-06-19-04-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000843-PHOTO-2020-12-06-19-04-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000847-PHOTO-2020-12-06-19-04-32",
+   "family": "digital-light-on-dark-red",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000852-PHOTO-2020-12-06-19-04-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000860-PHOTO-2020-12-06-19-05-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000866-PHOTO-2020-12-06-19-05-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000870-PHOTO-2020-12-18-09-32-15",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000872-PHOTO-2020-12-06-19-05-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000879-PHOTO-2020-12-06-19-05-30",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 3,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000884-PHOTO-2020-12-06-19-06-38",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000884-PHOTO-2020-12-18-10-39-12",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000885-PHOTO-2020-12-06-19-06-38",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000886-PHOTO-2020-12-06-19-06-38",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000890-PHOTO-2020-12-06-19-06-38",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000898-PHOTO-2020-12-18-11-47-08",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000909-PHOTO-2020-12-06-19-07-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000911-PHOTO-2020-12-06-19-07-28",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000913-PHOTO-2020-12-06-19-07-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000915-PHOTO-2020-12-06-19-07-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000926-PHOTO-2020-12-09-20-30-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000928-PHOTO-2020-12-09-20-30-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000930-PHOTO-2020-12-09-20-30-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000937-PHOTO-2020-12-09-20-30-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000945-PHOTO-2020-12-09-20-30-13",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000956-PHOTO-2020-12-18-19-37-19",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000960-PHOTO-2020-12-09-20-32-29",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00000971-PHOTO-2020-12-09-20-34-13",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000972-PHOTO-2020-12-09-20-34-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000987-PHOTO-2020-12-09-20-34-13",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00000995-PHOTO-2020-12-09-20-35-01",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001002-PHOTO-2020-12-09-20-35-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001006-PHOTO-2020-12-09-20-35-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001011-PHOTO-2020-12-09-20-35-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001015-PHOTO-2020-12-09-20-35-01",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "one digit substituted",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001034-PHOTO-2020-12-09-20-36-47",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001041-PHOTO-2020-12-09-20-36-47",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001044-PHOTO-2020-12-18-20-27-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001051-PHOTO-2020-12-09-21-01-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001058-PHOTO-2020-12-09-21-01-01",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001062-PHOTO-2020-12-09-21-01-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001072-PHOTO-2020-12-18-20-46-45",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 3,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001079-PHOTO-2020-12-09-21-02-08",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001086-PHOTO-2020-12-09-21-02-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001087-PHOTO-2020-12-09-21-02-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 2,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001097-PHOTO-2020-12-10-11-16-56",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001099-PHOTO-2020-12-10-11-16-56",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001101-PHOTO-2020-12-10-11-16-56",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001114-PHOTO-2020-12-10-11-16-56",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001124-PHOTO-2020-12-10-11-20-27",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001125-PHOTO-2020-12-10-11-20-27",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001126-PHOTO-2020-12-10-11-20-27",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001127-PHOTO-2020-12-10-11-20-27",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001130-PHOTO-2020-12-10-11-20-27",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001150-PHOTO-2020-12-10-11-20-27",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001162-PHOTO-2020-12-10-11-45-07",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 13,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001165-PHOTO-2020-12-10-11-45-07",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001168-PHOTO-2020-12-10-11-45-07",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001169-PHOTO-2020-12-10-11-45-07",
+   "family": "digital-light-on-dark-red",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001179-PHOTO-2020-12-10-11-46-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001203-PHOTO-2020-12-10-11-47-26",
+   "family": "digital-light-on-dark-red",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001212-PHOTO-2020-12-10-11-47-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001215-PHOTO-2020-12-10-11-47-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001221-PHOTO-2020-12-10-11-47-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001222-PHOTO-2020-12-10-11-47-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001223-PHOTO-2020-12-10-11-47-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001228-PHOTO-2020-12-10-11-48-31",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001255-PHOTO-2020-12-10-11-49-58",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit inserted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001259-PHOTO-2020-12-10-11-49-58",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001265-PHOTO-2020-12-10-15-17-55",
+   "family": "digital-light-on-dark-red",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001293-PHOTO-2020-12-10-20-02-06",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001294-PHOTO-2020-12-10-20-02-06",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001296-PHOTO-2020-12-10-21-59-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001316-PHOTO-2020-12-11-13-27-55",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001319-PHOTO-2020-12-11-13-27-55",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001321-PHOTO-2020-12-19-10-17-47",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001325-PHOTO-2020-12-11-13-27-55",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001330-PHOTO-2020-12-19-10-37-42",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001332-PHOTO-2020-12-19-10-38-29",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001340-PHOTO-2020-12-12-10-55-01",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001344-PHOTO-2020-12-12-10-55-01",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001348-PHOTO-2020-12-12-10-55-01",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "read-other"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001353-PHOTO-2020-12-12-10-58-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001357-PHOTO-2020-12-12-10-58-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001366-PHOTO-2020-12-12-10-58-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001368-PHOTO-2020-12-12-10-58-41",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001376-PHOTO-2020-12-12-11-00-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001390-PHOTO-2020-12-12-11-00-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 2,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001396-PHOTO-2020-12-12-11-00-04",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001404-PHOTO-2020-12-15-22-16-38",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001409-PHOTO-2020-12-15-22-16-38",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001410-PHOTO-2020-12-15-22-16-38",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001417-PHOTO-2020-12-15-22-16-38",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001423-PHOTO-2020-12-19-17-13-07",
+   "family": "digital-dark-on-light-blue",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001427-PHOTO-2020-12-15-22-17-24",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001428-PHOTO-2020-12-15-22-17-24",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001433-PHOTO-2020-12-15-22-17-24",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "format",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001436-PHOTO-2020-12-15-22-17-24",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001441-PHOTO-2020-12-15-22-18-02",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001443-PHOTO-2020-12-15-22-18-03",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001444-PHOTO-2020-12-19-17-37-33",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001463-PHOTO-2020-12-15-22-18-03",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001470-PHOTO-2020-12-15-22-18-44",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 2,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001471-PHOTO-2020-12-15-22-18-44",
+   "family": "digital-light-on-dark-blue",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 1,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001483-PHOTO-2020-12-15-22-18-44",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001495-PHOTO-2020-12-15-22-19-58",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001501-PHOTO-2020-12-15-22-19-58",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001502-PHOTO-2020-12-15-22-19-58",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001519-PHOTO-2020-12-15-22-20-40",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001531-PHOTO-2020-12-15-22-20-40",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001533-PHOTO-2020-12-15-22-20-40",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001534-PHOTO-2020-12-15-22-20-40",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001544-PHOTO-2020-12-15-22-22-36",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001545-PHOTO-2020-12-15-22-22-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001552-PHOTO-2020-12-15-22-22-36",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001555-PHOTO-2020-12-15-22-22-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001560-PHOTO-2020-12-15-22-22-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001573-PHOTO-2020-12-15-22-23-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001589-PHOTO-2020-12-15-22-24-15",
+   "family": "digital-dark-on-light-neutral",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001592-PHOTO-2020-12-15-22-24-15",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001600-PHOTO-2020-12-15-22-25-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 16,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001605-PHOTO-2020-12-15-22-25-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001610-PHOTO-2020-12-15-22-25-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001622-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001625-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001630-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001632-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001633-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-amber",
+   "stage": "localisation",
+   "detail": null,
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 0,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001640-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "format"
+   },
+   "located": {
+    "text": 15,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001641-PHOTO-2020-12-15-22-26-20",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001648-PHOTO-2020-12-15-22-26-43",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001653-PHOTO-2020-12-15-22-26-43",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001657-PHOTO-2020-12-16-20-20-25",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001663-PHOTO-2020-12-16-20-20-57",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001669-PHOTO-2020-12-16-20-22-42",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001677-PHOTO-2020-12-16-20-22-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001678-PHOTO-2020-12-16-20-22-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001680-PHOTO-2020-12-16-20-22-42",
+   "family": "digital-light-on-dark-blue",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "no-reading"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001686-PHOTO-2020-12-16-20-22-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit inserted",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001842-PHOTO-2020-12-19-22-24-38",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001877-PHOTO-2020-12-19-23-42-55",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00001907-PHOTO-2020-12-20-10-27-12",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00001927-PHOTO-2020-12-20-11-31-36",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00002023-PHOTO-2020-12-20-17-53-58",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 11,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00002055-PHOTO-2020-12-20-18-18-11",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00002067-PHOTO-2020-12-20-18-48-02",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00002076-PHOTO-2020-12-20-19-06-43",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent+verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 1
+   }
+  },
+  {
+   "id": "trodo:00002371-PHOTO-2020-12-20-21-07-44",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00002510-PHOTO-2020-12-21-10-01-49",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00002518-PHOTO-2020-12-21-10-34-52",
+   "family": "digital-light-on-dark-red",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00002535-PHOTO-2020-12-21-12-20-26",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00002647-PHOTO-2020-12-21-18-47-30",
+   "family": "digital-light-on-dark-red",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00002690-PHOTO-2020-12-21-19-35-59",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00002898-PHOTO-2020-12-21-22-08-02",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00002985-PHOTO-2020-12-22-10-03-33",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003000-PHOTO-2020-12-22-10-32-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 13,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00003095-PHOTO-2020-12-22-18-56-24",
+   "family": "digital-light-on-dark-red",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00003275-PHOTO-2020-12-22-20-55-59",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003351-PHOTO-2020-12-22-22-13-46",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00003482-PHOTO-2020-12-23-10-20-40",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003489-PHOTO-2020-12-23-10-44-05",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003497-PHOTO-2020-12-23-12-17-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00003665-PHOTO-2020-12-23-20-26-39",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00003751-PHOTO-2020-12-23-21-37-03",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003874-PHOTO-2020-12-24-10-22-08",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003887-PHOTO-2020-12-24-10-49-44",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00003915-PHOTO-2020-12-24-11-52-54",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00003950-PHOTO-2020-12-24-18-44-17",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004025-PHOTO-2020-12-24-19-34-12",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004058-PHOTO-2020-12-24-20-03-37",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00004095-PHOTO-2020-12-24-20-10-34",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "verifier",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004115-PHOTO-2020-12-24-20-17-56",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004343-PHOTO-2020-12-25-10-09-27",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004351-PHOTO-2020-12-25-10-29-16",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00004354-PHOTO-2020-12-25-10-34-28",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00004365-PHOTO-2020-12-25-11-37-48",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00004612-PHOTO-2020-12-25-20-42-35",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00004639-PHOTO-2020-12-25-20-52-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 5,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004722-PHOTO-2020-12-25-21-29-41",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 12,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004815-PHOTO-2020-12-26-09-56-16",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00004819-PHOTO-2020-12-26-10-09-57",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00004836-PHOTO-2020-12-26-11-15-14",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@960",
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 6,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005024-PHOTO-2020-12-26-19-29-54",
+   "family": "digital-light-on-dark-amber",
+   "stage": "session:uncorroborated",
+   "detail": "ppocr-v5+v6@centre",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 12,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005281-PHOTO-2020-12-26-22-03-22",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent+verifier",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005366-PHOTO-2020-12-27-10-34-07",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00005422-PHOTO-2020-12-27-17-44-00",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00005523-PHOTO-2020-12-27-18-51-13",
+   "family": "digital-light-on-dark-blue",
+   "stage": "raw-recognition",
+   "detail": "one digit dropped",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 7,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005577-PHOTO-2020-12-27-19-38-59",
+   "family": "digital-light-on-dark-amber",
+   "stage": "unsure-line",
+   "detail": "adjacent",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 9,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005791-PHOTO-2020-12-28-10-30-42",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00005869-PHOTO-2020-12-28-18-59-37",
+   "family": "digital-light-on-dark-amber",
+   "stage": "localisation",
+   "detail": null,
+   "oracle": {
+    "raw": true,
+    "read": true,
+    "reason": "read"
+   },
+   "located": {
+    "text": 0,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005903-PHOTO-2020-12-28-19-19-23",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "two digits off",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 8,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00005936-PHOTO-2020-12-28-19-40-12",
+   "family": "digital-light-on-dark-amber",
+   "stage": "identity",
+   "detail": "identity-ambiguous",
+   "oracle": {
+    "raw": true,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 10,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00006036-PHOTO-2020-12-28-21-11-47",
+   "family": "digital-light-on-dark-amber",
+   "stage": "raw-recognition",
+   "detail": "other number",
+   "oracle": {
+    "raw": false,
+    "read": false,
+    "reason": "identity-ambiguous"
+   },
+   "located": {
+    "text": 4,
+    "segment": 0
+   }
+  },
+  {
+   "id": "trodo:00006076-PHOTO-2020-12-28-21-36-11",
+   "family": "digital-light-on-dark-blue",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00006199-PHOTO-2020-12-29-11-20-51",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  },
+  {
+   "id": "trodo:00006363-PHOTO-2020-12-29-20-19-32",
+   "family": "digital-light-on-dark-amber",
+   "stage": "correct"
+  }
+ ]
+}

@@ -1,0 +1,160 @@
+{
+ "format": "tank-maleh-scan-browser-v2",
+ "at": "2026-11-01T14:08:22.975Z",
+ "commit": "c35d40286d9ab5dd913afec900a51bf19566f05c",
+ "engine": "chromium",
+ "browserVersion": "156.0.8078.4",
+ "profile": "fresh persistent profile",
+ "machine": "Apple M5",
+ "network": {
+  "downloadMbps": 10,
+  "roundTripMs": 150,
+  "method": "Chromium DevTools Network.emulateNetworkConditions"
+ },
+ "scenes": 3,
+ "recognizer": [
+  "ready"
+ ],
+ "coldStart": {
+  "firstScanMs": 26236,
+  "recognizerReadyMs": 24889,
+  "outcome": "correct",
+  "requests": 4,
+  "downloadedBytes": 31377477,
+  "downloads": {
+   "verify.onnx": 4462639,
+   "det.onnx": 4826518,
+   "rec.onnx": 7848423,
+   "ort-wasm-simd-threaded-DcHrbrbl.wasm": 14239897
+  },
+  "note": "First scan after install: local preview server, no network throttling. Includes download, sha256 verification, Cache Storage write, session creation and reading the photo."
+ },
+ "reopen": {
+  "firstScanMs": 2061,
+  "recognizerReadyMs": 446,
+  "outcome": "correct",
+  "cacheEntriesBefore": {
+   "tank-maleh-scan-ppocr5-v6tiny-ort1.30.0": 4
+  },
+  "requests": 0,
+  "downloadedBytes": 0,
+  "note": "A new worker after the first: recogniser read from Cache Storage, verified, sessions created, then the same photo as the cold scan."
+ },
+ "warmMs": {
+  "all": {
+   "n": 2,
+   "p50": 619,
+   "p95": 619,
+   "max": 1287
+  },
+  "accepted": {
+   "n": 0,
+   "p50": null,
+   "p95": null,
+   "max": null
+  },
+  "abstained": {
+   "n": 2,
+   "p50": 619,
+   "p95": 619,
+   "max": 1287
+  }
+ },
+ "outcomes": {
+  "correct": 0,
+  "wrong": 0,
+  "abstained": 2,
+  "error": 0,
+  "reasons": {
+   "uncorroborated": 1,
+   "unreadable": 1
+  }
+ },
+ "rendererRssMb": {
+  "before": 80,
+  "after": 525,
+  "note": "Sum of renderer/web-content processes; includes the page and the worker."
+ },
+ "rows": [
+  {
+   "file": "trodo-v2/trodo-v01/images/00000003-PHOTO-2020-11-20-11-21-23.jpg",
+   "phase": "cold",
+   "ms": 26235.799999952316,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 21,
+    "segment": 157,
+    "ppocr": 1174.8999998569489
+   },
+   "id": "trodo:00000003-PHOTO-2020-11-20-11-21-23",
+   "label": "64750",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "64750",
+   "paths": [
+    "ppocr@centre",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000715-PHOTO-2020-12-02-17-33-36.jpg",
+   "phase": "warm",
+   "ms": 619,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 9.700000047683716,
+    "segment": 150.59999990463257,
+    "ppocr": 456.09999990463257
+   },
+   "id": "trodo:00000715-PHOTO-2020-12-02-17-33-36",
+   "label": "118019",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "uncorroborated"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001440-PHOTO-2020-12-15-22-18-02.jpg",
+   "phase": "warm",
+   "ms": 1287.0999999046326,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 10.200000047683716,
+    "segment": 137.29999995231628,
+    "ppocr": 1131.8999998569489
+   },
+   "id": "trodo:00001440-PHOTO-2020-12-15-22-18-02",
+   "label": "28467",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000003-PHOTO-2020-11-20-11-21-23.jpg",
+   "phase": "reopen",
+   "ms": 2060.7000000476837,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 17.700000047683716,
+    "segment": 227.39999985694885,
+    "ppocr": 1372.5
+   },
+   "id": "trodo:00000003-PHOTO-2020-11-20-11-21-23",
+   "label": "64750",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "64750",
+   "paths": [
+    "ppocr@centre",
+    "ppocr@roi"
+   ]
+  }
+ ]
+}

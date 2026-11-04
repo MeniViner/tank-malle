@@ -1,0 +1,318 @@
+{
+ "format": "tank-maleh-scan-replay-v2",
+ "at": "2026-11-01T22:59:46.368Z",
+ "commit": "b01d609f2e593836f1380fe8ebbe97d0f62f8337",
+ "playwright": "Version 1.64.1",
+ "machine": "Apple M5",
+ "note": "Chromium fake capture device playing rendered 1280x720 displays at 3 fps (pinned pixels, e2e/fixtures/replay-scenes.json); the built app with the pinned models, emulators for data. Times are camera-open to reading on a desktop CPU, one test at a time; they are not phone measurements.",
+ "tests": {
+  "passed": 20,
+  "failed": 0,
+  "expectedFailures": 3
+ },
+ "scans": {
+  "correct": 38,
+  "wrong": 0,
+  "abstained": 10,
+  "correctly-empty": 4
+ },
+ "results": [
+  {
+   "project": "replay-pump",
+   "title": "a cold live pump scan fills the form exactly; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 6189,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3786 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3786 ms"
+   ],
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 3786 ms; 4 model requests",
+    "time to pump reading (cold, models downloaded in this test): 3786 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-pump",
+   "title": "reopening reads again from the cached recogniser without downloading",
+   "status": "passed",
+   "ms": 14599,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3576 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2979 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2961 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2957 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3576 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2979 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2961 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2957 ms"
+   ],
+   "notes": [
+    "time to pump reading (warm reopen): 2979 ms, 2961 ms, 2957 ms",
+    "time to pump reading (warm reopen): 2979 ms, 2961 ms, 2957 ms"
+   ]
+  },
+  {
+   "project": "replay-pump",
+   "title": "on a slow network the first live scan waits for the recogniser and fills",
+   "status": "passed",
+   "ms": 28843,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 27459 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 27459 ms"
+   ],
+   "notes": [
+    "time to pump reading (cold, 10 Mbit/s emulated): 27459 ms",
+    "time to pump reading (cold, 10 Mbit/s emulated): 27459 ms"
+   ]
+  },
+  {
+   "project": "replay-pump",
+   "title": "closing the camera while the recogniser loads fills nothing; reopening fills",
+   "status": "passed",
+   "ms": 9125,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2380 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2380 ms"
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-pump",
+   "title": "a frame still being read when the camera closes fills nothing afterwards",
+   "status": "passed",
+   "ms": 11206,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3497 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3497 ms"
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-pump",
+   "title": "a recogniser file that fails its integrity check fills nothing wrong and leaves manual entry",
+   "status": "passed",
+   "ms": 18518,
+   "outcomes": [],
+   "notes": []
+  },
+  {
+   "project": "replay-odometer",
+   "title": "a cold live odometer scan fills the form exactly and saves",
+   "status": "passed",
+   "ms": 5294,
+   "outcomes": [
+    "correct: odometer 128450 after 2946 ms",
+    "correct: odometer 128450 after 2946 ms"
+   ],
+   "notes": [
+    "time to filled odometer (cold): 2946 ms",
+    "time to filled odometer (cold): 2946 ms"
+   ]
+  },
+  {
+   "project": "replay-blur-to-clear",
+   "title": "a cold live pump scan fills the form exactly; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 5537,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3560 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3560 ms"
+   ],
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 3560 ms; 4 model requests",
+    "time to pump reading (cold, models downloaded in this test): 3560 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-movement",
+   "title": "a cold live odometer scan fills the form exactly and saves",
+   "status": "passed",
+   "ms": 5398,
+   "outcomes": [
+    "correct: odometer 128450 after 3112 ms",
+    "correct: odometer 128450 after 3112 ms"
+   ],
+   "notes": [
+    "time to filled odometer (cold): 3112 ms",
+    "time to filled odometer (cold): 3112 ms"
+   ]
+  },
+  {
+   "project": "replay-counting-pump",
+   "title": "a counting pump is filled with its final values only",
+   "status": "passed",
+   "ms": 14593,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 13208 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 13208 ms"
+   ],
+   "notes": [
+    "time to pump reading (counting for the first 5 s): 13208 ms",
+    "time to pump reading (counting for the first 5 s): 13208 ms"
+   ]
+  },
+  {
+   "project": "replay-trip-and-odo",
+   "title": "a cold live odometer scan fills the form exactly and saves",
+   "status": "passed",
+   "ms": 5363,
+   "outcomes": [
+    "correct: odometer 128450 after 3365 ms",
+    "correct: odometer 128450 after 3365 ms"
+   ],
+   "notes": [
+    "time to filled odometer (cold): 3365 ms",
+    "time to filled odometer (cold): 3365 ms"
+   ]
+  },
+  {
+   "project": "replay-labelled-pump",
+   "title": "a cold live pump scan fills the form exactly; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 5903,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3886 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3886 ms"
+   ],
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 3886 ms; 4 model requests",
+    "time to pump reading (cold, models downloaded in this test): 3886 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-offline",
+   "title": "after one online scan, the installed app reads offline after a restart",
+   "status": "passed",
+   "ms": 8715,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3584 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2950 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 3584 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 2950 ms"
+   ],
+   "notes": [
+    "time to pump reading (offline restart, models from Cache Storage): 2950 ms",
+    "time to pump reading (offline restart, models from Cache Storage): 2950 ms"
+   ]
+  },
+  {
+   "project": "replay-two-step",
+   "title": "pump then odometer from the camera fill all three fields; one record after Save and reload",
+   "status": "passed",
+   "ms": 15994,
+   "outcomes": [
+    "correct: {\"total\":\"287.40\",\"liters\":\"40.000\",\"odometer\":\"128450\"}; pump after 3571 ms, all three after 14336 ms",
+    "correct: {\"total\":\"287.40\",\"liters\":\"40.000\",\"odometer\":\"128450\"}; pump after 3571 ms, all three after 14336 ms"
+   ],
+   "notes": [
+    "time to all three fields (cold): 14336 ms (pump 3571 ms)",
+    "time to all three fields (cold): 14336 ms (pump 3571 ms)"
+   ]
+  },
+  {
+   "project": "replay-segment-two-step",
+   "title": "pump then odometer from the camera fill all three fields; one record after Save and reload",
+   "status": "expected-failure",
+   "ms": 18741,
+   "outcomes": [
+    "abstained: pump: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית.",
+    "abstained: pump: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית."
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-segment-pump",
+   "title": "a cold live pump scan fills the form exactly; the saved fill-up survives a reload",
+   "status": "expected-failure",
+   "ms": 19388,
+   "outcomes": [
+    "abstained: pump after 17614 ms: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית.",
+    "abstained: pump after 17614 ms: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית."
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-segment-pump",
+   "title": "the seven-segment pump never fills a wrong value",
+   "status": "passed",
+   "ms": 19555,
+   "outcomes": [
+    "abstained: pump abstained: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית. after 17831 ms",
+    "abstained: pump abstained: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית. after 17831 ms"
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-segment-odometer",
+   "title": "a cold live odometer scan fills the form exactly and saves",
+   "status": "passed",
+   "ms": 6165,
+   "outcomes": [
+    "correct: odometer 128450 after 3884 ms",
+    "correct: odometer 128450 after 3884 ms"
+   ],
+   "notes": [
+    "time to filled odometer (cold): 3884 ms",
+    "time to filled odometer (cold): 3884 ms"
+   ]
+  },
+  {
+   "project": "replay-dashboard",
+   "title": "a cold live pump scan fills the form exactly; the saved fill-up survives a reload",
+   "status": "passed",
+   "ms": 7380,
+   "outcomes": [
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 5381 ms",
+    "correct: pump {\"total\":\"287.40\",\"liters\":\"40.000\"} after 5381 ms"
+   ],
+   "notes": [
+    "time to pump reading (cold, models downloaded in this test): 5381 ms; 4 model requests",
+    "time to pump reading (cold, models downloaded in this test): 5381 ms; 4 model requests"
+   ]
+  },
+  {
+   "project": "replay-dashboard",
+   "title": "the crowded dashboard: the odometer step never fills a wrong number",
+   "status": "passed",
+   "ms": 19854,
+   "outcomes": [
+    "abstained: odometer abstained: נראה שזה מד טיול (TRIP), לא מד המרחק המצטבר (ODO). עברו לתצוגת ODO, או המשיכו ידנית. after 17756 ms",
+    "abstained: odometer abstained: נראה שזה מד טיול (TRIP), לא מד המרחק המצטבר (ODO). עברו לתצוגת ODO, או המשיכו ידנית. after 17756 ms"
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-dashboard",
+   "title": "the crowded dashboard: the odometer is filled (open recognition failure)",
+   "status": "expected-failure",
+   "ms": 20093,
+   "outcomes": [
+    "abstained: odometer after 17913 ms: נראה שזה מד טיול (TRIP), לא מד המרחק המצטבר (ODO). עברו לתצוגת ODO, או המשיכו ידנית.",
+    "abstained: odometer after 17913 ms: נראה שזה מד טיול (TRIP), לא מד המרחק המצטבר (ODO). עברו לתצוגת ODO, או המשיכו ידנית."
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-trip-only",
+   "title": "a trip meter alone is never filled as the odometer",
+   "status": "passed",
+   "ms": 19135,
+   "outcomes": [
+    "correctly-empty: abstained after 16955 ms: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית.",
+    "correctly-empty: abstained after 16955 ms: הספרות עדיין לא ברורות מספיק. נסו שוב קרוב יותר בלי סנוור, או המשיכו ידנית."
+   ],
+   "notes": []
+  },
+  {
+   "project": "replay-euro-pump",
+   "title": "a pump showing euros is never filled as shekels",
+   "status": "passed",
+   "ms": 18957,
+   "outcomes": [
+    "correctly-empty: abstained after 17597 ms: המשאבה מציגה מטבע אחר. הטופס שומר שקלים, אז המשיכו ידנית.",
+    "correctly-empty: abstained after 17597 ms: המשאבה מציגה מטבע אחר. הטופס שומר שקלים, אז המשיכו ידנית."
+   ],
+   "notes": []
+  }
+ ]
+}

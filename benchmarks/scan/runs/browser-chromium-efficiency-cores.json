@@ -1,0 +1,491 @@
+{
+ "format": "tank-maleh-scan-browser-v2",
+ "at": "2026-11-01T14:09:46.731Z",
+ "commit": "c35d40286d9ab5dd913afec900a51bf19566f05c",
+ "engine": "chromium",
+ "browserVersion": "156.0.8078.4",
+ "profile": "fresh persistent profile",
+ "machine": "Apple M5",
+ "network": "local preview server, no throttling",
+ "scenes": 20,
+ "recognizer": [
+  "ready"
+ ],
+ "coldStart": {
+  "firstScanMs": 4365,
+  "recognizerReadyMs": 1454,
+  "outcome": "correct",
+  "requests": 4,
+  "downloadedBytes": 31377477,
+  "downloads": {
+   "ort-wasm-simd-threaded-DcHrbrbl.wasm": 14239897,
+   "verify.onnx": 4462639,
+   "det.onnx": 4826518,
+   "rec.onnx": 7848423
+  },
+  "note": "First scan after install: local preview server, no network throttling. Includes download, sha256 verification, Cache Storage write, session creation and reading the photo."
+ },
+ "reopen": {
+  "firstScanMs": 7651,
+  "recognizerReadyMs": 2170,
+  "outcome": "correct",
+  "cacheEntriesBefore": {
+   "tank-maleh-scan-ppocr5-v6tiny-ort1.30.0": 4
+  },
+  "requests": 0,
+  "downloadedBytes": 0,
+  "note": "A new worker after the first: recogniser read from Cache Storage, verified, sessions created, then the same photo as the cold scan."
+ },
+ "warmMs": {
+  "all": {
+   "n": 19,
+   "p50": 3039,
+   "p95": 4677,
+   "max": 7950
+  },
+  "accepted": {
+   "n": 7,
+   "p50": 2829,
+   "p95": 4121,
+   "max": 4433
+  },
+  "abstained": {
+   "n": 12,
+   "p50": 3039,
+   "p95": 4677,
+   "max": 7950
+  }
+ },
+ "outcomes": {
+  "correct": 7,
+  "wrong": 0,
+  "abstained": 12,
+  "error": 0,
+  "reasons": {
+   "unreadable": 9,
+   "uncorroborated": 3
+  }
+ },
+ "rendererRssMb": {
+  "before": 80,
+  "after": 215,
+  "note": "Sum of renderer/web-content processes; includes the page and the worker."
+ },
+ "rows": [
+  {
+   "file": "trodo-v2/trodo-v01/images/00000003-PHOTO-2020-11-20-11-21-23.jpg",
+   "phase": "cold",
+   "ms": 4364.800000190735,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 49.299999952316284,
+    "segment": 491.90000009536743,
+    "ppocr": 2379.5999999046326
+   },
+   "id": "trodo:00000003-PHOTO-2020-11-20-11-21-23",
+   "label": "64750",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "64750",
+   "paths": [
+    "ppocr@centre",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000127-PHOTO-2020-11-22-10-58-08.jpg",
+   "phase": "warm",
+   "ms": 2488.7999999523163,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 50.59999990463257,
+    "segment": 709.7999997138977,
+    "ppocr": 1722.8000001907349
+   },
+   "id": "trodo:00000127-PHOTO-2020-11-22-10-58-08",
+   "label": "25357",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "25357",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000240-PHOTO-2020-11-24-08-54-09.jpg",
+   "phase": "warm",
+   "ms": 2572.5,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 46.200000047683716,
+    "segment": 605.3000001907349,
+    "ppocr": 1899.6000001430511
+   },
+   "id": "trodo:00000240-PHOTO-2020-11-24-08-54-09",
+   "label": "115586",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000306-PHOTO-2020-12-16-20-40-41.jpg",
+   "phase": "warm",
+   "ms": 3450.899999856949,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 140.90000009536743,
+    "segment": 1128.1000001430511,
+    "ppocr": 2153.4000000953674
+   },
+   "id": "trodo:00000306-PHOTO-2020-12-16-20-40-41",
+   "label": "163887",
+   "attempts": 4,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000405-PHOTO-2020-11-27-13-56-50.jpg",
+   "phase": "warm",
+   "ms": 2828.800000190735,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 50.59999990463257,
+    "segment": 387.09999990463257,
+    "ppocr": 2387.100000143051
+   },
+   "id": "trodo:00000405-PHOTO-2020-11-27-13-56-50",
+   "label": "316298",
+   "attempts": 3,
+   "outcome": "correct",
+   "odometer": "316298",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000509-PHOTO-2020-11-28-21-01-29.jpg",
+   "phase": "warm",
+   "ms": 2299.2000000476837,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 24.799999952316284,
+    "segment": 272.19999980926514,
+    "ppocr": 1994.8000001907349
+   },
+   "id": "trodo:00000509-PHOTO-2020-11-28-21-01-29",
+   "label": "26351",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000653-PHOTO-2020-12-02-10-25-33.jpg",
+   "phase": "warm",
+   "ms": 2835.5,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 48.200000047683716,
+    "segment": 377.7000000476837,
+    "ppocr": 2395
+   },
+   "id": "trodo:00000653-PHOTO-2020-12-02-10-25-33",
+   "label": "240696",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000756-PHOTO-2020-12-02-23-38-11.jpg",
+   "phase": "warm",
+   "ms": 3038.7000000476837,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 27.700000047683716,
+    "segment": 351.2000000476837,
+    "ppocr": 2642.2000000476837
+   },
+   "id": "trodo:00000756-PHOTO-2020-12-02-23-38-11",
+   "label": "162929",
+   "attempts": 4,
+   "outcome": "abstained",
+   "reason": "uncorroborated"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000882-PHOTO-2020-12-18-10-37-41.jpg",
+   "phase": "warm",
+   "ms": 3678.4000000953674,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 96.80000019073486,
+    "segment": 1332.2999999523163,
+    "ppocr": 2239.899999856949
+   },
+   "id": "trodo:00000882-PHOTO-2020-12-18-10-37-41",
+   "label": "75806",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "75806",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000993-PHOTO-2020-12-09-20-35-01.jpg",
+   "phase": "warm",
+   "ms": 2196.2999999523163,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 29.59999990463257,
+    "segment": 311.89999985694885,
+    "ppocr": 1851.1000001430511
+   },
+   "id": "trodo:00000993-PHOTO-2020-12-09-20-35-01",
+   "label": "231165",
+   "attempts": 3,
+   "outcome": "correct",
+   "odometer": "231165",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001110-PHOTO-2020-12-10-11-16-56.jpg",
+   "phase": "warm",
+   "ms": 2792.399999856949,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 29.100000143051147,
+    "segment": 396.89999985694885,
+    "ppocr": 2358.7999999523163
+   },
+   "id": "trodo:00001110-PHOTO-2020-12-10-11-16-56",
+   "label": "119602",
+   "attempts": 3,
+   "outcome": "correct",
+   "odometer": "119602",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001227-PHOTO-2020-12-10-11-48-31.jpg",
+   "phase": "warm",
+   "ms": 1963.1000001430511,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 21.5,
+    "segment": 258.7999999523163,
+    "ppocr": 1676.7000000476837
+   },
+   "id": "trodo:00001227-PHOTO-2020-12-10-11-48-31",
+   "label": "231350",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "uncorroborated"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001316-PHOTO-2020-12-19-09-47-25.jpg",
+   "phase": "warm",
+   "ms": 4442.100000143051,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 100.40000009536743,
+    "segment": 1005.9000000953674,
+    "ppocr": 3306.2999999523163
+   },
+   "id": "trodo:00001316-PHOTO-2020-12-19-09-47-25",
+   "label": "28973",
+   "attempts": 4,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001413-PHOTO-2020-12-15-22-16-38.jpg",
+   "phase": "warm",
+   "ms": 4677.200000047684,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 78.70000004768372,
+    "segment": 651.2999999523163,
+    "ppocr": 3933.899999856949
+   },
+   "id": "trodo:00001413-PHOTO-2020-12-15-22-16-38",
+   "label": "28457",
+   "attempts": 4,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001538-PHOTO-2020-12-15-22-22-35.jpg",
+   "phase": "warm",
+   "ms": 3196.2999999523163,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 29,
+    "segment": 529.6000001430511,
+    "ppocr": 2623.4000000953674
+   },
+   "id": "trodo:00001538-PHOTO-2020-12-15-22-22-35",
+   "label": "117767",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00001651-PHOTO-2020-12-15-22-26-43.jpg",
+   "phase": "warm",
+   "ms": 2021.3000001907349,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 36.200000047683716,
+    "segment": 312.7000000476837,
+    "ppocr": 1668.5000002384186
+   },
+   "id": "trodo:00001651-PHOTO-2020-12-15-22-26-43",
+   "label": "119363",
+   "attempts": 3,
+   "outcome": "abstained",
+   "reason": "uncorroborated"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00002529-PHOTO-2020-12-21-11-29-24.jpg",
+   "phase": "warm",
+   "ms": 4120.700000047684,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 160.10000014305115,
+    "segment": 986.8999998569489,
+    "ppocr": 2967
+   },
+   "id": "trodo:00002529-PHOTO-2020-12-21-11-29-24",
+   "label": "164239",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "164239",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00003584-PHOTO-2020-12-23-20-12-17.jpg",
+   "phase": "warm",
+   "ms": 4555.899999856949,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 89.10000014305115,
+    "segment": 965.3999998569489,
+    "ppocr": 3478.0999999046326
+   },
+   "id": "trodo:00003584-PHOTO-2020-12-23-20-12-17",
+   "label": "192699",
+   "attempts": 4,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00004613-PHOTO-2020-12-25-20-42-40.jpg",
+   "phase": "warm",
+   "ms": 7949.600000143051,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 175.99999976158142,
+    "segment": 1681.3999998569489,
+    "ppocr": 6059.900000095367
+   },
+   "id": "trodo:00004613-PHOTO-2020-12-25-20-42-40",
+   "label": "243215",
+   "attempts": 4,
+   "outcome": "abstained",
+   "reason": "unreadable"
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00005780-PHOTO-2020-12-28-09-46-51.jpg",
+   "phase": "warm",
+   "ms": 4433.399999856949,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 101.30000019073486,
+    "segment": 1307.8999998569489,
+    "ppocr": 3017.0999999046326
+   },
+   "id": "trodo:00005780-PHOTO-2020-12-28-09-46-51",
+   "label": "29899",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "29899",
+   "paths": [
+    "ppocr@960",
+    "ppocr@roi"
+   ]
+  },
+  {
+   "file": "trodo-v2/trodo-v01/images/00000003-PHOTO-2020-11-20-11-21-23.jpg",
+   "phase": "reopen",
+   "ms": 7650.700000047684,
+   "recognizer": "ready",
+   "error": false,
+   "hint": null,
+   "stages": {
+    "resample": 109.69999980926514,
+    "segment": 938.6999998092651,
+    "ppocr": 4430.100000143051
+   },
+   "id": "trodo:00000003-PHOTO-2020-11-20-11-21-23",
+   "label": "64750",
+   "attempts": 4,
+   "outcome": "correct",
+   "odometer": "64750",
+   "paths": [
+    "ppocr@centre",
+    "ppocr@roi"
+   ]
+  }
+ ],
+ "cpu": "macOS background QoS (taskpolicy -c background): efficiency cores only; a CPU stress test, not a phone"
+}
