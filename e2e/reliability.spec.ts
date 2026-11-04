@@ -22,6 +22,9 @@ import {
 import { outboxCount } from "./helpers/pwa";
 import { journalOperations, replaceRejectedFillupPayload } from "./helpers/journal";
 import { fillupDraftKey } from "../src/lib/fillupDraft";
+import { initializeApp, deleteApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
+import { PROJECT_ID } from './helpers/emulator';
 
 /**
  * Data preservation, end to end.
@@ -331,6 +334,17 @@ test("a pending record survives sign-out A → B → A and never shows up for B"
 }, testInfo) => {
   try {
   await resetEmulators();
+  // Exercise the adverse IndexedDB UID ordering deterministically. These are
+  // ordinary emulator Google accounts; sign-in and every write still use UI/SDK.
+  process.env.FIREBASE_AUTH_EMULATOR_HOST = `127.0.0.1:${process.env.CARE_AUTH_PORT ?? '9099'}`;
+  const accountFixture = initializeApp({ projectId: PROJECT_ID }, `pending-account-${Date.now()}`);
+  try {
+    const imported = await getAuth(accountFixture).importUsers([
+      { uid: 'a-pending-alice', ...ALICE, providerData: [{ providerId: 'google.com', uid: ALICE.email, ...ALICE }] },
+      { uid: 'z-current-bob', ...BOB, providerData: [{ providerId: 'google.com', uid: BOB.email, ...BOB }] },
+    ]);
+    expect(imported.errors).toEqual([]);
+  } finally { await deleteApp(accountFixture); }
   await signIn(page, ALICE);
   await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
   const aliceUid = await uidOf(ALICE);

@@ -1,4 +1,4 @@
-import { doc, getDocFromServer, runTransaction, waitForPendingWrites, type Firestore } from 'firebase/firestore';
+import { doc, getDocFromServer, runTransaction, type Firestore } from 'firebase/firestore';
 import type { Outbox, OutboxOperation, OutboxPayload } from './outbox';
 import { assertMutationScope, decodeRawDocument, hasRawDocumentEnvelope, rawDocumentMatches } from './rawDocument';
 import { immutableRawImage } from './recordUndo';
@@ -125,8 +125,18 @@ export async function writeVehicleSelectionOperation(db: Firestore, outbox: Outb
   const { before, intent } = readOperation(operation);
   const check = (all: readonly OutboxOperation[]) => neighbors(operation, all);
   await assertVehicleAttempt(outbox, operation, isCurrent, check);
-  await waitForPendingWrites(db);
+  // The SDK's IndexedDB queue-wide barrier can select an inactive account's
+  // pending batch when this account has no batches. Selection only owns these
+  // documents: require authoritative, overlay-free reads, then keep every
+  // original identity/preference check inside the conditional transaction.
+  const snapshots = await Promise.all([
+    getDocFromServer(doc(db, operation.path)),
+    ...(intent.target ? [getDocFromServer(doc(db, `${operation.path}/vehicles/${intent.target.vehicleId}`))] : []),
+  ]);
   await assertVehicleAttempt(outbox, operation, isCurrent, check);
+  if (snapshots.some(snapshot => snapshot.metadata.fromCache || snapshot.metadata.hasPendingWrites)) {
+    throw vehicleWriteError('vehicle-selection-pending', 'יש שינוי ברכב או בהגדרות שממתין לאישור — הבחירה הקיימת נשמרה');
+  }
   await runTransaction(db, async transaction => {
     const ref = doc(db, operation.path), profile = await transaction.get(ref);
     const target = intent.target ? await transaction.get(doc(db, `${operation.path}/vehicles/${intent.target.vehicleId}`)) : null;
@@ -154,8 +164,6 @@ export async function reconcileVehicleSelectionOperation(db: Firestore, outbox: 
   active.add(token);
   try {
     const { before, intent } = readOperation(operation);
-    assertMutationScope(isCurrent);
-    await waitForPendingWrites(db);
     assertMutationScope(isCurrent);
     const target = intent.target ? await getDocFromServer(doc(db, `${operation.path}/vehicles/${intent.target.vehicleId}`)) : null;
     const profile = await getDocFromServer(doc(db, operation.path));

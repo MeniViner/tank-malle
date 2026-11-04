@@ -14,11 +14,11 @@ import type { Vehicle } from './types';
 import type { VehicleDocKey, VehicleDocumentSnapshot } from './vehicle/documents';
 
 const sdk = vi.hoisted(() => ({ data: new Map<string, Record<string, unknown>>(), writes: [] as { path: string; patch: Record<string, unknown> }[],
-  afterRead: null as ((path: string) => Promise<void>) | null, barrier: Promise.resolve(), serverGate: Promise.resolve() }));
+  pendingPaths: new Set<string>(), afterRead: null as ((path: string) => Promise<void>) | null, barrier: Promise.resolve(), serverGate: Promise.resolve() }));
 vi.mock('firebase/firestore', async importOriginal => {
   const actual = await importOriginal<typeof import('firebase/firestore')>();
-  const snap = (data: Record<string, unknown> | undefined) => ({ exists: () => data !== undefined, data: () => data,
-    metadata: { fromCache: false, hasPendingWrites: false } });
+  const snap = (data: Record<string, unknown> | undefined, path: string) => ({ exists: () => data !== undefined, data: () => data,
+    metadata: { fromCache: false, hasPendingWrites: sdk.pendingPaths.has(path) } });
   const patched = (raw: Record<string, unknown>, patch: Record<string, unknown>) => {
     const next = { ...raw };
     for (const [key, value] of Object.entries(patch)) {
@@ -30,13 +30,13 @@ vi.mock('firebase/firestore', async importOriginal => {
   };
   return { ...actual, doc: (_db: unknown, path: string) => ({ path }),
     waitForPendingWrites: async () => { await sdk.barrier; },
-    getDocFromServer: async (ref: { path: string }) => { const result = snap(sdk.data.get(ref.path)); await sdk.serverGate; return result; },
+    getDocFromServer: async (ref: { path: string }) => { const result = snap(sdk.data.get(ref.path), ref.path); await sdk.serverGate; return result; },
     runTransaction: async (_db: unknown, body: (transaction: unknown) => Promise<unknown>) => {
       for (let attempt = 0; attempt < 5; attempt++) {
         const reads = new Map<string, Record<string, unknown> | undefined>();
         const writes: { path: string; patch: Record<string, unknown> }[] = [];
         const result = await body({
-          get: async (ref: { path: string }) => { const raw = sdk.data.get(ref.path); reads.set(ref.path, raw); await sdk.afterRead?.(ref.path); return snap(raw); },
+          get: async (ref: { path: string }) => { const raw = sdk.data.get(ref.path); reads.set(ref.path, raw); await sdk.afterRead?.(ref.path); return snap(raw, ref.path); },
           update: (ref: { path: string }, patch: Record<string, unknown>) => { writes.push({ path: ref.path, patch }); },
         });
         if ([...reads].some(([path, raw]) => sdk.data.get(path) !== raw)) continue;
@@ -70,7 +70,7 @@ async function selectionWrite(outbox: Outbox, raw = profile() as OutboxPayload, 
     beforeImage: vehicleSelectionBase(raw) });
 }
 beforeEach(() => { sdk.data.clear(); sdk.data.set(path, rawVehicle()); sdk.data.set(profilePath, profile()); sdk.writes = [];
-  sdk.afterRead = null; sdk.barrier = Promise.resolve(); sdk.serverGate = Promise.resolve(); });
+  sdk.pendingPaths.clear(); sdk.afterRead = null; sdk.barrier = Promise.resolve(); sdk.serverGate = Promise.resolve(); });
 afterEach(() => { boxes.splice(0).forEach(outbox => outbox.close()); vi.restoreAllMocks(); });
 
 describe('opaque document opening capture', () => {
@@ -175,6 +175,26 @@ describe('selected document conditional writes', () => {
 });
 
 describe('field-only automatic selection', () => {
+  it('selects this account even when an inactive account keeps the SDK-wide barrier pending', async () => {
+    const { outbox } = await open(); const operation = await selectionWrite(outbox);
+    sdk.barrier = new Promise<void>(() => {});
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
+    expect((sdk.data.get(profilePath)!.settings as Record<string, unknown>).activeVehicleId).toBe('car');
+    expect(await outbox.list()).toEqual([]);
+  });
+  it.each([profilePath, path])('retains selection without writing when %s has a pending local overlay', async pendingPath => {
+    const { outbox } = await open(); const operation = await selectionWrite(outbox);
+    sdk.pendingPaths.add(pendingPath);
+    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-pending' });
+    expect(sdk.writes).toEqual([]); expect(await outbox.get(operation.opId)).not.toBeNull();
+  });
+  it('reconciles this account without awaiting an inactive account batch', async () => {
+    const { outbox } = await open(); const operation = await selectionWrite(outbox);
+    sdk.barrier = new Promise<void>(() => {});
+    sdk.data.set(profilePath, { ...profile(), settings: { activeVehicleId: 'car' } });
+    expect(await reconcileVehicleSelectionOperation(db, outbox, operation, current)).toBe(true);
+    expect(await outbox.get(operation.opId)).toBeNull();
+  });
   it('does not replace an eligible explicit choice when a cached empty catalog suggests first creation', async () => {
     const { outbox } = await open();
     // The wizard can open before the vehicle listener has populated its cache.

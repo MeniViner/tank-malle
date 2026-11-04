@@ -371,7 +371,7 @@ service cloud.firestore {
   await page.reload();
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
   await page.getByRole("button", { name: "ניסיון חוזר" }).click();
-  await expect(page.getByText(/לא ניתן היה לאמת/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('[data-outbox-status="failed"]').getByText("לא ניתן היה לאמת את מצב הרשומה בשרת — לא נכתב דבר. נסו שוב כשיש חיבור", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
