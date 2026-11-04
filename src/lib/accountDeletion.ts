@@ -1,9 +1,10 @@
 import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS } from "./vehicle/model";
 import {
   collection, deleteDoc, doc, getDocFromServer, getDocsFromServer, query,
-  setDoc, where, writeBatch, type Firestore, type Query,
+  serverTimestamp, setDoc, where, writeBatch, type Firestore, type Query,
 } from "firebase/firestore";
 import { withdrawBenchmark } from "./benchmarks";
+import { withdrawCostBenchmarks } from "./costBenchmarks";
 
 export interface DeletionResult {
   ok: boolean;
@@ -75,7 +76,8 @@ export function accountDataDeletionSteps(db: Firestore, uid: string) {
   return [
     // A server-side guard prevents other open tabs from adding new personal
     // records while the bounded deletion walks the account's collections.
-    { label: "deletion-lock", run: () => setDoc(doc(db, "users", uid), { deletionPending: true }, { merge: true }) },
+    { label: "deletion-lock", run: () => setDoc(doc(db, "users", uid), { deletionPending: true, costDeletionAttemptAt: serverTimestamp(), settings: { shareTcoBenchmarks: false } }, { merge: true }) },
+    { label: "cost-benchmark", run: async () => { if (!await withdrawCostBenchmarks(uid, db)) throw new Error("cost-withdrawal-unconfirmed"); } },
     { label: "vehicles", run: async () => {
       const vehicles = await getDocsFromServer(collection(db, "users", uid, "vehicles"));
       for (const vehicle of vehicles.docs) {

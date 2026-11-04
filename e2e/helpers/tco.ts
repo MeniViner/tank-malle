@@ -43,6 +43,8 @@ export async function completeTcoFlow(page: Page) {
   await card.click();
   const sheet = page.getByTestId('tco-sheet');
   await expect(sheet.locator('.tm-tco-value')).toHaveText('₪810');
+  const sharingAction = sheet.getByRole('button', { name: 'הגדרות שיתוף עלות', exact: true });
+  const target = await sharingAction.boundingBox(); expect(target?.height).toBeGreaterThanOrEqual(44); expect(target?.width).toBeGreaterThanOrEqual(44);
   await expect(page.getByTestId('tco-value-other')).toHaveText('₪50');
   await expect(page.getByTestId('tco-value-mandatory')).toHaveText('₪100');
   await expect(page.getByTestId('tco-value-test')).toHaveText('₪100');

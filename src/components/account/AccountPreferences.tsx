@@ -13,6 +13,8 @@ import { BellIcon, CameraIcon, CheckIcon, GaugeIcon, InfoIcon, MoonIcon, Palette
 import { NotificationPreferences } from "../NotificationPreferences";
 import { Toggle } from "../Segmented";
 import { Sheet } from "../Sheet";
+import { useCostSharing } from "../../context/CostCommunityContext";
+import { Button } from "../Button";
 import { useAccountScope } from "./useAccountScope";
 
 const THEMES: { value: ThemeSetting; label: string }[] = [
@@ -32,8 +34,10 @@ export function AccountPreferences() {
   const { settings, updateSettings, benchmarkWithdrawal, retryBenchmarkWithdrawal } = useData();
   const { theme, setTheme, accent, accentId, accents, setAccent, resolvedTheme } = useTheme();
   const captureScope = useAccountScope(user?.uid);
-  const [sheet, setSheet] = useState<"theme" | "units" | "accent" | "notifications" | "sharing" | null>(null);
+  const [sheet, setSheet] = useState<"theme" | "units" | "accent" | "notifications" | "sharing" | "cost-sharing" | null>(null);
   const prefs = notificationPreferences(settings);
+  const cost = useCostSharing();
+  const [costBusy, setCostBusy] = useState(false);
 
   function save(patch: Partial<UserSettings>, title = "ההעדפה לא נשמרה") {
     const current = captureScope();
@@ -76,16 +80,30 @@ export function AccountPreferences() {
     <section className="account-section" aria-labelledby="account-community-heading">
       <h2 id="account-community-heading" className="account-section-title">השוואה לנהגים</h2>
       <div className="tm-group">
-        <GroupRow testId="account-comparison-sharing" icon={<UsersIcon />} title="שיתוף סיכום להשוואה">
+        <GroupRow testId="account-comparison-sharing" icon={<UsersIcon />} title="שיתוף סיכום דלק להשוואה">
           <button type="button" className="tm-icon-button" aria-label="מה משותף בהשוואה" aria-haspopup="dialog" onClick={() => setSheet("sharing")}><InfoIcon size={18} /></button>
-          <Toggle checked={settings.shareBenchmarks !== false} ariaLabel="שיתוף סיכום להשוואה"
+          <Toggle checked={settings.shareBenchmarks !== false} ariaLabel="שיתוף סיכום דלק להשוואה"
             onChange={shareBenchmarks => save({ shareBenchmarks }, "שינוי השיתוף לא נשמר")} />
         </GroupRow>
+        <GroupRow testId="account-cost-sharing" icon={<UsersIcon />} title="שיתוף סיכום עלות הרכב">
+          <button type="button" className="tm-icon-button" aria-label="מה משותף בסיכום העלות" aria-haspopup="dialog" onClick={() => setSheet("cost-sharing")}><InfoIcon size={18} /></button>
+          <Toggle checked={settings.shareTcoBenchmarks === true} ariaLabel="שיתוף סיכום עלות הרכב"
+            onChange={next => next ? setSheet("cost-sharing") : save({ shareTcoBenchmarks: false }, "שינוי שיתוף העלות לא נשמר")} />
+        </GroupRow>
       </div>
+      {settings.shareTcoBenchmarks !== true ? <p role="status" className="account-note" data-testid="cost-sharing-withdrawal">
+        {cost.withdrawal === "done" ? "שיתוף העלות כבוי. סיכומי העלות הוסרו מהשרת."
+          : cost.withdrawal === "error" ? "שיתוף העלות כבוי במכשיר. הסרת הסיכומים מהשרת טרם אושרה."
+            : "שיתוף העלות כבוי במכשיר. ממתינים לאישור הסרת הסיכומים מהשרת…"}
+        {cost.withdrawal === "error" ? <button type="button" className="account-text-action" onClick={cost.retry}>ניסיון חוזר</button> : null}
+      </p> : <p role="status" className="account-note" data-testid="cost-sharing-publication">
+        {cost.publication === "error" ? <>סיכום העלות לא עודכן בשרת. <button type="button" className="account-text-action" onClick={cost.retry}>ניסיון חוזר</button></>
+          : "סיכום עלות חיובי משותף רק כשהרישומים מלאים ומסונכרנים. פרטים חסרים אינם משותפים."}
+      </p>}
       {settings.shareBenchmarks === false ? <p role="status" className="account-note">
-        {benchmarkWithdrawal === "done" ? "השיתוף כבוי. נתוני ההשוואה שלכם הוסרו מהשרת."
-          : benchmarkWithdrawal === "error" ? "הסרת נתוני ההשוואה עדיין לא אושרה. נדרש חיבור לשרת."
-            : "ממתינים לאישור הסרת נתוני ההשוואה מהשרת…"}
+        {benchmarkWithdrawal === "done" ? "שיתוף הדלק כבוי. סיכומי הדלק הוסרו מהשרת."
+          : benchmarkWithdrawal === "error" ? "הסרת סיכומי הדלק עדיין לא אושרה. נדרש חיבור לשרת."
+            : "ממתינים לאישור הסרת סיכומי הדלק מהשרת…"}
         {benchmarkWithdrawal === "error" ? <button type="button" className="account-text-action" onClick={retryBenchmarkWithdrawal}>ניסיון חוזר</button> : null}
       </p> : null}
     </section>
@@ -109,12 +127,27 @@ export function AccountPreferences() {
       </div>
     </Sheet>
     <NotificationPreferences open={sheet === "notifications"} onClose={() => setSheet(null)} />
+    <Sheet open={sheet === "cost-sharing"} onClose={() => setSheet(null)} title="שיתוף סיכום עלות הרכב">
+      <div className="account-sheet-stack" data-testid="cost-sharing-consent">
+        <p>השיתוף הזה נפרד משיתוף נתוני הדלק וכבוי כברירת מחדל.</p>
+        <p>רק סיכום עלות חיובי ומלא ישותף. הוא יכלול עלות חודשית כוללת של הרכב, דגם, סוג דלק ומספר חודשים בחישוב. פירוט הוצאות, חשבוניות, פרטי ביטוח, שם, מייל ולוחית רישוי אינם משותפים.</p>
+        <p>לסיכום יש מזהה חשבון ורכב ומועד עדכון. משתמשים מחוברים יכולים לקרוא אותו ולקשר בין עדכונים של אותו חשבון.</p>
+        <p>כיבוי השיתוף מסיר את סיכומי העלות מכל הרכבים לאחר אישור השרת. ההשוואה מוצגת רק מול ארבעה נהגים אחרים לפחות עם אותו דגם וסוג דלק.</p>
+        {settings.shareTcoBenchmarks !== true ? <Button full disabled={costBusy} onClick={() => {
+          const current = captureScope(); setCostBusy(true);
+          void updateSettings({ shareTcoBenchmarks: true }).then(() => { if (current()) setSheet(null); }, () => {
+            if (current()) showToast({ tone: "error", title: "שיתוף העלות לא הופעל", detail: "בדקו את החיבור ונסו שוב" });
+          }).finally(() => { if (current()) setCostBusy(false); });
+        }}>אישור והפעלת שיתוף עלות</Button> : null}
+        <Button full variant="secondary" onClick={() => setSheet(null)}>סגירה</Button>
+      </div>
+    </Sheet>
     <Sheet open={sheet === "sharing"} onClose={() => setSheet(null)} title="השוואה לנהגים">
       <div className="account-sheet-stack">
-        <p>משותפים דגם ושנה, סוג דלק, צריכה ממוצעת, מספר המקטעים ומחיר ממוצע לליטר.</p>
+        <p>שיתוף הדלק כולל דגם ושנה, סוג דלק, צריכה ממוצעת, מספר המקטעים ומחיר ממוצע לליטר. שיתוף העלות הכוללת מופעל בנפרד.</p>
         <p>שם, מייל, מספר רישוי, קילומטראז׳, מועדי התדלוקים ותחנות אינם משותפים.</p>
         <p>לסיכום יש מזהה חשבון ורכב ומועד עדכון. משתמשים מחוברים יכולים לקרוא אותו ולקשר בין עדכונים של אותו חשבון.</p>
-        <p>כיבוי השיתוף מבקש להסיר את סיכומי כל הרכבים. האישור מוצג רק לאחר שהשרת מאשר את ההסרה.</p>
+        <p>כיבוי שיתוף הדלק מבקש להסיר את סיכומי הדלק של כל הרכבים. האישור מוצג רק לאחר שהשרת מאשר את ההסרה.</p>
       </div>
     </Sheet>
   </>;

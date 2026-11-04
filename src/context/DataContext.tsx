@@ -72,6 +72,7 @@ import { reauthenticateWithPopup } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
 import { accountDataDeletionSteps, clearAccountLocalStorage, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
 import { withdrawBenchmark } from "../lib/benchmarks";
+import { withdrawVehicleCost } from "../lib/costBenchmarks";
 import { pruneOldCaches, readCache, writeCache } from "../lib/cache";
 import {
   EMPTY_WRITE_STATUS,
@@ -1811,11 +1812,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const receipt = await updateVehicle(vehicleId, { archived });
       if (!(await receipt.settled)) throw new Error("vehicle-archive-rejected");
       if (archived && accountCurrent()) {
+        await withdrawVehicleCost(uid!, vehicleId, db, accountCurrent);
         const selection = await selectAfterVehicleRemoval(vehicleId, accountCurrent, intentVersion);
         notifyVehicleSelection(options, selection, accountCurrent);
       }
     },
-    [updateVehicle, captureAccountScope, selectAfterVehicleRemoval],
+    [uid, updateVehicle, captureAccountScope, selectAfterVehicleRemoval],
   );
 
   /** Remove a vehicle and every subcollection under it. */
@@ -1836,6 +1838,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await batch.commit();
         }
       }
+      await withdrawVehicleCost(uid, vehicleId);
       await deleteDoc(vehicleRef);
       clearVehicleLocalDrafts(uid,vehicleId);
     },

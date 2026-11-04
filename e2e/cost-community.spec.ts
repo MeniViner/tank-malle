@@ -1,0 +1,10 @@
+import { test } from '@playwright/test';
+import { costConsentFlow, costCohortFlow, costWithdrawalFlow, costOfflineWithdrawalFlow, costIncompleteFlow, costScopeFlow, costAccountDeletionFlow } from './helpers/cost-community';
+test.use({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block', hasTouch: true });
+test('cost summaries require separate explicit consent and survive reload without extra disclosed fields', async ({ page }) => costConsentFlow(page));
+test('cost comparison needs four distinct same-model drivers, excludes stale/own summaries and tracks the full monthly cost', async ({ page }) => costCohortFlow(page));
+test('fuel and cost consent are independent and cost opt-out removes every owned vehicle summary with server readback', async ({ page }) => costWithdrawalFlow(page));
+test('offline cost opt-out never claims server withdrawal before reconnection and confirmation', async ({ page }) => costOfflineWithdrawalFlow(page));
+test('a newly missing annual cost withdraws the old complete summary and withholds comparison', async ({ page }) => costIncompleteFlow(page));
+test('cost comparison and consent cannot leak across vehicle and account switches', async ({ page }) => costScopeFlow(page));
+test('modern account deletion removes cost summaries and orphaned contributions before profile and identity', async ({ page }) => costAccountDeletionFlow(page));

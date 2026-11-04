@@ -35,3 +35,6 @@
 .tm-tco-duo strong>.tm-number{font-family:inherit}
 @media(max-width:350px){.tm-tco{padding-inline:12px}.tm-tco-sheet .tm-tco-value{font-size:72px}.tm-tco-unit{font-size:13px}.tm-tco-row{gap:8px}.tm-tco-icon{width:28px;height:28px}.tm-tco-row-value{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.tm-tco,.tm-tco-row{animation:none!important;transition:none!important;transform:none!important;scale:1!important}}
+
+.tm-tco-community{display:grid;gap:8px;min-width:0}
+.tm-tco-community-title{margin:0;font-size:18px;font-weight:600;line-height:1.6;color:var(--ink)}

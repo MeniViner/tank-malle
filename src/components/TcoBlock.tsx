@@ -13,6 +13,7 @@ import { Sheet } from './Sheet';
 import { VehicleDocumentDialog } from './VehicleDocuments';
 import { useAccountScope } from './account/useAccountScope';
 import '../tco-design.css';
+import { CostCommunity } from './CostCommunity';
 
 const COLORS: Record<TcoPartId, string> = {
   fuel: 'var(--accent)', service: 'var(--ink)', mandatory: 'var(--ink-2)',
@@ -57,7 +58,7 @@ export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: b
 }
 
 function TcoSheet({ tco, onClose, returnFocus }: { tco: TcoResult; onClose: () => void; returnFocus: () => HTMLElement | null }) {
-  const data = useData(), vehicle = useVehicleData(), navigate = useNavigate();
+  const vehicle = useVehicleData(), navigate = useNavigate();
   const captureDocumentScope = useAccountScope(vehicle.scope);
   const [period, setPeriod] = useState<'month' | 'year'>('month');
   const [document, setDocument] = useState<VehicleDocKey | null>(null);
@@ -92,8 +93,7 @@ function TcoSheet({ tco, onClose, returnFocus }: { tco: TcoResult; onClose: () =
           <div><span>כל ק״מ עולה לך{tco.complete ? ' באמת' : tco.lowerBound ? ' לפחות' : ''}</span><strong><NumRun>{tco.perKm === null ? '—' : num(tco.perKm, 2)}</NumRun>{tco.perKm !== null ? ' ₪' : ''}</strong><small>{tco.perKm === null ? 'אחרי שתהיה נסועה יומית ידועה' : 'כולל העלויות המתועדות'}</small></div>
           <div><span>{tco.complete ? 'מתוך זה דלק' : 'דלק מתוך הסכום הידוע'}</span><strong><NumRun>{fuelShare === null ? '—' : percentPlain(fuelShare)}</NumRun></strong><small>{fuel.value === null ? 'עלות הדלק עדיין אינה מלאה' : <><Money value={fuel.value * multiplier} /> {period === 'month' ? 'בחודש' : 'בשנה'}</>}</small></div>
         </div>
-        <p className="tm-tco-note" data-testid="tco-community-status">{data.settings.shareBenchmarks === false
-          ? 'השיתוף כבוי בחשבון.' : 'סיכומי הקהילה כוללים כרגע נתוני דלק בלבד. השוואת עלות כוללת עדיין אינה זמינה.'}</p>
+        <CostCommunity tco={tco} />
       </div>
     </Sheet>
     {document ? <VehicleDocumentDialog key={`${vehicle.scope}/${document}`} docKey={document} onClose={() => setDocument(null)} returnFocus={() => docTrigger.current} captureParentScope={captureDocumentScope} /> : null}

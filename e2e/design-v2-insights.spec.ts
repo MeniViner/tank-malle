@@ -174,7 +174,7 @@ test("comparison waits for four vehicle summaries, states percentile direction t
   await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "ready");
   await expect(page.getByTestId("insights-community-status")).toContainText("50% מהסיכומים מצביעים על צריכת דלק גבוהה משלך לק״מ");
   await page.goto("/account");
-  await page.getByRole("switch", { name: "שיתוף סיכום להשוואה", exact: true }).click();
+  await page.getByRole("switch", { name: "שיתוף סיכום דלק להשוואה", exact: true }).click();
   await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
   await page.goto("/stats?tab=community");
   await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "off");
@@ -375,7 +375,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await expect(page.getByTestId("insights-source-status")).toHaveCount(0);
     await capture("insights-liters-per-100");
     await page.goto("/account");
-    await page.getByRole("switch", { name: "שיתוף סיכום להשוואה", exact: true }).click();
+    await page.getByRole("switch", { name: "שיתוף סיכום דלק להשוואה", exact: true }).click();
     await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
     await page.goto("/stats?tab=community");
     await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "off");

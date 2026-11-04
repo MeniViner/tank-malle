@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
+import { CostCommunityProvider } from "./context/CostCommunityContext";
 import { VehicleDataProvider } from "./context/VehicleDataContext";
 import { AuthProvider } from "./context/AuthContext";
 import { DataProvider } from "./context/DataContext";
@@ -28,7 +29,7 @@ createRoot(document.getElementById("root")!).render(
         <ToastProvider>
           <AuthProvider>
             <DataProvider>
-              <VehicleDataProvider><App /></VehicleDataProvider>
+              <VehicleDataProvider><CostCommunityProvider><App /></CostCommunityProvider></VehicleDataProvider>
             </DataProvider>
           </AuthProvider>
         </ToastProvider>

@@ -16,6 +16,8 @@ export interface UserSettings {
   onboardingDone?: boolean;
   /** Publish one anonymous economy summary for the peer comparison. */
   shareBenchmarks?: boolean;
+  /** Separate explicit opt-in for a pseudonymous full ownership-cost summary. */
+  shareTcoBenchmarks?: boolean;
   quickEntry?: boolean;
   reminderNotifications?: boolean;
   issueNotifications?: boolean;
@@ -33,6 +35,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   activeVehicleId: null,
   onboardingDone: false,
   shareBenchmarks: true,
+  shareTcoBenchmarks: false,
 };
 
 export interface UserProfile {

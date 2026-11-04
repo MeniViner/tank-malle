@@ -17,6 +17,8 @@ import {
 import { db } from "./firebase";
 import type { FuelType, Vehicle } from "./types";
 import type { Stats } from "./stats";
+import { benchmarkDocId, modelKey, MIN_PEERS, BENCHMARK_SEPARATOR as ID_SEPARATOR } from "./benchmarkIdentity";
+export { benchmarkDocId, modelKey, MIN_PEERS } from "./benchmarkIdentity";
 
 /**
  * Community benchmarks.
@@ -103,7 +105,7 @@ export interface BenchmarkComparison {
  * Minimum peers before a NUMBER is shown. Below this the section still
  * appears, saying how far off it is — it does not vanish.
  */
-export const MIN_PEERS = 4;
+
 
 /**
  * How many peer documents to read per comparison.
@@ -113,21 +115,6 @@ export const MIN_PEERS = 4;
  * than one from 500, and it is four times cheaper against the Spark read quota.
  */
 const PEER_SAMPLE_LIMIT = 120;
-
-/** Separator in the composite document id. */
-const ID_SEPARATOR = "__";
-
-/** users/{uid} + vehicle → the per-vehicle benchmark document id. */
-export function benchmarkDocId(uid: string, vehicleId: string): string {
-  return `${uid}${ID_SEPARATOR}${vehicleId}`;
-}
-
-export function modelKey(vehicle: Pick<Vehicle, "make" | "model">): string {
-  return `${vehicle.make} ${vehicle.model}`
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 /**
  * Publish (or refresh) the current user's anonymous summary.
