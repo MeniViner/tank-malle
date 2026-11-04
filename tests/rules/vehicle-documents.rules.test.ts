@@ -17,6 +17,32 @@ beforeEach(async () => { await env.clearFirestore(); });
 afterAll(async () => { await env?.cleanup(); });
 
 describe('optional vehicle licensing and insurance metadata', () => {
+  it('accepts optional exact annual test costs, including zero and explicit clears', async () => {
+    await seed({ docs: { test: { due: '2027-11-04', future: { keep: true } } } });
+    for (const cost of [0, 1420.123456, 1000000, null]) {
+      await assertSucceeds(updateDoc(ref(), { 'docs.test.cost': cost }));
+      expect((await getDoc(ref())).data()?.docs.test).toEqual({ due: '2027-11-04', future: { keep: true }, cost });
+    }
+    await assertSucceeds(updateDoc(ref(), { 'docs.test.cost': deleteField() }));
+    expect((await getDoc(ref())).data()?.docs.test).not.toHaveProperty('cost');
+  });
+
+  it('rejects nonnumeric, negative, nonfinite and unbounded annual test costs', async () => {
+    await seed({ docs: { test: { cost: 1420 } } });
+    for (const cost of ['1420', -1, NaN, Infinity, -Infinity, 1000000.01, {}]) {
+      await assertFails(updateDoc(ref(), { 'docs.test.cost': cost }));
+    }
+    expect((await getDoc(ref())).data()?.docs.test.cost).toBe(1420);
+  });
+
+  it('preserves an unchanged legacy test cost during unrelated edits and validates only new intent', async () => {
+    await seed({ docs: { test: { cost: 'legacy value', due: '2027-11-04', future: 9 } } });
+    await assertSucceeds(updateDoc(ref(), { nickname: 'same original cost', 'docs.test.due': '2028-02-29' }));
+    expect((await getDoc(ref())).data()?.docs.test).toEqual({ cost: 'legacy value', due: '2028-02-29', future: 9 });
+    await assertFails(updateDoc(ref(), { 'docs.test.cost': 'another malformed value' }));
+    await assertSucceeds(updateDoc(ref(), { 'docs.test.cost': 1420.123456 }));
+  });
+
   it('keeps absent, null and empty documents optional without materializing defaults', async () => {
     await assertSucceeds(setDoc(ref(), base));
     expect((await getDoc(ref())).data()).not.toHaveProperty('docs');
@@ -48,7 +74,7 @@ describe('optional vehicle licensing and insurance metadata', () => {
   });
 
   it('allows unknown future keys at vehicle, root and row levels without loosening known leaves', async () => {
-    const docs = { future: ['v3', { provider: 9 }], test: { due: '2026-12-31', cost: 'unknown test extension', type: 'future' }, mandatory: { type: 'future', source: { raw: 1 }, cost: 9.012345 }, coverage: { type: 'none', source: 'kept' } };
+    const docs = { future: ['v3', { provider: 9 }], test: { due: '2026-12-31', futureCost: 'unknown test extension', type: 'future' }, mandatory: { type: 'future', source: { raw: 1 }, cost: 9.012345 }, coverage: { type: 'none', source: 'kept' } };
     await assertSucceeds(setDoc(ref(), { ...base, extraVehicle: { source: 'legacy' }, docs }));
     await assertSucceeds(updateDoc(ref(), { 'docs.mandatory.insurer': 'Changed' }));
     expect((await getDoc(ref())).data()?.docs).toEqual({ ...docs, mandatory: { ...docs.mandatory, insurer: 'Changed' } });

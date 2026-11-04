@@ -38,7 +38,7 @@ export function vehicleDocumentDraftChanges(
       changes.insurer = draft.insurer.trim() || null;
     }
     if (dirty.has('due')) changes.due = draft.dueText.trim() ? parseCivilDay(draft.dueText) : null;
-    if (key !== 'test' && dirty.has('cost')) {
+    if (dirty.has('cost')) {
       const text = draft.costText.trim();
       const cost = text === '' ? null : /^\d+(?:\.\d+)?$/.test(text) ? Number(text) : NaN;
       if (cost !== null && (!Number.isFinite(cost) || cost < 0 || cost > VEHICLE_DOC_COST_MAX)) {

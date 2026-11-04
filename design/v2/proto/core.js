@@ -136,7 +136,7 @@
       activeV: 'v1',
       vehicles: [
         { id: 'v1', nick: 'מניס כאר', plate: '7248078', make: 'יונדאי', model: 'i20 Inspire', year: 2012, fuel: '95', tank: 45, mfr: 16.4, archived: false,
-          docs: { test: { due: '2026-11-24' }, mandatory: { insurer: 'הראל', due: '2027-03-14', cost: 1180 }, coverage: { type: 'third', insurer: 'ביטוח ישיר', due: '2027-03-14', cost: 960 } } },
+          docs: { test: { due: '2026-11-24', cost: 1420 }, mandatory: { insurer: 'הראל', due: '2027-03-14', cost: 1180 }, coverage: { type: 'third', insurer: 'ביטוח ישיר', due: '2027-03-14', cost: 960 } } },
         { id: 'v2', nick: 'הפיקנטו', plate: '31284901', make: 'קיה', model: 'פיקנטו', year: 2019, fuel: '95', tank: 35, mfr: 19.6, archived: true, docs: emptyDocs() },
       ],
       records: [
@@ -270,8 +270,36 @@
     }
     const stations = Object.values(st).map((s) => ({ ...s, avgPrice: s.spent / s.liters, info: station(s.id) })).sort((a, b) => a.avgPrice - b.avgPrice);
 
+    // True cost of ownership: everything the car costs, per month, over the last ≤12 months.
+    // Variable costs come from the journal; fixed yearly costs (insurance, licence+test) come
+    // from the vehicle's documents and are amortised. Journal expenses in the insurance/licence
+    // categories are skipped whenever the matching document carries a cost, so nothing counts twice.
+    const docs = v.docs || emptyDocs();
+    const firstKey = months[0] || mkey(nowD);
+    const win = Math.min(12, Math.max(1, monthSpan(firstKey, mkey(nowD))));
+    const winStart = new Date(nowD); winStart.setDate(1); winStart.setMonth(winStart.getMonth() - (win - 1)); winStart.setHours(0, 0, 0, 0);
+    const inWin = recs.filter((r) => new Date(r.date) >= winStart);
+    const fixed = {
+      mandatory: docs.mandatory && docs.mandatory.cost ? docs.mandatory.cost / 12 : null,
+      coverage: !docs.coverage || !docs.coverage.type ? null : docs.coverage.type === 'none' ? 0 : docs.coverage.cost ? docs.coverage.cost / 12 : null,
+      test: docs.test && docs.test.cost ? docs.test.cost / 12 : null,
+    };
+    const skipCats = new Set([fixed.mandatory != null || fixed.coverage ? 'insurance' : null, fixed.test != null ? 'license' : null].filter(Boolean));
+    const sumWin = (pred) => inWin.filter(pred).reduce((s, r) => s + (r.type === 'fill' ? r.total : r.cost || 0), 0) / win;
+    const tcoParts = [
+      { id: 'fuel', label: 'דלק', icon: 'pump', value: sumWin((r) => r.type === 'fill'), color: 'var(--plate)' },
+      { id: 'service', label: 'טיפולים ותיקונים', icon: 'wrench', value: sumWin((r) => r.type === 'service'), color: 'var(--tx)' },
+      { id: 'mandatory', label: 'ביטוח חובה', icon: 'shield', value: fixed.mandatory, color: 'var(--tx2)', docKey: 'mandatory' },
+      { id: 'coverage', label: docs.coverage && docs.coverage.type ? COVERAGE[docs.coverage.type] : 'ביטוח רכב', icon: 'shield', value: fixed.coverage, color: 'var(--tx3)', docKey: 'coverage' },
+      { id: 'test', label: 'טסט ואגרת רישוי', icon: 'doc', value: fixed.test, color: 'var(--better)', docKey: 'test' },
+      { id: 'other', label: 'חניה, אגרות ושאר', icon: 'coin', value: sumWin((r) => r.type === 'expense' && !skipCats.has(r.cat)), color: 'var(--sf2)' },
+    ];
+    const tcoMissing = tcoParts.filter((p) => p.value == null);
+    const tcoMonth = tcoParts.reduce((s, p) => s + (p.value || 0), 0);
+    const tco = { parts: tcoParts, month: tcoMonth, year: tcoMonth * 12, missing: tcoMissing, window: win, perKm: dailyKm > 0 ? tcoMonth / (dailyKm * 30.4) : null, complete: tcoMissing.length === 0 && fills.length > 0 };
+
     return {
-      v, recs, fills: sorted, segs, open, avg, last, best, worst, sumKm, latest, estOdo, dailyKm,
+      v, recs, fills: sorted, segs, open, avg, last, best, worst, sumKm, latest, estOdo, dailyKm, tco,
       level, basis, habit, reserve, target, kmLeft, kmToTarget, daysToTarget, effK, lastFull,
       monthly, months, fuelTotal, costPerKm, avgMonthFuel, stations,
     };

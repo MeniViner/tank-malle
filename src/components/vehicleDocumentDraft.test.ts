@@ -60,7 +60,20 @@ describe('licensing form intent', () => {
   it('does not promote fields belonging to another document or copy unknown keys', () => {
     const stored = { due: '2026-09-05', future: { retained: true } };
     expect(vehicleDocumentDraftChanges('test', stored, { ...empty, insurer: 'הראל', costText: '3', coverage: 'third' }, new Set(['type', 'insurer', 'cost'])))
-      .toEqual({ ok: true, changes: {} });
+      .toEqual({ ok: true, changes: { cost: 3 } });
     expect(stored.future).toEqual({ retained: true });
+  });
+
+  it('keeps optional test costs exact and requires an explicit clear', () => {
+    expect(vehicleDocumentDraftChanges('test', { cost: 1420.123456 }, empty, new Set()))
+      .toEqual({ ok: true, changes: {} });
+    for (const text of ['0', '1420.123456', '1000000']) {
+      expect(vehicleDocumentDraftChanges('test', {}, { ...empty, costText: text }, new Set(['cost'])))
+        .toEqual({ ok: true, changes: { cost: Number(text) } });
+    }
+    expect(vehicleDocumentDraftChanges('test', { cost: 100 }, empty, new Set(['cost'])))
+      .toEqual({ ok: true, changes: { cost: null } });
+    expect(vehicleDocumentDraftChanges('test', {}, { ...empty, costText: '-1' }, new Set(['cost'])))
+      .toMatchObject({ ok: false, field: 'cost' });
   });
 });

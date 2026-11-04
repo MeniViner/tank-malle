@@ -165,7 +165,12 @@ test("a missing partial cost never becomes a complete segment or monthly fuel to
   await expect(page.getByTestId("segment-cost-per-km")).toContainText("—");
   await expect(page.getByTestId("segment-cost-unknown")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByTestId("home-fuel-month")).toContainText("—");
+  // The tile now shows the actual current month; an unknown prior-month receipt
+  // still prevents a complete historical average, without hiding a known month.
+  const partial = scope.fillups.find(fillup => fillup.id === "cost-partial")!;
+  const currentMonthUnknown = monthKeyInBrowserTimeZone(new Date(partial.date)) === monthKeyInBrowserTimeZone(new Date(scope.now));
+  await expect(page.getByTestId("home-fuel-month")).toContainText(currentMonthUnknown ? "—" : "₪175");
+  await expect(page.getByTestId("home-fuel-month")).toContainText("אין ממוצע מלא");
   const path = `${scope.base}/fillups/cost-partial`;
   expect((await getDocument(path))?.totalCost).toBeNull();
   // An explicitly entered zero is different from missing cost, and the

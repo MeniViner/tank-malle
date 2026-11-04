@@ -25,7 +25,7 @@ describe('bounded licensing document view', () => {
   });
 
   it('rejects invalid known leaves without poisoning another document or inventing defaults', () => {
-    const docs = { mandatory: { insurer: 9, due: '2026-02-30', cost: Infinity }, test: { due: null, cost: 'unknown field here' } };
+    const docs = { mandatory: { insurer: 9, due: '2026-02-30', cost: Infinity }, test: { due: null, futureCost: 'unknown field here' } };
     expect(readVehicleDocument(docs, 'mandatory', '2026-11-03')).toMatchObject({ state: 'unavailable', invalidFields: ['insurer', 'due', 'cost'] });
     expect(readVehicleDocument(docs, 'test', '2026-11-03')).toEqual({ state: 'ready', key: 'test', values: { due: null }, due: null, daysLeft: null });
   });
@@ -37,7 +37,17 @@ describe('bounded licensing document view', () => {
     }
     expect(validVehicleDocChanges('coverage', { type: 'none' })).toBe(true);
     expect(validVehicleDocChanges('mandatory', { cost: 0.123456789 })).toBe(true);
-    expect(validVehicleDocChanges('test', { cost: 10 })).toBe(false);
+    expect(validVehicleDocChanges('test', { cost: 10 })).toBe(true);
+    expect(validVehicleDocChanges('test', { insurer: 'A' })).toBe(false);
+  });
+
+  it('reads test cost as an optional exact known field and refuses malformed values', () => {
+    for (const cost of [null, 0, 1420.123456, 1000000]) {
+      expect(readVehicleDocument({ test: { cost } }, 'test', '2026-11-04')).toMatchObject({ state: 'ready', values: { cost } });
+    }
+    for (const cost of ['100', NaN, Infinity, -1, 1000001]) {
+      expect(readVehicleDocument({ test: { cost } }, 'test', '2026-11-04')).toMatchObject({ state: 'unavailable', invalidFields: ['cost'] });
+    }
   });
 
   it('uses strict Gregorian civil dates independent of daylight-saving elapsed hours', () => {
