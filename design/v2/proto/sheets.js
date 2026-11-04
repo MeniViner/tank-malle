@@ -257,7 +257,7 @@
     const title = p.key === 'test' ? 'טסט שנתי' : p.key === 'mandatory' ? 'ביטוח חובה' : 'ביטוח רכב';
     const canSave = none || !!f.due;
     const save = () => {
-      const obj = p.key === 'test' ? { due: f.due } : p.key === 'mandatory' ? { insurer: f.insurer.trim(), due: f.due, cost: f.cost ? Number(f.cost) : null } : { type: f.type, insurer: none ? '' : f.insurer.trim(), due: none ? null : f.due, cost: !none && f.cost ? Number(f.cost) : null };
+      const obj = p.key === 'test' ? { due: f.due, cost: f.cost ? Number(f.cost) : null } : p.key === 'mandatory' ? { insurer: f.insurer.trim(), due: f.due, cost: f.cost ? Number(f.cost) : null } : { type: f.type, insurer: none ? '' : f.insurer.trim(), due: none ? null : f.due, cost: !none && f.cost ? Number(f.cost) : null };
       A.updateDocs(v.id, p.key, obj); A.close();
       A.toast(none ? 'נשמר: אין ביטוח רכב' : `נזכיר לך חודש לפני ${fmt.date(new Date(f.due))}`);
     };
@@ -268,6 +268,7 @@
       ${isIns && !none && html`<div className="field"><label htmlFor="d-ins">חברת ביטוח</label><input id="d-ins" className="inp" list="insurers" placeholder="למשל: הראל" value=${f.insurer} onChange=${(e) => set('insurer', e.target.value)} />
         <div className="scrollx" style=${{ marginTop: 4 }}>${TM.INSURERS.map((n) => html`<button key=${n} className=${'chip' + (f.insurer === n ? ' on' : '')} onClick=${() => set('insurer', n)}>${n}</button>`)}</div></div>`}
       ${!none && html`<div className="field"><label htmlFor="d-due">${isIns ? 'בתוקף עד' : 'מועד הטסט הבא'}</label><input id="d-due" className="inp n" type="date" value=${f.due} onChange=${(e) => set('due', e.target.value)} /></div>`}
+      ${p.key === 'test' && html`<div className="field"><label htmlFor="d-cost">אגרת רישוי + טסט, בשנה <span className="muted" style=${{ fontWeight: 400 }}>(לא חובה)</span></label><div className="inp-wrap"><${NumInput} id="d-cost" className="inp n" decimals=${0} value=${f.cost} onChange=${(x) => set('cost', x)} placeholder="0" /><span className="unit">₪</span></div><span className="note">נכנס לחישוב "כמה הרכב עולה לך בחודש".</span></div>`}
       ${isIns && !none && html`<div className="field"><label htmlFor="d-cost">כמה עולה בשנה <span className="muted" style=${{ fontWeight: 400 }}>(לא חובה)</span></label><div className="inp-wrap"><${NumInput} id="d-cost" className="inp n" decimals=${0} value=${f.cost} onChange=${(x) => set('cost', x)} placeholder="0" /><span className="unit">₪</span></div></div>`}
       <p className="note">נזכיר חודש לפני, ושוב שבוע לפני.</p>
       <button className="btn" disabled=${!canSave} onClick=${save}>שמירה</button>
@@ -282,6 +283,31 @@
         <i style=${{ background: a.light }}>${cur === a.id ? html`<${Icon} n="check" s=${22} />` : ''}</i><span>${a.label}</span>
       </button>`)}</div>
       <button className="btn" onClick=${A.close}>סיום</button>
+    <//>`;
+  }
+
+
+  function Tco({ db, c, A }) {
+    const t = c.tco;
+    const [per, setPer] = useState('month');
+    const k = per === 'month' ? 1 : 12;
+    const comparable = 3; // drivers with the same model in the community pool (demo)
+    return html`<${Sheet} title="כמה הרכב עולה לך" onClose=${A.close}>
+      <${Seg} value=${per} onChange=${setPer} options=${[{ v: 'month', l: 'בחודש' }, { v: 'year', l: 'בשנה' }]} />
+      <div style=${{ display: 'flex', alignItems: 'flex-end', gap: 10 }}><span className="disp n" style=${{ fontSize: 84 }}>${fmt.money(t.month * k)}</span><span className="muted" style=${{ paddingBottom: 10, fontWeight: 600 }}>${per === 'month' ? 'בחודש' : 'בשנה'}</span></div>
+      <p className="muted small">ממוצע על ${t.window === 1 ? 'החודש האחרון' : `${t.window} החודשים האחרונים`}. ביטוח, טסט ואגרה מחולקים ל-12 חודשים.</p>
+      <div className="group">
+        ${t.parts.map((p) => html`<button key=${p.id} className="row" onClick=${p.docKey ? () => A.sheet('doc', { key: p.docKey }) : p.id === 'fuel' ? () => A.tab('journal', { filter: 'fill' }) : p.id === 'service' ? () => A.tab('journal', { filter: 'service' }) : () => A.tab('journal', { filter: 'expense' })}>
+          <span className="ri" style=${{ borderColor: 'transparent', background: p.color, color: p.id === 'fuel' || p.id === 'other' ? '#111' : 'var(--bg)' }}><${Icon} n=${p.icon} /></span>
+          <span className="grow"><b>${p.label}</b>${p.value == null && html`<small style=${{ color: 'var(--warn)', fontWeight: 600 }}>לא הוזן. הקישו להוספה</small>`}</span>
+          <span className="val" style=${{ color: 'var(--tx)', fontWeight: 700, fontSize: 16 }}>${p.value == null ? '—' : html`<span className="n">${fmt.money(p.value * k)}</span>`}</span>
+          <${Icon} n="chev" />
+        </button>`)}
+      </div>
+      ${t.perKm && html`<div className="duo"><div style=${{ padding: '12px 0', display: 'grid', gap: 2 }}><small className="muted">כל ק״מ עולה לך באמת</small><span className="v n">${t.perKm.toFixed(2)} ₪</span><small className="muted">כולל הכל, לא רק דלק</small></div><div style=${{ padding: '12px 0 12px 16px', display: 'grid', gap: 2, borderRight: '1.5px solid var(--tx)', paddingRight: 16 }}><small className="muted">מתוך זה דלק</small><span className="v n">${Math.round((t.parts[0].value / t.month) * 100)}%</span><small className="muted">${fmt.money(t.parts[0].value * k)} ${per === 'month' ? 'בחודש' : 'בשנה'}</small></div></div>`}
+      ${db.settings.community && comparable >= 4
+        ? html`<div className="card"><span className="lbl">לעומת נהגים עם ${c.v.make} ${c.v.model}</span><h4>אתה משלם 8% פחות מהממוצע</h4><p className="small muted">על בסיס ${comparable} נהגים שמשתפים סיכום אנונימי.</p></div>`
+        : html`<p className="note">כשיהיו 4 נהגים עם אותו דגם שמשתפים סיכום, נראה כאן גם איך זה לעומתם${db.settings.community ? ` (יש כרגע ${comparable}).` : '. השיתוף כבוי בחשבון.'}</p>`}
     <//>`;
   }
 
@@ -300,5 +326,5 @@
     <//>`;
   }
 
-  window.SHEETS = { accent: Accent, doc: Doc, carSwitch: CarSwitch, tank: Tank, segment: Segment, price: Price, discount: Discount, entry: Entry, addMenu: AddMenu, odo: Odo, station: StationPick, scan: Scan, reminder: Reminder, issue: Issue, confirm: Confirm, choice: Choice };
+  window.SHEETS = { tco: Tco, accent: Accent, doc: Doc, carSwitch: CarSwitch, tank: Tank, segment: Segment, price: Price, discount: Discount, entry: Entry, addMenu: AddMenu, odo: Odo, station: StationPick, scan: Scan, reminder: Reminder, issue: Issue, confirm: Confirm, choice: Choice };
 })();

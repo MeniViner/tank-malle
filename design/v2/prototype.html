@@ -172,6 +172,7 @@ textarea.inp{padding:12px 14px;min-height:96px;resize:none}
 @keyframes fade{from{opacity:0}}
 .sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;overflow-y:auto;background:var(--bg);border-top:2px solid var(--tx);border-radius:26px 26px 0 0;z-index:21;padding:10px 20px 32px;animation:up .26s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column;gap:16px;scrollbar-width:none}
 .sheet::-webkit-scrollbar{display:none}
+.sheet>*{flex-shrink:0}
 @keyframes up{from{transform:translateY(100%)}}
 .grab{width:44px;height:5px;border-radius:3px;background:var(--ln);margin:0 auto 2px}
 .sheet-h{display:flex;justify-content:space-between;align-items:center;gap:10px}
@@ -228,6 +229,19 @@ textarea.inp{padding:12px 14px;min-height:96px;resize:none}
 .barc.last.worse i{background:var(--worse)}
 .barc.last.better i{background:var(--better)}
 .barc small{font-size:11px;color:var(--tx2);white-space:nowrap}
+.tco{display:grid;gap:10px;width:100%;padding:16px 16px 14px;border:1.5px solid var(--tx);border-radius:20px;background:var(--sf);text-align:right;color:inherit}
+.tco-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tco-num{display:flex;align-items:flex-end;gap:10px}
+.tco-num .disp{font-size:72px}
+.tco-unit{font-weight:600;font-size:15px;color:var(--tx2);padding-bottom:8px}
+.tco-sub{font-size:14px;color:var(--tx2)}
+.tco-bar{display:flex;gap:3px;height:12px;border-radius:6px;overflow:hidden}
+.tco-bar i{display:block;min-width:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.tco-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--tx2)}
+.tco-legend span{display:inline-flex;align-items:center;gap:6px}
+.tco-legend i{width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.tco-legend b{color:var(--tx)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
 .duo{display:grid;grid-template-columns:1fr 1fr;border-top:1.5px solid var(--tx);border-bottom:1.5px solid var(--tx)}
 .duo>button{padding:14px 0;display:grid;gap:2px;border:0;background:none;text-align:right}
 .duo>button+button{border-right:1.5px solid var(--tx);padding-right:16px}

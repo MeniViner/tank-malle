@@ -157,6 +157,25 @@
     </figure>`;
   }
 
+
+  /* True cost of ownership block: used on Home and in Insights › הוצאות */
+  function TcoBlock({ c, A, compact }) {
+    const t = c.tco;
+    if (!t || !c.fills.length) return null;
+    const parts = t.parts.filter((p) => (p.value || 0) > 0);
+    const total = t.month || 1;
+    return html`<button className="tco" onClick=${() => A.sheet('tco')} aria-label="כמה הרכב עולה לך">
+      <div className="tco-top">
+        <span className="lbl">${t.complete ? 'הרכב עולה לך' : 'הרכב עולה לך, לפחות'}</span>
+        ${!t.complete && html`<span className="pill warn">חסר ${t.missing.length === 1 ? t.missing[0].label : t.missing.length + ' פריטים'}</span>`}
+      </div>
+      <div className="tco-num"><span className="disp n">${fmt.money(t.month)}</span><span className="tco-unit">בחודש</span></div>
+      <div className="tco-sub">כ-<span className="n">${fmt.money(t.year)}</span> בשנה${t.perKm ? html` · <span className="n">${t.perKm.toFixed(2)}</span> ₪ לכל ק״מ` : ''}</div>
+      <div className="tco-bar" aria-hidden="true">${parts.map((p) => html`<i key=${p.id} style=${{ flex: p.value / total, background: p.color }}></i>`)}</div>
+      ${!compact && html`<div className="tco-legend">${parts.slice(0, 4).map((p) => html`<span key=${p.id}><i style=${{ background: p.color }}></i>${p.label} <b className="n">${fmt.money(p.value)}</b></span>`)}</div>`}
+    </button>`;
+  }
+
   /* ================= HOME ================= */
   function Home({ db, c, A }) {
     const unit = db.settings.unit;
@@ -205,9 +224,11 @@
           <p className="muted small">${c.lastFull ? 'הטנק המלא הראשון כבר רשום. בפעם הבאה שתמלאו עד הסוף, נחשב כמה נסעתם על כל ליטר.' : 'צריכה נמדדת בין שני תדלוקים עד הסוף. תדלוקים חלקיים נשמרים ומצטרפים לחישוב.'}</p>
         </section>`}
 
+      <${TcoBlock} c=${c} A=${A} />
+
       <div className="duo trio">
         <button onClick=${() => A.tab('vehicle')}><small>נוסע ביום</small><span className="v"><span className="n">${c.latest ? fmt.int(c.dailyKm) : '—'}</span> <span className="vu">ק״מ</span></span><small>${c.latest ? `כ-${fmt.int(c.dailyKm * 30)} בחודש` : 'אחרי כמה רישומים'}</small></button>
-        <button onClick=${() => A.tab('insights', { tab: 'spend' })}><small>דלק לחודש</small><span className="v n">${c.avgMonthFuel != null ? fmt.money(c.avgMonthFuel) : '—'}</span><small>בממוצע</small></button>
+        <button onClick=${() => A.tab('insights', { tab: 'spend' })}><small>דלק ב${TM.MS[now().getMonth()]}</small><span className="v n">${fmt.money((c.monthly[mkey(now())] || { fuel: 0 }).fuel)}</span><small>${c.avgMonthFuel != null ? `בד״כ ${fmt.money(c.avgMonthFuel)}` : 'עד עכשיו'}</small></button>
         <button onClick=${() => A.sheet('price')}><small>95 היום</small><span className="v n">${fmt.price(off)}</span><small>${db.settings.discount.type !== 'none' ? 'לפני ההנחה' : 'מחיר מרבי'}</small></button>
       </div>
 
@@ -568,6 +589,7 @@
       const fuel = sum('fuel'), service = sum('service'), expense = sum('expense');
       const segCost = segs.reduce((s, x) => s + x.cost, 0);
       body = html`
+        <${TcoBlock} c=${c} A=${A} compact />
         <article className="card">
           <span className="lbl">סה״כ ברכב · ${PERIODS.find((x) => x.v === period).l}</span>
           <h4 className="n">${fmt.money(fuel + service + expense)}</h4>
@@ -610,5 +632,5 @@
     </div>`;
   }
 
-  window.S1 = { Home, FillForm, Saved, Journal, Insights, EntryRow, syncState, SYNC_LABEL, pct };
+  window.S1 = { TcoBlock, Home, FillForm, Saved, Journal, Insights, EntryRow, syncState, SYNC_LABEL, pct };
 })();
