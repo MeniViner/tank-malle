@@ -202,8 +202,9 @@ describe('field-only automatic selection', () => {
     const raw = { ...profile(), settings: { activeVehicleId: 'existing-b', theme: 'dark' } };
     sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/existing-b`, rawVehicle());
     const operation = await selectionWrite(outbox, raw, 'existing-b');
-    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-obsolete' });
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
     expect(sdk.data.get(profilePath)).toEqual(raw); expect(sdk.writes).toEqual([]);
+    expect(await outbox.list()).toEqual([]);
   });
   it('preserves every other setting and raw account timestamp', async () => {
     const { outbox } = await open(), raw = profile(); const operation = await selectionWrite(outbox, raw);
@@ -220,23 +221,34 @@ describe('field-only automatic selection', () => {
     await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-target' });
     expect(sdk.writes).toEqual([]); expect((await outbox.get(operation.opId))?.payload).toEqual(operation.payload);
   });
-  it('refuses a newer preference and a restored source after an archive/delete ACK', async () => {
+  it('refuses a newer preference and retires an obsolete follow-up after source restoration', async () => {
     const { outbox } = await open(), raw = { ...profile(), settings: { ...profile().settings, activeVehicleId: 'old' } };
     sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/old`, { ...rawVehicle(), archived: true });
     const operation = await selectionWrite(outbox, raw, 'old');
     sdk.data.set(profilePath, { ...raw, settings: { ...raw.settings, activeVehicleId: 'newer' } });
     await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'conflict' });
     sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/old`, rawVehicle());
-    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-obsolete' });
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
     expect(sdk.writes).toEqual([]);
+    expect(sdk.data.get(profilePath)).toEqual(raw);
+    expect(await outbox.list()).toEqual([]);
   });
   it('rechecks source/target reads atomically when a source becomes available before commit', async () => {
     const { outbox } = await open(), raw = { ...profile(), settings: { activeVehicleId: 'old' } };
     sdk.data.set(profilePath, raw); const oldPath = `${profilePath}/vehicles/old`;
     sdk.data.set(oldPath, { ...rawVehicle(), archived: true }); const operation = await selectionWrite(outbox, raw, 'old');
     let first = true; sdk.afterRead = async readPath => { if (readPath === oldPath && first) { first = false; sdk.data.set(oldPath, rawVehicle()); } };
-    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-obsolete' });
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
     expect(sdk.writes).toEqual([]);
+    expect(sdk.data.get(profilePath)).toEqual(raw);
+    expect(await outbox.list()).toEqual([]);
+  });
+  it('reconciles an obsolete automatic follow-up after reload without changing the restored preference', async () => {
+    const { outbox } = await open(), raw = { ...profile(), settings: { ...profile().settings, activeVehicleId: 'old' } };
+    sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/old`, rawVehicle());
+    const operation = await selectionWrite(outbox, raw, 'old');
+    expect(await reconcileVehicleSelectionOperation(db, outbox, operation, current)).toBe(true);
+    expect(sdk.writes).toEqual([]); expect(sdk.data.get(profilePath)).toEqual(raw); expect(await outbox.list()).toEqual([]);
   });
   it('retries the same ID after reload without overwriting a late choice', async () => {
     const { outbox, options } = await open(); const operation = await selectionWrite(outbox);

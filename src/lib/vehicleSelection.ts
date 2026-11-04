@@ -148,7 +148,10 @@ export async function writeVehicleSelectionOperation(db: Firestore, outbox: Outb
     if (samePreference(targetGuard(before, intent), server)) return;
     if (!samePreference(before, server) || server.deleting) throw new FillupConflictError(immutableRawImage(server as unknown as OutboxPayload));
     if (intent.sourceId && eligible(source?.exists() ? source.data() : null)) {
-      throw vehicleWriteError('vehicle-selection-obsolete', 'הרכב הקודם שוב זמין — הבחירה הקיימת נשמרה');
+      // Restoration supersedes this automatic archive/delete follow-up. The
+      // unchanged preference was verified above: retain it and retire only
+      // this exact attempt, without submitting an obsolete selection.
+      return;
     }
     transaction.update(ref, { 'settings.activeVehicleId': intent.target?.vehicleId ?? null });
   });
@@ -167,7 +170,8 @@ export async function reconcileVehicleSelectionOperation(db: Firestore, outbox: 
     assertMutationScope(isCurrent);
     const target = intent.target ? await getDocFromServer(doc(db, `${operation.path}/vehicles/${intent.target.vehicleId}`)) : null;
     const profile = await getDocFromServer(doc(db, operation.path));
-    if (profile.metadata.fromCache || profile.metadata.hasPendingWrites || target?.metadata.fromCache || target?.metadata.hasPendingWrites) return false;
+    const source = intent.sourceId ? await getDocFromServer(doc(db, `${operation.path}/vehicles/${intent.sourceId}`)) : null;
+    if ([profile, target, source].some(snapshot => snapshot?.metadata.fromCache || snapshot?.metadata.hasPendingWrites)) return false;
     const all = await outbox.list(); neighbors(operation, all);
     const current = await outbox.get(operation.opId);
     assertMutationScope(isCurrent);
@@ -176,6 +180,9 @@ export async function reconcileVehicleSelectionOperation(db: Firestore, outbox: 
     const server = rawGuard(profile.data());
     if (samePreference(targetGuard(before, intent), server)) {
       requireTarget(intent, target?.exists() ? target.data() : null);
+      await outbox.acknowledge(current.opId, current.version);
+    } else if (samePreference(before, server) && intent.sourceId && eligible(source?.exists() ? source.data() : null)) {
+      // The restored source makes an unsubmitted follow-up unnecessary here too.
       await outbox.acknowledge(current.opId, current.version);
     } else if (samePreference(before, server)) await outbox.fail(current.opId, current.version, {
       code: 'unconfirmed', message: 'בחירת הרכב לא אושרה — אפשר לנסות שוב', at: Date.now(),
