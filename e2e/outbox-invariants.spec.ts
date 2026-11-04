@@ -1,7 +1,10 @@
+import { finishFillupSave, openFillupMore, setFillupEndState } from "./helpers/fillup";
 import { test, expect, type Page } from "@playwright/test";
-import { DENY_ALL_RULES, installRules, listDocuments, restoreRules, FIRESTORE_HOST, PROJECT_ID, seedFillups } from "./helpers/emulator";
+import { DENY_ALL_RULES, installRules, listDocuments, restoreRules, FIRESTORE_HOST, PROJECT_ID, seedFillups, getDocument } from "./helpers/emulator";
 import { signedInWithData } from "./helpers/app";
 import { outboxCount } from "./helpers/pwa";
+import { journalOperations, replaceRejectedFillupPayload } from "./helpers/journal";
+import { fillupDraftKey } from "../src/lib/fillupDraft";
 
 /**
  * Outbox invariants that the UI cannot time deterministically.
@@ -117,7 +120,7 @@ test('an earlier server snapshot cannot reject a write journaled after that snap
   // subsequently accepted offline write must never be judged by that snapshot.
   await context.setOffline(true);
   await page.getByLabel(/^קילומטראז׳/).fill('100000');await page.getByLabel('ליטרים',{exact:true}).fill('40');await page.getByLabel('מחיר לליטר').fill('7');
-  await page.getByRole('button',{name:'שמירת תדלוק',exact:true}).click();await expect(page).toHaveURL('/');
+  await page.getByRole('button',{name:'שמירת תדלוק',exact:true}).click();await finishFillupSave(page);
   await expect.poll(()=>outboxCount(page,uid)).toBe(1);
   await page.evaluate(async()=>{const gate=(window as unknown as {journalGate:{pending:Promise<unknown>[];releases:(()=>void)[]}}).journalGate;if(!gate.pending.length)throw new Error('No server snapshot was deferred');gate.releases.forEach(resolve=>resolve());await Promise.all(gate.pending);});
   const statuses=await page.evaluate(async uid=>{
@@ -133,7 +136,7 @@ test('the remaining tab settles another tab\'s queued write after that tab close
   const writer=await context.newPage();await writer.goto('/fillup/new');await writer.getByLabel(/^קילומטראז׳/).waitFor();
   await context.setOffline(true);
   await writer.getByLabel(/^קילומטראז׳/).fill('100000');await writer.getByLabel('ליטרים',{exact:true}).fill('40');await writer.getByLabel('מחיר לליטר').fill('7');
-  await writer.getByRole('button',{name:'שמירת תדלוק',exact:true}).click();await expect(writer).toHaveURL('/');
+  await writer.getByRole('button',{name:'שמירת תדלוק',exact:true}).click();await finishFillupSave(writer);
   await expect.poll(()=>outboxCount(page,uid)).toBe(1);await writer.close();await context.setOffline(false);
   await expect.poll(async()=>(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).length,{timeout:30000}).toBe(1);
   await expect.poll(()=>outboxCount(page,uid),{timeout:30000}).toBe(0);
@@ -202,30 +205,61 @@ test("a late acknowledgement or rejection of the previous input never touches th
 test("correcting a rejected edit opens the rejected input, not the server's copy, and re-sends under the same operation", async ({
   page,
 }) => {
+  const baseMetadata = { postedPricePerLiter: 7.1, importSource: "legacy-xlsx", importBatchId: "server-batch", importRowHash: "server-row" };
   const { uid, vehicleId } = await signedInWithData(page, {
     fillups: [
-      { id: "f1", date: new Date(Date.UTC(2026, 0, 5, 8, 0)), odometer: 100_000, liters: 40, pricePerLiter: 7 },
+      { id: "f1", date: new Date(Date.UTC(2026, 0, 5, 8, 0)), odometer: 100_000, liters: 40, pricePerLiter: 7, ...baseMetadata },
     ],
   });
+
+  const path = `users/${uid}/vehicles/${vehicleId}/fillups/f1`;
+  const base = (await getDocument(path))!;
+  expect(base).toMatchObject(baseMetadata);
 
   await installRules(DENY_ALL_RULES);
   await page.goto("/fillup/f1");
   await expect(page.getByRole("heading", { name: "עריכת תדלוק" })).toBeVisible({ timeout: 20_000 });
   await page.getByLabel("ליטרים", { exact: true }).fill("35");
+  await openFillupMore(page);
   await page.getByLabel("הערה").fill("תיקון");
   await page.getByRole("button", { name: "שמירת שינויים" }).click();
-  await expect(page.getByText("התדלוק עודכן")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("השינויים נשמרו במכשיר")).toBeVisible({ timeout: 20_000 });
 
   // The server refused it; the server still holds 40.
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1, { timeout: 20_000 });
   expect((await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`))[0].data.liters).toBe(40);
 
+  const desired = { postedPricePerLiter: 7.89, importSource: "receipt-text-v1", importBatchId: "desired-batch", importRowHash: "desired-row" };
+  const recovered = await replaceRejectedFillupPayload(page, uid, desired);
+  expect(recovered.replacement.opId).toBe(recovered.original.opId);
+  expect(recovered.replacement.beforeImage).toEqual(recovered.original.beforeImage);
+  expect(recovered.replacement.beforeImage).toMatchObject({ ...baseMetadata, liters: 40 });
+  await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
+
   // Editing the failed operation shows the REJECTED input (35), not 40.
   await page.getByRole("button", { name: "עריכה", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "תיקון תדלוק שלא סונכרן" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "תיקון תדלוק" })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("35");
+  await openFillupMore(page);
   await expect(page.getByLabel("הערה")).toHaveValue("תיקון");
+
+  await expect(page.getByTestId("fillup-previous-pump-price")).toContainText("7.89");
+  await expect(page.getByText("הרשומה השתנתה במכשיר אחר")).toHaveCount(0);
+  // Editing a note persists a draft whose comparison base must remain 40,
+  // while its displayed metadata remains the rejected desired input.
+  await page.getByLabel("הערה").fill("תיקון אחרי שחזור");
+  const key = fillupDraftKey(uid, vehicleId, recovered.replacement.opId);
+  await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? "null")?.data?.notes, key)).toBe("תיקון אחרי שחזור");
+  await page.reload();
+  await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("35");
+  await openFillupMore(page);
+  await expect(page.getByLabel("הערה")).toHaveValue("תיקון אחרי שחזור");
+  await expect(page.getByTestId("fillup-previous-pump-price")).toContainText("7.89");
+  await expect(page.getByText("הרשומה השתנתה במכשיר אחר")).toHaveCount(0);
+  expect((await journalOperations(page, uid))[0].beforeImage).toEqual(recovered.original.beforeImage);
+  expect(await getDocument(path)).toMatchObject({ ...baseMetadata, liters: 40 });
+  await page.getByLabel("הערה").fill("תיקון");
 
   await restoreRules();
   await page.getByLabel("ליטרים", { exact: true }).fill("36");
@@ -239,6 +273,9 @@ test("correcting a rejected edit opens the rejected input, not the server's copy
     .toBe(36);
   const record = (await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`))[0].data;
   expect(record.notes).toBe("תיקון");
+  expect(record).toMatchObject(desired);
+  expect(record.createdAt).toBe(base.createdAt);
+  expect(record.writeId).toBe(`${recovered.replacement.opId}.${recovered.replacement.version + 1}`);
   // The rules accepted exactly one version step over the unversioned seed.
   expect(record.version).toBe(1);
   await expect(page.locator("[data-outbox-op]")).toHaveCount(0, { timeout: 20_000 });
@@ -287,11 +324,11 @@ test("a stale edit is refused by the server, kept as a conflict, and never overw
   // it meaningful to leave the page. (Navigating within milliseconds of the
   // click would abandon the save before anything was journaled or sent —
   // the same as closing an unsaved form.)
-  await expect(page.getByText("התדלוק עודכן")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("השינויים נשמרו במכשיר")).toBeVisible({ timeout: 20_000 });
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="conflict"]')).toHaveCount(1, { timeout: 20_000 });
   expect((await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`))[0].data.liters).toBe(42);
-  await expect(page.locator('[data-outbox-op]').getByText("35.00")).toBeVisible();
+  await expect(page.locator('[data-outbox-status="conflict"]').getByText("35.0", { exact: true })).toBeVisible();
 
   // Only an explicit overwrite moves the server, and it does so on the new base.
   await page.getByRole("button", { name: "לדרוס עם הגרסה שלי" }).click();
@@ -311,11 +348,10 @@ test("a retry that cannot verify against the server writes nothing", async ({ pa
   await page.getByLabel(/^קילומטראז׳/).fill("100000");
   await page.getByLabel("ליטרים", { exact: true }).fill("40");
   await page.getByLabel("מחיר לליטר").fill("7");
-  if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
-    await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+  await setFillupEndState(page, "full");
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  // Leave only once the save has been journaled (the form navigates home).
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
+  // Leave only once the save has reached its durable local Saved state.
+  await finishFillupSave(page);
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1, { timeout: 20_000 });
 
@@ -335,7 +371,7 @@ service cloud.firestore {
   await page.reload();
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
   await page.getByRole("button", { name: "ניסיון חוזר" }).click();
-  await expect(page.getByText(/לא ניתן היה לאמת/)).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator('[data-outbox-status="failed"]').getByText("לא ניתן היה לאמת את מצב הרשומה בשרת — לא נכתב דבר. נסו שוב כשיש חיבור", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
@@ -364,7 +400,8 @@ test("an import interrupted by a reload settles every journal entry — rows and
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
-  await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
+  await expect(page.locator('h2[role="status"]')).toHaveText("נשמר במכשיר", { timeout: 25_000 });
+  await expect(page.getByText("הייבוא הסתיים", { exact: true })).toHaveCount(0);
   await expect.poll(() => outboxCount(page, uid), { timeout: 15_000 }).toBe(8);
 
   await page.goto("/settings/unsynced");
@@ -419,13 +456,16 @@ test("an import rejected by the server keeps every row with its error, and retri
   await page.goto("/settings/import");
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await page.getByRole("button", { name: /ייבוא 7 רשומות/ }).click();
-  // "Done" is shown only once every commit — the batch record's included —
-  // has been answered.
-  await expect(page.getByText("הייבוא הסתיים")).toBeVisible({ timeout: 25_000 });
+  // Every commit, including the batch record, has answered with rejection.
+  // The result must report incomplete delivery, never successful import.
+  await expect(page.locator('h2[role="status"]')).toHaveText("הייבוא לא הושלם", { timeout: 25_000 });
+  await expect(page.getByText("הייבוא הסתיים", { exact: true })).toHaveCount(0);
 
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(8, { timeout: 25_000 });
-  await expect(page.getByText("permission-denied").first()).toBeVisible();
+  const rejectedRow = page.locator('[data-outbox-status="failed"]').first();
+  await rejectedRow.locator('summary').filter({ hasText: "פרטי הפעולה" }).click();
+  await expect(rejectedRow.getByText("permission-denied")).toBeVisible();
   expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 
   await restoreRules();

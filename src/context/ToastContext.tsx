@@ -47,7 +47,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const showToast = useCallback(
     (toast: Omit<Toast, "id">) => {
       const id = nextId++;
-      const duration = toast.duration ?? (toast.onUndo ? 5000 : 3200);
+      const duration = toast.duration ?? 5000;
       setToasts((current) => [...current.filter((t) => t.tone !== toast.tone), { ...toast, id }]);
       timers.current.set(
         id,

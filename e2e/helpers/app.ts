@@ -1,4 +1,6 @@
 import { expect, type Page } from "@playwright/test";
+import { finishFillupSave, openFillupMore, setFillupEndState } from "./fillup";
+import { outboxCount } from "./pwa";
 import {
   getDocument,
   listDocuments,
@@ -54,11 +56,22 @@ async function reachSignIn(page: Page): Promise<void> {
 export async function signIn(page: Page, account: TestAccount): Promise<void> {
   await page.goto("/");
   await reachSignIn(page);
+  // Exercise the real unchecked legal-consent gate before the real popup.
+  // Negative-consent coverage deliberately does not use this helper.
+  await page.getByTestId("signin-consent").check();
 
   const [popup] = await Promise.all([
     page.waitForEvent("popup"),
-    page.getByRole("button", { name: /Google/ }).click(),
+    page.getByTestId("signin-google").click(),
   ]);
+  await completeGooglePopup(popup, account);
+  await expect(page.getByRole("button", { name: /Google/ })).toHaveCount(0, {
+    timeout: 20_000,
+  });
+}
+
+/** Complete the Auth emulator's real Google popup, including consent-flow tests. */
+export async function completeGooglePopup(popup: Page, account: TestAccount): Promise<void> {
   await popup.waitForLoadState("domcontentloaded");
   // Register before submitting: the emulator can close immediately on success.
   const popupClosed = popup.waitForEvent("close", { timeout: 20_000 }).catch(() => undefined);
@@ -76,17 +89,17 @@ export async function signIn(page: Page, account: TestAccount): Promise<void> {
   }
 
   await popupClosed;
-  await expect(page.getByRole("button", { name: /Google/ })).toHaveCount(0, {
-    timeout: 20_000,
-  });
 }
 
 /** Sign out through the UI, the way a user does. */
 export async function signOut(page: Page): Promise<void> {
-  await page.goto("/settings/profile");
-  await page.getByRole("button", { name: "התנתקות" }).first().click();
-  // The confirmation dialog repeats the label on its confirm button.
-  await page.getByRole("button", { name: "התנתקות" }).last().click();
+  await page.goto("/account");
+  await page.getByTestId("account-signout").click();
+  // Stay scoped to the confirmation. A detached/reopened dialog must never
+  // let the locator silently retarget the Account row with the same label.
+  const confirmation = page.getByRole("alertdialog");
+  await expect(confirmation).toBeVisible();
+  await confirmation.getByRole("button", { name: /^התנתקות(?: בכל זאת)?$/ }).click();
   await expect(page.getByRole("button", { name: /Google/ })).toBeVisible({
     timeout: 20_000,
   });
@@ -95,11 +108,10 @@ export async function signOut(page: Page): Promise<void> {
 /**
  * The id of a user's first vehicle.
  *
- * Polled: `createVehicle` returns when the UI shows the vehicle, which means
- * the local cache has it — the server may not yet, and a REST read straight
- * after can legitimately miss it. That is the same
- * accepted-locally-vs-acknowledged distinction the app itself is careful about,
- * so the test has to be careful about it too.
+ * A local or intentionally pending creation can precede server presence, so
+ * this helper polls. It proves only that some first server vehicle exists;
+ * it does not identify a newly added vehicle or prove active selection.
+ * The online `createVehicle` fixture establishes those facts separately.
  */
 export async function firstVehicleId(uid: string, timeoutMs = 15_000): Promise<string> {
   const { listDocuments } = await import("./emulator");
@@ -123,7 +135,6 @@ export async function uidOf(account: TestAccount): Promise<string> {
  * Vehicles and fill-ups, through the UI
  * ------------------------------------------------------------------ */
 
-/** Create a vehicle by the manual path — no registry call, so no network. */
 /** The wizard shows the long labels; tests name the fuel type by its key. */
 const FUEL_LABEL = {
   "95": "בנזין 95 אוקטן",
@@ -134,23 +145,32 @@ const FUEL_LABEL = {
 
 export type TestFuelType = keyof typeof FUEL_LABEL;
 
+/**
+ * Online manual-creation fixture: no registry lookup, but real Firestore ACKs.
+ * Identify this creation against the expected account's pre-existing IDs,
+ * then require its exact server selection and an empty setup journal.
+ * Intentionally pending creation tests drive the wizard directly.
+ */
 export async function createVehicle(
   page: Page,
   {
+    account,
     make,
     model,
     fuelType = "95",
-  }: { make: string; model: string; fuelType?: TestFuelType },
-): Promise<void> {
+  }: { account: TestAccount; make: string; model: string; fuelType?: TestFuelType },
+): Promise<ReadyAccount> {
+  const uid = await uidOf(account);
+  const previousIds = new Set((await listDocuments(`users/${uid}/vehicles`)).map(vehicle => vehicle.id));
   await page.goto("/vehicles/new");
-  await page.getByRole("button", { name: /הזנה ידנית/ }).click();
+  await page.getByTestId("wizard-manual").click();
 
-  await page.getByLabel("יצרן", { exact: true }).fill(make);
-  await page.getByLabel("דגם", { exact: true }).fill(model);
-  await page.getByRole("button", { name: FUEL_LABEL[fuelType], exact: true }).click();
+  await page.getByTestId("wizard-make").fill(make);
+  await page.getByTestId("wizard-model").fill(model);
+  await page.getByTestId(`wizard-fuel-${fuelType}`).check();
 
-  await page.getByRole("button", { name: "המשך", exact: true }).click();
-  await page.getByRole("button", { name: "שמירת הרכב" }).click();
+  await page.getByTestId("wizard-confirm-next").click();
+  await page.getByTestId("wizard-save").click();
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 25_000 });
 
   // Landing on Home is not the same as the vehicle being active. Wait for the
@@ -159,6 +179,26 @@ export async function createVehicle(
   await expect(page.getByText(`${make} ${model}`, { exact: false }).first()).toBeVisible({
     timeout: 25_000,
   });
+
+  let additions: Awaited<ReturnType<typeof listDocuments>> = [];
+  await expect.poll(async () => {
+    additions = (await listDocuments(`users/${uid}/vehicles`)).filter(vehicle => !previousIds.has(vehicle.id));
+    return additions.length;
+  }, { timeout: 20_000 }).toBe(1);
+  const [created] = additions;
+  expect(created.data).toMatchObject({ make, model, fuelType });
+  const scope = { uid, vehicleId: created.id };
+  await waitForVehicleSelection(scope);
+  await expect.poll(() => outboxCount(page, uid), { timeout: 20_000 }).toBe(0);
+  return scope;
+}
+
+/** A momentary empty journal cannot prove the later selection was acknowledged. */
+export async function waitForVehicleSelection({ uid, vehicleId }: ReadyAccount): Promise<void> {
+  await expect.poll(async () => {
+    const profile = await getDocument(`users/${uid}`);
+    return (profile?.settings as Record<string, unknown> | undefined)?.activeVehicleId;
+  }, { timeout: 20_000 }).toBe(vehicleId);
 }
 
 export interface FillupInput {
@@ -172,7 +212,7 @@ export interface FillupInput {
   /** "HH:MM", typed into the time field. */
   time?: string;
   /**
-   * Whether to confirm "מילאתי מיכל מלא".
+   * Whether to confirm "מילאתי עד הסוף".
    *
    * Defaults to true because most of the suite is about the consumption
    * engine, which needs a confirmed full endpoint. The default is deliberately
@@ -182,14 +222,14 @@ export interface FillupInput {
   fillEndState?: "full" | "unknown";
 }
 
-/** Add a fill-up through the real form. Returns the toast title it produced. */
+/** Add through the real form and Saved screen. Returns its canonical summary. */
 export async function addFillup(page: Page, input: FillupInput, scope: ReadyAccount): Promise<string> {
   const collectionPath = `users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`;
   const existingIds = new Set((await listDocuments(collectionPath)).map((record) => record.id));
   await page.goto("/fillup/new");
 
   if (input.date || input.time) {
-    await page.getByRole("button", { name: /תאריך ושעה/ }).first().click();
+    await page.getByTestId("fillup-date").click();
     if (input.date) {
       const field = page.getByLabel("תאריך — הקלדה ידנית");
       await field.fill(input.date);
@@ -205,38 +245,39 @@ export async function addFillup(page: Page, input: FillupInput, scope: ReadyAcco
     await page.getByRole("button", { name: "אישור", exact: true }).click();
   }
 
-  // The odometer label changes to "קילומטראז׳ בתאריך זה" for a backdated record.
-  await page.getByLabel(/^קילומטראז׳/).fill(String(input.odometer));
-  await page.getByLabel("ליטרים", { exact: true }).fill(String(input.liters));
+  await page.getByTestId("fillup-odometer").fill(String(input.odometer));
+  await page.getByTestId("fillup-liters").fill(String(input.liters));
 
   if (input.pricePerLiter !== undefined) {
-    await page.getByLabel("מחיר לליטר").fill(String(input.pricePerLiter));
+    await page.getByTestId("fillup-price").fill(String(input.pricePerLiter));
   }
 
-  // A full tank is an explicit statement. The optional end-state section contains
-  // full / partial / unknown; nothing is pre-selected, so the
-  // helper has to say it.
+  // A full tank remains an explicit statement. Visible primary choices do
+  // not select anything until the driver answers.
   if ((input.fillEndState ?? "full") === "full") {
-    if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
-    await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+    await setFillupEndState(page, "full");
   }
 
   if (input.continuityBreak) {
+    await openFillupMore(page);
     await page
-      .getByRole("switch", { name: "היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת" })
+      .getByRole("switch", { name: "פספסתי תדלוקים לפני זה" })
       .click();
   }
 
-  await page.getByRole("button", { name: "שמירת תדלוק" }).click();
+  // This online helper checks the canonical saved calculation. Its immutable
+  // snapshot needs the loaded history; offline/rejected-write cases use their
+  // own helpers and must remain able to save while history is unavailable.
+  const preview = page.getByTestId("fillup-live-preview");
+  await expect(preview).toBeVisible();
+  await expect(preview).not.toContainText("ההיסטוריה לא זמינה במלואה לחישוב");
+  await page.getByTestId("fillup-save").click();
+  const summary = await finishFillupSave(page);
 
-  const toast = page.locator("[data-toast-title]").first();
-  await expect(toast).toBeVisible({ timeout: 20_000 });
-  const title = (await toast.innerText()).trim();
-
-  // The toast acknowledges the local journal. Neither an old row with the
+  // The Saved screen acknowledges the local journal. Neither an old row with the
   // same liters nor a temporarily absent pending badge proves this new write
   // reached the server. Before a caller's goto() tears down the page, require
-  // the new document in a server read AND its exact link in the live list.
+  // the new document in a server read AND its exact row in the live list.
   // Offline/rejected-write tests use their own helpers.
   await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
   let saved: { id: string; data: Record<string, unknown> } | undefined;
@@ -249,9 +290,9 @@ export async function addFillup(page: Page, input: FillupInput, scope: ReadyAcco
       continuityBreakBefore: input.continuityBreak ?? false,
     });
   }).toPass({ timeout: 20_000 });
-  await expect(page.locator(`a[href="/fillup/${saved!.id}"]`)).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId(`journal-entry-fillups/${saved!.id}`)).toBeVisible({ timeout: 20_000 });
 
-  return title;
+  return summary;
 }
 
 /* ------------------------------------------------------------------ *

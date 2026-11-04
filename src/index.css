@@ -1,160 +1,121 @@
 @import "tailwindcss";
+@import "./fonts-v2.css";
 @import "./design.css";
 @import "./vehicle-design.css";
 @import "./admin.css";
+@import "./design-primitives.css";
+@import "./shell-design.css";
 
-@font-face {
-  font-family: "Assistant";
-  src: url("/fonts/assistant-hebrew.woff2") format("woff2");
-  font-weight: 200 800;
-  font-display: swap;
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
-}
-@font-face {
-  font-family: "Assistant";
-  src: url("/fonts/assistant-latin.woff2") format("woff2");
-  font-weight: 200 800;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
-}
-@font-face {
-  font-family: "Frank Ruhl Libre";
-  src: url("/fonts/frankruhl-hebrew.woff2") format("woff2");
-  font-weight: 300 900;
-  font-display: swap;
-  unicode-range: U+0307-0308, U+0590-05FF, U+200C-2010, U+20AA, U+25CC, U+FB1D-FB4F;
-}
-@font-face {
-  font-family: "Frank Ruhl Libre";
-  src: url("/fonts/frankruhl-latin.woff2") format("woff2");
-  font-weight: 300 900;
-  font-display: swap;
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
-    U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215;
-}
-
-/* ---------------------------------------------------------------
-   Design tokens — see DESIGN_NOTES.md
-   Light palette lives on bare :root. Dark is applied either
-   explicitly ([data-theme="dark"]) or, when the user's setting is
-   "system" (no attribute stamped), via prefers-color-scheme.
-   --------------------------------------------------------------- */
-
+/* Plate v2. Muted body copy uses ink-2 to retain AA contrast on all surfaces. */
 :root {
-  --bg: #f4f5f5;
-  --surface: #ffffff;
-  --surface-2: #ebedee;
-  --ink: #14171a;
-  --muted: #636a70;
-  --line: #e2e5e6;
-
-  /* The accent is user-selectable. `--accent-l` / `--accent-d` are the two
-     theme variants; ThemeProvider sets them on <html> and each theme block
-     below picks the right one, so a custom accent still swaps with the theme
-     instead of being pinned by an inline style. */
-  --accent: var(--accent-l, #0b6b5e);
-  --accent-contrast: var(--accent-contrast-l, #ffffff);
-  --accent-soft: var(--accent-soft-l, #e3f0ed);
-
-  --success: #2e9e5b;
-  --success-soft: #e1f3e7;
-  --success-ink: #1d7a43;
-  --warning: #b45309;
-  --warning-soft: #fdf0dc;
-  --warning-ink: #8a4008;
-  --danger: #cc3d2e;
-  --danger-soft: #fce7e3;
-  --danger-ink: #a93226;
-
-  /* Flat surfaces; elevation is reserved for sheets and the primary action. */
-  --shadow-card: none;
-  --shadow-raised: none;
-  --shadow-fab: 0 2px 4px rgb(13 35 28 / 0.12),
-    0 10px 22px -8px color-mix(in srgb, var(--accent) 55%, transparent);
-  --shadow-sheet: 0 -12px 40px -12px rgb(13 35 28 / 0.22);
-  --hairline: rgb(20 23 26 / 0.09);
-
+  --bg: #F9F7F2;
+  --surface: #FFFFFF;
+  --surface-2: #F0ECE3;
+  --ink: #15130F;
+  --ink-2: #4B463C;
+  --ink-3: #6E685B;
+  --muted: var(--ink-2);
+  --line: #E4DFD4;
+  --lp: #FFC915;
+  --il: #1F4AA8;
+  --accent: var(--accent-l, #FFC915);
+  --accent-contrast: #111111;
+  --accent-soft: var(--accent-soft-l, color-mix(in srgb, #FFC915 17%, #F9F7F2));
+  --worse: #B4400B;
+  --worse-soft: #F6E3D6;
+  --better: #1F56C2;
+  --better-soft: #DEE6F7;
+  --warning: #8A5A00;
+  --warning-soft: #FBEFC8;
+  --danger: #B3261E;
+  --danger-soft: #FBE5E2;
+  --dial-opacity: .085;
   color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not([data-theme="dark"]) {
-    --bg: #0d0f10;
-    --surface: #16191b;
-    --surface-2: #1f2326;
-    --ink: #e8ebec;
-    --muted: #959ca1;
-    --line: #262b2e;
-
-    --accent: var(--accent-d, #4fd3bc);
-    --accent-contrast: var(--accent-contrast-d, #0b1613);
-    --accent-soft: var(--accent-soft-d, #123a34);
-
-
-    --success: #58c98b;
-    --success-soft: #12331f;
-    --success-ink: #8fe3b0;
-    --warning: #e5a54c;
-    --warning-soft: #3a2a11;
-    --warning-ink: #f0c88a;
-    --danger: #ef7a69;
-    --danger-soft: #3a1a16;
-    --danger-ink: #f5a99c;
-
-    --shadow-card: none;
-    --shadow-raised: none;
-    --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / 0.5);
-    --hairline: rgb(255 255 255 / 0.1);
-
-    color-scheme: dark;
-  }
+  --font-sans: "IBM Plex Sans Hebrew", system-ui, -apple-system, sans-serif;
+  --font-display: "Karantina", "IBM Plex Sans Hebrew", sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Sans Hebrew", monospace;
+  --font-num: var(--font-mono);
+  --success: var(--better);
+  --success-soft: var(--better-soft);
+  --success-ink: var(--better);
+  --warning-ink: var(--warning);
+  --danger-ink: var(--danger);
+  --worse-bg: var(--worse-soft);
+  --better-bg: var(--better-soft);
+  --warn: var(--warning);
+  --warn-bg: var(--warning-soft);
+  --worse-ink: var(--worse);
+  --better-ink: var(--better);
+  --shadow-card: none;
+  --shadow-raised: 0 3px 0 var(--ink);
+  --shadow-fab: 0 4px 0 var(--ink);
+  --shadow-sheet: 0 -12px 40px -12px rgb(21 19 15 / .22);
+  --hairline: var(--line);
 }
 
 [data-theme="dark"] {
-  --bg: #0d0f10;
-  --surface: #16191b;
-  --surface-2: #1f2326;
-  --ink: #e8ebec;
-  --muted: #959ca1;
-  --line: #262b2e;
-
-  --accent: var(--accent-d, #4fd3bc);
-  --accent-contrast: var(--accent-contrast-d, #0b1613);
-  --accent-soft: var(--accent-soft-d, #123a34);
-
-
-  --success: #58c98b;
-  --success-soft: #12331f;
-  --success-ink: #8fe3b0;
-  --warning: #e5a54c;
-  --warning-soft: #3a2a11;
-  --warning-ink: #f0c88a;
-  --danger: #ef7a69;
-  --danger-soft: #3a1a16;
-  --danger-ink: #f5a99c;
-
-  --shadow-card: none;
-  --shadow-raised: none;
-  --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / 0.5);
-  --hairline: rgb(255 255 255 / 0.1);
-
+  --bg: #1E1C18;
+  --surface: #282520;
+  --surface-2: #33302A;
+  --ink: #DDD6C7;
+  --ink-2: #A9A292;
+  --ink-3: #8A8376;
+  --line: #3D3932;
+  --lp: #EFBE1A;
+  --accent: var(--accent-d, #E6B417);
+  --accent-soft: var(--accent-soft-d, color-mix(in srgb, #E6B417 14%, #1E1C18));
+  --worse: #E59468;
+  --worse-soft: #3B2A20;
+  --better: #9DB6EC;
+  --better-soft: #26304A;
+  --warning: #E3BC64;
+  --warning-soft: #3A311C;
+  --danger: #EE8F86;
+  --danger-soft: #422621;
+  --dial-opacity: .13;
+  --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / .5);
   color-scheme: dark;
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+  --bg: #1E1C18;
+  --surface: #282520;
+  --surface-2: #33302A;
+  --ink: #DDD6C7;
+  --ink-2: #A9A292;
+  --ink-3: #8A8376;
+  --line: #3D3932;
+  --lp: #EFBE1A;
+  --accent: var(--accent-d, #E6B417);
+  --accent-soft: var(--accent-soft-d, color-mix(in srgb, #E6B417 14%, #1E1C18));
+  --worse: #E59468;
+  --worse-soft: #3B2A20;
+  --better: #9DB6EC;
+  --better-soft: #26304A;
+  --warning: #E3BC64;
+  --warning-soft: #3A311C;
+  --danger: #EE8F86;
+  --danger-soft: #422621;
+  --dial-opacity: .13;
+  --shadow-sheet: 0 -12px 40px -12px rgb(0 0 0 / .5);
+  color-scheme: dark;
+  }
+}
 
-/* Map semantic tokens into Tailwind's theme. `inline` keeps the var()
-   reference in the generated utilities, so switching theme or accent is a
-   pure CSS variable swap — no rebuild, no per-component dark: variants. */
 @theme inline {
   --color-bg: var(--bg);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-contrast: var(--accent-contrast);
   --color-accent-soft: var(--accent-soft);
+  --color-lp: var(--lp);
+  --color-il: var(--il);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-success-ink: var(--success-ink);
@@ -164,23 +125,30 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-ink: var(--danger-ink);
-
-  --font-sans: "Assistant", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Frank Ruhl Libre", "Assistant", Georgia, serif;
-
-  --radius-card: 14px;
-  --radius-tile: 11px;
-  --radius-sheet: 22px;
-  --radius-control: 12px;
+  --color-worse-bg: var(--worse-bg);
+  --color-better-bg: var(--better-bg);
+  --color-warn: var(--warn);
+  --color-warn-bg: var(--warn-bg);
+  --color-worse: var(--worse);
+  --color-worse-soft: var(--worse-soft);
+  --color-worse-ink: var(--worse-ink);
+  --color-better: var(--better);
+  --color-better-soft: var(--better-soft);
+  --color-better-ink: var(--better-ink);
+  --font-sans: "IBM Plex Sans Hebrew", system-ui, -apple-system, sans-serif;
+  --font-display: "Karantina", "IBM Plex Sans Hebrew", sans-serif;
+  --font-mono: "IBM Plex Mono", "IBM Plex Sans Hebrew", monospace;
+  --radius-card: 20px;
+  --radius-tile: 12px;
+  --radius-sheet: 26px;
+  --radius-control: 16px;
   --radius-pill: 99px;
-
   --shadow-card: var(--shadow-card);
   --shadow-raised: var(--shadow-raised);
   --shadow-fab: var(--shadow-fab);
   --shadow-sheet: var(--shadow-sheet);
-
-  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-swift: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-out-quint: cubic-bezier(.22, 1, .36, 1);
+  --ease-swift: cubic-bezier(.32, .72, 0, 1);
 }
 
 /* ---------------------------------------------------------------
@@ -215,7 +183,7 @@
     color: var(--ink);
     font-family: var(--font-sans);
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
@@ -255,12 +223,12 @@
   }
 
   :where(button, a, summary, [tabindex]):focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
     border-radius: 6px;
   }
 
-  /* Anything with a hit target smaller than the 40px minimum gets it back
+  /* Anything with a hit target smaller than the 44px minimum gets it back
      through a pseudo-element rather than extra visual weight. */
   .tap-target {
     position: relative;
@@ -270,8 +238,8 @@
     content: "";
     position: absolute;
     inset: 50% 50% 50% 50%;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     translate: -50% -50%;
     inset-inline-start: 50%;
     inset-block-start: 50%;
@@ -441,10 +409,10 @@
 .scan-steps { display:flex;gap:16px; }
 .scan-steps li { display:flex;flex:1;align-items:center;gap:8px;color:var(--muted);font-size:14px;font-weight:600; }
 .scan-steps li > span { display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--surface-2); }
-.scan-steps li[aria-current] { color:var(--accent); }
+.scan-steps li[aria-current] { color:var(--ink); }
 .scan-steps li[aria-current] > span { color:var(--accent-contrast);background:var(--accent); }
 .scan-start { display:flex;flex-direction:column;align-items:center;gap:14px;padding:28px 20px 20px;border-radius:24px;background:var(--surface-2);text-align:center; }
-.scan-start-icon { display:grid;place-items:center;width:76px;height:76px;background:var(--surface);color:var(--accent);border-radius:24px;box-shadow:0 2px 5px #00000008,0 8px 18px #00000005; }
+.scan-start-icon { display:grid;place-items:center;width:76px;height:76px;background:var(--surface);color:var(--ink);border-radius:24px;box-shadow:0 2px 5px #00000008,0 8px 18px #00000005; }
 .scan-start h3 { font-size:24px;line-height:1.2;font-weight:750;text-wrap:balance; }
 .scan-start p { color:var(--muted);font-size:15px;line-height:1.5;text-wrap:pretty; }
 .scan-photo-choice { display:flex;align-items:center;justify-content:center;gap:8px;min-height:48px;border-radius:12px;cursor:pointer;color:var(--ink);font-size:15px;font-weight:600; }
@@ -454,21 +422,21 @@
 .scan-camera-caption { display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-size:14px;color:var(--muted); }
 .scan-live-dot { flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent); }
 .scan-camera > button { width:100%; }
-.scan-success { display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--accent-soft);color:var(--accent); }
+.scan-success { display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:16px;background:var(--accent-soft);color:var(--ink); }
 .scan-success > span { display:flex;flex-direction:column;gap:3px;font-size:14px; }
 .scan-success bdi { font-variant-numeric:tabular-nums; }
 
 /* Vehicle care uses an intent picker followed by a short, progressive editor. */
 .care-editor { display:flex;flex-direction:column;gap:20px; }
-.care-step-heading > span { display:block;color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.08em;direction:ltr;text-align:right;margin-bottom:10px; }
+.care-step-heading > span { display:block;color:var(--ink);font-size:12px;font-weight:700;letter-spacing:.08em;direction:ltr;text-align:right;margin-bottom:10px; }
 .care-step-heading h3 { font-size:23px;line-height:1.25;font-weight:750;letter-spacing:-.02em;text-wrap:balance; }
 .care-step-heading p { margin-top:8px;color:var(--muted);font-size:14px;line-height:1.55;text-wrap:pretty; }
 .care-choice-grid { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px; }
 .care-choice { display:flex;align-items:center;gap:8px;min-height:54px;padding:10px;border-radius:12px;background:var(--surface-2);text-align:start;font-size:14px;font-weight:650;box-shadow:inset 0 0 0 1px transparent;transition:background-color .18s,box-shadow .18s,scale .18s; }
 .care-choice > svg:first-child { flex:none;color:var(--muted); }
 .care-choice > span:nth-child(2) { flex:1; }
-.care-choice[aria-pressed=true] { color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent); }
-.care-choice[aria-pressed=true] > svg { color:var(--accent); }
+.care-choice[aria-pressed=true] { color:var(--ink);background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent); }
+.care-choice[aria-pressed=true] > svg { color:var(--ink); }
 .care-choice:active { scale:.96; }
 .care-choice-dot { width:14px;height:14px;flex:none;border:1px solid var(--line);border-radius:50%; }
 .care-quiet-note { color:var(--muted);font-size:13px;line-height:1.6;text-wrap:pretty; }
@@ -476,10 +444,10 @@
 .care-selection > span:nth-child(2) { flex:1;min-width:0; }
 .care-selection b { display:block;line-height:1.4;font-size:15px; }
 .care-selection small { color:var(--muted);font-size:12px; }
-.care-selection-icon { display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--surface);color:var(--accent);flex:none; }
+.care-selection-icon { display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:var(--surface);color:var(--ink);flex:none; }
 .care-amount { padding:20px;border-radius:22px;background:var(--accent-soft); }
-.care-amount label { color:var(--accent); }
-.care-amount input { font-size:40px;line-height:1.25;color:var(--accent);font-weight:650;letter-spacing:-.02em; }
+.care-amount label { color:var(--ink); }
+.care-amount input { font-size:40px;line-height:1.25;color:var(--ink);font-weight:650;letter-spacing:-.02em; }
 .care-amount input::placeholder { font-size:30px;font-weight:500;opacity:.6; }
 .care-amount > div > div { background:transparent;border:0;padding:0;box-shadow:none;min-height:60px; }
 .care-amount p { font-size:12px;line-height:1.6;color:var(--muted);margin-top:8px; }
@@ -494,21 +462,21 @@
 .care-disclosure summary::after { content:'+';color:var(--muted);font-size:20px; }
 .care-disclosure[open] summary::after { content:'−'; }
 .care-check-row { display:flex;align-items:center;gap:12px;min-height:48px;font-size:15px; }
-.care-check-row input,.care-toggle input { width:20px;height:20px;accent-color:var(--accent);flex:none; }
+.care-check-row input,.care-toggle input { width:20px;height:20px;accent-color:var(--ink);flex:none; }
 .care-toggle { display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:54px; }
 .care-toggle b { display:block;font-size:15px;font-weight:650; }
 .care-toggle small { display:block;font-size:13px;color:var(--muted);margin-top:3px; }
 .care-repeat { display:flex;flex-direction:column;gap:16px;border-radius:18px;padding:16px;background:var(--surface-2); }
 .care-editor-footer { position:sticky;bottom:-20px;z-index:1;padding:14px 0 max(8px,env(safe-area-inset-bottom));background:var(--surface);box-shadow:0 -12px 16px -12px #00000015; }
-.care-draft-status { display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:var(--muted); }
+.care-draft-status { display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted); }
 .care-draft-status button { min-height:44px;padding:0 4px;font-size:12px; }
-.care-restored { display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--accent);padding:12px;border-radius:14px;font-size:13px; }
+.care-restored { display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--ink);padding:12px;border-radius:14px;font-size:13px; }
 .care-form-error { padding:12px;border-radius:12px;background:var(--danger-soft);color:var(--danger-ink);font-size:14px;line-height:1.5; }
 @media(max-width:350px) { .care-choice { gap:7px;padding:10px 8px;font-size:14px; }.care-choice > svg:first-child { width:21px; }.care-choice-dot { display:none; } }
 .care-page-heading h1 { font-size:32px;line-height:1.2;font-weight:750;letter-spacing:-.025em; }
 .care-page-heading p { color:var(--muted);font-size:15px;line-height:1.5;margin-top:8px; }
 .care-overview { padding:20px;border-radius:24px;background:var(--surface);box-shadow:0 2px 4px #00000004,0 6px 24px #00000005; }
-.care-vehicle-label { display:flex;align-items:center;gap:8px;font-size:14px;font-weight:650;color:var(--accent);margin-bottom:20px; }
+.care-vehicle-label { display:flex;align-items:center;gap:8px;font-size:14px;font-weight:650;color:var(--ink);margin-bottom:20px; }
 .care-mileage { display:flex;align-items:center;justify-content:space-between;gap:12px; }
 .care-mileage small { display:block;font-size:12px;color:var(--muted);margin-bottom:5px; }
 .care-mileage strong { font-size:34px;line-height:1.2;font-weight:650;letter-spacing:-.025em;font-variant-numeric:tabular-nums; }
@@ -518,12 +486,12 @@
 .care-section-title { font-size:16px;font-weight:700;margin:8px 0 12px; }
 .care-actions { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px; }
 .care-actions button { display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 6px;border-radius:20px;background:var(--surface);box-shadow:0 2px 6px #00000004;transition:scale .18s,background-color .18s; }
-.care-actions button:first-child { background:var(--accent-soft);color:var(--accent); }
+.care-actions button:first-child { background:var(--accent-soft);color:var(--ink); }
 .care-actions button:active { scale:.96; }
-.care-actions button > span { display:grid;place-items:center;width:38px;height:38px;color:var(--accent); }
+.care-actions button > span { display:grid;place-items:center;width:38px;height:38px;color:var(--ink); }
 .care-actions b { font-size:14px;font-weight:650;line-height:1.2;text-wrap:balance; }
-.care-actions small { font-size:11px;color:var(--muted); }
+.care-actions small { font-size:12px;color:var(--muted); }
 .care-plan-title { display:flex;align-items:center;gap:8px;min-width:0;font-weight:650;font-size:17px; }
-.care-plan-title svg { color:var(--accent);flex:none; }
+.care-plan-title svg { color:var(--ink);flex:none; }
 .care-plan-title span { overflow-wrap:anywhere; }
 @media(prefers-reduced-motion:reduce) { .care-choice,.care-actions button { transition:none; } }

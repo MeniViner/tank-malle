@@ -1,13 +1,17 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
+import { openFillupMore } from "./helpers/fillup";
 import { ALICE, signedInWithData } from "./helpers/app";
 import { getDocument, installRules, listAccounts, listDocuments, restoreRules, seedFillups, seedVehicle, setDocument } from "./helpers/emulator";
 import { fillupsToCsv, rowsToCsv, tankUpdatesToCsv } from "../src/lib/csv";
 import type { Fillup, Vehicle } from "../src/lib/types";
 
 function denyVehicleWrites(rules:string):string {
-  let count=0;const denied=rules.replace(/allow (create|update): if isOwner\(uid\) && accountWritable\(uid\) && validVehicle\(request.resource.data\)[^;]*;/g,(_match,verb)=>{count++;return `allow ${verb}: if false;`;});
-  if(count!==2)throw new Error(`Vehicle rule rejection fixture must replace two grants; found ${count}`);return denied;
+  const start=rules.indexOf('match /vehicles/{vehicleId} {'),end=rules.indexOf('match /fillups/{fillupId} {',start);
+  if(start<0||end<0)throw new Error('Vehicle write-denial fixture cannot locate the parent grants');
+  const verbs=new Set<string>();const denied=rules.slice(start,end).replace(/allow (create, update|create|update):[^;]*;/g,(_match,grant:string)=>{grant.split(', ').forEach(verb=>verbs.add(verb));return `allow ${grant}: if false;`;});
+  if(verbs.size!==2||!verbs.has('create')||!verbs.has('update'))throw new Error('Vehicle write-denial fixture must replace both parent write grants');
+  return rules.slice(0,start)+denied+rules.slice(end);
 }
 test.afterEach(async () => { await restoreRules(); });
 const ownRows = (uid: string) => `users/${uid}/vehicles/v1/fillups`;
@@ -21,7 +25,7 @@ async function upload(page: Page, content: string) {
 }
 async function startDeletion(page: Page) {
   await page.goto("/settings/profile");
-  await page.getByRole("button", { name: "מחיקת חשבון", exact: true }).click();
+  await page.getByTestId("account-delete").click();
   await page.getByRole("button", { name: "המשך למחיקה", exact: true }).click();
   const popup = page.waitForEvent("popup");
   await page.getByRole("button", { name: "כן, מחקו הכול", exact: true }).click();
@@ -32,7 +36,7 @@ test("F03: Settings withdraws every contribution and reports the server result",
   const { uid } = await signedInWithData(page);
   for (const suffix of ["", "__v1", "__archived", "__deleted"]) await setDocument(`benchmarks/${uid}${suffix}`, { modelKey: "x", fuelType: "95", year: 2020, avgKmPerLiter: 12, segments: 3, avgPricePerLiter: 7 });
   await page.goto("/settings");
-  await page.getByRole("switch", { name: "שיתוף נתוני השוואה" }).click();
+  await page.getByRole("switch", { name: "שיתוף סיכום להשוואה" }).click();
   await expect(page.getByText("השיתוף כבוי. נתוני ההשוואה שלכם הוסרו מהשרת.")).toBeVisible();
   expect((await listDocuments("benchmarks")).filter((d) => d.id.startsWith(uid))).toHaveLength(0);
   expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({ shareBenchmarks: false });
@@ -96,38 +100,42 @@ test("F06: both tank editors preserve grouped odometers and reject a backward re
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "user" }, fillups: [{ id: "base", date: new Date(Date.UTC(2026, 9, 1)), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   await setDocument(`users/${uid}/vehicles/v1/observations/seed`, { observedAt: new Date(Date.now() - 60000), recordedAt: new Date(), kind: "level", level: 0.5, confirmed: true, levelSource: "direct-gauge" });
   await page.reload();
-  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
-  await page.getByRole("button", { name: "עדכון קילומטראז׳", exact: true }).click();
-  let dialog = page.getByRole("dialog");
+  await page.getByTestId("tank-hero").click();
+  await page.getByTestId("tank-open-odometer").click();
+  let dialog = page.getByRole("dialog", { name: "עדכון קילומטראז׳", exact: true });
   await dialog.getByLabel("קילומטראז׳ נוכחי").fill("123,456");
   await dialog.getByRole("button", { name: "שמירה", exact: true }).click();
   await expect.poll(async () => (await listDocuments(`users/${uid}/vehicles/v1/observations`)).find((record) => record.id !== "seed")?.data.odometer).toBe(123456);
-  await page.getByRole("button", { name: "עדכון מד הדלק", exact: true }).last().click();
-  dialog = page.getByRole("dialog");
+  dialog = page.getByRole("dialog", { name: "מה יש במיכל", exact: true });
   await dialog.getByLabel("קילומטראז׳ (לא חובה)").fill("123,455");
   await expect(dialog.getByText("הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "שמירה", exact: true })).toBeDisabled();
+  await expect(dialog.getByTestId("tank-save-gauge")).toBeDisabled();
 });
 
 test("F07: invalid vehicle edits stay open, rejected valid edits never report success", async ({ page }) => {
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50 } });
   await page.goto("/settings/vehicles");
-  await page.getByRole("button", { name: "עריכה", exact: true }).click();
-  const dialog = page.getByRole("dialog");
+  await page.locator('[data-managed-vehicle="v1"]').getByRole("link", { name: /^פרטי הרכב/ }).click();
+  const dialog = page.locator("main form");
   await dialog.getByLabel("נפח מיכל", { exact: true }).fill("-10");
-  await expect(dialog.getByRole("button", { name: "שמירת שינויים" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "שמירת שינויים" }).click();
+  await expect(dialog.getByLabel("נפח מיכל", { exact: true })).toHaveAttribute("aria-invalid", "true");
+  expect((await getDocument(`users/${uid}/vehicles/v1`))?.tankLiters).toBe(50);
   await dialog.getByLabel("נפח מיכל", { exact: true }).fill("60");
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   await installRules(denyVehicleWrites(rules));
   await dialog.getByRole("button", { name: "שמירת שינויים" }).click();
-  await expect(dialog.getByRole("alert")).toContainText("השינוי לא אושר בשרת");
+  await expect(dialog.getByRole("alert").filter({ hasText: "השינוי טרם אושר" })).toBeVisible();
   expect((await getDocument(`users/${uid}/vehicles/v1`))?.tankLiters).toBe(50);
   await expect(dialog.getByLabel("נפח מיכל", { exact: true })).toHaveValue("60");
-  await page.goto("/");
   for (const width of [320, 360, 390]) {
     await page.setViewportSize({ width, height: 800 });
-    await expect(page.getByRole("button", { name: "פעולות שלא סונכרנו" })).toBeInViewport();
-    await expect(page.getByRole("button", { name: "פרופיל", exact: true })).toBeInViewport();
+    await page.goto("/");
+    await expect(page.getByTestId("open-account")).toBeInViewport();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.getByTestId("open-account").click();
+    await expect(page.getByTestId("account-unsynced")).toBeVisible();
+    await expect(page.getByTestId("account-unsynced-count")).toHaveText("1");
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await restoreRules();
@@ -148,8 +156,9 @@ test("F07: a rejected archive preserves the active preference and can be retried
   // has the raw retry before-images before exercising a rejected archive.
   await seedVehicle(uid, "v2", { make: "טויוטה", model: "יאריס" });
   await expect(page.getByText("טויוטה יאריס", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "העברה לארכיון", exact: true }).first().click();
-  await expect(page.getByText("העברה לארכיון נכשלה", { exact: true })).toBeVisible();
+  await page.getByRole("article", { name: "מאזדה 3", exact: true }).getByRole("button", { name: /^העברת .* לארכיון$/ }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "העברה לארכיון", exact: true }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
   expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({ activeVehicleId: "v1" });
   expect((await getDocument(`users/${uid}/vehicles/v1`))?.archived).toBe(false);
   await restoreRules();
@@ -158,7 +167,7 @@ test("F07: a rejected archive preserves the active preference and can be retried
   await expect(page.locator("[data-outbox-op]")).toHaveCount(0);
   expect((await getDocument(`users/${uid}/vehicles/v1`))?.archived).toBe(true);
   await page.goto("/settings/vehicles");
-  await page.getByRole("button", { name: "שחזור", exact: true }).click();
+  await page.getByRole("button", { name: /^החזרת .* מהארכיון$/ }).click();
   await expect.poll(async () => (await getDocument(`users/${uid}/vehicles/v1`))?.archived).toBe(false);
 });
 
@@ -170,7 +179,10 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   await seedFillups(uid, "v2", [{ id: "b", date: new Date(row.date), odometer: 200000, liters: 20, pricePerLiter: 7 }]);
   await setDocument(`users/${uid}/vehicles/v2/observations/o1`, { observedAt: new Date(row.date), recordedAt: new Date(row.date), kind: "both", odometer: 200100, level: 0.5, confirmed: true });
   await page.goto("/settings/profile");
+  await page.getByTestId("account-identity").click();
   await expect(page.getByText("60 ליטר בסך הכול", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByTestId("account-export").click();
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
   const file = await download;
@@ -181,7 +193,7 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   const tankContent = readFileSync((await (await tankDownload).path())!, "utf8");
   expect(tankContent).toContain("observation,o1,v2,");
   expect(tankContent).toContain("200100,0.5");
-  // Both scopes remain available after moving data tools into Profile.
+  // Both scopes remain available in Account's export sheet.
   await page.getByRole("button", { name: /^היקף הייצוא/ }).click();
   const accountScope = page.getByRole("radio", { name: "כל הרכבים, כולל הארכיון", exact: true });
   await accountScope.focus();
@@ -191,6 +203,7 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
   const activeContent = readFileSync((await (await activeDownload).path())!, "utf8");
   expect(activeContent).toContain(",v1,"); expect(activeContent).not.toContain(",v2,");
+  await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^ייבוא נתונים/ }).click();
   await expect(page).toHaveURL(/settings\/import$/);
 
@@ -200,8 +213,8 @@ test("F07: a rejected tank-capacity confirmation never claims success and retrie
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "estimate" }, fillups: [{ id: "base", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   const rules = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   await installRules(denyVehicleWrites(rules));
-  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
-  await page.getByRole("button", { name: "מאשר", exact: true }).click();
+  await page.getByTestId("tank-hero").click();
+  await page.getByTestId("tank-capacity-confirm").click();
   await expect(page.getByText("נפח המיכל לא אושר בשרת", { exact: true })).toBeVisible();
   await expect(page.getByText("נפח המיכל אושר", { exact: true })).toHaveCount(0);
   expect((await getDocument(`users/${uid}/vehicles/v1`))?.tankLitersSource).toBe("estimate");
@@ -216,7 +229,7 @@ test("F09/F12: unknown stays unknown and a draft survives navigation and reload"
   const { uid } = await signedInWithData(page);
   await setDocument(`${ownRows(uid)}/unknown`, { ...row, date: new Date(row.date) });
   await page.reload();
-  await expect(page.getByText("לא צוין", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("מצב לא צוין", { exact: false }).first()).toBeVisible();
   await page.goto("/fillup/new");
   await page.getByLabel(/^קילומטראז׳/).fill("124000");
   await page.getByLabel("ליטרים", { exact: true }).fill("35.5");
@@ -225,28 +238,30 @@ test("F09/F12: unknown stays unknown and a draft survives navigation and reload"
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("35.5");
   await page.reload();
   await expect(page.getByLabel(/^קילומטראז׳/)).toHaveValue("124000");
-  await expect(page.getByText("הטיוטה שלכם שוחזרה מהמכשיר")).toBeVisible();
+  const restoredDraft = page.getByTestId("fillup-draft-status");
+  await expect(restoredDraft).toBeVisible();
+  await expect(restoredDraft).toHaveAttribute("data-draft-state", "restored");
 });
 
 test("F13/F14: modal focus and segmented keyboard navigation", async ({ page }) => {
   await signedInWithData(page);
   await page.goto("/settings");
-  await page.getByRole("button", { name: /^ערכת נושא/ }).click();
-  const group = page.getByRole("radiogroup", { name: "ערכת נושא" });
+  await page.getByRole("button", { name: /^מראה/ }).click();
+  const group = page.getByRole("radiogroup", { name: "מראה" });
   const selected = group.getByRole("radio", { checked: true });
   await selected.focus();
   await page.keyboard.press("ArrowLeft");
   await expect(group.getByRole("radio", { checked: true })).toBeFocused();
   await expect(group.locator('[tabindex="0"]')).toHaveCount(1);
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: /^ערכת נושא/ })).toBeFocused();
+  await expect(page.getByRole("button", { name: /^מראה/ })).toBeFocused();
   await page.goto("/settings/profile");
-  await page.getByRole("button", { name: "מחיקת חשבון", exact: true }).click();
+  await page.getByTestId("account-delete").click();
   const modal = page.getByRole("alertdialog", { name: "למחוק את החשבון?" });
   await expect(modal.getByRole("button", { name: "ביטול", exact: true })).toBeFocused();
   for (let i = 0; i < 8; i++) { await page.keyboard.press("Tab"); expect(await modal.evaluate((el) => el.contains(document.activeElement))).toBe(true); }
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "מחיקת חשבון", exact: true })).toBeFocused();
+  await expect(page.getByTestId("account-delete")).toBeFocused();
 });
 
 test("F15/F16: narrow header contains long names, pushed screens start at the heading", async ({ page }) => {
@@ -256,9 +271,9 @@ test("F15/F16: narrow header contains long names, pushed screens start at the he
   await setDocument(`users/${uid}/vehicles/v1/observations/current`, { observedAt: new Date(), recordedAt: new Date(), kind: "level", level: 0.5, confirmed: true, levelSource: "direct-gauge" });
   await page.setViewportSize({ width: 320, height: 700 });
   await page.reload();
-  await page.locator('details[aria-label="המיכל שלי"] > summary').click();
-  await expect(page.getByText("כדאי לתדלק", { exact: true })).toBeVisible();
-  expect(await page.getByText("כדאי לתדלק", { exact: true }).evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+  await page.getByTestId("tank-hero").click();
+  await expect(page.getByTestId("tank-recommended")).toBeVisible();
+  expect(await page.getByTestId("tank-sheet").evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.goto("/settings");
   await page.getByRole("button", { name: "מדיניות פרטיות", exact: true }).scrollIntoViewIfNeeded();
@@ -281,12 +296,12 @@ test("F10/F11: History and Statistics share calendar bounds, including month-end
   await page.getByRole('dialog').getByRole('button',{name:'3 חודשים',exact:true}).click();
   await expect(page.getByTestId("ledger-range")).toContainText("2 תדלוקים");await expect(page.getByTestId("ledger-range")).toContainText("31.5.26");
   await page.goto("/stats");
-  await expect(page.getByText(/^4 תדלוקים ·/)).toBeVisible();
-  await expect(page.getByText("28.2.26 – 31.8.26", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("insights-period-summary")).toContainText("4 תדלוקים ·");
+  await expect(page.getByTestId("insights-period-summary")).toContainText("28.2.26 – 31.8.26");
   await page.getByRole("button", { name: "6 חודשים אחרונים", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "3 חודשים אחרונים", exact: true }).click();
-  await expect(page.getByText(/^2 תדלוקים ·/)).toBeVisible();
-  await expect(page.getByText("31.5.26 – 31.8.26", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("insights-period-summary")).toContainText("2 תדלוקים ·");
+  await expect(page.getByTestId("insights-period-summary")).toContainText("31.5.26 – 31.8.26");
 });
 
 test("F18: an expired station catalog refreshes in the picker and remains usable offline", async ({ page }) => {
@@ -295,14 +310,14 @@ test("F18: an expired station catalog refreshes in the picker and remains usable
   await page.evaluate((catalog) => localStorage.setItem("tm.stations.v2", JSON.stringify({ at: 1, catalog })), catalog("תחנה ישנה"));
   await page.route("**/fuel-stations.json", (route) => route.fulfill({ json: catalog("תחנה מעודכנת") }));
   await page.goto("/fillup/new");
-  await page.getByRole("button", { name: /^תחנה / }).click();
+  await page.getByTestId("fillup-station").click();
   await page.getByPlaceholder("חיפוש תחנה…").fill("מעודכנת");
   await expect(page.getByRole("button", { name: /תחנה מעודכנת/ })).toBeVisible();
   await page.evaluate(() => { const cached = JSON.parse(localStorage.getItem("tm.stations.v2")!); cached.at = 1; localStorage.setItem("tm.stations.v2", JSON.stringify(cached)); });
   await page.unroute("**/fuel-stations.json");
   await page.route("**/fuel-stations.json", (route) => route.abort("internetdisconnected"));
   await page.reload();
-  await page.getByRole("button", { name: /^תחנה / }).click();
+  await page.getByTestId("fillup-station").click();
   await page.getByPlaceholder("חיפוש תחנה…").fill("מעודכנת");
   await expect(page.getByRole("button", { name: /תחנה מעודכנת/ })).toBeVisible();
 });
@@ -319,7 +334,8 @@ test("F17: summary refreshes edited liters/date and removes archived vehicles", 
   await setDocument(`userSummaries/${uid}`, { version: 1, vehicleCount: 2, vehicles: { v1: { fillups: 1 }, v2: { fillups: 9 } } });
   await page.goto("/settings/vehicles");
   await page.getByText("טויוטה יאריס", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "העברה לארכיון", exact: true }).last().click();
+  await page.getByRole("article", { name: "טויוטה יאריס", exact: true }).getByRole("button", { name: /^העברת .* לארכיון$/ }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "העברה לארכיון", exact: true }).click();
   await expect.poll(async () => Object.keys((await getDocument(`userSummaries/${uid}`))?.vehicles as object)).toEqual(["v1"]);
 });
 
@@ -342,13 +358,16 @@ test("F12: explicitly loading the server version replaces a saved edit draft", a
   const { uid } = await signedInWithData(page, { fillups: [{ id: "f1", date: new Date(row.date), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   await page.goto("/fillup/f1");
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("40");
+  await openFillupMore(page);
   await page.getByLabel("הערה").fill("טיוטה ישנה");
   const data = (await getDocument(`${ownRows(uid)}/f1`))!;
   await setDocument(`${ownRows(uid)}/f1`, { ...data, date: new Date(row.date), createdAt: new Date(row.date), liters: 42, totalCost: 294, notes: "גרסת שרת" });
   await page.getByRole("button", { name: "טעינת הגרסה החדשה" }).click();
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("42");
+  await openFillupMore(page);
   await expect(page.getByLabel("הערה")).toHaveValue("גרסת שרת");
   await page.reload();
+  await openFillupMore(page);
   await expect(page.getByLabel("הערה")).toHaveValue("גרסת שרת");
 });
 

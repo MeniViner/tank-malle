@@ -40,7 +40,7 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
   await signedInWithData(page, { fillups: RECORDS });
 
   await page.goto("/");
-  await expect(page.getByText(/ממוצע כולל/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption")).toContainText("הטווח הרגיל שלך", { timeout: 25_000 });
 
   /* --- money: the currency symbol leads the digits --- */
   const money = await islandText(page, /₪/);
@@ -109,7 +109,10 @@ test("chart tooltips carry the selected consumption unit, in both modes", async 
   await page.getByRole("button", { name: "צריכה" }).click();
 
   // km/L is the default.
-  await expect(page.getByText(/צריכה · .*קמ״ל/)).toBeVisible({ timeout: 25_000 });
+  const chart=page.getByTestId("insights-consumption-chart");
+  await expect(chart).toHaveAccessibleName(/צריכה · .*קמ״ל/, { timeout: 25_000 });
+  await chart.getByRole("button").last().hover();
+  await expect(chart.locator(".insights-tooltip")).toContainText("קמ״ל");
 
   // Switch the unit in settings and the whole section follows — title, axis,
   // average line and tooltip together, not the label alone.
@@ -118,7 +121,7 @@ test("chart tooltips carry the selected consumption unit, in both modes", async 
   // The unit control is a radiogroup inside its sheet.
   await page
     .getByRole("radiogroup", { name: "יחידת צריכה" })
-    .getByRole("radio", { name: "ל׳/100 ק״מ" })
+    .getByRole("radio", { name: "ליטר ל-100 ק״מ" })
     .click();
   // The setting is journaled and then written; a hard reload a few
   // milliseconds after the click would abandon it. Wait for the server to
@@ -127,6 +130,8 @@ test("chart tooltips carry the selected consumption unit, in both modes", async 
 
   await page.goto("/stats");
   await page.getByRole("button", { name: "צריכה" }).click();
-  await expect(page.getByText(/צריכה · .*ל׳\/100 ק״מ/)).toBeVisible({ timeout: 25_000 });
+  await expect(chart).toHaveAccessibleName(/צריכה · .*ל׳\/100 ק״מ/, { timeout: 25_000 });
+  await chart.getByRole("button").last().hover();
+  await expect(chart.locator(".insights-tooltip")).toContainText("ל׳/100 ק״מ");
   await expect(page.getByText(/קמ״ל/)).toHaveCount(0);
 });

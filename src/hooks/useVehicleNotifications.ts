@@ -3,7 +3,8 @@ import { useData } from '../context/DataContext';
 import { notificationId, type NotificationState } from '../lib/vehicle/model';
 import { regulatedMaxPrice, priceMonthLabel } from '../lib/prices/regulated';
 import { price } from '../lib/format';
-export interface VehicleNotification { occurrence:string; id:string; title:string; detail:string; to:string; urgent:boolean; state:NotificationState|null; snoozed:boolean; kind:'reminder'|'issue'|'sync'|'price' }
+import { vehicleDocumentOccurrences } from '../lib/vehicle/documentNotifications';
+export interface VehicleNotification { occurrence:string; id:string; title:string; detail:string; to:string; urgent:boolean; state:NotificationState|null; snoozed:boolean; kind:'reminder'|'document'|'issue'|'sync'|'price' }
 export function useVehicleNotifications() {
   const v=useVehicleData(),data=useData();
   const apply=(kind:VehicleNotification['kind'],occurrence:string,title:string,detail:string,to:string,urgent:boolean):VehicleNotification=>{
@@ -11,6 +12,7 @@ export function useVehicleNotifications() {
     return {kind,id,occurrence,title,detail,to,urgent,state,snoozed:!!state?.snoozeUntilDay&&state.snoozeUntilDay>v.today};
   };
   const rows:VehicleNotification[]=[];
+  if(v.notifications.reminders)for(const item of vehicleDocumentOccurrences(data.activeVehicle,v.today))rows.push(apply('document',item.occurrence,item.title,item.detail,item.to,item.urgent));
   if(v.notifications.reminders)for(const r of v.reminders)if(r.plan.active&&['due','soon'].includes(r.status))rows.push(apply('reminder',r.occurrence,r.plan.title,r.status==='due'?'הגיע מועד הטיפול':'הטיפול מתקרב',`/vehicle/reminders/${encodeURIComponent(r.plan.id)}`,r.status==='due'));
   if(v.notifications.issues)for(const issue of v.extra.vehicleIssues)if(issue.status!=='resolved'&&issue.importance==='important')rows.push(apply('issue',`issue:${issue.id}:${issue.status}:${issue.day}`,issue.title,'תקלה שסימנתם כחשובה',`/vehicle/issues/${encodeURIComponent(issue.id)}`,true));
   if(v.notifications.sync){

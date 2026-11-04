@@ -1,6 +1,7 @@
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { CalendarIcon, ClockIcon } from "./icons";
 import { parseTypedTime } from "../lib/format";
+import { NumericText } from "./Fmt";
 // The same date parser the importer uses. One implementation, so what the user
 // can type into this field and what a CSV may contain never drift apart.
 import { parseDate } from "../lib/import/normalize";
@@ -41,6 +42,7 @@ export function DateTimePicker({
   minDate?: number;
 }) {
   const selected = new Date(value);
+  const errorId = useId();
 
   const [typedDate, setTypedDate] = useState("");
   const [dateError, setDateError] = useState<string | null>(null);
@@ -145,6 +147,7 @@ export function DateTimePicker({
           placeholder="DD/MM/YYYY"
           aria-label="תאריך — הקלדה ידנית"
           aria-invalid={dateError !== null}
+          aria-describedby={dateError ? `${errorId}-date` : undefined}
           value={dateFieldValue}
           onChange={(event) => {
             setTypedDate(event.target.value);
@@ -157,7 +160,7 @@ export function DateTimePicker({
               commitTypedDate((event.target as HTMLInputElement).value);
             }
           }}
-          className="num w-full bg-transparent text-[16px] font-semibold text-ink outline-none"
+          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         />
       </EntryRow>
 
@@ -185,6 +188,7 @@ export function DateTimePicker({
           placeholder="HH:MM"
           aria-label="שעה — הקלדה ידנית"
           aria-invalid={timeError !== null}
+          aria-describedby={timeError ? `${errorId}-time` : undefined}
           value={timeFieldValue}
           onChange={(event) => {
             setTypedTime(event.target.value);
@@ -197,13 +201,12 @@ export function DateTimePicker({
               commitTypedTime((event.target as HTMLInputElement).value);
             }
           }}
-          className="num w-full bg-transparent text-[16px] font-semibold text-ink outline-none"
+          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         />
       </EntryRow>
 
-      {dateError || timeError ? (
-        <span className="text-[14px] text-danger-ink">{dateError ?? timeError}</span>
-      ) : null}
+      {dateError ? <span id={`${errorId}-date`} role="alert" className="text-[14px] text-danger-ink"><NumericText>{dateError}</NumericText></span> : null}
+      {timeError ? <span id={`${errorId}-time`} role="alert" className="text-[14px] text-danger-ink"><NumericText>{timeError}</NumericText></span> : null}
     </div>
   );
 }
@@ -231,14 +234,14 @@ function EntryRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-[56px] items-center gap-3 rounded-[14px] border border-line bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:border-accent focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]">
+    <div data-datetime-field={label} className="flex min-h-[56px] items-center gap-3 rounded-[14px] border border-line bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:border-ink focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
       <span className="w-[46px] flex-none text-[13px] font-semibold text-muted">
         {label}
       </span>
 
       <span className="min-w-0 flex-1">{children}</span>
 
-      <span className="relative flex-none">
+      <span className="relative flex-none rounded-tile">
         <button
           type="button"
           aria-label={pickerLabel}
@@ -249,7 +252,7 @@ function EntryRow({
             if (typeof withPicker.showPicker === "function") withPicker.showPicker();
             else element.click();
           }}
-          className="flex size-9 items-center justify-center rounded-tile bg-accent-soft text-accent transition-[background-color,scale] duration-200 active:scale-[0.94]"
+          className="flex size-11 items-center justify-center rounded-tile bg-accent-soft text-ink transition-[background-color,scale] duration-200 active:scale-[0.94]"
         >
           {icon}
         </button>

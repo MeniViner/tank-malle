@@ -2,6 +2,17 @@ import {it,expect,vi,afterEach} from 'vitest';
 import {backupPath,readUnifiedBackup,backupPreview,restoreBackupDrafts,type UnifiedBackup} from './backup';
 const b:UnifiedBackup={format:'tank-maleh-account',version:2,owner:'alice',exportedAt:'2026-10-21',cloud:{confirmed:true,settings:{quickEntry:true},entries:[{path:'vehicles/v',data:{make:'X',model:'Y'}},{path:'vehicles/v/notificationStates/n',data:{schemaVersion:1,version:2,occurrence:'reminder:p:2026-10-01',read:true,archived:true,snoozeUntilDay:null}}]},local:{pendingOperations:[],drafts:[{key:'tm.care-draft.v1.alice.v.serviceEvents.new',value:'draft'}],attachmentsIncluded:false}};
 afterEach(()=>vi.unstubAllGlobals());
+it('retains optional document absence, nulls, exact annual costs and unknown JSON through backup review',()=>{
+  for(const extra of [{},{docs:null},{docs:{test:null,mandatory:{insurer:null,cost:0},coverage:{type:'third',due:'2028-02-29',cost:1234.567891,unknown:{raw:['keep',null]}}}}]){
+    const entry={path:'vehicles/v',data:{make:'X',model:'Y',...extra}},backup={...b,cloud:{...b.cloud,entries:[entry]}};
+    const restored=readUnifiedBackup(JSON.stringify(backup));
+    expect(restored.cloud.entries[0]).toEqual(entry);
+    expect(backupPreview(restored,[])).toEqual({additions:[entry],duplicates:0,conflicts:[]});
+    expect(backupPreview(restored,[entry])).toEqual({additions:[],duplicates:1,conflicts:[]});
+    const changed={...entry,data:{...entry.data,docs:{mandatory:{cost:1}}}};
+    expect(backupPreview(restored,[changed])).toEqual({additions:[],duplicates:0,conflicts:[entry]});
+  }
+});
 it('round trips IDs/references, notification state/preferences and explicitly excludes images',()=>{expect(readUnifiedBackup(JSON.stringify(b))).toEqual(b);expect(backupPath('vehicles/v/vehicleIssues/i')).toBe(true);for(const p of ['users/alice','vehicles/v/../../users/admin','config/prices','vehicles/v/unknown/x','vehicles/v/vehicleIssues/a/b'])expect(backupPath(p)).toBe(false);});
 it('preview separates identical records, missing records and conflicts without overwriting',()=>{const result=backupPreview(b,[{...b.cloud.entries[0],data:{make:'Different'}}]);expect(result.additions).toHaveLength(1);expect(result.conflicts).toHaveLength(1);expect(backupPreview(b,b.cloud.entries)).toMatchObject({additions:[],duplicates:2,conflicts:[]});});
 it('rejects missing parents, duplicated paths, unknown issue fields and foreign drafts',()=>{for(const bad of [{...b,cloud:{...b.cloud,entries:b.cloud.entries.slice(1)}},{...b,cloud:{...b.cloud,entries:[...b.cloud.entries,b.cloud.entries[0]]}},{...b,local:{...b.local,drafts:[{key:'tm.care-draft.v1.bob.v.serviceEvents.new',value:'x'}]}}])expect(()=>readUnifiedBackup(JSON.stringify(bad))).toThrow();});

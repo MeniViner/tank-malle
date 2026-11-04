@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -27,6 +28,7 @@ import {
 import { auth, db, googleProvider } from "../lib/firebase";
 import { unacknowledgedState } from "../lib/outbox";
 import { authErrorMessage, REDIRECT_MARKER } from "../lib/authFlow";
+import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
 
 interface AuthContextValue {
   user: User | null;
@@ -84,6 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [previousLoginAt, setPreviousLoginAt] = useState<number | null | undefined>(
     undefined,
   );
+  // An account returning to the same UID is a new session, not permission for
+  // an earlier token/profile request to publish into the new one.
+  const authEpoch = useRef(0);
 
   useEffect(() => {
     let alive = true;
@@ -106,44 +111,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe = onAuthStateChanged(
       auth,
       (nextUser) => {
+        const epoch = ++authEpoch.current;
+        const current = () => alive && authEpoch.current === epoch && auth.currentUser === nextUser;
         setUser(nextUser);
         setLoading(false);
+        setIsAdmin(false);
+        setPreviousLoginAt(undefined);
+        setClaimsLoaded(!nextUser);
 
         if (!nextUser) {
-          setIsAdmin(false);
-          setClaimsLoaded(true);
-          setPreviousLoginAt(undefined);
           return;
         }
         // The claim lives in the signed token, so the rules and the UI agree
         // on it by construction.
+        const loginProfile: LoginProfile = { displayName: nextUser.displayName,
+          photoURL: nextUser.photoURL, email: nextUser.email };
         nextUser
           .getIdTokenResult()
           .then((result) => {
+            if (!current()) return;
             setIsAdmin(result.claims.admin === true);
-            if (!isAccountDeleting(nextUser.uid)) return rotateLoginStamps(nextUser.uid, result.claims.auth_time);
+            if (!isAccountDeleting(nextUser.uid)) return rotateLoginStamps(nextUser.uid, result.claims.auth_time, loginProfile, current);
           })
-          .then((previous) => setPreviousLoginAt(previous))
+          .then((previous) => { if (current()) setPreviousLoginAt(previous); })
           .catch(() => {
+            if (!current()) return;
             setIsAdmin(false);
             setPreviousLoginAt(null);
           })
-          .finally(() => setClaimsLoaded(true));
+          .finally(() => { if (current()) setClaimsLoaded(true); });
       },
       () => {
+        if (!alive) return;
+        ++authEpoch.current;
+        setIsAdmin(false);
         setLoading(false);
         setClaimsLoaded(true);
       },
       );
     })();
-    return () => { alive = false; unsubscribe(); };
+    return () => { alive = false; ++authEpoch.current; unsubscribe(); };
   }, []);
 
   /** Force a token refresh — used right after a claim is granted. */
   const refreshClaims = useCallback(async () => {
-    if (!auth.currentUser) return;
-    const result = await auth.currentUser.getIdTokenResult(true);
-    setIsAdmin(result.claims.admin === true);
+    const currentUser = auth.currentUser, epoch = authEpoch.current;
+    if (!currentUser) return;
+    const result = await currentUser.getIdTokenResult(true);
+    if (auth.currentUser === currentUser && authEpoch.current === epoch) setIsAdmin(result.claims.admin === true);
   }, []);
 
   const signIn = useCallback(async () => {
@@ -196,7 +211,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refused =
           state === "some"
             ? "יש פעולות שעדיין לא אושרו על ידי השרת — הנתונים המקומיים נשמרו"
-            : "לא ניתן לוודא שאין פעולות שלא סונכרנו — הנתונים המקומיים נשמרו";
+            : "לא ניתן לוודא שאין שינויים שעוד לא עלו לענן — הנתונים המקומיים נשמרו";
       }
     }
 
@@ -271,7 +286,10 @@ export function useAuth(): AuthContextValue {
 async function rotateLoginStamps(
   uid: string,
   authTimeClaim: unknown,
+  identity: LoginProfile,
+  stillCurrent: () => boolean,
 ): Promise<number | null> {
+  if (!stillCurrent()) return null;
   // `auth_time` is seconds since the epoch, per the OIDC spec.
   const authTime =
     typeof authTimeClaim === "number"
@@ -286,24 +304,35 @@ async function rotateLoginStamps(
     // Without an auth_time we cannot tell a new sign-in from a refresh, so we
     // read the stored value and change nothing.
     const snapshot = await getDoc(ref).catch(() => null);
-    return numberOrNull(snapshot?.data()?.previousLoginAt);
+    return stillCurrent() ? numberOrNull(snapshot?.data()?.previousLoginAt) : null;
   }
 
   try {
     return await runTransaction(db, async (transaction) => {
+      if (!stillCurrent() || isAccountDeleting(uid)) return null;
       const snapshot = await transaction.get(ref);
+      if (!stillCurrent()) return null;
       const data = snapshot.exists() ? snapshot.data() : {};
 
       const lastProcessed = numberOrNull(data.lastProcessedAuthTime);
       const currentLogin = numberOrNull(data.currentLoginAt);
       const storedPrevious = numberOrNull(data.previousLoginAt);
 
-      // Same authentication event — a refresh or a token renewal. Nothing moves.
-      if (lastProcessed === authTime) return storedPrevious;
+      if (isAccountDeleting(uid) || data.deletionPending === true) return storedPrevious;
+      const profile = missingProfileFields(data, identity, serverTimestamp());
+
+      // Same authentication event — a refresh or a token renewal. Login stamps stay put.
+      // A legacy login-only document can still be completed without rotating
+      // its existing stamps or updating its recorded update time.
+      if (lastProcessed === authTime) {
+        if (Object.keys(profile).length) transaction.set(ref, profile, { merge: true });
+        return storedPrevious;
+      }
 
       transaction.set(
         ref,
         {
+          ...profile,
           previousLoginAt: currentLogin,
           currentLoginAt: authTime,
           lastProcessedAuthTime: authTime,

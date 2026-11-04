@@ -241,6 +241,7 @@ export interface SeedFillup {
   odometer: number;
   liters: number;
   pricePerLiter?: number;
+  postedPricePerLiter?: number | null;
   totalCost?: number;
   isFullTank?: boolean;
   continuityBreakBefore?: boolean;
@@ -266,6 +267,7 @@ export async function seedFillups(
       isFullTank: fillup.isFullTank ?? true,
       continuityBreakBefore: fillup.continuityBreakBefore ?? false,
       createdAt: fillup.date,
+      ...(fillup.postedPricePerLiter !== undefined ? { postedPricePerLiter: fillup.postedPricePerLiter } : {}),
       ...(fillup.stationName ? { station: { name: fillup.stationName } } : {}),
       ...(fillup.importBatchId ? { importBatchId: fillup.importBatchId } : {}),
       ...(fillup.importRowHash ? { importRowHash: fillup.importRowHash } : {}),

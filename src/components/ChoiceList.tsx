@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { NumRun } from "./Fmt";
 import { CheckIcon } from "./icons";
 
 /** The export's sheet choices: one group, with keyboard radio navigation. */
@@ -12,7 +13,7 @@ export function ChoiceList<T extends string>({ value, options, onChange, ariaLab
   return <div className="tm-choice-list" role="radiogroup" aria-label={ariaLabel}>
     {options.map((option, index) => <button key={option.value} type="button"
       ref={node => { refs.current[index] = node; }}
-      role="radio" aria-checked={option.value === value} tabIndex={option.value === value ? 0 : -1}
+      role="radio" aria-label={option.label} aria-checked={option.value === value} tabIndex={option.value === value ? 0 : -1}
       onClick={() => onChange(option.value)}
       onKeyDown={event => {
         const next = event.key === "ArrowDown" || event.key === "ArrowLeft" ? (index + 1) % options.length
@@ -21,8 +22,8 @@ export function ChoiceList<T extends string>({ value, options, onChange, ariaLab
         if (next === null) return;
         event.preventDefault(); onChange(options[next].value); refs.current[next]?.focus();
       }}
-      className={`flex min-h-[54px] w-full items-center justify-between gap-3 px-4 text-start text-[15.5px] font-semibold active:bg-surface-2 ${option.value === value ? "text-accent" : "text-ink"}`}>
-      {option.label}{option.value === value ? <CheckIcon size={18} /> : null}
+      className={`flex min-h-[54px] w-full items-center justify-between gap-3 px-4 text-start text-[15.5px] font-semibold active:bg-surface-2 ${option.value === value ? "bg-accent-soft text-ink" : "text-ink"}`}>
+      <span>{option.label.split(/(\d+(?:[.,]\d+)*)/).map((part, i) => /^\d/.test(part) ? <NumRun key={i}>{part}</NumRun> : part)}</span>{option.value === value ? <CheckIcon size={18} /> : null}
     </button>)}
   </div>;
 }

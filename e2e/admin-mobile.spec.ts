@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
+import { openFillupMore } from './helpers/fillup';
 import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { ALICE, signIn, signOut, signedInWithData } from './helpers/app';
-import { PROJECT_ID, getDocument } from './helpers/emulator';
+import { PROJECT_ID, getDocument, listDocuments } from './helpers/emulator';
 
 async function admin(page: import('@playwright/test').Page, edit=true) {
   const account = await signedInWithData(page, { regulatedPrice: 7.31 });
@@ -97,11 +98,11 @@ test('rejected admin save retains draft through reload and can be retried safely
 
 test('small fill-up page and date sheet keep all controls within the viewport', async ({page}) => {
   await page.setViewportSize({width:360,height:740});
-  await signedInWithData(page,{regulatedPrice:7.31});
+  const {uid,vehicleId}=await signedInWithData(page,{regulatedPrice:7.31});
   await page.goto('/fillup/new');
   await expect(page.getByLabel('ליטרים',{exact:true})).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button',{name:/תאריך ושעה/}).first().click();
+  await page.getByTestId("fillup-date").click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
   const box = await dialog.boundingBox();
@@ -109,9 +110,15 @@ test('small fill-up page and date sheet keep all controls within the viewport', 
   await page.getByRole('button',{name:'אישור',exact:true}).click();
   await page.getByLabel(/^קילומטראז׳/).fill('101000');
   await page.getByLabel('ליטרים',{exact:true}).fill('40');
-  await page.getByLabel('הערה',{exact:true}).fill('x'.repeat(501));
-  await expect(page.getByLabel('הערה',{exact:true})).toHaveValue('x'.repeat(501));
-  await expect(page.getByRole('button',{name:'שמירת תדלוק'})).toBeDisabled();
+  await openFillupMore(page);
+  await page.getByTestId('fillup-notes').fill('x'.repeat(501));
+  await expect(page.getByTestId('fillup-notes')).toHaveValue('x'.repeat(501));
+  // The v2 Save action stays available; an attempted invalid save must expose
+  // the exact retained note error without creating a record.
+  await page.getByTestId('fillup-save').click();
+  await expect(page.getByTestId('fillup-notes')).toHaveAttribute('aria-invalid','true');
+  await expect(page.getByTestId('fillup-form')).toBeVisible();
+  expect(await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`)).toHaveLength(0);
 });
 
 test('an ordinary connected client receives the admin price through stored configuration', async ({page,browser}) => {

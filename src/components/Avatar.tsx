@@ -31,7 +31,7 @@ export function Avatar({
   return (
     <span
       aria-hidden="true"
-      className="flex items-center justify-center rounded-full bg-accent-soft font-bold text-accent"
+      className="flex items-center justify-center rounded-full bg-accent-soft font-bold text-ink"
       style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }}
     >
       {initials(name)}

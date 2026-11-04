@@ -357,39 +357,105 @@ service cloud.firestore {
         && optionalString(data, 'note', 200);
     }
 
+    // Optional licensing metadata. Existing unknown fields remain forward
+    // compatible; only newly supplied or changed known leaves are validated.
+    // Unchanged legacy malformed values must not block an unrelated edit.
+    function vehicleDocumentDay(value) {
+      return value == null || (value is string && value.matches('^((19|20|21)[0-9]{2}-((0[13578]|1[02])-(0[1-9]|[12][0-9]|3[01])|(0[469]|11)-(0[1-9]|[12][0-9]|30)|02-(0[1-9]|1[0-9]|2[0-8]))|((19|20|21)(0[48]|[2468][048]|[13579][26])|2000)-02-29)$'));
+    }
+    function vehicleDocumentCost(value) {
+      return value == null || (value is number && value >= 0 && value <= 1000000);
+    }
+    function vehicleDocumentCoverage(value) {
+      return value in [null, 'comprehensive', 'third', 'none'];
+    }
+    function validVehicleDocumentLeaves(before, after, insurance, coverage) {
+      let changed = after.diff(before is map ? before : {}).affectedKeys();
+      // Validate changed known leaves once. Unchanged malformed values are
+      // retained by exact presence/type/value comparison, without a fallback
+      // that re-evaluates the valid leaves of a maximum-size legacy vehicle.
+      return (!changed.hasAny(['due']) || vehicleDocumentDay(after.get('due', null)))
+        && (!insurance || ((!changed.hasAny(['insurer']) || stringOrNull(after.get('insurer', null), 160))
+          && (!changed.hasAny(['cost']) || vehicleDocumentCost(after.get('cost', null)))))
+        && (!coverage || !changed.hasAny(['type']) || vehicleDocumentCoverage(after.get('type', null)));
+    }
+    function validVehicleDocumentRow(before, after, insurance, coverage) {
+      return after == null || (after is map && validVehicleDocumentLeaves(before, after, insurance, coverage));
+    }
+    function validVehicleDocumentMap(before, after) {
+      let previous = before is map ? before : {};
+      let changed = after.diff(previous).affectedKeys();
+      return (!changed.hasAny(['test']) || validVehicleDocumentRow(previous.get('test', null), after.get('test', null), false, false))
+        && (!changed.hasAny(['mandatory']) || validVehicleDocumentRow(previous.get('mandatory', null), after.get('mandatory', null), true, false))
+        && (!changed.hasAny(['coverage']) || validVehicleDocumentRow(previous.get('coverage', null), after.get('coverage', null), true, true));
+    }
+    function validVehicleDocuments(before, after) {
+      let changed = after.diff(before).affectedKeys().hasAny(['docs']);
+      let next = after.get('docs', null);
+      // When docs do not change, retain the original irreversible deletion
+      // latch. Changing docs requires two writable images, which also implies
+      // that latch and avoids evaluating it a second time.
+      return !changed ? (!before.get('deletionPending', false) || after.get('deletionPending', false) == true) : (
+        before.get('deletionPending', false) == false
+        && after.get('deletionPending', false) == false
+        && (next == null || (next is map && validVehicleDocumentMap(before.get('docs', null), next)))
+      );
+    }
+
+    // Pass each optional value once, as validFillup already does. Repeating
+    // document lookups makes a fully populated vehicle plus docs exceed the
+    // 1,000-expression budget. The emulator regression cases prove that a
+    // numeric type plus both finite bounds rejects NaN and either infinity;
+    // retain both bounds here instead of nesting the shared NaN predicate.
+    function vehiclePositiveOrNull(value) {
+      return value == null || (value is number && value > 0 && value < 9999999999);
+    }
+    function vehicleNonnegativeOrNull(value) {
+      return value == null || (value is number && value >= 0 && value < 9999999999);
+    }
+    function vehicleYearOrNull(value) {
+      return value == null || (value is number && value >= 1900 && value <= 2100);
+    }
+    function vehicleDiscountOrNull(value) {
+      return value == null || (value is map
+        && value.keys().hasOnly(['kind', 'value'])
+        && value.kind in ['amount', 'percent']
+        && value.value is number && value.value >= 0
+        && value.value <= (value.kind == 'percent' ? 100 : 20));
+    }
+    function vehicleTankPrefsOrNull(value) {
+      return value == null || validTankPrefs(value);
+    }
+    function vehicleLevelOrNull(value) {
+      return value == null || (value is number && value >= 0 && value <= 1);
+    }
+    function vehicleEpochOrNull(value) {
+      return value == null || (value is number && value > 0 && value < 4102444800000);
+    }
+    function vehicleReserve(value) {
+      return value is number && value >= 0.05 && value <= 0.9;
+    }
     function validVehicle(data) {
       return data.make is string && data.make.size() > 0 && data.make.size() <= 60
         && data.model is string && data.model.size() <= 80
         && data.fuelType in ['95', '98', 'diesel', 'other']
-        && data.archived is bool && optionalBool(data, 'deletionPending')
+        && data.archived is bool && data.get('deletionPending', false) is bool
         && isNumber(data.priceAdjustment)
-        && (!('priceDiscount' in data) || data.priceDiscount == null || (
-          data.priceDiscount is map
-          && data.priceDiscount.keys().hasOnly(['kind', 'value'])
-          && data.priceDiscount.kind in ['amount', 'percent']
-          && isNumber(data.priceDiscount.value) && data.priceDiscount.value >= 0
-          && data.priceDiscount.value <= (data.priceDiscount.kind == 'percent' ? 100 : 20)
-        ))
-        && (!('tankLiters' in data) || data.tankLiters == null
-            || (isNumber(data.tankLiters) && data.tankLiters > 0))
-        && (!('tankLitersSource' in data) || data.tankLitersSource == null
-            || data.tankLitersSource in ['user', 'trusted', 'estimate', 'legacy'])
-        && (!('declaredKmPerLiter' in data) || data.declaredKmPerLiter == null
-            || (isNumber(data.declaredKmPerLiter) && data.declaredKmPerLiter > 0))
-        && (!('declaredSource' in data) || data.declaredSource == null
-            || data.declaredSource in ['user', 'exact-year', 'other-year', 'co2-estimate'])
-        && (!('manualPricePerLiter' in data) || data.manualPricePerLiter == null
-            || (isNumber(data.manualPricePerLiter) && data.manualPricePerLiter >= 0))
-        && (!('year' in data) || data.year == null
-            || (isNumber(data.year) && data.year >= 1900 && data.year <= 2100))
-        && (!('tozeretCd' in data) || data.tozeretCd == null || isNumber(data.tozeretCd))
-        && (!('degemCd' in data) || data.degemCd == null || isNumber(data.degemCd))
-        && (!('plateNumber' in data) || data.plateNumber == null
-            || (data.plateNumber is string && data.plateNumber.size() <= 12))
-        && (!('nickname' in data) || data.nickname == null
-            || (data.nickname is string && data.nickname.size() <= 60))
-        && (!('tankPrefs' in data) || data.tankPrefs == null
-            || validTankPrefs(data.tankPrefs));
+        && vehicleDiscountOrNull(data.get('priceDiscount', null))
+        && vehiclePositiveOrNull(data.get('tankLiters', null))
+        && data.get('tankLitersSource', null) in [null, 'user', 'trusted', 'estimate', 'legacy']
+        && vehiclePositiveOrNull(data.get('declaredKmPerLiter', null))
+        && data.get('declaredSource', null) in [null, 'user', 'exact-year', 'other-year', 'co2-estimate']
+        && vehicleNonnegativeOrNull(data.get('manualPricePerLiter', null))
+        && vehicleYearOrNull(data.get('year', null))
+        && numberOrNull(data.get('tozeretCd', null))
+        && numberOrNull(data.get('degemCd', null))
+        && stringOrNull(data.get('plateNumber', null), 12)
+        && stringOrNull(data.get('nickname', null), 60)
+        && vehicleTankPrefsOrNull(data.get('tankPrefs', null));
+    }
+    function validVehicleWrite(before, after) {
+      return validVehicle(after) && validVehicleDocuments(before, after);
     }
 
     /**
@@ -405,17 +471,11 @@ service cloud.firestore {
              'reserveFraction', 'refuelLevelOverride', 'usualFillStyle',
              'usualRefuelLevel', 'habitResetAt'
            ])
-        && isNumber(prefs.reserveFraction)
-        && prefs.reserveFraction >= 0.05 && prefs.reserveFraction <= 0.9
-        && (!('refuelLevelOverride' in prefs) || prefs.refuelLevelOverride == null
-            || (isNumber(prefs.refuelLevelOverride)
-                && prefs.refuelLevelOverride >= 0 && prefs.refuelLevelOverride <= 1))
-        && (!('usualFillStyle' in prefs) || prefs.usualFillStyle == null
-            || prefs.usualFillStyle in ['full', 'partial', 'unknown'])
-        && (!('usualRefuelLevel' in prefs) || prefs.usualRefuelLevel == null
-            || (isNumber(prefs.usualRefuelLevel)
-                && prefs.usualRefuelLevel >= 0 && prefs.usualRefuelLevel <= 1))
-        && optionalEpochMillis(prefs, 'habitResetAt');
+        && vehicleReserve(prefs.reserveFraction)
+        && vehicleLevelOrNull(prefs.get('refuelLevelOverride', null))
+        && prefs.get('usualFillStyle', null) in [null, 'full', 'partial', 'unknown']
+        && vehicleLevelOrNull(prefs.get('usualRefuelLevel', null))
+        && vehicleEpochOrNull(prefs.get('habitResetAt', null));
     }
 
     // An anonymous economy summary. Deliberately narrow: anything that could
@@ -538,9 +598,8 @@ service cloud.firestore {
       match /vehicles/{vehicleId} {
         allow read: if isOwner(uid);
         allow delete: if isOwner(uid);
-        allow create: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data);
-        allow update: if isOwner(uid) && accountWritable(uid) && validVehicle(request.resource.data)
-          && (!resource.data.get('deletionPending', false) || request.resource.data.get('deletionPending', false) == true);
+        allow create, update: if isOwner(uid) && accountWritable(uid)
+          && validVehicleWrite(resource == null ? {} : resource.data, request.resource.data);
 
         match /fillups/{fillupId} {
           allow read: if isOwner(uid);

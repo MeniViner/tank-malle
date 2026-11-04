@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { seedBenchmark, type SeedFillup } from "./helpers/emulator";
 import { signedInWithData } from "./helpers/app";
+import { openInsightFuelDetail, selectInsight, selectInsightRange as selectRange } from "./helpers/insights";
 
 /**
  * Statistics information architecture.
@@ -36,31 +37,25 @@ function history(): SeedFillup[] {
  * The six-pill segmented control is gone — at 360px "6 חודשים" broke onto two
  * lines and the row doubled in height. It is now one chip that opens a sheet.
  */
-async function selectRange(page: import("@playwright/test").Page, label: string) {
-  await page.getByRole("button", { name: /^(החודש|3 חודשים אחרונים|6 חודשים אחרונים|מתחילת השנה|12 חודשים אחרונים|כל התקופה)$/ })
-    .first()
-    .click();
-  await page.getByRole("button", { name: label, exact: true }).click();
-}
-
 test("the four sections are navigable", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
 
-  for (const section of ["הוצאות", "צריכה", "מחירים", "קהילה"]) {
+  for (const section of ["הוצאות", "צריכה", "מחירים", "השוואה"]) {
     await expect(page.getByRole("button", { name: section, exact: true })).toBeVisible({
       timeout: 25_000,
     });
   }
 
-  await page.getByRole("button", { name: "הוצאות", exact: true }).click();
+  await selectInsight(page, "spend");
+  await openInsightFuelDetail(page);
   await expect(page.getByText(/ממוצע שבועי/)).toBeVisible();
 
-  await page.getByRole("button", { name: "צריכה", exact: true }).click();
-  await expect(page.getByText(/מקטעים סגורים/)).toBeVisible();
+  await selectInsight(page, "cons");
+  await expect(page.getByTestId("insights-measured-km")).toContainText("מקטעים סגורים");
 
-  await page.getByRole("button", { name: "מחירים", exact: true }).click();
-  await expect(page.getByText(/מחיר ממוצע ששולם/)).toBeVisible();
+  await selectInsight(page, "price");
+  await expect(page.getByTestId("insights-paid-average")).toBeVisible();
 });
 
 test("changing the range changes the figures and says which range they are", async ({
@@ -68,7 +63,7 @@ test("changing the range changes the figures and says which range they are", asy
 }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
-  await page.getByRole("button", { name: "הוצאות", exact: true }).click();
+  await selectInsight(page, "spend");
 
   // The card names the range it is showing; the ₪ sign already says it is
   // money spent, so the label no longer carries "סה״כ ·" as well.
@@ -77,12 +72,15 @@ test("changing the range changes the figures and says which range they are", asy
 
   await selectRange(page, "כל התקופה");
   await expect(page.getByText("כל התקופה").first()).toBeVisible();
+  await expect(page.getByTestId("running-total")).toContainText("3,972");
+  await expect(page.getByTestId("insights-period-summary")).toContainText("14 תדלוקים");
 });
 
 test("grouping is a separate control from the range", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
-  await page.getByRole("button", { name: "הוצאות", exact: true }).click();
+  await selectInsight(page, "spend");
+  await openInsightFuelDetail(page);
 
   // A one-month range grouped WEEKLY.
   await selectRange(page, "החודש");
@@ -104,13 +102,20 @@ test("grouping is a separate control from the range", async ({ page }) => {
 test("weekly, monthly and year-to-date spending are all available", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
   await page.goto("/stats");
-  await page.getByRole("button", { name: "הוצאות", exact: true }).click();
+  await selectInsight(page, "spend");
   await selectRange(page, "כל התקופה");
+  await openInsightFuelDetail(page);
 
-  await expect(page.getByText("ממוצע שבועי")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("ממוצע חודשי")).toBeVisible();
+  await expect(page.getByTestId("insights-source-status")).toHaveCount(0, { timeout: 20_000 });
+  const details = page.getByTestId("insights-fuel-detail");
+  await expect(details.getByText("ממוצע שבועי", { exact: true })).toBeVisible({ timeout: 20_000 });
+  await expect(details.getByText("ממוצע חודשי", { exact: true })).toBeVisible();
   // Reported regardless of the selected range.
-  await expect(page.getByText("מתחילת השנה")).toBeVisible();
+  await expect(details.getByText("מתחילת השנה", { exact: true })).toBeVisible();
+  for (const label of ["ממוצע שבועי", "ממוצע חודשי", "מתחילת השנה"]) {
+    const kpi = details.locator(".insights-kpi").filter({ has: page.getByText(label, { exact: true }) });
+    await expect(kpi.locator("strong")).toHaveText(/^₪[\d,]+$/);
+  }
 });
 
 test("a continuity break does not corrupt the range metrics", async ({ page }) => {
@@ -130,9 +135,12 @@ test("a continuity break does not corrupt the range metrics", async ({ page }) =
   await page.getByRole("button", { name: "בסיס החישוב" }).click();
   await expect(page.getByText(/נקודת התחלה מחדש/)).toBeVisible({ timeout: 25_000 });
   await page.getByRole("button", { name: "סגירה" }).click();
+  await expect(page.getByTestId("insights-measured-km")).toContainText("4,800");
+  await expect(page.getByTestId("insights-consumption-average")).toContainText("10.0");
 
   // Cumulative mileage and its discontinuity explanation belong to Costs.
-  await page.getByRole("button", { name: "הוצאות", exact: true }).click();
+  await selectInsight(page, "spend");
+  await openInsightFuelDetail(page);
   await expect(page.getByText("קילומטראז׳ מצטבר", { exact: true })).toBeVisible();
   await expect(page.getByText(/הקו נקטע שם בכוונה/)).toBeVisible();
 });
@@ -147,19 +155,20 @@ test("the Community section is discoverable and shows the insufficient state", a
   await signedInWithData(page, { fillups: history() });
 
   await page.goto("/stats");
-  await page.getByRole("button", { name: "קהילה", exact: true }).click();
+  await selectInsight(page, "community");
 
   // It does not vanish for want of peers — the old behaviour made a working
   // feature look like one that did not exist.
-  await expect(page.getByText("השוואה לנהגים דומים")).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText("עדיין אין מספיק נהגים להשוואה")).toBeVisible();
-  await expect(page.getByText(/מתוך 4 נהגים נדרשים/)).toBeVisible();
+  await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "insufficient", { timeout: 25_000 });
+  await expect(page.getByTestId("insights-community-progress")).toHaveAttribute("aria-valuemax", "4");
+  await expect(page.getByTestId("insights-community-progress")).toHaveAttribute("aria-valuenow", "0");
+  await expect(page.getByTestId("insights-community-status")).toContainText("0 מתוך 4 סיכומי רכבים");
 });
 
 test("with enough peers the comparison appears", async ({ page }) => {
   await signedInWithData(page, { fillups: history() });
 
-  // Five comparable drivers of the same model and fuel type.
+  // Five comparable vehicle summaries of the same model and fuel type.
   for (let i = 0; i < 5; i += 1) {
     await seedBenchmark(`peer${i}__v1`, {
       modelKey: "מאזדה 3",
@@ -169,9 +178,10 @@ test("with enough peers the comparison appears", async ({ page }) => {
   }
 
   await page.goto("/stats");
-  await page.getByRole("button", { name: "קהילה", exact: true }).click();
-  await expect(page.getByText(/נהגים|נהגי/).first()).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByText("עדיין אין מספיק נהגים להשוואה")).toHaveCount(0);
+  await selectInsight(page, "community");
+  await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "ready", { timeout: 25_000 });
+  await expect(page.getByTestId("insights-community-status")).toContainText("5 סיכומי רכבים");
+  await expect(page.getByTestId("insights-community-progress")).toHaveCount(0);
 });
 
 test("the Statistics range does not move the canonical community benchmark", async ({
@@ -188,8 +198,8 @@ test("the Statistics range does not move the canonical community benchmark", asy
   }
 
   await page.goto("/stats");
-  await page.getByRole("button", { name: "קהילה", exact: true }).click();
-  await expect(page.getByText(/נהגים|נהגי/).first()).toBeVisible({ timeout: 25_000 });
+  await selectInsight(page, "community");
+  await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "ready", { timeout: 25_000 });
 
   const { waitForDocument } = await import("./helpers/emulator");
   const published = await waitForDocument("benchmarks", (data) => data.vehicleId === "v1");
@@ -197,11 +207,11 @@ test("the Statistics range does not move the canonical community benchmark", asy
   expect(typeof lifetimeFigure).toBe("number");
 
   // Now narrow the chart range hard, and come back.
-  await page.getByRole("button", { name: "צריכה", exact: true }).click();
+  await selectInsight(page, "cons");
   await selectRange(page, "3 חודשים אחרונים");
-  await page.waitForTimeout(2500);
-  await page.getByRole("button", { name: "קהילה", exact: true }).click();
-  await page.waitForTimeout(2500);
+  await expect(page.getByTestId("insights-period-summary")).not.toContainText("14 תדלוקים");
+  await selectInsight(page, "community");
+  await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "ready");
 
   // The published figure is built from the vehicle's COMPLETE closed-segment
   // history; tapping "3 months" changes what the charts show and nothing else.

@@ -1,20 +1,41 @@
-import { JOBS, EXPENSES } from '../../lib/maintenance/model';
 import type { OutboxPayload } from '../../lib/outbox';
-import { vehicleMoney } from '../../lib/vehicle/format';
-const labels: Record<string,string> = { title:'שם',day:'תאריך ביצוע',odometer:'קילומטראז׳',costAgorot:'עלות',jobs:'עבודות',garage:'מוסך',notes:'הערות',dueDay:'תאריך יעד',dueOdometer:'יעד ק״מ',intervalKm:'מרווח ק״מ',intervalMonths:'מרווח חודשים',active:'תזכורת פעילה',source:'מקור',basis:'חישוב מועד',category:'סוג הוצאה',job:'סוג טיפול',completedPlanIds:'תזכורות שהושלמו' };
-function value(key:string,input:unknown): string {
-  if (input===null || input===undefined || input==='') return 'לא הוזן';
-  if (key==='costAgorot') return vehicleMoney(Number(input));
-  if (key==='jobs' && Array.isArray(input)) return input.map(v=>JOBS[v as keyof typeof JOBS]??String(v)).join(', ');
-  if (key==='completedPlanIds' && Array.isArray(input)) return `${input.length} תזכורות; הבחירה השתנתה בין הגרסאות`;
-  if (key==='job') return JOBS[input as keyof typeof JOBS]??String(input);
-  if (key==='category') return EXPENSES[input as keyof typeof EXPENSES]??String(input);
-  if (key==='active') return input?'כן':'לא';
-  if (key==='source') return ({owner:'הגדרה שלי',manufacturer:'יצרן',garage:'מוסך'} as Record<string,string>)[String(input)]??String(input);
-  if (key==='basis') return ({completion:'מהטיפול האחרון',fixed:'יעדים קבועים',manual:'חד פעמי'} as Record<string,string>)[String(input)]??String(input);
-  return String(input);
+import { outboxDifferences, outboxFieldText } from '../../lib/outboxPresentation';
+import { NumericText } from '../Fmt';
+import { Num } from '../Num';
+
+const labels: Record<string, string> = {
+  title: 'שם', day: 'תאריך ביצוע', odometer: 'קילומטראז׳', costAgorot: 'עלות', jobs: 'עבודות', garage: 'מוסך',
+  notes: 'הערות', dueDay: 'תאריך יעד', dueOdometer: 'יעד ק״מ', intervalKm: 'מרווח ק״מ', intervalMonths: 'מרווח חודשים',
+  active: 'תזכורת פעילה', source: 'מקור', basis: 'חישוב מועד', category: 'סוג הוצאה', job: 'סוג טיפול',
+  completedPlanIds: 'תזכורות שהושלמו', symptoms: 'תיאור התקלה', importance: 'חשיבות', status: 'מצב התקלה',
+  serviceEventIds: 'טיפולים קשורים', history: 'היסטוריית התקלה', occurrence: 'התראה', read: 'נקראה', archived: 'בארכיון',
+  snoozeUntilDay: 'דחייה עד', deleted: 'הוסרה', schemaVersion: 'גרסת המבנה', version: 'גרסת הרשומה',
+  observedAt: 'מועד הקריאה', recordedAt: 'מועד הרישום', kind: 'סוג הקריאה', level: 'חלק המיכל',
+  levelUncertainty: 'אי־ודאות בקריאה', levelSource: 'מקור הקריאה', confirmed: 'אושרה', fillupId: 'תדלוק קשור', phase: 'מועד ביחס לתדלוק',
+  vehicleId: 'רכב', stationId: 'מזהה התחנה', stationName: 'תחנה', fuelType: 'סוג דלק',
+  discountPerLiter: 'הנחה אישית לליטר', fixedPricePerLiter: 'מחיר אישי לליטר', label: 'תיאור',
+  expiresAt: 'בתוקף עד', reviewed: 'נבדק', legacy: 'כלל ישן', migratedAt: 'מועד העברה',
+  due: 'בתוקף עד', insurer: 'חברת הביטוח', cost: 'עלות שנתית', type: 'סוג הכיסוי',
+  activeVehicleId: 'הרכב הפעיל', documentPresence: 'מצב המסמך',
+};
+
+function Value({ field, input, present }: { field: string; input: unknown; present: boolean }) {
+  const text = outboxFieldText(field, input, present);
+  return typeof input === 'number' && ['costAgorot', 'discountPerLiter', 'fixedPricePerLiter'].includes(field)
+    ? <Num>{text}</Num> : <NumericText>{text}</NumericText>;
 }
-export function CareConflictDetails({ mine,server }: { mine:OutboxPayload|null;server:OutboxPayload|null }) {
+
+export function CareConflictDetails({ mine, server }: { mine: OutboxPayload | null; server: OutboxPayload | null }) {
   if (!server) return <p className="text-sm">הרשומה נמחקה בשרת. העותק המקומי נשמר בייצוא הפעולות.</p>;
-  return <div className="flex flex-col gap-3 text-sm"><p className="font-semibold">ההבדלים לבדיקה לפני בחירת הגרסה</p>{Object.entries(labels).filter(([key])=>JSON.stringify(mine?.[key])!==JSON.stringify(server[key])).map(([key,label])=><div className="rounded-lg bg-surface-2 p-3" key={key}><b>{label}</b><p className="break-words whitespace-pre-wrap">שלי: {value(key,mine?.[key])}</p><p className="break-words whitespace-pre-wrap">בשרת: {value(key,server[key])}</p></div>)}</div>;
+  const differences = outboxDifferences(mine, server);
+  return <div className="flex flex-col gap-3 text-sm" data-testid="outbox-conflict-details">
+    <p className="font-semibold">ההבדלים לבדיקה לפני בחירת הגרסה</p>
+    {differences.length === 0 ? <p>לא נמצאו הבדלים בתמונות הרשומה השמורות.</p> : differences.map(row =>
+      <div className="rounded-lg bg-surface-2 p-3" key={row.key} data-testid={`outbox-conflict-${row.key}`} data-outbox-field={row.key}>
+        <b><NumericText>{labels[row.key] ?? row.key}</NumericText></b>
+        <p className="break-words whitespace-pre-wrap" data-testid="outbox-value-mine">שלי: <Value field={row.key} input={row.mine} present={row.minePresent} /></p>
+        <p className="break-words whitespace-pre-wrap" data-testid="outbox-value-server">בשרת: <Value field={row.key} input={row.server} present={row.serverPresent} /></p>
+        {row.beyondDisplayPrecision ? <p className="text-muted" data-testid="outbox-display-precision">הערכים שונים מעבר לדיוק התצוגה</p> : null}
+      </div>)}
+  </div>;
 }

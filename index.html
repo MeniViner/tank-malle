@@ -6,8 +6,8 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5"
     />
-    <meta name="theme-color" content="#F4F5F5" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0D0F10" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F9F7F2" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1E1C18" media="(prefers-color-scheme: dark)" />
     <meta name="description" content="טנק מלא — יומן התדלוקים החכם שלך. צריכה, עלויות ומגמות." />
     <!-- The standard tag; the Apple-prefixed one below is kept for older iOS. -->
     <meta name="mobile-web-app-capable" content="yes" />
@@ -16,8 +16,8 @@
     <meta name="apple-mobile-web-app-title" content="טנק מלא" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-    <link rel="preload" href="/fonts/assistant-hebrew.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="preload" href="/fonts/frankruhl-hebrew.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/ibm-plex-sans-hebrew-400.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/karantina-hebrew-700.woff2" as="font" type="font/woff2" crossorigin />
     <title>טנק מלא</title>
     <script>
       // Stamp the saved theme and accent before first paint so the app never
@@ -29,17 +29,19 @@
           if (theme === "light" || theme === "dark") {
             document.documentElement.setAttribute("data-theme", theme);
           }
-          var accent = localStorage.getItem("tm.accent");
-          if (accent) {
-            var a = JSON.parse(accent);
-            var s = document.documentElement.style;
-            if (a.light) s.setProperty("--accent-l", a.light);
-            if (a.dark) s.setProperty("--accent-d", a.dark);
-            if (a.softLight) s.setProperty("--accent-soft-l", a.softLight);
-            if (a.softDark) s.setProperty("--accent-soft-d", a.softDark);
-            if (a.contrastLight) s.setProperty("--accent-contrast-l", a.contrastLight);
-            if (a.contrastDark) s.setProperty("--accent-contrast-d", a.contrastDark);
-          }
+          var palette = {
+            plate: ["#FFC915", "#E6B417"], mint: ["#4FD1A5", "#46BD95"],
+            sky: ["#78C2F3", "#6FB2DF"], peach: ["#FF9F6E", "#E8906A"],
+            lilac: ["#C8A8F0", "#B59AD8"], lime: ["#CFE24E", "#BACB48"]
+          };
+          var saved = JSON.parse(localStorage.getItem("tm.accent") || "null");
+          var key = saved && saved.id;
+          var a = Object.prototype.hasOwnProperty.call(palette, key) ? palette[key] : palette.plate;
+          var s = document.documentElement.style;
+          s.setProperty("--accent-l", a[0]);
+          s.setProperty("--accent-d", a[1]);
+          s.setProperty("--accent-soft-l", "color-mix(in srgb, " + a[0] + " 17%, #F9F7F2)");
+          s.setProperty("--accent-soft-d", "color-mix(in srgb, " + a[1] + " 14%, #1E1C18)");
         } catch (e) {
           /* private mode / storage disabled — fall back to defaults */
         }

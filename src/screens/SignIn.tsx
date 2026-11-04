@@ -1,33 +1,65 @@
-import { SignInPreview } from '../components/Previews';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Spinner } from '../components/Button';
-import { AppMark, GoogleMark } from '../components/icons';
+import { useId, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Spinner } from "../components/Button";
+import { NumericText } from "../components/Fmt";
+import { CheckIcon, GoogleMark, TabPumpIcon } from "../components/icons";
+import "../entry-design.css";
 
 export function SignIn() {
   const { signIn, signingIn, error } = useAuth();
-  return <main className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg pb-safe">
-    <div className="flex flex-1 flex-col">
-      <header className="flex min-h-[40dvh] flex-col justify-center bg-[#101416] px-6 pb-12 pt-safe text-[#e8ebec]">
-      <span className="mb-5 flex items-center gap-2 text-[#4fd3bc]"><AppMark size={24} /><span className="text-[15px] font-bold text-[#e8ebec]">טנק מלא</span></span>
-      <h1 className="font-display text-[36px] font-bold leading-tight">כל תדלוק, כל שקל,<br />כל ק״מ — במקום אחד</h1>
-      <p className="mt-3 text-[17px] leading-relaxed text-[#959ca1]">צריכת דלק אמיתית, הוצאה חודשית,<br />והערכת מצב המיכל.</p>
-      </header>
-      <div className="-mt-4 flex flex-1 flex-col gap-5 rounded-t-sheet bg-bg px-6 py-8">
-        <SignInPreview />
-        <p className="-mt-3 text-center text-[12px] text-muted">נתונים לדוגמה</p>
-        <p className="py-1 text-center text-[14px] text-muted">זיהוי תחנה · איתור לפי לוחית · מחיר דלק מעודכן</p>
-        <button type="button" disabled={signingIn} onClick={() => void signIn()} className="flex min-h-[56px] w-full items-center justify-center gap-3 rounded-control bg-[#14171a] px-4 text-[17px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60">
-          {signingIn ? <Spinner /> : <GoogleMark size={22} />}
-          {signingIn ? 'מתחברים…' : 'התחברות עם Google'}
-        </button>
-        {error ? <p role="alert" className="text-[15px] leading-relaxed text-danger-ink">{error}</p> : null}
-        <p className="text-center text-[14px] text-muted">הנתונים נשמרים בחשבון שלך.</p>
+  const [consent, setConsent] = useState(false);
+  const [attempted, setAttempted] = useState(false);
+  const [shake, setShake] = useState(false);
+  const checkbox = useRef<HTMLInputElement>(null);
+  const submitting = useRef(false);
+  const consentId = useId();
+  const invalidConsent = attempted && !consent;
+
+  function submit() {
+    if (submitting.current || signingIn) return;
+    if (!consent) {
+      setAttempted(true);
+      setShake(true);
+      checkbox.current?.focus();
+      return;
+    }
+    // Keep the actual popup call in this user gesture, including installed Safari.
+    submitting.current = true;
+    void signIn().finally(() => { submitting.current = false; });
+  }
+
+  return <main className="entry-page entry-signin" data-testid="signin">
+    <div className="entry-brand"><span className="entry-brand-mark"><TabPumpIcon size={22}/></span><span>טנק מלא</span></div>
+    <h1 className="entry-signin-title">כל תדלוק, כל שקל, כל ק״מ.</h1>
+    <p className="entry-intro">צריכה אמיתית, הוצאה חודשית, ומתי לתדלק. במקום אחד, גם בלי קליטה.</p>
+    <div className="entry-signin-space"/>
+    <form className="entry-signin-form" noValidate onSubmit={event => { event.preventDefault(); submit(); }}>
+      <div className={"entry-consent" + (shake ? " entry-consent-shake" : "")}
+        onAnimationEnd={() => setShake(false)}>
+        <label className="entry-consent-control" htmlFor={consentId}>
+          <input ref={checkbox} id={consentId} type="checkbox" data-testid="signin-consent"
+            checked={consent} disabled={signingIn} aria-invalid={invalidConsent || undefined}
+            aria-label="קראתי ואני מסכים/ה לתנאי השימוש ולמדיניות הפרטיות"
+            aria-describedby={invalidConsent ? consentId + "-error" : undefined}
+            onChange={event => { setConsent(event.currentTarget.checked); setShake(false); }}/>
+          <span aria-hidden="true"><CheckIcon size={19}/></span>
+        </label>
+        <div className="entry-consent-copy">
+          <label htmlFor={consentId}>קראתי ואני מסכים/ה</label>
+          <Link to="/legal/terms">לתנאי השימוש</Link>
+          <Link to="/legal/privacy">ולמדיניות הפרטיות</Link>
+        </div>
       </div>
-    </div>
-    <footer className="flex items-center justify-center gap-5 px-6 py-6 text-[14px] text-muted">
-      <Link className="flex min-h-[44px] items-center" to="/legal/privacy">פרטיות</Link>
-      <Link className="flex min-h-[44px] items-center" to="/legal/terms">תנאי שימוש</Link>
-    </footer>
+      {invalidConsent ? <p id={consentId + "-error"} data-testid="signin-consent-error" className="entry-error" role="alert">
+        צריך לסמן את התיבה כדי להמשיך
+      </p> : null}
+      <button type="submit" className="entry-google" data-testid="signin-google" disabled={signingIn} aria-busy={signingIn || undefined}>
+        {signingIn ? <Spinner/> : <GoogleMark size={22}/>}
+        <span>{signingIn ? "מתחברים…" : <>התחברות עם <bdi dir="ltr">Google</bdi></>}</span>
+      </button>
+      {error ? <p data-testid="signin-auth-error" className="entry-error" role="alert"><NumericText>{error}</NumericText></p> : null}
+      <p className="entry-trust">הנתונים נשמרים בחשבון שלכם.</p>
+    </form>
   </main>;
 }

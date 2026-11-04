@@ -1,20 +1,6 @@
-import type { ReactNode } from "react";
+import { NumRun, type NumRunProps } from "./Fmt";
 
-/**
- * Wraps a numeric/Latin run in an LTR island so digits, currency signs and
- * separators keep their visual order inside RTL text. Every number in the app
- * goes through here.
- */
-export function Num({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <span dir="ltr" className={`num font-num inline-block ${className}`}>
-      {children}
-    </span>
-  );
+/** Compatibility alias: every numeric/Latin run uses the same isolated LTR primitive. */
+export function Num(props: NumRunProps) {
+  return <NumRun {...props} />;
 }

@@ -14,7 +14,7 @@ export function UpdateCheckButton() {
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
   return <div className="flex flex-col items-center">
     <button type="button" disabled={checking} aria-busy={checking || undefined}
-      className="min-h-10 px-3 text-[13px] font-semibold text-accent underline underline-offset-4 disabled:opacity-50"
+      className="min-h-10 px-3 text-[13px] font-semibold text-ink underline underline-offset-4 disabled:opacity-50"
       onClick={async () => {
         setChecking(true); setResult(null);
         try { setResult(await checkAppUpdate({ version: APP_VERSION, commit: BUILD_COMMIT, dirty: BUILD_DIRTY })); }

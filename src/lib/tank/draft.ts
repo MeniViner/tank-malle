@@ -330,7 +330,7 @@ export function resolveTankOutcome(input: TankOutcomeInput): TankOutcome {
     if (exceeds && implied !== null && liters !== null && before !== null) {
       state = capacity.trusted ? "conflict" : "capacitySuspect";
       message = capacity.trusted
-        ? `${percent(before)} לפני ועוד ${litersText(liters)} יוצא ${percent(implied)} — יותר ממיכל מלא. כדאי לבדוק את המצב לפני או את הכמות.`
+        ? `${percent(before)} לפני ועוד ${litersText(liters)} יוצא ${percent(implied)} — יותר מנפח המיכל. כדאי לבדוק את המצב לפני או את הכמות.`
         : `${percent(before)} לפני ועוד ${litersText(liters)} יוצא ${percent(implied)} — כנראה שהמיכל גדול מ־${litersText(capacityLiters!)} שהוערכו. כדאי לאשר את נפח המיכל.`;
     }
 
@@ -469,7 +469,7 @@ export function resolveTankOutcome(input: TankOutcomeInput): TankOutcome {
         state: capacity.trusted ? "overCapacity" : "capacitySuspect",
         toleranceSd,
         message: capacity.trusted
-          ? `לפי המצב שסימנת והכמות שמילאת יוצא ${percent(level)} — יותר ממיכל מלא. כדאי לבדוק את המצב לפני או את הכמות.`
+          ? `לפי המצב שסימנת והכמות שמילאת יוצא ${percent(level)} — יותר מנפח המיכל. כדאי לבדוק את המצב לפני או את הכמות.`
           : `לפי המצב שסימנת והכמות שמילאת יוצא ${percent(level)} — כנראה שהמיכל גדול מ־${litersText(capacityLiters!)} שהוערכו. כדאי לאשר את נפח המיכל.`,
       },
     );

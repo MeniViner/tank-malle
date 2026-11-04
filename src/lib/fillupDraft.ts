@@ -3,6 +3,8 @@ import type { ReceiptState } from "./receipt";
 import type { TankStateDraft } from "./tank/draft";
 export interface FillupDraft {
   receiptImport?: import("./import/receiptText").ReceiptImport | null;
+  /** The displayed tank snapshot, separate from a rejected update's CAS base. */
+  tankOriginal?: Fillup | null;
   base: Fillup | null; date: number; dateConfirmed: boolean; odometer: string;
   receipt: ReceiptState; tankDraft: TankStateDraft; continuityBreak: boolean;
   pumpAnswer: "same" | "different" | "unanswered" | "discount" | "unknown"; pumpPrice: string; pumpTouched: boolean;

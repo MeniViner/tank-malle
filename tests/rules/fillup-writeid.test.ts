@@ -6,9 +6,10 @@ import {
   initializeTestEnvironment,
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, setDoc, updateDoc, Timestamp, getDoc, runTransaction } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc, Timestamp, getDoc, runTransaction } from "firebase/firestore";
 
 import { conditionalFillupWrite, fillupBaseMatches, FillupConflictError } from "../../src/lib/writesConditional";
+import { requireRestorableVehicle } from '../../src/lib/vehicleRestoreGuard';
 
 /**
  * Mixed client versions during the rollout.
@@ -182,6 +183,16 @@ const guarded = (opType: "set" | "update" | "delete", data: Record<string, unkno
 };
 
 describe("modern server-conditional mutations across mixed clients", () => {
+  beforeEach(async () => {
+    // Modern restoration now verifies its real parent; direct legacy/rules
+    // compatibility fixtures above intentionally remain unchanged.
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), 'users', UID, 'vehicles', 'v1'), {
+        make: 'Test', model: 'Car', fuelType: '95', archived: false, priceAdjustment: 0,
+      });
+    });
+  });
+
   it("reproduces the old marker-only overwrite, then rejects the same stale modern edit", async () => {
     const before = fillup({ version: 5, writeId: "c1-opened" });
     await stored(before);
@@ -251,5 +262,43 @@ describe("modern server-conditional mutations across mixed clients", () => {
     await guarded( "set", restored, before, true);
     await guarded( "set", restored, before, true);
     expect((await getDoc(ref())).data()?.version).toBe(6);
+  });
+
+  it.each(['missing', 'deleting'] as const)('does not restore an ordinary fill-up under a %s vehicle', async state => {
+    const before = fillup({ version: 5, writeId: 'base' });
+    const vehicle = doc(db(), 'users', UID, 'vehicles', 'v1');
+    if (state === 'missing') await deleteDoc(vehicle);
+    else await updateDoc(vehicle, { deletionPending: true, archived: true });
+    await expect(guarded('set', { ...before, version: 6, writeId: 'restored' }, before, true))
+      .rejects.toMatchObject({ code: 'vehicle-unavailable' });
+    expect((await getDoc(ref())).exists()).toBe(false);
+  });
+
+  it('checks the parent even for an idempotent restore and allows an archived nondeleting vehicle', async () => {
+    const before = fillup({ version: 5, writeId: 'base' });
+    const restored = { ...before, version: 6, writeId: 'restored' };
+    const vehicle = doc(db(), 'users', UID, 'vehicles', 'v1');
+    await updateDoc(vehicle, { archived: true });
+    await guarded('set', restored, before, true);
+    await updateDoc(vehicle, { deletionPending: true });
+    await expect(guarded('set', restored, before, true)).rejects.toMatchObject({ code: 'vehicle-unavailable' });
+    expect((await getDoc(ref())).data()?.writeId).toBe('restored');
+  });
+
+  it('retries the parent read when vehicle deletion races a checked restoration transaction', async () => {
+    const firestore = db();
+    const target = doc(firestore, 'users', UID, 'vehicles', 'v1', 'fillups', 'f1');
+    const vehicle = doc(firestore, 'users', UID, 'vehicles', 'v1');
+    let attempts = 0;
+    const mutation = runTransaction(firestore, async transaction => {
+      attempts++;
+      await requireRestorableVehicle(transaction, target, () => true);
+      await transaction.get(target);
+      if (attempts === 1) await updateDoc(vehicle, { deletionPending: true, archived: true });
+      transaction.set(target, fillup({ version: 6, writeId: 'restored' }));
+    });
+    await expect(mutation).rejects.toMatchObject({ code: 'vehicle-unavailable' });
+    expect(attempts).toBeGreaterThan(1);
+    expect((await getDoc(target)).exists()).toBe(false);
   });
 });

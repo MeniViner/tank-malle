@@ -1,108 +1,42 @@
-import { lazy, Suspense } from "react";
-import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
-const ReceiptImport = lazy(()=>import("../components/ReceiptImport").then(m=>({default:m.ReceiptImport})));
-import { RECEIPT_SOURCE, type ReceiptImport as ImportIdentity } from "../lib/import/receiptText";
-const ScanWizard = lazy(()=>import("../components/scan/ScanWizard").then(m=>({default:m.ScanWizard})));
-import { useAuth } from "../context/AuthContext";
-import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import "../fillup-design.css";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
+import { useData, type FillupSubmission } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
+import { useAccountScope } from "../components/account/useAccountScope";
+import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
 import { useStats } from "../hooks/useStats";
-import {
-  evaluateDraft,
-  hardBlock,
-  odometerBounds,
-  resolvePricePerLiter,
-  softWarnings,
-  type Fillup,
-} from "../lib/stats";
+import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
+import { RECEIPT_SOURCE, type ReceiptImport as ImportIdentity } from "../lib/import/receiptText";
+import { evaluateDraft, hardBlock, odometerBounds, softWarnings, type Fillup } from "../lib/stats";
 import { capacityNote, resolveCapacity } from "../lib/tank/capacity";
-import {
-  num,
-  price,
-  relativeDate,
-  shekel,
-  time,
-  timeAgo,
-  vehicleShort,
-} from "../lib/format";
+import { relativeDate, time, vehicleShort } from "../lib/format";
 import { parseNumberInput } from "../lib/numeric";
-import {
-  receiptConflict,
-  receiptNumbers,
-  suggestReceiptPrice,
-  typeReceiptField,
-  editReceiptField,
-  type ReceiptState,
-} from "../lib/receipt";
-import {
-  fillupFromPayload,
-  serializeFillupPatch,
-  validateFillupInput,
-  type FieldError,
-  type FillupWrite,
-} from "../lib/fillupSerializer";
+import { receiptConflict, receiptNumbers, suggestReceiptPrice, typeReceiptField, type ReceiptState } from "../lib/receipt";
+import { fillupFromPayload, serializeFillupPatch, toEpochMillis, validateFillupInput, type FieldError, type FillupWrite } from "../lib/fillupSerializer";
 import { OutboxStorageError, type OutboxOperation } from "../lib/outbox";
-import {
-  distanceMeters,
-  formatDistance,
-  loadStationCatalog,
-  locateStations,
-  searchStationOptions,
-  stationKey,
-  toStation,
-  type GeoResult,
-} from "../lib/stations";
-import type { FuelPrices, FuelType, Station } from "../lib/types";
+import { distanceMeters, locateStations, stationKey, toStation, type GeoResult } from "../lib/stations";
+import type { FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
-import {
-  resolveStationPrice,
-  stationPriceView,
-  type StationPriceView,
-} from "../lib/prices/resolver";
-import {
-  BEST_VALUE_UNAVAILABLE,
-  SORT_LABELS,
-  bestValueBlocker,
-  rankStations,
-  type StationCandidate,
-  type StationSort,
-} from "../lib/prices/ranking";
-import { TANK_SCHEMA_VERSION } from "../lib/tank/config";
-import { TankStateSection } from "../components/TankStateSection";
-import {
-  EMPTY_TANK_DRAFT,
-  draftFromFields,
-  effectiveEndChoice,
-  hasTankAnswer,
-  resolveTankOutcome,
-  withEndChoice,
-  type TankEndChoice,
-  type TankStateDraft,
-} from "../lib/tank/draft";
+import { resolveStationPrice } from "../lib/prices/resolver";
+import { buildPumpRuleScope, createPumpPriceRule, publicPriceStationId, reusableStationName, suggestFillupPrice, type PumpRuleScope } from "../lib/fillupPricing";
+import { EMPTY_TANK_DRAFT, draftFromFields, effectiveEndChoice, hasTankAnswer, withEndChoice, type TankStateDraft } from "../lib/tank/draft";
 import { Button } from "../components/Button";
-import { Field, InfoStrip, SoftWarningBanner } from "../components/Field";
-import { Card, Label, IconTile, Skeleton } from "../components/Card";
-import { Toggle } from "../components/Segmented";
-import { Sheet, ConfirmDialog } from "../components/Sheet";
-import { Num } from "../components/Num";
-import { StationBrandMark } from "../components/StationBrand";
-import { ConsumptionValue, Quantity } from "../components/Fmt";
-import { DateTimePicker } from "../components/DateTimePicker";
-import {
-  CalendarIcon,
-  CarIcon,
-  CheckIcon,
-  ChevronDown,
-  ChevronStart,
-  CloseIcon,
-  PinIcon,
-  SearchIcon,
-  TrashIcon,
-  WarningIcon,
-} from "../components/icons";
+import { Card, Skeleton } from "../components/Card";
+import { ConfirmDialog } from "../components/Sheet";
+import { NumericText, NumRun } from "../components/Fmt";
+import { CameraIcon, ClockIcon, CloseIcon, PinIcon, TrashIcon } from "../components/icons";
+import { FillupEssentials } from "../components/fillup/FillupEssentials";
+import { FillupMore } from "../components/fillup/FillupMore";
+import { FillupSaved, type PumpWriteState, type SavedFillupResult, type SavedWriteState } from "../components/fillup/FillupSaved";
+import { StationSheet } from "../components/fillup/StationSheet";
+import { DateSheet } from "../components/fillup/DateSheet";
+import { savedFillupResult } from "../components/fillup/savedResult";
+import { resolveEditedTank, selectTankOriginal } from "../components/fillup/tankEdit";
+const ReceiptImport = lazy(() => import("../components/ReceiptImport").then(module => ({ default: module.ReceiptImport })));
+const ScanWizard = lazy(() => import("../components/scan/ScanWizard").then(module => ({ default: module.ScanWizard })));
+type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
 
 /**
  * Add / edit fill-up (designs 10–13).
@@ -115,13 +49,16 @@ import {
  * from a resolved record and never re-initialised underneath a typing user.
  */
 export function FillupForm() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { fillupId } = useParams();
   const [search] = useSearchParams();
   const opId = search.get("op");
-  const { activeVehicle, fillups, loadingFillups, fillupsError, malformedFillups, outbox } = useData();
+  const { activeVehicle, fillups, loadingFillups, fillupsError, malformedFillups, outbox, outboxReady } = useData();
   // Bumped when the user chooses to reload a record another device changed.
   const [reloads, setReloads] = useState(0);
+
+  if (opId && !outboxReady) return <EditState kind="loading" />;
 
   if (!fillupId) {
     // A new record — possibly a corrected copy of an unsynced operation.
@@ -137,11 +74,12 @@ export function FillupForm() {
       );
     }
     const initial =
-      operation?.payload ? fillupFromPayload(operation.docId, operation.payload) : null;
+      operation?.payload ? fillupFromPayload(operation.docId, { ...(operation.opType === "update" ? operation.beforeImage ?? {} : {}), ...operation.payload }) : null;
     return (
       <FillupEditor
-        key={`${activeVehicle?.id ?? "none"}:${opId ?? "new"}`}
-        mode="new"
+        key={`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}:${opId ?? "new"}`}
+        mode={operation?.opType === "update" ? "edit" : "new"}
+        baseRecord={operation?.opType === "update" && operation.beforeImage ? fillupFromPayload(operation.docId, operation.beforeImage) : null}
         initial={initial}
         operation={operation}
       />
@@ -153,14 +91,14 @@ export function FillupForm() {
   // same operation. The base version is the one the rejected edit was made
   // against, so the server's version check still applies to the re-send.
   const failedUpdate = opId
-    ? outbox.find((entry) => entry.opId === opId && entry.docId === fillupId && entry.kind === "fillup.update") ?? null
+    ? outbox.find((entry) => entry.opId === opId && entry.docId === fillupId && (entry.kind === "fillup.update" || entry.kind === "fillup.add" && entry.opType === "update")) ?? null
     : null;
   if (opId && failedUpdate?.payload) {
     const base = failedUpdate.beforeImage ? fillupFromPayload(fillupId, failedUpdate.beforeImage) : null;
     const rejected = fillupFromPayload(fillupId, { ...(failedUpdate.beforeImage ?? {}), ...failedUpdate.payload });
     return (
       <FillupEditor
-        key={`${fillupId}:${opId}`}
+        key={`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}:${fillupId}:${opId}`}
         mode="edit"
         initial={rejected ?? base}
         baseRecord={base}
@@ -186,7 +124,7 @@ export function FillupForm() {
   if (editing) {
     return (
       <FillupEditor
-        key={`${fillupId}:${reloads}`}
+        key={`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}:${fillupId}:${reloads}`}
         mode="edit"
         initial={editing}
         onReload={() => setReloads((value) => value + 1)}
@@ -198,7 +136,7 @@ export function FillupForm() {
   if (malformed) {
     return (
       <FillupEditor
-        key={`${fillupId}:malformed`}
+        key={`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}:${fillupId}:malformed`}
         mode="edit"
         initial={malformedAsFillup(malformed.id, malformed.raw)}
         malformedReason={malformed.reason}
@@ -209,11 +147,11 @@ export function FillupForm() {
   // A create that the server rejected: the record is not in the history, but
   // the user's input is in the outbox and can be corrected from here.
   const rejected =
-    outbox.find((entry) => entry.docId === fillupId && entry.kind === "fillup.add") ?? null;
+    outbox.find((entry) => entry.docId === fillupId && entry.vehicleId === activeVehicle?.id && entry.kind === "fillup.add" && entry.opType === "set") ?? null;
   if (rejected?.payload) {
     return (
       <FillupEditor
-        key={`${fillupId}:op`}
+        key={`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}:${fillupId}:op`}
         mode="new"
         initial={fillupFromPayload(rejected.docId, rejected.payload)}
         operation={rejected}
@@ -257,15 +195,15 @@ function EditState({
   action?: { label: string; onClick: () => void };
 }) {
   return (
-    <main className="flex min-h-dvh flex-1 flex-col gap-3 bg-bg px-5 pt-safe" data-edit-state={kind}>
+    <main className="flex min-h-dvh flex-1 flex-col gap-3 px-5 pt-safe" data-edit-state={kind}>
       <header className="flex items-center justify-between py-3">
-        <h1 className="text-[24px] font-bold text-ink">עריכת תדלוק</h1>
+        <h1 className="font-display text-[40px] font-bold text-ink">עריכת תדלוק</h1>
         {onBack ? (
           <button
             type="button"
             onClick={onBack}
             aria-label="סגירה"
-            className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink"
+            className="tm-icon-button"
           >
             <CloseIcon size={17} />
           </button>
@@ -279,10 +217,10 @@ function EditState({
         </div>
       ) : (
         <Card className="flex flex-col gap-2 p-5">
-          <span className="text-[16px] font-bold text-ink">{title}</span>
-          <span className="text-[14px] leading-relaxed text-muted">{body}</span>
+          <span className="text-[16px] font-bold text-ink"><NumericText>{title ?? ""}</NumericText></span>
+          <span className="text-[14px] leading-relaxed text-muted"><NumericText>{body ?? ""}</NumericText></span>
           {action ? (
-            <Button onClick={action.onClick}>{action.label}</Button>
+            <Button onClick={action.onClick}><NumericText>{action.label}</NumericText></Button>
           ) : null}
         </Card>
       )}
@@ -313,28 +251,14 @@ function malformedAsFillup(id: string, raw: Record<string, unknown>): Fillup {
   };
 }
 
-/** The tank-state part of a stored record, for an untouched legacy edit. */
-function storedTankFields(fillup: Fillup) {
-  return {
-    fillEndState: fillup.fillEndState,
-    fillEndStateSource: fillup.fillEndStateSource,
-    preFillLevel: fillup.preFillLevel,
-    preFillLevelSource: fillup.preFillLevelSource,
-    preFillLevelUncertainty: fillup.preFillLevelUncertainty,
-    postFillLevel: fillup.postFillLevel,
-    postFillLevelSource: fillup.postFillLevelSource,
-    postFillLevelUncertainty: fillup.postFillLevelUncertainty,
-    refuelReason: fillup.refuelReason,
-    capacityLitersAtEntry: fillup.capacityLitersAtEntry,
-    tankSchemaVersion: fillup.tankSchemaVersion,
-  };
+interface SavedSession {
+  submission: FillupSubmission;
+  result: SavedFillupResult;
+  vehicleId: string;
+  fuelType: FuelType;
+  deadline: number;
+  lock: { action: "idle" | "undo" | "pump"; transferred: boolean };
 }
-
-const END_CHOICES: { value: TankEndChoice; label: string; hint: string }[] = [
-  { value: "full", label: "מילאתי מיכל מלא", hint: "סוגר מקטע צריכה" },
-  { value: "partial", label: "תדלוק חלקי", hint: "הליטרים ייכללו בתדלוק המלא הבא" },
-  { value: "unknown", label: "לא יודע", hint: "הצריכה לא תחושב מהרשומה הזו" },
-];
 
 function FillupEditor({
   mode,
@@ -359,7 +283,7 @@ function FillupEditor({
   onReload?: () => void;
 }) {
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const { showToast, dismissToast } = useToast();
   const {
     activeVehicle,
     fillups,
@@ -368,13 +292,15 @@ function FillupEditor({
     addFillup,
     updateFillup,
     deleteFillup,
-    restoreFillup,
     discardOperation,
     setActiveVehicle,
     vehicles,
+    loadingFillups, fillupsError, malformedFillups,
+    rawPriceRules, eligiblePriceRules, priceRulesStatus, savePriceRule, fillupPriceKnown,
   } = useData();
 
   const { user } = useAuth();
+  const captureUi = useAccountScope(`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}`);
   const draftKey = fillupDraftKey(user?.uid ?? "none", activeVehicle?.id ?? "none", operation?.opId ?? initial?.id ?? "new");
   const [restoredDraft] = useState(() => readFillupDraft(draftKey));
   const draftCleared = useRef(false);
@@ -396,6 +322,9 @@ function FillupEditor({
   const vehicleStats = useStats();
 
   const isEdit = mode === "edit";
+  // The displayed snapshot is separate from an update's CAS base. Keeping it
+  // in the local draft preserves both measurements and metadata on reload.
+  const [tankOriginal] = useState(() => selectTankOriginal({ initial, restored: restoredDraft, correctingOperation: operation !== null }));
   /**
    * The record as it was when this editor OPENED, captured once.
    *
@@ -406,11 +335,15 @@ function FillupEditor({
    * accept an overwrite nobody reviewed. The live record is compared against
    * this snapshot only to WARN (see `changedElsewhere`).
    */
-  const [openedRecord] = useState(restoredDraft?.base ?? initial);
+  const [openedRecord] = useState(operation ? tankOriginal ?? initial : restoredDraft?.base ?? initial);
+  const [openedOperationVersion] = useState(operation?.version);
+  const [openedOperationPriceKnown] = useState(() => Object.hasOwn(operation?.payload ?? {}, "pricePerLiter") && typeof operation?.payload?.pricePerLiter === "number" && Number.isFinite(operation.payload.pricePerLiter) && operation.payload.pricePerLiter >= 0);
   const editing = isEdit ? openedRecord : null;
   /** The record an edit is based on: the opened snapshot, or the rejected edit's base. */
-  const editBase = baseRecord ?? editing;
-  const dateWasInvalid = editing !== null && !Number.isFinite(editing.date);
+  const [editBase] = useState<Fillup | null>(() => restoredDraft?.base ?? baseRecord ?? editing);
+  const [operationDateInvalid] = useState(() => operation !== null && toEpochMillis(Object.hasOwn(operation.payload ?? {}, "date")
+    ? operation.payload?.date : operation.beforeImage?.date) === null);
+  const dateWasInvalid = openedRecord !== null && !Number.isFinite(openedRecord.date) || operationDateInvalid;
 
   const [date, setDate] = useState<number>(() =>
     restoredDraft?.date ?? (initial && Number.isFinite(initial.date) ? initial.date : Date.now()),
@@ -432,40 +365,30 @@ function FillupEditor({
    * stored total into a conflict. On a new record the price arrives as a
    * suggestion and only ever fills the one field nobody has typed.
    */
+  const originalPriceKnown = openedRecord !== null && (openedRecord.pricePerLiter > 0 || (operation
+    ? openedOperationPriceKnown : fillupPriceKnown.get(openedRecord.id) === true));
+  const priceInteracted = useRef(!!restoredDraft);
   const [receipt, setReceipt] = useState<ReceiptState>(() => {
     if (restoredDraft) return restoredDraft.receipt;
     if (!initial) return { liters: "", pricePerLiter: "", totalCost: "", authored: [] };
     const expected = initial.liters * initial.pricePerLiter;
-    const totalIsOwn =
-      initial.totalCost > 0 && Math.abs(initial.totalCost - expected) > Math.max(1, expected * 0.01);
+    const knownTotal = !initial.totalCostUnknown && Number.isFinite(initial.totalCost) && initial.totalCost >= 0;
+    const totalIsOwn = knownTotal && (initial.totalCost === 0 || Math.abs(initial.totalCost - expected) > Math.max(1, expected * 0.01));
     return {
       liters: initial.liters > 0 ? String(initial.liters) : "",
-      pricePerLiter: initial.pricePerLiter > 0 ? String(initial.pricePerLiter) : "",
-      totalCost: initial.totalCost > 0 ? String(Math.round(initial.totalCost * 100) / 100) : "",
+      pricePerLiter: originalPriceKnown ? String(initial.pricePerLiter) : "",
+      totalCost: knownTotal ? String(initial.totalCost) : "",
       authored: [
         ...(initial.liters > 0 ? (["liters"] as const) : []),
-        ...(initial.pricePerLiter > 0 ? (["pricePerLiter"] as const) : []),
+        ...(originalPriceKnown ? (["pricePerLiter"] as const) : []),
         ...(totalIsOwn ? (["totalCost"] as const) : []),
       ],
     };
   });
 
-  /**
-   * Optional tank state. Loaded back only from a record written by THIS UI —
-   * a legacy document's `isFullTank` is an assumption nobody made.
-   */
   const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
-    restoredDraft?.tankDraft ?? (initial ? draftFromFields(initial) : EMPTY_TANK_DRAFT),
+    restoredDraft?.tankDraft ?? (tankOriginal ? draftFromFields(tankOriginal) : EMPTY_TANK_DRAFT),
   );
-
-  /**
-   * True when this record's tank state is something the user actually stated.
-   * A legacy record that is merely opened and re-saved keeps its old fields.
-   */
-  const tankTouched =
-    !isEdit ||
-    editing?.tankSchemaVersion === TANK_SCHEMA_VERSION ||
-    hasTankAnswer(tankDraft);
 
   const [continuityBreak, setContinuityBreak] = useState(
     restoredDraft?.continuityBreak ?? initial?.continuityBreakBefore === true,
@@ -479,15 +402,16 @@ function FillupEditor({
    * with that price — never "same" by default, which used to overwrite a
    * distinct pump price with the paid one on any re-save.
    */
-  const [pumpAnswer, setPumpAnswer] = useState<PumpAnswer>(() => {
+  const [pumpAnswer] = useState<PumpAnswer>(() => {
     if (restoredDraft) return restoredDraft.pumpAnswer;
     if (initial?.postedPricePerLiter == null) return "unanswered";
     return Math.abs(initial.postedPricePerLiter - initial.pricePerLiter) < 1e-9 ? "same" : "different";
   });
-  const [pumpPrice, setPumpPrice] = useState(() =>
+  const [pumpPrice] = useState(() =>
     restoredDraft?.pumpPrice ?? (initial?.postedPricePerLiter != null ? String(initial.postedPricePerLiter) : ""),
   );
-  const [pumpTouched, setPumpTouched] = useState(restoredDraft?.pumpTouched ?? false);
+  const [pumpTouched] = useState(restoredDraft?.pumpTouched ?? false);
+  const [clearStoredPosted, setClearStoredPosted] = useState(() => (restoredDraft as { clearStoredPosted?: unknown } | null)?.clearStoredPosted === true);
   const [station, setStation] = useState<Station | null>(restoredDraft?.station ?? initial?.station ?? null);
   const [stationAuto, setStationAuto] = useState(restoredDraft?.stationAuto ?? false);
   const [notes, setNotes] = useState(restoredDraft?.notes ?? initial?.notes ?? "");
@@ -500,17 +424,33 @@ function FillupEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [shaking, setShaking] = useState(false);
+  const totalInput = useRef<HTMLInputElement>(null);
+  const saveLock = useRef(false);
+  const [saved, setSaved] = useState<SavedSession | null>(null);
+  const committedSaved = useRef<SavedSession | null>(null);
+  useLayoutEffect(() => { committedSaved.current = saved; }, [saved]);
+  const [clock, setClock] = useState(0);
+  const [writeState, setWriteState] = useState<SavedWriteState>("pending");
+  const [undoBusy, setUndoBusy] = useState(false);
+  const [pumpDifferent, setPumpDifferent] = useState(false);
+  const [confirmedPumpPrice, setConfirmedPumpPrice] = useState("");
+  const [pumpWriteState, setPumpWriteState] = useState<PumpWriteState>("idle");
+  const [pumpError, setPumpError] = useState<string | null>(null);
+  const [pumpScopeKind, setPumpScopeKind] = useState<PumpRuleScope["kind"] | null>(null);
+  const historyComplete = !loadingFillups && !fillupsError && malformedFillups.length === 0;
 
-  const draft = useMemo(() => ({ base: editBase, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft,
-    continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes }),
-    [editBase, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, station, stationAuto, notes]);
+  const draft = useMemo(() => ({ base: editBase, tankOriginal, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft,
+    continuityBreak, pumpAnswer, pumpPrice, pumpTouched, clearStoredPosted, station, stationAuto, notes }),
+    [editBase, tankOriginal, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, clearStoredPosted, station, stationAuto, notes]);
   const initialDraft = useRef(draft);
   const humanInput = odometer.trim() || receipt.liters.trim() || receipt.authored.length > 0 ||
-    notes.trim() || hasTankAnswer(tankDraft) || pumpTouched || date !== initialDraft.current.date ||
+    notes.trim() || hasTankAnswer(tankDraft) || pumpTouched || clearStoredPosted || date !== initialDraft.current.date ||
     continuityBreak !== initialDraft.current.continuityBreak ||
     (!stationAuto && JSON.stringify(station) !== JSON.stringify(initialDraft.current.station));
   const draftDirty = !!restoredDraft || (!!humanInput && JSON.stringify(draft) !== JSON.stringify(initialDraft.current));
-  useAppUpdateBlocker((draftStorageFailed && draftDirty) || saving);
+  useAppUpdateBlocker((draftStorageFailed && draftDirty && !saved) || saving || pumpWriteState === "journaling");
   useEffect(() => {
     if (draftCleared.current) return;
     if (!draftDirty) { removeFillupDraft(draftKey); return; }
@@ -526,10 +466,12 @@ function FillupEditor({
     return !draftStorageFailed || !draftDirty || window.confirm("לא ניתן לשמור טיוטה במכשיר. לצאת ולאבד את הפרטים?");
   }
 
-  // Fill-ups other than the one being edited — the basis for all validation.
+  // A recovered create can already be visible under the same document id.
+  // Every form evaluates one candidate, never its listener copy a second time.
+  const candidateId = openedRecord?.id ?? operation?.docId ?? null;
   const others = useMemo(
-    () => (editing ? fillups.filter((f) => f.id !== editing.id) : fillups),
-    [fillups, editing],
+    () => (candidateId ? fillups.filter((f) => f.id !== candidateId) : fillups),
+    [fillups, candidateId],
   );
 
   /* ---------- concurrent edits ---------- */
@@ -539,30 +481,70 @@ function FillupEditor({
    * a DIFFERENT version (another tab, another device), the user is told and
    * offered a reload; their typing is never overwritten underneath them.
    */
+  const comparisonBase = operation ? editBase : editing;
   const baseline = useMemo(
-    () => (editing ? JSON.stringify(serializeFillupPatch(editing)) : null),
-    // The editor is keyed on the record, so `editing` is the opening snapshot.
+    () => (comparisonBase ? JSON.stringify(serializeFillupPatch(comparisonBase)) : null),
+    // Both comparison bases are immutable opening snapshots in this keyed editor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
-  const live = editing ? fillups.find((entry) => entry.id === editing.id) ?? null : null;
+  const live = comparisonBase ? fillups.find((entry) => entry.id === comparisonBase.id) ?? null : null;
   const changedElsewhere =
     baseline !== null && live !== null && JSON.stringify(serializeFillupPatch(live)) !== baseline;
   const deletedElsewhere = baseline !== null && live === null && !dateWasInvalid;
 
   /* ---------- price chain ---------- */
 
-  const resolved = useMemo(
-    () => resolvePricePerLiter(date, activeVehicle, prices),
-    [date, activeVehicle, prices],
-  );
+  const [priceScope, setPriceScope] = useState<PumpRuleScope | null>(null);
+  useEffect(() => {
+    let current = true;
+    setPriceScope(null);
+    if (activeVehicle && priceRulesStatus === "ready") {
+      void buildPumpRuleScope({ vehicleId: activeVehicle.id, fuelType: activeVehicle.fuelType,
+        station, occupiedRules: rawPriceRules }).then(result => {
+          if (current) setPriceScope(result.ok ? result.scope : null);
+        });
+    }
+    return () => { current = false; };
+  }, [activeVehicle, station, rawPriceRules, priceRulesStatus]);
+  const publicPrice = useMemo(() => resolveStationPrice({
+    stationId: publicPriceStationId(station), fuelType: activeVehicle?.fuelType ?? "95",
+    regulated: adaptLegacyConfig(prices), now: date,
+  }), [station, activeVehicle?.fuelType, prices, date]);
+  const resolved = useMemo(() => activeVehicle ? suggestFillupPrice({
+    publicResolved: publicPrice, date, now: Date.now(), vehicle: activeVehicle, station,
+    config: prices, scope: priceScope, eligibleRules: eligiblePriceRules,
+    lastPaid: others.filter(fill => fill.pricePerLiter > 0 || fill.pricePerLiter === 0 && fillupPriceKnown.get(fill.id) === true)
+      .map(fill => ({ ...fill, vehicleId: activeVehicle.id })),
+  }) : { price: null, label: "בחרו רכב כדי להמשיך" },
+  [publicPrice, date, activeVehicle, station, prices, priceScope, eligiblePriceRules, others, fillupPriceKnown]);
+
+  useEffect(() => {
+    if (!openedRecord || openedRecord.pricePerLiter !== 0 || !originalPriceKnown || priceInteracted.current) return;
+    const current = fillups.find(fill => fill.id === openedRecord.id);
+    if (!operation && current && current.pricePerLiter !== 0) return;
+    setReceipt(current => current.pricePerLiter.trim() === "" && !current.authored.includes("pricePerLiter")
+      ? { ...current, pricePerLiter: "0", authored: [...current.authored, "pricePerLiter"] } : current);
+  }, [openedRecord, originalPriceKnown, fillups, operation]);
 
   // A suggestion fills the price only while nobody has typed it, and never
   // moves a typed litres or total (see receipt.ts). Runs again when the date
   // moves to another month or a late price arrives.
   useEffect(() => {
-    setReceipt((current) => suggestReceiptPrice(current, resolved.price));
-  }, [resolved.price]);
+    setReceipt(current => {
+      // A normalized legacy zero is not evidence of a price. Await raw proof or explicit typing.
+      if (openedRecord?.pricePerLiter === 0) return current;
+      if (resolved.price === 0 && !current.authored.includes("pricePerLiter") &&
+          !(current.authored.includes("liters") && current.authored.includes("totalCost"))) {
+        return { ...current, pricePerLiter: "0",
+          ...(!current.authored.includes("liters") ? { liters: "" } : {}),
+          ...(!current.authored.includes("totalCost") ? { totalCost: "" } : {}) };
+      }
+      if (resolved.price !== null) return suggestReceiptPrice(current, resolved.price);
+      if (current.authored.includes("pricePerLiter") || current.authored.includes("liters") && current.authored.includes("totalCost")) return current;
+      return { ...current, pricePerLiter: "" };
+    });
+  }, [resolved.price, openedRecord?.pricePerLiter]);
 
   const { liters: litersValue, pricePerLiter: priceValue, totalCost: totalValue } =
     receiptNumbers(receipt);
@@ -584,26 +566,36 @@ function FillupEditor({
   const lastPaidByStation = useMemo(() => {
     const map = new Map<string, { price: number; observedAt: number }>();
     for (const fillup of [...fillups].sort((a, b) => b.date - a.date)) {
+      if (fillup.date > date || fillup.fuelType !== activeVehicle?.fuelType || !Number.isFinite(fillup.pricePerLiter) ||
+          fillup.pricePerLiter < 0 || fillup.pricePerLiter === 0 && fillupPriceKnown.get(fillup.id) !== true) continue;
       const entry = { price: fillup.pricePerLiter, observedAt: fillup.date };
-      const id = fillup.station?.stationId;
-      const name = fillup.station?.name?.trim();
-      if (id && !map.has(id)) map.set(id, entry);
-      if (name && !map.has(name)) map.set(name, entry);
+      const id = publicPriceStationId(fillup.station);
+      const name = reusableStationName(fillup.station?.name);
+      const key = id ? `id:${id}` : !fillup.station?.stationId && name ? `name:${name}` : null;
+      if (key && !map.has(key)) map.set(key, entry);
     }
     return map;
-  }, [fillups]);
+  }, [fillups, date, activeVehicle?.fuelType, fillupPriceKnown]);
 
   const [geo, setGeo] = useState<GeoResult>({ status: "idle", position: null, nearby: [] });
   const geoRequested = useRef(false);
+  const geoRequest = useRef(0);
+  const stationSelection = useRef(0);
 
   const detectStation = useCallback(
     async (manual = false) => {
       if (!manual && geoRequested.current) return;
       geoRequested.current = true;
+      const stillMounted = captureUi();
+      const request = geoRequest.current + 1;
+      geoRequest.current = request;
+      const selection = stationSelection.current;
       setGeo((current) => ({ ...current, status: "locating" }));
 
       const result = await locateStations();
+      if (!stillMounted() || request !== geoRequest.current) return;
       setGeo(result);
+      if (selection !== stationSelection.current) return;
       if (result.status !== "ok" || result.position === null) return;
 
       const here = result.position;
@@ -620,10 +612,11 @@ function FillupEditor({
 
       const chosen =
         bestPast && bestPastDistance <= 300 ? bestPast : toStation(result.nearby[0]);
+      if (!chosen) return;
       setStation(chosen);
       setStationAuto(true);
     },
-    [pastStations],
+    [pastStations, captureUi],
   );
 
   useEffect(() => {
@@ -652,28 +645,22 @@ function FillupEditor({
    */
   const capacity = useMemo(() => resolveCapacity(activeVehicle, fillups), [activeVehicle, fillups]);
 
-  /**
-   * The ONE tank computation. The gauges display it, the payload stores its
-   * fields, and the engine replays exactly those fields.
-   */
-  const tankOutcome = useMemo(
+  // New physical answers use the protected resolver. Untouched measurements
+  // retain their provenance; a quantity edit updates only dependent evidence.
+  const tankState = useMemo(
     () =>
-      resolveTankOutcome({
+      resolveEditedTank({
+        original: tankOriginal,
         draft: tankDraft,
         litersAdded: Number.isFinite(litersValue) && litersValue > 0 ? litersValue : null,
         capacity,
       }),
-    [tankDraft, litersValue, capacity],
+    [tankOriginal, tankDraft, litersValue, capacity],
   );
+  const tankOutcome = tankState.outcome;
   const endChoice = effectiveEndChoice(tankDraft);
-
-  /**
-   * `isFullTank`, the compatibility projection. An untouched legacy record
-   * keeps exactly what it was stored with.
-   */
-  const isFullTank = tankTouched
-    ? tankOutcome.endState === "full"
-    : (editing?.isFullTank ?? false);
+  const isFullTank = tankState.isFullTank;
+  const effectiveFillEndState = tankState.endState;
 
   const warnings = useMemo(() => {
     if (!odometer || !receipt.liters) return [];
@@ -684,7 +671,7 @@ function FillupEditor({
         liters: litersValue,
         pricePerLiter: priceValue,
         isFullTank,
-        fillEndState: tankTouched ? tankOutcome.endState : undefined,
+        fillEndState: effectiveFillEndState,
         continuityBreakBefore: continuityBreak,
       },
       others,
@@ -700,8 +687,7 @@ function FillupEditor({
     litersValue,
     priceValue,
     isFullTank,
-    tankTouched,
-    tankOutcome.endState,
+    effectiveFillEndState,
     continuityBreak,
     others,
     activeVehicle,
@@ -718,7 +704,7 @@ function FillupEditor({
         pricePerLiter: priceValue,
         totalCost: Number.isFinite(totalValue) ? totalValue : undefined,
         isFullTank,
-        fillEndState: tankTouched ? tankOutcome.endState : undefined,
+        fillEndState: effectiveFillEndState,
         continuityBreakBefore: continuityBreak,
       },
       others,
@@ -731,22 +717,11 @@ function FillupEditor({
     priceValue,
     totalValue,
     isFullTank,
-    tankTouched,
-    tankOutcome.endState,
+    effectiveFillEndState,
     continuityBreak,
     others,
     editing,
   ]);
-
-  const isBackdated = date < Date.now() - 12 * 3600_000;
-
-  /** What the receipt shows: the typed total, else litres × price. */
-  const totalDue =
-    Number.isFinite(totalValue) && totalValue > 0
-      ? totalValue
-      : Number.isFinite(litersValue) && litersValue > 0 && Number.isFinite(priceValue)
-        ? Math.round(litersValue * priceValue * 100) / 100
-        : 0;
 
   /**
    * The document exactly as it will be written, built from the same
@@ -758,41 +733,30 @@ function FillupEditor({
     if (!Number.isFinite(odometerValue) || !Number.isFinite(litersValue)) return null;
     if (!Number.isFinite(priceValue)) return null;
 
-    const tankFields = tankTouched
-      ? tankOutcome.fields
-      : editing
-        ? storedTankFields(editing)
-        : {};
-
     return {
       date,
       odometer: odometerValue,
       liters: litersValue,
       pricePerLiter: priceValue,
-      totalCost: Number.isFinite(totalValue)
-        ? totalValue
-        : Math.round(litersValue * priceValue * 100) / 100,
+      totalCost: totalValue,
       isFullTank,
       // The boolean is a projection of the user's stated end state; the real
       // provenance lives in the tank fields. An edit keeps what was stored.
-      fullTankSource: editing?.fullTankSource ?? "user",
+      fullTankSource: openedRecord?.fullTankSource ?? "user",
       continuityBreakBefore: continuityBreak,
-      ...tankFields,
+      ...tankState.fields,
       // Only ever set from an explicit answer; an untouched question on an
       // edit keeps the stored pump price exactly, including a distinct one.
-      postedPricePerLiter:
-        isEdit && !pumpTouched
-          ? (editing?.postedPricePerLiter ?? null)
-          : resolvePostedPrice(pumpAnswer, priceValue, pumpPrice),
-      fuelType: activeVehicle.fuelType,
+      postedPricePerLiter: clearStoredPosted ? null : openedRecord?.postedPricePerLiter ?? null,
+      fuelType: openedRecord?.fuelType ?? activeVehicle.fuelType,
       station: station ?? null,
       notes: notes.trim() || null,
       // Import provenance and creation metadata travel unchanged.
-      importSource: editing?.importSource ?? (receiptImport ? RECEIPT_SOURCE : undefined),
-      importBatchId: editing?.importBatchId ?? receiptImport?.textHash,
-      importRowHash: editing?.importRowHash ?? receiptImport?.hash,
-      schemaVersion: editing?.schemaVersion,
-      createdAt: editing?.createdAt ?? null,
+      importSource: openedRecord?.importSource ?? (receiptImport ? RECEIPT_SOURCE : undefined),
+      importBatchId: openedRecord?.importBatchId ?? receiptImport?.textHash,
+      importRowHash: openedRecord?.importRowHash ?? receiptImport?.hash,
+      schemaVersion: openedRecord?.schemaVersion,
+      createdAt: openedRecord?.createdAt ?? null,
     };
   }, [
     activeVehicle,
@@ -803,14 +767,10 @@ function FillupEditor({
     totalValue,
     date,
     isFullTank,
-    editing,
+    openedRecord,
     continuityBreak,
-    tankTouched,
-    tankOutcome.fields,
-    isEdit,
-    pumpTouched,
-    pumpAnswer,
-    pumpPrice,
+    tankState.fields,
+    clearStoredPosted,
     station,
     notes,
   ]);
@@ -826,1260 +786,403 @@ function FillupEditor({
     nextRecord !== null &&
     odometerValue > 0 &&
     litersValue > 0 &&
-    priceValue > 0 &&
+    priceValue >= 0 &&
+    Number.isFinite(totalValue) && totalValue >= 0 &&
     !blockMessage &&
     fieldErrors.length === 0 &&
     dateConfirmed &&
     !saving;
 
-  const saveHint = useMemo(() => {
-    if (blockMessage) return blockMessage;
-    if (!dateConfirmed) return "לרשומה הזו לא היה תאריך קריא — בחרו תאריך ושעה";
-    if (fieldErrors.length > 0) return fieldErrors[0].message;
+  const visibleErrors: Partial<Record<FieldError["field"], string>> = {};
+  if (submitAttempted) {
+    for (const entry of fieldErrors) visibleErrors[entry.field] ??= entry.message;
+    if (!Number.isFinite(totalValue) || totalValue < 0) visibleErrors.totalCost ??= "חסר סכום תקין";
+    if (!Number.isFinite(litersValue) || litersValue <= 0) visibleErrors.liters ??= "חסרים ליטרים";
+    if (!Number.isFinite(priceValue) || priceValue < 0) visibleErrors.pricePerLiter ??= "חסר מחיר לליטר";
+    if (!Number.isFinite(odometerValue) || odometerValue <= 0) visibleErrors.odometer ??= "חסר קילומטראז׳";
+  }
 
-    const missing: string[] = [];
-    if (!(Number.isFinite(odometerValue) && odometerValue > 0)) missing.push("קילומטראז׳");
-    if (!(Number.isFinite(litersValue) && litersValue > 0)) missing.push("ליטרים או סכום");
-    if (!(Number.isFinite(priceValue) && priceValue > 0)) missing.push("מחיר לליטר");
+  useEffect(() => {
+    if (!shaking) return;
+    const timer = setTimeout(() => setShaking(false), 420);
+    return () => clearTimeout(timer);
+  }, [shaking]);
+  useEffect(() => {
+    if (!saved) return;
+    const timer = setInterval(() => setClock(Date.now()), 250);
+    const stillMounted = captureUi();
+    void saved.submission.receipt.settled.then(accepted => {
+      if (stillMounted() && saved.submission.isCurrent()) setWriteState(accepted ? "accepted" : "attention");
+    });
+    return () => clearInterval(timer);
+  }, [saved, captureUi]);
 
-    if (missing.length === 0) return "הכול מוכן — אפשר לשמור";
-    if (missing.length === 1) return `מלאו ${missing[0]}`;
-    return `מלאו ${missing.slice(0, -1).join(", ")} ו${missing[missing.length - 1]}`;
-  }, [blockMessage, dateConfirmed, fieldErrors, odometerValue, litersValue, priceValue]);
+  function clearDraft() {
+    draftCleared.current = true;
+    removeFillupDraft(draftKey);
+  }
+  function openDate() {
+    setDateSheetNow(Date.now());
+    setDateSheetOpen(true);
+  }
+  function chooseStation(next: Station | null) {
+    stationSelection.current = stationSelection.current + 1;
+    setStation(next);
+    setStationAuto(false);
+    setStationSheetOpen(false);
+  }
+  function attemptInvalidSave() {
+    setSubmitAttempted(true);
+    setShaking(true);
+    if (!dateConfirmed || errorFor("notes")) setMoreOpen(true);
+    requestAnimationFrame(() => {
+      const first = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+        '[data-testid="fillup-form"] [aria-invalid="true"]',
+      );
+      if (!dateConfirmed) document.querySelector<HTMLButtonElement>('[data-testid="fillup-date"]')?.focus();
+      else (first ?? totalInput.current)?.focus();
+    });
+  }
 
-  /* ---------- save ---------- */
+  const undoSaved = useCallback(async (session: SavedSession, leaveSaved: boolean) => {
+    if (Date.now() >= session.deadline || session.lock.action !== "idle" || !session.submission.isCurrent() || !session.submission.undoCreation) return;
+    session.lock.action = "undo";
+    const stillMounted = captureUi();
+    if (stillMounted()) setUndoBusy(true);
+    try {
+      const receipt = await session.submission.undoCreation();
+      if (!session.submission.isCurrent()) return;
+      const pendingToast = showToast({ tone: "info", title: "בקשת הביטול נשמרה", detail: "ממתינה לאישור בענן" });
+      void receipt.settled.then(accepted => {
+        dismissToast(pendingToast);
+        if (!session.submission.isCurrent()) return;
+        showToast({ tone: accepted ? "success" : "info", title: accepted ? "התדלוק בוטל" : "בקשת הביטול דורשת בדיקה",
+          detail: accepted ? undefined : "הנתונים שמורים בשינויים שעוד לא עלו לענן" });
+      });
+      if (leaveSaved && stillMounted()) navigate("/", { replace: true });
+    } catch (error) {
+      if (!session.submission.isCurrent()) return;
+      session.lock.action = "idle";
+      if (stillMounted()) setUndoBusy(false);
+      showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר", detail: "התדלוק נשאר כמו שנשמר" });
+    }
+  }, [captureUi, navigate, showToast, dismissToast]);
+
+  const transferRemainingUndo = useCallback((session: SavedSession) => {
+    if (!session.submission.isCurrent()) return;
+    const remaining = session.deadline - Date.now();
+    if (remaining > 0 && session.lock.action === "idle" && !session.lock.transferred) {
+      session.lock.transferred = true;
+      showToast({ tone: "success", title: "התדלוק נשמר במכשיר", duration: remaining,
+        undoLabel: "ביטול", onUndo: () => undoSaved(session, false) });
+    }
+  }, [showToast, undoSaved]);
+  useEffect(() => () => {
+    // Browser Back has the same remaining Undo as Done. The provider guard
+    // rejects account/vehicle changes; StrictMode's initial cleanup has no save.
+    const session = committedSaved.current;
+    if (session) transferRemainingUndo(session);
+  }, [transferRemainingUndo]);
+
+  function finishSaved() {
+    if (!saved || !saved.submission.isCurrent()) return;
+    transferRemainingUndo(saved);
+    navigate("/", { replace: true });
+  }
 
   async function save() {
+    if (saveLock.current) return;
+    if (!canSave || !activeVehicle || !nextRecord) { attemptInvalidSave(); return; }
+    saveLock.current = true;
     setSubmitAttempted(true);
-    if (!canSave || !activeVehicle || !nextRecord) return;
     setSaving(true);
-
+    const stillMounted = captureUi();
+    const vehicle = { ...activeVehicle };
+    const history = others.map(fill => ({ ...fill, station: fill.station ? { ...fill.station } : null }));
+    const submitted: { current: FillupSubmission | null; at: number } = { current: null, at: 0 };
+    const onSubmitted = (entry: FillupSubmission) => { submitted.current = entry; submitted.at = Date.now(); };
     try {
-      if (editing && (!operation || operation.kind === "fillup.update")) {
-        const previous: Fillup = { ...(editBase ?? editing) };
-        const written = await updateFillup(editing.id, nextRecord, previous, {
-          replaceOpId: operation?.opId ?? null,
-          vehicleId: operation?.vehicleId ?? undefined,
+      if (editing && (!operation || operation.opType === "update" || operation.kind === "fillup.update")) {
+        const previous: Fillup = { ...(editBase ?? editing), station: (editBase ?? editing).station ? { ...(editBase ?? editing).station! } : null };
+        await updateFillup(editing.id, nextRecord, previous, {
+          replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion, vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted,
         });
-        // What the server will hold once this edit lands: the base plus one.
-        showToast({
-          tone: "success",
-          title: operation ? "התדלוק נשלח מחדש" : "התדלוק עודכן",
-          detail: "נשמר במכשיר · יאושר מול השרת ברקע",
-          undoLabel: operation ? undefined : "ביטול",
-          // The Undo sends the previous record through the same serializer —
-          // never the UI object with its `id` — based on the version this
-          // edit produced, so the server accepts exactly one of the two.
-          onUndo: operation || !written ? undefined : async () => { await updateFillup(previous.id, previous, written); },
-        });
-      } else {
-        let submitted: Fillup | null = null;
-        await addFillup(nextRecord, {
-          onWritten: snapshot => { submitted = snapshot; },
-          replaceOpId: operation?.opId ?? null,
-          vehicleId: operation?.vehicleId ?? undefined,
-        });
-        const { title, detail } = savedMessage(
-          evaluateDraft(
-            {
-              ...nextRecord,
-              fillEndState: nextRecord.fillEndState ?? undefined,
-              continuityBreakBefore: continuityBreak,
-            },
-            others,
-          ),
-          settings.units,
-        );
-        const tankSaved =
-          tankTouched && (endChoice === "full" || tankDraft.beforeLevel !== null);
-
-        showToast({
-          tone: "success",
-          title,
-          detail: tankSaved ? `מצב המיכל נשמר — התחזית תשתפר · ${detail}` : detail,
-          undoLabel: "ביטול",
-          duration: 5000,
-          onUndo: () => {
-            if (submitted) void deleteFillup(submitted);
+        const submission = submitted.current;
+        clearDraft();
+        if (!stillMounted() || !submission?.isCurrent()) return;
+        showToast({ tone: "success", title: operation ? "התדלוק נשלח מחדש" : "השינויים נשמרו במכשיר",
+          detail: "ממתינים לאישור בענן", duration: 5000, undoLabel: submission.undoEdit ? "ביטול" : undefined,
+          onUndo: !submission.undoEdit ? undefined : async () => {
+            if (!submission.isCurrent()) return;
+            try {
+              const receipt = await submission.undoEdit!();
+              if (!(await receipt.settled) && submission.isCurrent()) {
+                showToast({ tone: "error", title: "הביטול לא אושר", detail: "הבקשה נשמרה לבדיקה" });
+              }
+            }
+            catch (error) { if (submission.isCurrent()) showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר" }); }
           },
         });
+        navigate(operation ? "/settings/unsynced" : "/", { replace: true });
+      } else {
+        await addFillup(nextRecord, { replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion,
+          vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted });
+        const submission = submitted.current;
+        clearDraft();
+        if (!stillMounted() || !submission?.isCurrent()) return;
+        const session: SavedSession = {
+          submission, result: savedFillupResult(submission.written, history, vehicle, prices, historyComplete),
+          vehicleId: vehicle.id, fuelType: submission.written.fuelType ?? vehicle.fuelType,
+          deadline: submitted.at + 5000, lock: { action: "idle", transferred: false },
+        };
+        if (operation) {
+          showToast({ tone: "success", title: "התדלוק נשלח מחדש", detail: "נשמר במכשיר · יאושר בענן ברקע",
+            duration: Math.max(1, session.deadline - Date.now()),
+            undoLabel: submission.undoCreation ? "ביטול" : undefined,
+            onUndo: submission.undoCreation ? () => undoSaved(session, false) : undefined });
+          navigate("/settings/unsynced", { replace: true });
+        } else {
+          setClock(Date.now());
+          setWriteState("pending");
+          setSaved(session);
+          window.scrollTo({ top: 0, behavior: "instant" });
+        }
       }
-      draftCleared.current = true; removeFillupDraft(draftKey);
-      navigate(operation ? "/settings/unsynced" : "/", { replace: true });
     } catch (error) {
-      // Local storage refused to keep the record. The form stays open with
-      // everything typed; there is no success to report.
-      showToast({
-        tone: "error",
-        title: error instanceof OutboxStorageError ? error.message : "השמירה נכשלה",
-        detail:
-          error instanceof OutboxStorageError
-            ? "פנו מקום באחסון הדפדפן או ייצאו את הרשומה, ונסו שוב"
-            : "נסו שוב בעוד רגע",
-        duration: 8000,
-      });
+      if (!stillMounted()) return;
+      showToast({ tone: "error", title: error instanceof Error ? error.message : "השמירה נכשלה",
+        detail: error instanceof OutboxStorageError ? "הפרטים נשארו בטופס. פנו מקום ונסו שוב." : "הפרטים נשארו בטופס", duration: 8000 });
     } finally {
-      setSaving(false);
+      saveLock.current = false;
+      if (stillMounted()) setSaving(false);
     }
   }
 
   async function remove() {
-    if (!editing) return;
-    const snapshot: Fillup = { ...editing };
+    if (!editing || saveLock.current) return;
+    saveLock.current = true;
+    setSaving(true);
     setConfirmDelete(false);
+    const stillMounted = captureUi();
+    const snapshot: Fillup = { ...editing, station: editing.station ? { ...editing.station } : null };
+    const submitted: { current: FillupSubmission | null } = { current: null };
     try {
-      await deleteFillup(snapshot);
-    } catch (error) {
-      showToast({
-        tone: "error",
-        title: error instanceof OutboxStorageError ? error.message : "המחיקה נכשלה",
+      await deleteFillup(snapshot, { vehicleId: activeVehicle?.id, onSubmitted: entry => { submitted.current = entry; } });
+      const submission = submitted.current;
+      clearDraft();
+      if (!stillMounted() || !submission?.isCurrent()) return;
+      const pendingToast = showToast({ tone: "info", title: "בקשת המחיקה נשמרה", detail: "ממתינה לאישור בענן" });
+      void submission.receipt.settled.then(accepted => {
+        dismissToast(pendingToast);
+        if (!submission.isCurrent()) return;
+        showToast({ tone: accepted ? "success" : "info", title: accepted ? "התדלוק נמחק" : "המחיקה דורשת בדיקה",
+          detail: accepted ? undefined : "בקשת המחיקה שמורה במכשיר", duration: 5000,
+          undoLabel: accepted && submission.restoreDeleted ? "שחזור" : undefined,
+          onUndo: accepted && submission.restoreDeleted ? async () => {
+            if (!submission.isCurrent()) return;
+            try {
+              const receipt = await submission.restoreDeleted!();
+              if (!submission.isCurrent()) return;
+              const restored = await receipt.settled;
+              if (submission.isCurrent()) showToast({ tone: restored ? "success" : "info", title: restored ? "התדלוק שוחזר" : "בקשת השחזור דורשת בדיקה" });
+            } catch (error) { if (submission.isCurrent()) showToast({ tone: "error", title: error instanceof Error ? error.message : "השחזור לא נשמר" }); }
+          } : undefined,
+        });
       });
-      return;
+      navigate("/history", { replace: true });
+    } catch (error) {
+      if (stillMounted()) showToast({ tone: "error", title: error instanceof Error ? error.message : "המחיקה לא נשמרה" });
+    } finally {
+      saveLock.current = false;
+      if (stillMounted()) setSaving(false);
     }
-    showToast({
-      tone: "success",
-      title: "התדלוק נמחק",
-      undoLabel: "שחזור",
-      duration: 5000,
-      onUndo: () => restoreFillup(snapshot),
-    });
-    draftCleared.current = true; removeFillupDraft(draftKey);
-    navigate(-1);
   }
 
-  const lastFillup = bounds.prev;
-  const showErrors = submitAttempted;
+  function confirmationAllowed(session: SavedSession) {
+    return session.submission.isCurrent() && Date.now() >= session.deadline &&
+      writeState === "accepted" && session.lock.action === "idle";
+  }
+  async function confirmSamePrice() {
+    if (!saved || !confirmationAllowed(saved)) return;
+    saved.lock.action = "pump";
+    const stillMounted = captureUi();
+    setPumpError(null);
+    setPumpWriteState("journaling");
+    const submitted: { current: FillupSubmission | null } = { current: null };
+    try {
+      const previous = { ...saved.submission.written };
+      await updateFillup(previous.id, { ...previous, postedPricePerLiter: previous.pricePerLiter }, previous, {
+        vehicleId: saved.vehicleId, onSubmitted: entry => { submitted.current = entry; },
+      });
+      const mutation = submitted.current;
+      if (!stillMounted() || !saved.submission.isCurrent()) return;
+      if (!mutation) throw new Error("האישור לא נרשם. נסו שוב.");
+      setPumpWriteState("pending");
+      const accepted = await mutation.receipt.settled;
+      if (stillMounted() && saved.submission.isCurrent()) setPumpWriteState(accepted ? "accepted" : "attention");
+    } catch (error) {
+      if (!stillMounted() || !saved.submission.isCurrent()) return;
+      saved.lock.action = "idle";
+      setPumpWriteState("idle");
+      setPumpError(error instanceof Error ? error.message : "האישור לא נשמר");
+    }
+  }
+  function showDifferentPrice() {
+    if (!saved || !confirmationAllowed(saved)) return;
+    setPumpDifferent(true);
+    setPumpError(null);
+  }
+  async function confirmDifferentPrice() {
+    if (!saved || !confirmationAllowed(saved) || priceRulesStatus !== "ready") return;
+    const typed = parseNumberInput(confirmedPumpPrice, "price").value;
+    if (!Number.isFinite(typed)) { setPumpError("הזינו את המחיר שהיה במשאבה"); return; }
+    saved.lock.action = "pump";
+    const stillMounted = captureUi();
+    const raw = rawPriceRules;
+    setPumpError(null);
+    setPumpWriteState("journaling");
+    try {
+      const scoped = await buildPumpRuleScope({ vehicleId: saved.vehicleId, fuelType: saved.fuelType,
+        station: saved.submission.written.station ?? null, receiptId: saved.submission.written.id,
+        occupiedRules: raw });
+      if (!saved.submission.isCurrent()) return;
+      if (!scoped.ok) throw new Error(scoped.reason === "hash-unavailable"
+        ? "לא ניתן לזהות את התחנה כרגע. המחיר שהקלדתם נשאר כאן."
+        : "ההתאמה לא נרשמה כדי לא להחליף כלל אחר. המחיר נשאר כאן.");
+      const created = createPumpPriceRule({ scope: scoped.scope, savedPaidPricePerLiter: saved.submission.written.pricePerLiter, typedPumpPrice: typed });
+      if (!created.ok) throw new Error(created.reason === "difference-out-of-range" ? "ההפרש גדול מדי. בדקו את מחיר המשאבה." : "הזינו מחיר משאבה תקין");
+      const receipt = await savePriceRule(created.rule, { expected: raw.get(created.rule.id) ?? null });
+      if (!saved.submission.isCurrent()) return;
+      if (stillMounted()) {
+        setPumpScopeKind(created.scope.kind);
+        setPumpWriteState("pending");
+      }
+      const accepted = await receipt.settled;
+      if (stillMounted() && saved.submission.isCurrent()) setPumpWriteState(accepted ? "accepted" : "attention");
+    } catch (error) {
+      if (!saved.submission.isCurrent()) return;
+      saved.lock.action = "idle";
+      if (stillMounted()) {
+        setPumpWriteState("idle");
+        setPumpError(error instanceof Error ? error.message : "ההתאמה לא נשמרה");
+      } else showToast({ tone: "error", title: "ההתאמה לא נשמרה", detail: error instanceof Error ? error.message : undefined });
+    }
+  }
 
   if (wrongVehicle) {
-    const owner = vehicles.find((entry) => entry.id === wrongVehicle);
-    return (
-      <EditState
-        kind="not-found"
-        title="הפעולה שייכת לרכב אחר"
-        body={
-          owner
-            ? `הרשומה נרשמה עבור ${owner.make} ${owner.model}. יש לעבור לרכב הזה כדי לתקן אותה.`
-            : "הרכב שהרשומה שייכת לו כבר לא קיים במכשיר הזה."
-        }
-        onBack={() => navigate("/settings/unsynced", { replace: true })}
-        action={
-          owner
-            ? { label: `מעבר ל${owner.make} ${owner.model}`, onClick: () => void setActiveVehicle(owner.id) }
-            : undefined
-        }
-      />
-    );
+    const owner = vehicles.find(entry => entry.id === wrongVehicle);
+    return <EditState kind="not-found" title="הפעולה שייכת לרכב אחר"
+      body={owner ? `יש לעבור ל${owner.make} ${owner.model} כדי לתקן אותה.` : "הרכב אינו זמין במכשיר הזה."}
+      onBack={() => navigate("/settings/unsynced", { replace: true })}
+      action={owner ? { label: `מעבר ל${owner.make} ${owner.model}`, onClick: () => void setActiveVehicle(owner.id) } : undefined} />;
   }
+  if (!activeVehicle) return <EditState kind="not-found" title="בחרו רכב לתדלוק"
+    onBack={() => navigate("/vehicle", { replace: true })} action={{ label: "לבחירת רכב", onClick: () => navigate("/vehicle") }} />;
+  if (saved) return <FillupSaved result={saved.result} units={settings.units} deadline={saved.deadline}
+    secondsLeft={Math.max(0, Math.ceil((saved.deadline - clock) / 1000))} writeState={writeState}
+    undoBusy={undoBusy} onUndo={() => void undoSaved(saved, true)} onDone={finishSaved}
+    onReviewWrite={() => navigate("/settings/unsynced")} canConfirm={writeState === "accepted" && clock >= saved.deadline && saved.lock.action === "idle"}
+    pumpDifferent={pumpDifferent} pumpPrice={confirmedPumpPrice} onPumpPrice={value => { setConfirmedPumpPrice(value); setPumpError(null); }}
+    onSamePrice={() => void confirmSamePrice()} onDifferentPrice={showDifferentPrice} onSavePumpPrice={() => void confirmDifferentPrice()}
+    pumpWriteState={pumpWriteState} pumpError={pumpError} pumpScopeKind={pumpScopeKind} ruleStatus={priceRulesStatus} />;
 
-  return (
-    <main className="flex min-h-dvh flex-1 flex-col bg-bg pt-safe">
-      <header className="flex flex-none items-start justify-between gap-2 px-3 pb-3 pt-2.5 min-[400px]:px-5">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <h1 className="text-[19px] font-bold leading-tight text-ink">
-            {operation ? "תיקון תדלוק שלא סונכרן" : isEdit ? "עריכת תדלוק" : "תדלוק חדש"}
-          </h1>
-          <span className="flex max-w-full items-center gap-1.5 text-[13.5px] text-muted">
-            <CarIcon size={13} />
-            {vehicleShort(activeVehicle)}
-          </span>
-        </div>
-
-        <div className="flex flex-none items-center gap-2">
-          {isEdit && !dateWasInvalid ? (
-            <button
-              type="button"
-              onClick={() => setConfirmDelete(true)}
-              aria-label="מחיקת רשומה"
-              className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-danger transition-[background-color,scale] duration-200 active:scale-[0.96]"
-            >
-              <TrashIcon size={18} />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => { if (canLeaveDraft()) navigate(-1); }}
-            aria-label="סגירה"
-            className="flex size-10 items-center justify-center rounded-full border border-line bg-surface text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2"
-          >
-            <CloseIcon size={17} />
-          </button>
-        </div>
-      </header>
-
-      {importOpen ? <Suspense fallback={<p role="status">טוענים ייבוא קבלה…</p>}><ReceiptImport fillups={fillups} hasAuthored={receipt.authored.length>0 || date!==initialDraft.current.date} onClose={()=>setImportOpen(false)} onApply={(candidate,identity)=>{
-        setReceipt(previous=>typeReceiptField(typeReceiptField(previous,'totalCost',candidate.total),'liters',candidate.liters));
+  return <main className="fillup-form" data-testid="fillup-form">
+    <header className="fillup-header">
+      <button type="button" className="tm-icon-button" aria-label="סגירה" onClick={() => { if (canLeaveDraft()) navigate(-1); }}><CloseIcon size={20} /></button>
+      <h1>{operation ? "תיקון תדלוק" : isEdit ? "עריכת תדלוק" : "תדלוק חדש"}</h1>
+      <button type="button" className="tm-icon-button" aria-label="צילום המשאבה ולוח הקילומטרים" data-testid="fillup-camera" onClick={() => setScanOpen(true)}><CameraIcon size={21} /></button>
+    </header>
+    <div className="fillup-content" data-testid="fillup-scroll">
+      <div className="fillup-chips fillup-context-chips">
+        <button type="button" className="tm-chip" data-testid="fillup-date" onClick={openDate}
+          aria-invalid={submitAttempted && !dateConfirmed ? true : undefined}
+          aria-describedby={submitAttempted && !dateConfirmed ? "fillup-date-error" : undefined}>
+          <ClockIcon size={16} />{dateConfirmed ? <><NumericText>{relativeDate(date)}</NumericText>, <NumRun>{time(date)}</NumRun></> : "בחירת תאריך"}
+        </button>
+        <button type="button" className="tm-chip" data-testid="fillup-station" onClick={() => setStationSheetOpen(true)}
+          aria-invalid={visibleErrors.station ? true : undefined}
+          aria-describedby={visibleErrors.station ? "fillup-station-error" : undefined}>
+          <PinIcon size={16} /><span><NumericText>{station?.name ?? "בחירת תחנה"}</NumericText>{stationAuto ? <small> · לפי מיקום</small> : null}</span>
+        </button>
+      </div>
+      {restoredDraft || draftStorageFailed ? <div className="fillup-draft-status" role="status" data-testid="fillup-draft-status"
+        data-draft-state={draftStorageFailed ? "failed" : "restored"}>
+        <span>{draftStorageFailed ? "הטיוטה לא נשמרה במכשיר. השאירו את הטופס פתוח." : "הטיוטה שלכם שוחזרה"}</span>
+        <button type="button" onClick={() => {
+          if (window.confirm("למחוק את הטיוטה ולהתחיל מחדש?")) { clearDraft(); window.location.reload(); }
+        }}>מחיקת טיוטה</button>
+      </div> : null}
+      {operation ? <div className="fillup-warning" data-testid="fillup-recovered-operation">
+        <span><b>שמירה שדורשת בדיקה</b>{operation.error ? <span className="block"><NumericText>{operation.error.message}</NumericText></span> : null}
+          <small>הפרטים שמורים במכשיר. שליחה מחדש לא תוסיף תדלוק כפול.</small></span>
+      </div> : null}
+      {malformedReason ? <div className="fillup-warning"><NumericText>{`הרשומה נקראה חלקית: ${malformedReason}`}</NumericText></div> : null}
+      {deletedElsewhere ? <div className="fillup-warning">הרשומה נמחקה במכשיר אחר. שמירה תישאר במכשיר לבדיקה.</div>
+        : changedElsewhere ? <div className="fillup-warning fillup-concurrent-warning">
+          <b>הרשומה השתנתה במכשיר אחר</b><span>מה שהקלדתם נשאר כאן. השמירה תיבדק מול הגרסה שפתחתם.</span>
+          {onReload ? <button type="button" className="tm-chip" onClick={() => { clearDraft(); onReload(); }}>טעינת הגרסה החדשה</button> : null}
+        </div> : null}
+      {scanCompleted ? <p role="status" className="fillup-small-status">הצילום הועבר לטופס. בדקו את הספרות לפני השמירה.</p> : null}
+      {receiptImport ? <p role="status" className="fillup-small-status">הקבלה הועברה לבדיקה. השלימו קילומטראז׳ ובחרו מצב מיכל.</p> : null}
+      <FillupEssentials receipt={receipt} onReceiptChange={(field, value) => { if (field === "pricePerLiter") priceInteracted.current = true; setReceipt(current => typeReceiptField(current, field, value)); }}
+        odometer={odometer} odometerValue={odometerValue} onOdometerChange={setOdometer} bounds={bounds}
+        errors={visibleErrors} odometerError={blockMessage} priceCaption={<NumericText>{resolved.label}</NumericText>} priceValue={priceValue}
+        conflict={conflict} receiptBlocked={fieldErrors.some(error => ["totalCost", "pricePerLiter", "liters"].includes(error.field))} warnings={warnings} evaluation={draftEvaluation} units={settings.units} endChoice={endChoice}
+        onEndChoice={choice => setTankDraft(current => withEndChoice(current, choice))}
+        shaking={shaking} totalRef={totalInput} autoFocus={!scanOpen && !isEdit} historyComplete={historyComplete} />
+      {(odometerParsed.ambiguous && odometerParsed.interpretation) || (litersParsed.ambiguous && litersParsed.interpretation) || (priceParsed.ambiguous && priceParsed.interpretation)
+        ? <p className="fillup-small-status"><NumericText>{[odometerParsed.interpretation, litersParsed.interpretation, priceParsed.interpretation].filter(Boolean).join(" · ")}</NumericText></p> : null}
+      <FillupMore open={moreOpen} onOpenChange={setMoreOpen} date={date} dateConfirmed={dateConfirmed} onOpenDate={openDate}
+        tankDraft={tankDraft} onTankChange={setTankDraft} outcome={tankOutcome} capacity={capacity}
+        capacityNote={capacityNote(capacity) ?? null} onReviewCapacity={() => { if (canLeaveDraft()) navigate("/vehicle?tab=details"); }}
+        continuityBreak={continuityBreak} onContinuityChange={setContinuityBreak} notes={notes} onNotesChange={setNotes}
+        notesError={visibleErrors.notes} legacyEndState={tankOriginal !== null && tankState.preserved}
+        storedPostedPrice={openedRecord?.postedPricePerLiter ?? null} clearStoredPosted={clearStoredPosted}
+        onClearStoredPosted={setClearStoredPosted} postedPriceError={visibleErrors.postedPricePerLiter} />
+      {!isEdit && !operation ? <button type="button" className="fillup-text-action" data-testid="fillup-import-receipt" onClick={() => setImportOpen(true)}>ייבוא קבלה מקובץ או טקסט</button> : null}
+      {isEdit && !dateWasInvalid ? <Button full variant="danger" size="sm" onClick={() => setConfirmDelete(true)} disabled={saving} data-testid="fillup-delete">
+        <TrashIcon size={18} />מחיקת התדלוק
+      </Button> : null}
+      {operation ? <button type="button" className="fillup-text-action fillup-danger-action" onClick={async () => {
+        const stillMounted = captureUi();
+        try { await discardOperation(operation.opId); if (stillMounted()) { clearDraft(); navigate("/settings/unsynced", { replace: true }); } }
+        catch (error) { if (stillMounted()) showToast({ tone: "error", title: error instanceof Error ? error.message : "הפעולה לא הוסרה" }); }
+      }}>הסרת הפעולה מהרשימה המקומית</button> : null}
+      {visibleErrors.station ? <p id="fillup-station-error" className="fillup-error" role="alert"><NumericText>{visibleErrors.station}</NumericText></p> : null}
+      {submitAttempted && !dateConfirmed ? <p id="fillup-date-error" className="fillup-error" role="alert">בחרו תאריך ושעה לפני השמירה</p> : null}
+      <p className="sr-only">{vehicleShort(activeVehicle)}</p>
+    </div>
+    <footer className="fillup-bottom-bar">
+      <Button full onClick={() => void save()} loading={saving} data-testid="fillup-save">
+        {operation ? "שמירה ושליחה מחדש" : isEdit ? "שמירת שינויים" : "שמירת תדלוק"}
+      </Button>
+    </footer>
+    <StationSheet fuelType={activeVehicle.fuelType} kmPerLiter={vehicleStats.avgKmPerLiter}
+      litersToBuy={Number.isFinite(litersValue) && litersValue > 0 ? litersValue : 40} prices={prices}
+      open={stationSheetOpen} onClose={() => setStationSheetOpen(false)} stations={pastStations} lastPaid={lastPaidByStation}
+      nearby={geo.nearby} geoStatus={geo.status} onLocate={() => void detectStation(true)} current={station} onPick={chooseStation} />
+    <DateSheet open={dateSheetOpen} onClose={() => setDateSheetOpen(false)} value={date} maxDate={dateSheetNow} bounds={bounds}
+      onChange={next => { setDate(next); setDateConfirmed(true); }} />
+    <ConfirmDialog open={confirmDelete} title="למחוק את התדלוק?" body="אחרי שהמחיקה תאושר, אפשר יהיה לשחזר מיד."
+      confirmLabel="מחיקה" onConfirm={() => void remove()} onCancel={() => setConfirmDelete(false)} />
+    {importOpen ? <Suspense fallback={<p role="status">טוענים ייבוא קבלה…</p>}><ReceiptImport fillups={fillups}
+      hasAuthored={receipt.authored.length > 0 || date !== initialDraft.current.date} onClose={() => setImportOpen(false)}
+      onApply={(candidate, identity) => {
+        setReceipt(previous => typeReceiptField(typeReceiptField(previous, "totalCost", candidate.total), "liters", candidate.liters));
         setDate(new Date(`${candidate.day}T${candidate.time}:00`).getTime()); setDateConfirmed(true);
         setReceiptImport(identity); setImportOpen(false);
-      }}/></Suspense> : null}
-      {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)} onApply={(draft,scanned) => {
+      }} /></Suspense> : null}
+    {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
+      initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
+      onApply={(scan, scanned) => {
         setScanCompleted(scanned);
         setReceipt(previous => {
           let next = previous;
-          if (draft.total !== previous.totalCost) next = typeReceiptField(next, 'totalCost', draft.total);
-          if (draft.liters !== previous.liters) next = typeReceiptField(next, 'liters', draft.liters);
+          if (scan.total !== previous.totalCost) next = typeReceiptField(next, "totalCost", scan.total);
+          if (scan.liters !== previous.liters) next = typeReceiptField(next, "liters", scan.liters);
           return next;
         });
-        setOdometer(draft.odometer); setScanOpen(false);
+        setOdometer(scan.odometer); setScanOpen(false);
       }} /></Suspense> : null}
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 pb-40">
-        {!isEdit && !operation ? <button type="button" onClick={() => setScanOpen(true)} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border border-accent/30 bg-accent-soft px-4 py-3 text-start text-accent">
-          <span><b className="block">הוספה בשני צילומים</b><span className="text-sm">צג המשאבה ואז מד הקילומטרים</span></span><span aria-hidden="true">←</span>
-        </button> : null}
-        {!isEdit && !operation ? <Button variant="secondary" onClick={()=>setImportOpen(true)}>ייבוא קבלה מקובץ או טקסט</Button> : null}
-        {scanCompleted ? <p role="status" className="rounded-xl bg-accent-soft px-4 py-3 text-sm text-accent">הסריקה הושלמה. בדקו את הסכום ששולם ואת קריאת ODO לפני השמירה. פרטים שכבר הזנתם נשמרו.</p> : null}
-        {receiptImport ? <p role="status" className="text-sm text-muted">קבלה הועברה לבדיקה. השלימו קילומטראז׳ ובדקו את הנתונים לפני שמירה. מצב המיכל נשאר לבחירתכם.</p> : null}
-        {draftDirty ? <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-surface-2 px-3 py-2 text-xs text-muted">
-          <span>{draftStorageFailed ? "לא ניתן לשמור טיוטה במכשיר. השאירו את הטופס פתוח עד לשמירה." : restoredDraft ? "הטיוטה שלכם שוחזרה מהמכשיר" : "טיוטה נשמרת במכשיר — אפשר לחזור ולהמשיך"}</span>
-          <button type="button" className="min-h-10 flex-none px-2 font-semibold text-danger" onClick={() => {
-            if (window.confirm("למחוק את הטיוטה ולהתחיל מחדש?")) { draftCleared.current = true; removeFillupDraft(draftKey); window.location.reload(); }
-          }}>מחיקת טיוטה</button>
-        </div> : null}
-        {operation ? (
-          <div className="flex flex-col gap-1 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
-            <span className="text-[14px] font-bold">
-              הרשומה הזו נדחתה על ידי השרת ונשמרה במכשיר
-            </span>
-            {operation.error ? (
-              <span className="text-[14px] leading-relaxed">
-                {operation.error.message}
-                {operation.error.code ? ` (${operation.error.code})` : ""}
-              </span>
-            ) : null}
-            <span className="text-[14px] leading-relaxed">
-              שמירה מכאן שולחת אותה מחדש עם אותו מזהה — בלי כפילות.
-            </span>
-          </div>
-        ) : null}
-
-        {malformedReason ? (
-          <SoftWarningBanner message="הרשומה נקראה חלקית" detail={`${malformedReason}. השלימו את החסר ושמרו.`} />
-        ) : null}
-
-        {deletedElsewhere ? (
-          <SoftWarningBanner
-            message="הרשומה נמחקה במכשיר אחר"
-            detail="שמירה לא תשחזר אותה אוטומטית. הקלט יישמר במכשיר לבדיקה."
-          />
-        ) : changedElsewhere ? (
-          <div className="flex flex-col gap-2 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
-            <span className="text-[14px] font-bold">הרשומה השתנתה במכשיר אחר</span>
-            <span className="text-[14px] leading-relaxed">
-              מה שהקלדתם כאן נשמר. שמירה תיבדק מול השרת ותיעצר אם הגרסה השתנתה; טעינה מחדש תציג אותה ותוותר על השינויים שכאן.
-            </span>
-            {onReload ? (
-              <button
-                type="button"
-                onClick={() => { draftCleared.current = true; removeFillupDraft(draftKey); onReload(); }}
-                className="w-fit min-h-[40px] rounded-pill border border-warning/40 bg-surface px-3 text-[14px] font-semibold text-warning-ink"
-              >
-                טעינת הגרסה החדשה
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        <Eyebrow>פרטי התדלוק</Eyebrow>
-        <Card className="overflow-hidden">
-          <button
-            type="button"
-            onClick={() => {
-              setDateSheetNow(Date.now());
-              setDateSheetOpen(true);
-            }}
-            className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
-          >
-            <IconTile>
-              <CalendarIcon size={18} />
-            </IconTile>
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <Label className="text-[14px]">תאריך ושעה</Label>
-              <span className="text-[15px] font-semibold text-ink">
-                {dateConfirmed ? (
-                  <>
-                    {relativeDate(date)} · <Num>{time(date)}</Num>
-                  </>
-                ) : (
-                  <span className="text-danger-ink">יש לבחור תאריך</span>
-                )}
-              </span>
-            </span>
-            {isBackdated && dateConfirmed ? (
-              <span className="flex-none rounded-pill bg-warning-soft px-2.5 py-1 text-[12px] font-semibold text-warning-ink">
-                תאריך בעבר
-              </span>
-            ) : (
-              <ChevronStart size={17} className="rotate-180 text-muted" />
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStationSheetOpen(true)}
-            className="flex min-h-[58px] w-full items-center gap-3 border-b border-line px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2"
-          >
-            <IconTile>
-              <PinIcon size={18} />
-            </IconTile>
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <Label className="text-[14px]">תחנה</Label>
-              <span className="truncate text-[15px] font-semibold text-ink">
-                {station?.name ?? "ללא מיקום"}
-              </span>
-              {stationAuto ? (
-                <span className="text-[12px] text-accent">זוהה אוטומטית לפי מיקום</span>
-              ) : null}
-            </span>
-            <span className="flex-none text-[14px] font-semibold text-accent">שינוי</span>
-          </button>
-
-          <div className="flex min-h-[58px] items-center gap-3 px-4 py-2.5">
-            <IconTile>
-              <span className="text-[18px] font-semibold">₪</span>
-            </IconTile>
-            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <Label className="text-[14px]">מחיר לליטר</Label>
-              <span className="text-[12px] text-muted">
-                {receipt.authored.includes("pricePerLiter")
-                  ? "מחיר שהוזן ידנית לתדלוק הזה"
-                  : resolved.label}
-              </span>
-              {priceParsed.ambiguous && priceParsed.interpretation ? (
-                <span className="text-[12px] text-warning-ink">{priceParsed.interpretation}</span>
-              ) : null}
-            </span>
-            <input
-              dir="ltr"
-              inputMode="decimal"
-              aria-label="מחיר לליטר"
-              aria-invalid={showErrors && errorFor("pricePerLiter") ? true : undefined}
-              value={receipt.pricePerLiter}
-              onChange={(event) =>
-                setReceipt((current) => editReceiptField(current, "pricePerLiter", event.target.value))
-              }
-              className="num min-h-[44px] w-[88px] flex-none rounded-[11px] border border-line bg-surface px-2 text-center text-[16px] font-bold text-ink outline-none transition-[border-color,box-shadow] duration-200 focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
-            />
-          </div>
-          {showErrors && errorFor("pricePerLiter") ? (
-            <span className="block px-4 pb-3 text-[14px] font-semibold text-danger">
-              {errorFor("pricePerLiter")}
-            </span>
-          ) : null}
-        </Card>
-
-        {station && Number.isFinite(priceValue) && priceValue > 0 ? (
-          <PumpPriceQuestion
-            paid={priceValue}
-            answer={pumpAnswer}
-            onAnswer={(value) => {
-              setPumpTouched(true);
-              setPumpAnswer(value);
-            }}
-            pumpPrice={pumpPrice}
-            onPumpPrice={(value) => {
-              setPumpTouched(true);
-              setPumpPrice(value);
-            }}
-          />
-        ) : null}
-
-        <Card className="flex flex-col overflow-hidden">
-          <Field
-            row
-            label={isBackdated ? "קילומטראז׳ בתאריך זה" : "קילומטראז׳ נוכחי"}
-            inputMode="decimal"
-            suffix="ק״מ"
-            value={odometer}
-            onChange={(event) => setOdometer(event.target.value)}
-            placeholder="0"
-            error={blockMessage ?? (showErrors ? errorFor("odometer") : null)}
-            hint={
-              odometerParsed.interpretation ? (
-                <>
-                  {odometerParsed.interpretation}: <Num>{num(odometerValue, 0)}</Num>
-                </>
-              ) : lastFillup ? (
-                <>
-                  אחרון: <Num>{num(lastFillup.odometer, 0)}</Num> · {timeAgo(lastFillup.date)}
-                </>
-              ) : bounds.max !== null ? (
-                <>
-                  עד <Num>{num(bounds.max, 0)}</Num> לפי הרשומה הבאה
-                </>
-              ) : (
-                "הקילומטראז׳ שמופיע בלוח המחוונים"
-              )
-            }
-          />
-
-          {warnings
-            .filter((warning) => warning.field === "odometer")
-            .map((warning) => (
-              <SoftWarningBanner key={warning.field} message={warning.message} detail={warning.detail} />
-            ))}
-        </Card>
-
-        <Eyebrow>כמות וסכום</Eyebrow>
-        <div className="flex flex-col gap-2">
-          <div className="overflow-hidden rounded-card bg-surface">
-              <Field
-                row
-                suffix="ל׳"
-                label="ליטרים"
-                inputMode="decimal"
-                value={receipt.liters}
-                onChange={(event) =>
-                  setReceipt((current) => editReceiptField(current, "liters", event.target.value))
-                }
-                placeholder="0"
-                error={showErrors ? errorFor("liters") : null}
-                hint={litersParsed.ambiguous ? litersParsed.interpretation : undefined}
-              />
-              <Field
-                row
-                suffix="₪"
-                label="סה״כ לתשלום"
-                inputMode="decimal"
-                value={receipt.totalCost}
-                onChange={(event) =>
-                  setReceipt((current) => editReceiptField(current, "totalCost", event.target.value))
-                }
-                placeholder="0"
-                error={showErrors ? errorFor("totalCost") : null}
-              />
-          </div>
-
-          <span className="text-[14px] text-muted">
-            {receipt.authored.includes('liters') && receipt.authored.includes('totalCost')
-              ? 'המחיר חושב מהליטרים ומהסכום שנבדקו'
-              : 'הליטרים והסכום מתעדכנים זה לפי זה, לפי המחיר לליטר'}
-          </span>
-
-          {conflict ? (
-            <SoftWarningBanner
-              message="הליטרים, המחיר והסכום לא מסתדרים"
-              detail={`${conflict.message}. ערכו את הליטרים או את הסכום כדי לחשב מחדש לפי המחיר לליטר.`}
-            />
-          ) : null}
-
-          {warnings
-            .filter((warning) => warning.field !== "odometer")
-            .map((warning) => (
-              <SoftWarningBanner key={warning.field} message={warning.message} detail={warning.detail} />
-            ))}
-        </div>
-
-        <div className="flex flex-wrap items-baseline justify-between gap-3 px-1 text-[13.5px] text-muted" aria-live="polite">
-          <span>סכום התדלוק <Num className="font-semibold text-ink">{shekel(totalDue)}</Num></span>
-          {draftEvaluation?.outcome === "closedSegment" && draftEvaluation.segment ? <span>צריכה <ConsumptionValue kmPerLiter={draftEvaluation.segment.kmPerLiter} units={settings.units} /></span> : null}
-        </div>
-
-        <TankStateSection
-          draft={tankDraft}
-          onChange={setTankDraft}
-          outcome={tankOutcome}
-          capacity={capacity}
-          capacityNote={capacityNote(capacity)}
-          onReviewCapacity={() => { if (canLeaveDraft()) navigate("/settings/vehicles"); }}
-          footer={draftEvaluation ? <DraftExplanation evaluation={draftEvaluation} /> : null}
-        >
-          <div className="flex flex-wrap gap-2">
-            {END_CHOICES.map((choice) => (
-              <button
-                key={choice.value}
-                type="button"
-                aria-pressed={endChoice === choice.value}
-                onClick={() =>
-                  setTankDraft((current) =>
-                    withEndChoice(current, endChoice === choice.value ? null : choice.value),
-                  )
-                }
-                className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-pill px-4 text-[14px] font-bold transition-[background-color,scale] duration-200 active:scale-[0.97] ${
-                  endChoice === choice.value
-                    ? "bg-accent text-accent-contrast"
-                    : "border border-line bg-surface text-ink"
-                }`}
-              >
-                {endChoice === choice.value ? <CheckIcon size={15} /> : null}
-                {choice.label}
-              </button>
-            ))}
-          </div>
-          {endChoice !== null ? <span className="text-[14px] leading-relaxed text-muted">{END_CHOICES.find(choice=>choice.value===endChoice)?.hint}</span> : null}
-        </TankStateSection>
-
-        <Eyebrow>תיעוד</Eyebrow>
-        <Card className="flex flex-col p-4">
-          <div className="flex items-center gap-3">
-            <span className="flex-1 text-[14.5px] font-semibold text-ink">
-              היו תדלוקים שלא תיעדתי
-            </span>
-            <Toggle
-              checked={continuityBreak}
-              onChange={setContinuityBreak}
-              ariaLabel="היו תדלוקים שלא תיעדתי מאז הרשומה הקודמת"
-            />
-          </div>
-          <p className="pt-1 text-[13px] leading-relaxed text-muted">
-            מתחילים תקופת מדידה חדשה לסטטיסטיקת הצריכה. ההיסטוריה נשמרת, והחישוב לא יחצה תדלוקים חסרים.
-          </p>
-        </Card>
-
-        <Eyebrow>הערה</Eyebrow>
-        <Card className="p-4">
-          <input
-            aria-label="הערה"
-            dir="rtl"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            placeholder="לא חובה"
-            className="min-h-[52px] w-full rounded-[14px] border border-line bg-bg px-3.5 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-muted focus:border-accent focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_14%,transparent)]"
-          />
-          {showErrors && errorFor("notes") ? (
-            <span className="block pt-2 text-[14px] font-semibold text-danger">{errorFor("notes")}</span>
-          ) : null}
-        </Card>
-
-        {showErrors && errorFor("station") ? (
-          <SoftWarningBanner message={errorFor("station")} />
-        ) : null}
-
-        {warnings.length > 0 ? (
-          <InfoStrip>
-            אזהרות רכות לא חוסמות שמירה — הרשומה תסומן כחריגה בהיסטוריה עד שתאושר.
-          </InfoStrip>
-        ) : null}
-
-        {operation ? (
-          <button
-            type="button"
-            onClick={() => {
-              void discardOperation(operation.opId);
-              navigate("/settings/unsynced", { replace: true });
-            }}
-            className="min-h-[44px] text-[13px] font-semibold text-danger"
-          >
-            מחיקת הרשומה שלא סונכרנה
-          </button>
-        ) : null}
-      </div>
-
-      <div className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[430px] border-t border-line bg-[color-mix(in_srgb,var(--surface)_95%,transparent)] p-4 pb-safe backdrop-blur-xl">
-        <Button full onClick={save} disabled={!canSave} loading={saving}>
-          {operation ? "שמירה ושליחה מחדש" : isEdit ? "שמירת שינויים" : "שמירת תדלוק"}
-        </Button>
-        <p
-          className={`flex items-center justify-center gap-1.5 pt-2 text-center text-[14px] ${
-            blockMessage || (fieldErrors.length > 0 && showErrors) ? "text-danger-ink" : "text-muted"
-          }`}
-        >
-          {fieldErrors.length > 0 && showErrors ? <WarningIcon size={13} /> : null}
-          {saveHint}
-        </p>
-      </div>
-
-      <StationSheet
-        fuelType={activeVehicle?.fuelType ?? "95"}
-        kmPerLiter={vehicleStats.avgKmPerLiter}
-        litersToBuy={Number.isFinite(litersValue) && litersValue > 0 ? litersValue : 40}
-        prices={prices}
-        open={stationSheetOpen}
-        onClose={() => setStationSheetOpen(false)}
-        stations={pastStations}
-        lastPaid={lastPaidByStation}
-        nearby={geo.nearby}
-        geoStatus={geo.status}
-        onLocate={() => void detectStation(true)}
-        current={station}
-        onPick={(next) => {
-          setStation(next);
-          setStationAuto(false);
-          setStationSheetOpen(false);
-        }}
-      />
-
-      <DateSheet
-        open={dateSheetOpen}
-        onClose={() => setDateSheetOpen(false)}
-        value={date}
-        maxDate={dateSheetNow}
-        bounds={bounds}
-        onChange={(next) => {
-          // A date change re-resolves the SUGGESTED price only; a price the
-          // user typed for this fill-up is theirs and stays.
-          setDate(next);
-          setDateConfirmed(true);
-        }}
-      />
-
-      <ConfirmDialog
-        open={confirmDelete}
-        title="למחוק את התדלוק?"
-        body="הרשומה תוסר והצריכה תחושב מחדש אוטומטית. אפשר לשחזר מיד לאחר המחיקה."
-        confirmLabel="מחיקה"
-        onConfirm={() => void remove()}
-        onCancel={() => setConfirmDelete(false)}
-      />
-    </main>
-  );
-}
-
-/* ---------------- station picker ---------------- */
-
-function StationSheet({
-  fuelType,
-  kmPerLiter,
-  litersToBuy,
-  prices,
-  open,
-  onClose,
-  stations,
-  lastPaid,
-  nearby,
-  geoStatus,
-  onLocate,
-  current,
-  onPick,
-}: {
-  /** The ACTIVE vehicle's fuel type. Every price shown is for this and only this. */
-  fuelType: FuelType;
-  /** Measured consumption, for the best-value ranking. Null until one exists. */
-  kmPerLiter: number | null;
-  litersToBuy: number;
-  prices: FuelPrices | null;
-  open: boolean;
-  onClose: () => void;
-  stations: Station[];
-  /** Station id or name → the price this user last paid there. */
-  lastPaid: Map<string, { price: number; observedAt: number }>;
-  nearby: GeoResult["nearby"];
-  geoStatus: GeoResult["status"];
-  onLocate: () => void;
-  current: Station | null;
-  onPick: (station: Station | null) => void;
-}) {
-  const regulated = useMemo(() => adaptLegacyConfig(prices), [prices]);
-
-  /**
-   * The price to show on a station row, for THIS vehicle's fuel type.
-   *
-   * Everything goes through the one resolver, so a diesel vehicle can never be
-   * shown a 95 figure. What the ROW shows is then decided by `stationPriceView`,
-   * which deliberately drops the regulated ceiling: it is the same nationwide
-   * number on every station and repeating it down the list said nothing about
-   * any of them.
-   */
-  const resolveFor = useCallback(
-    (stationId: string | null) => resolveStationPrice({ stationId, fuelType, regulated }),
-    [fuelType, regulated],
-  );
-
-  const viewFor = useCallback(
-    (stationId: string | null, name?: string | null) =>
-      stationPriceView(
-        resolveFor(stationId),
-        (stationId ? lastPaid.get(stationId) : null) ??
-          (name ? lastPaid.get(name.trim()) : null) ??
-          null,
-      ),
-    [resolveFor, lastPaid],
-  );
-
-  const [sort, setSort] = useState<StationSort>("nearest");
-
-  /**
-   * Nearby stations, ordered.
-   *
-   * Every price is resolved for the ACTIVE vehicle's fuel type before ranking,
-   * so no order can end up comparing diesel against petrol.
-   */
-  const nearbyCandidates: StationCandidate[] = useMemo(
-    () =>
-      nearby.map((entry) => ({
-        station: entry,
-        distanceMeters: entry.distance,
-        price: resolveFor(entry.i ?? null),
-      })),
-    [nearby, resolveFor],
-  );
-
-  const blocker = useMemo(
-    () => bestValueBlocker(nearbyCandidates, { fuelType, kmPerLiter, litersToBuy }),
-    [nearbyCandidates, fuelType, kmPerLiter, litersToBuy],
-  );
-
-  const rankedNearby = useMemo(
-    () =>
-      rankStations(nearbyCandidates, sort === "bestValue" && blocker ? "nearest" : sort, {
-        fuelType,
-        kmPerLiter,
-        litersToBuy,
-      }),
-    [nearbyCandidates, sort, blocker, fuelType, kmPerLiter, litersToBuy],
-  );
-  const [query, setQuery] = useState("");
-  const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
-  const [catalogLoading, setCatalogLoading] = useState(true);
-
-  useEffect(() => {
-    if (!open) return;
-    let active = true;
-    void loadStationCatalog().then((next) => {
-      if (!active) return;
-      setCatalog(next);
-      setCatalogLoading(false);
-    });
-    return () => { active = false; };
-  }, [open]);
-
-  // The query is cleared by the events that close the sheet, not by an
-  // effect watching `open`.
-  const close = () => {
-    setQuery("");
-    onClose();
-  };
-  const pick = (next: Station | null) => {
-    setQuery("");
-    onPick(next);
-  };
-
-  const matches = useMemo(
-    () => searchStationOptions(catalog, stations, query),
-    [catalog, stations, query],
-  );
-
-  const trimmed = query.trim();
-
-  return (
-    <Sheet
-      open={open}
-      onClose={close}
-      title={<h2 className="text-[18px] font-semibold text-ink">תחנת דלק</h2>}
-    >
-      <div className="flex max-h-[64vh] flex-col gap-3">
-        <div className="flex min-h-[48px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5">
-          <SearchIcon size={17} className="text-muted" />
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="חיפוש תחנה…"
-            className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
-          />
-        </div>
-
-        <div className="no-scrollbar flex flex-col overflow-y-auto">
-          {trimmed.length >= 2 ? (
-            matches.length > 0 ? (
-              matches.map((entry) => (
-                <StationRow
-                  key={stationKey(entry.station)}
-                  label={entry.station.name}
-                  meta={entry.source === "history" ? "תחנה מהיסטוריית התדלוקים" : entry.address}
-                  brand={entry.station.brand}
-                  view={viewFor(entry.station.stationId ?? null, entry.station.name)}
-                  selected={current !== null && stationKey(current) === stationKey(entry.station)}
-                  onClick={() => pick(entry.station)}
-                />
-              ))
-            ) : (
-              <div className="flex flex-col gap-2 py-5">
-                <p className="text-center text-[14px] text-muted">
-                  {catalogLoading
-                    ? "טוען תחנות…"
-                    : catalog
-                      ? "לא נמצאה תחנה בשם הזה"
-                      : "קטלוג התחנות אינו זמין כרגע — החיפוש כולל את התחנות מההיסטוריה"}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => pick({ name: trimmed })}
-                  className="min-h-[46px] rounded-pill bg-surface-2 text-[14px] font-semibold text-accent"
-                >
-                  שמירה בשם „{trimmed}״
-                </button>
-              </div>
-            )
-          ) : (
-            <>
-              {/* Nearby first — it is almost always what the user wants. */}
-              <SheetGroupLabel>
-                בקרבתי
-                {geoStatus === "locating" ? " · מאתר…" : ""}
-              </SheetGroupLabel>
-
-              {geoStatus === "denied" || geoStatus === "unavailable" ? (
-                <button
-                  type="button"
-                  onClick={onLocate}
-                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-accent"
-                >
-                  {geoStatus === "denied"
-                    ? "הרשאת מיקום נדחתה — נסו שוב"
-                    : "איתור מיקום אינו זמין — נסו שוב"}
-                </button>
-              ) : geoStatus === "none" ? (
-                <p className="px-2 py-3 text-[13px] text-muted">
-                  לא נמצאה תחנה במרחק של 400 מ׳ מכאן.
-                </p>
-              ) : nearby.length === 0 && geoStatus !== "locating" ? (
-                <button
-                  type="button"
-                  onClick={onLocate}
-                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-accent"
-                >
-                  איתור תחנות בקרבת מקום
-                </button>
-              ) : (
-                <>
-                  {/* One control, not a four-pill rail that spilled sideways
-                      over the first result on a 360px screen. */}
-                  <SortControl value={sort} onChange={setSort} />
-
-                  {sort === "bestValue" && blocker ? (
-                    <p className="pb-2 text-[12px] leading-relaxed text-muted">
-                      {BEST_VALUE_UNAVAILABLE[blocker]} מוצג לפי מרחק בינתיים.
-                    </p>
-                  ) : null}
-
-                  {rankedNearby.map((entry) => (
-                    <StationRow
-                      key={`near-${entry.station.n}-${entry.station.lat}`}
-                      label={entry.station.n}
-                      meta={
-                        entry.distanceMeters !== null
-                          ? formatDistance(entry.distanceMeters)
-                          : undefined
-                      }
-                      brand={entry.station.c}
-                      view={viewFor(entry.station.i ?? null, entry.station.n)}
-                      selected={current !== null && stationKey(current) === stationKey(toStation(entry.station))}
-                      onClick={() => pick(toStation(entry.station))}
-                    />
-                  ))}
-                </>
-              )}
-
-              {stations.length > 0 ? (
-                <>
-                  <SheetGroupLabel>תחנות שתדלקתי בהן</SheetGroupLabel>
-                  {stations.map((entry) => (
-                    <StationRow
-                      key={stationKey(entry)}
-                      label={entry.name}
-                      brand={entry.brand}
-                      view={viewFor(entry.stationId ?? null, entry.name)}
-                      selected={current !== null && stationKey(current) === stationKey(entry)}
-                      onClick={() => pick(entry)}
-                    />
-                  ))}
-                </>
-              ) : null}
-            </>
-          )}
-        </div>
-
-        <button
-          type="button"
-          onClick={() => pick(null)}
-          className="min-h-[48px] flex-none rounded-pill bg-surface-2 text-[14.5px] font-semibold text-muted transition-[background-color,scale] duration-200 active:scale-[0.97]"
-        >
-          ללא מיקום
-        </button>
-      </div>
-    </Sheet>
-  );
-}
-
-function SheetGroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="px-1 pb-1 pt-2 text-[12px] font-semibold  text-muted">
-      {children}
-    </span>
-  );
-}
-
-/**
- * One compact sort control.
- *
- * The four pills it replaces were laid out in a horizontally scrolling rail
- * that, at 360px, ran under the first station row and looked like part of it.
- */
-function SortControl({
-  value,
-  onChange,
-}: {
-  value: StationSort;
-  onChange: (value: StationSort) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const options: StationSort[] = ["nearest", "cheapest", "freshest", "bestValue"];
-
-  return (
-    <div className="flex flex-col pb-2">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-        className="flex min-h-[34px] w-fit items-center gap-1 rounded-pill bg-surface-2 px-3 text-[14px] font-semibold text-ink"
-      >
-        מיון: {SORT_LABELS[value]}
-        <ChevronDown size={14} className="text-muted" />
-      </button>
-
-      {open ? (
-        <div
-          role="listbox"
-          aria-label="מיון תחנות"
-          className="mt-1.5 flex flex-col overflow-hidden rounded-[14px] border border-line bg-surface"
-        >
-          {options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="option"
-              aria-selected={value === option}
-              onClick={() => {
-                onChange(option);
-                setOpen(false);
-              }}
-              className={`flex min-h-[42px] items-center justify-between px-3.5 text-[14px] transition-[background-color] duration-150 active:bg-surface-2 ${
-                value === option ? "font-bold text-accent" : "text-ink"
-              }`}
-            >
-              {SORT_LABELS[option]}
-              {value === option ? <CheckIcon size={16} /> : null}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function StationRow({
-  label,
-  meta,
-  brand,
-  view,
-  selected,
-  onClick,
-}: {
-  label: string;
-  meta?: string;
-  /** Company from the register, for the brand badge. */
-  brand?: string | null;
-  /**
-   * What to show for the price, already decided for the active vehicle's fuel
-   * type — see `stationPriceView` for which figure wins.
-   */
-  view: StationPriceView;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  // A figure someone actually observed at this station is the only one worth
-  // colouring; the nationwide ceiling stays quiet so it cannot be mistaken
-  // for one.
-  const known = view.kind === "station" || view.kind === "personal";
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-[54px] items-center gap-3 border-b border-line px-2 py-2 text-start transition-[background-color] duration-150 last:border-b-0 active:bg-surface-2"
-    >
-      <StationBrandMark brand={brand} name={label} />
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
-        {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}
-      </span>
-
-      {view.text ? (
-        <span className="flex flex-none flex-col items-end gap-0.5">
-          <Num
-            className={`text-[14.5px] font-bold ${
-              view.stale ? "text-muted" : known ? "text-success-ink" : "text-ink"
-            }`}
-          >
-            {view.text}
-          </Num>
-          {/* Three words at most: what kind of figure this is. */}
-          <span
-            className={`text-[10.5px] ${view.stale ? "text-warning-ink" : "text-muted"}`}
-          >
-            {view.stale ? `${view.detail} · ישן` : view.detail}
-          </span>
-        </span>
-      ) : (
-        <span className="flex-none text-[10.5px] text-muted">{view.detail}</span>
-      )}
-
-      {selected ? <CheckIcon size={18} className="flex-none text-accent" /> : null}
-    </button>
-  );
-}
-
-function DateSheet({
-  open,
-  onClose,
-  value,
-  maxDate,
-  bounds,
-  onChange,
-}: {
-  open: boolean;
-  onClose: () => void;
-  value: number;
-  maxDate: number;
-  bounds: ReturnType<typeof odometerBounds>;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title={<h2 className="text-[18px] font-semibold text-ink">תאריך ושעה</h2>}
-    >
-      <div className="flex flex-col gap-3">
-        <DateTimePicker value={value} onChange={onChange} maxDate={maxDate} />
-
-        {bounds.min !== null || bounds.max !== null ? (
-          <InfoStrip>
-            טווח קילומטראז׳ מותר לתאריך זה:{" "}
-            <Num>
-              {bounds.min !== null ? num(bounds.min, 0) : "—"} –{" "}
-              {bounds.max !== null ? num(bounds.max, 0) : "∞"}
-            </Num>
-          </InfoStrip>
-        ) : null}
-
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => onChange(Date.now())}
-            className="min-h-[46px] flex-1 rounded-pill bg-surface-2 text-[14px] font-semibold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
-          >
-            עכשיו
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-[46px] flex-1 rounded-pill bg-accent text-[14px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97] active:brightness-[0.97]"
-          >
-            אישור
-          </button>
-        </div>
-      </div>
-    </Sheet>
-  );
-}
-
-
-function DraftExplanation({
-  evaluation,
-}: {
-  evaluation: NonNullable<ReturnType<typeof evaluateDraft>>;
-}) {
-  const { settings } = useData();
-
-  if (evaluation.outcome === "closedSegment" && evaluation.segment) {
-    return (
-      <span className="rounded-[11px] bg-success-soft px-3 py-2 text-[14px] leading-relaxed text-success-ink">
-        סוגר מקטע צריכה:{" "}
-        <ConsumptionValue
-          kmPerLiter={evaluation.segment.kmPerLiter}
-          units={settings.units}
-          className="font-semibold"
-        />
-      </span>
-    );
-  }
-
-  if (evaluation.outcome === "baseline") {
-    return (
-      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
-        {evaluation.startsNewPeriod
-          ? "יוצר נקודת התחלה לתקופה החדשה. הצריכה תחושב בתדלוק הבא."
-          : "יוצר נקודת התחלה. הצריכה תחושב בתדלוק הבא."}
-      </span>
-    );
-  }
-
-  if (evaluation.outcome === "partialNoBaseline") {
-    return (
-      <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
-        עדיין אין נקודת התחלה, אז התדלוק הזה לא ייכנס לחישוב.
-      </span>
-    );
-  }
-
-  if (evaluation.outcome === "unknownRetained") {
-    // The tank-choice field already explains this state beside its control.
-    return null;
-  }
-
-  return (
-    <span className="rounded-[11px] bg-surface-2 px-3 py-2 text-[14px] leading-relaxed text-muted">
-      הליטרים ייכללו בחישוב בתדלוק הבא · במקטע הפתוח יהיו{" "}
-      <Quantity value={evaluation.openSegment.liters} digits={1} className="font-semibold" />
-    </span>
-  );
-}
-
-/** Post-save toast copy, decided by the engine rather than by this screen. */
-function savedMessage(
-  evaluation: ReturnType<typeof evaluateDraft>,
-  units: "kmPerLiter" | "litersPer100",
-): { title: string; detail: string } {
-  const undo = "אפשר לבטל תוך 5 שניות";
-
-  if (evaluation.outcome === "closedSegment" && evaluation.segment) {
-    const kmPerLiter = evaluation.segment.kmPerLiter;
-    const value =
-      units === "kmPerLiter"
-        ? `${kmPerLiter.toLocaleString("he-IL", { maximumFractionDigits: 1 })} קמ״ל`
-        : `${(100 / kmPerLiter).toLocaleString("he-IL", { maximumFractionDigits: 1 })} ל׳/100 ק״מ`;
-    return { title: `נשמר · ${value} מאז התדלוק הקודם`, detail: undo };
-  }
-
-  if (evaluation.outcome === "baseline") {
-    return {
-      title: evaluation.startsNewPeriod
-        ? "התחילה תקופת חישוב חדשה. הצריכה תחושב בתדלוק הבא."
-        : "נקודת התחלה נוצרה. הצריכה תחושב בתדלוק הבא.",
-      detail: undo,
-    };
-  }
-
-  if (evaluation.outcome === "partialNoBaseline") {
-    return {
-      title: "התדלוק נשמר. עדיין אין נקודת התחלה לחישוב.",
-      detail: undo,
-    };
-  }
-
-  if (evaluation.outcome === "unknownRetained") {
-    return {
-      title: "התדלוק נשמר. הצריכה תחושב כשיסומן תדלוק מיכל מלא.",
-      detail: undo,
-    };
-  }
-
-  const liters = evaluation.openSegment.liters.toLocaleString("he-IL", {
-    maximumFractionDigits: 1,
-  });
-  return {
-    title: "התדלוק נשמר. הליטרים ייכללו בחישוב בתדלוק הבא.",
-    detail: `נשמרו ${liters} ל׳ במקטע הפתוח · ${undo}`,
-  };
-}
-
-
-/** Answers to "was this also the price on the pump?". */
-type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
-
-/**
- * Only a confirmed pump price is eligible to become public.
- *
- * "לא יודע" and no answer both yield null. A discount yields null too — the
- * paid price is then explicitly NOT the station's price, which is exactly the
- * distinction the question exists to draw.
- */
-function resolvePostedPrice(
-  answer: PumpAnswer,
-  paid: number,
-  typed: string,
-): number | null {
-  if (answer === "same") return Number.isFinite(paid) && paid > 0 ? paid : null;
-  if (answer === "different") {
-    const value = parseNumberInput(typed, "price").value;
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }
-  return null;
-}
-
-/**
- * One low-friction question, asked only when a station is named — there is no
- * point asking about the pump price at a station we cannot identify.
- *
- * Answering is optional. Skipping it simply means nothing is contributed.
- */
-function PumpPriceQuestion({
-  paid,
-  answer,
-  onAnswer,
-  pumpPrice,
-  onPumpPrice,
-}: {
-  paid: number;
-  answer: PumpAnswer;
-  onAnswer: (value: PumpAnswer) => void;
-  pumpPrice: string;
-  onPumpPrice: (value: string) => void;
-}) {
-  const options: { value: PumpAnswer; label: string }[] = [
-    { value: "same", label: "כן" },
-    { value: "discount", label: "לא, הייתה לי הנחה" },
-    { value: "different", label: "מחיר המשאבה היה אחר" },
-    { value: "unknown", label: "לא יודע" },
-  ];
-
-  return (
-    <Card className="flex flex-col gap-3 p-4">
-      <span className="flex flex-col gap-0.5">
-        <span className="text-[15px] font-semibold text-ink">
-          האם זה גם המחיר שהופיע במשאבה?
-        </span>
-        <span className="text-[14px] leading-relaxed text-muted">
-          שילמתם <Num>{price(paid)}</Num> לליטר. התשובה עוזרת לנו לדעת מה המחיר
-          הציבורי בתחנה — המחיר שלכם לא מתפרסם בלי אישור.
-        </span>
-      </span>
-
-      <div className="flex flex-wrap gap-1.5">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={answer === option.value}
-            onClick={() => onAnswer(answer === option.value ? "unanswered" : option.value)}
-            className={`min-h-[36px] rounded-pill px-3 text-[13px] font-semibold transition-[background-color,color] duration-200 ${
-              answer === option.value
-                ? "bg-accent text-accent-contrast"
-                : "bg-surface-2 text-muted"
-            }`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      {answer === "different" ? (
-        <label className="flex items-center justify-between gap-3">
-          <span className="text-[14px] text-ink">מה היה המחיר במשאבה?</span>
-          <input
-            dir="ltr"
-            inputMode="decimal"
-            aria-label="מחיר המשאבה"
-            value={pumpPrice}
-            onChange={(event) => onPumpPrice(event.target.value)}
-            className="num min-h-[44px] w-[88px] flex-none rounded-[11px] border border-line bg-surface px-2 text-center text-[16px] font-bold text-ink outline-none focus:border-accent"
-          />
-        </label>
-      ) : null}
-
-      {answer === "discount" ? (
-        <span className="text-[14px] leading-relaxed text-muted">
-          נשמר כמחיר ששילמתם בלבד. הוא לא ידווח כמחיר התחנה.
-        </span>
-      ) : null}
-    </Card>
-  );
-}
-
-/** Small section label above each group, as in the form's design. */
-function Eyebrow({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="px-1 pb-0.5 pt-3 text-[13px] font-bold tracking-[0.01em] text-muted">
-      {children}
-    </p>
-  );
+  </main>;
 }

@@ -1,22 +1,14 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "ink" | "line";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   full?: boolean;
   loading?: boolean;
   size?: "md" | "sm";
   children: ReactNode;
 }
-
-const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-accent text-accent-contrast active:brightness-[0.97]",
-  secondary: "border border-line bg-surface text-ink active:bg-surface-2",
-  ghost: "text-muted active:bg-surface-2",
-  danger: "bg-danger-soft text-danger-ink active:brightness-[0.97]",
-};
 
 export function Button({
   variant = "primary",
@@ -33,9 +25,7 @@ export function Button({
       type="button"
       disabled={disabled || loading}
       aria-busy={loading || undefined}
-      className={`inline-flex ${size === "sm" ? "min-h-[44px] px-3 text-[14px]" : "min-h-[52px] px-6 text-[16px]"} items-center justify-center gap-2 rounded-control font-bold transition-[filter,background-color,scale] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-45 ${
-        VARIANTS[variant]
-      } ${full ? "w-full" : ""} ${className}`}
+      className={`tm-button tm-button-${variant === "secondary" ? "line" : variant} ${size === "sm" ? "tm-button-sm" : ""} ${full ? "w-full" : ""} ${className}`}
       {...rest}
     >
       {loading ? <><Spinner /><span className="sr-only">{children}</span></> : children}
@@ -74,6 +64,7 @@ export function RowButton({
   onClick,
   tone = "default",
   disabled,
+  className = "",
 }: {
   icon?: ReactNode;
   title: ReactNode;
@@ -83,28 +74,25 @@ export function RowButton({
   onClick?: () => void;
   tone?: "default" | "danger";
   disabled?: boolean;
+  className?: string;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex min-h-[54px] w-full items-center gap-3 px-4 py-3 text-start transition-[background-color] duration-150 active:bg-surface-2 disabled:opacity-50"
+      className={`tm-group-row ${tone === "danger" ? "tm-group-row-danger" : ""} ${className}`}
     >
-      {icon}
-      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span
-          className={`text-[15.5px] font-semibold ${
-            tone === "danger" ? "text-danger" : "text-ink"
-          }`}
-        >
+      {icon ? <span className="tm-group-row-icon" aria-hidden="true">{icon}</span> : null}
+      <span className="tm-group-row-content">
+        <span className="tm-group-row-title">
           {title}
         </span>
         {subtitle ? (
-          <span className="text-[13.5px] font-normal text-muted">{subtitle}</span>
+          <span className="tm-group-row-subtitle">{subtitle}</span>
         ) : null}
       </span>
-      {value != null ? <span className="max-w-[44%] truncate text-[13.5px] text-muted">{value}</span> : null}
+      {value != null ? <span className="tm-group-row-value">{value}</span> : null}
       {trailing}
     </button>
   );

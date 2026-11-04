@@ -23,7 +23,7 @@ import type { Stats } from "../lib/stats";
  * the user may revisit constantly, and there is no reason to write the same
  * row again.
  */
-export function useBenchmark(stats: Stats): {
+export function useBenchmark(stats: Stats, enabled = true): {
   /** Either a real comparison or an explicit "not enough peers yet". */
   comparison: BenchmarkComparison | InsufficientPeers | null;
   loading: boolean;
@@ -39,9 +39,8 @@ export function useBenchmark(stats: Stats): {
   const sharing = settings.shareBenchmarks !== false;
 
   useEffect(() => {
-    if (!user || !activeVehicle) return;
-
     if (!sharing || accountDeletionPending) { lastPublished.current = null; return; }
+    if (!enabled || !user || !activeVehicle) return;
 
     if (stats.avgKmPerLiter === null || stats.segments.length < 2) return;
 
@@ -50,11 +49,12 @@ export function useBenchmark(stats: Stats): {
     lastPublished.current = signature;
 
     void publishBenchmark(user.uid, activeVehicle, stats).catch(() => { if (lastPublished.current === signature) lastPublished.current = null; });
-  }, [user, activeVehicle, stats, sharing, accountDeletionPending]);
+  }, [user, activeVehicle, stats, sharing, accountDeletionPending, enabled]);
 
   useEffect(() => {
-    if (!user || !activeVehicle || stats.avgKmPerLiter === null) {
+    if (!enabled || !user || !activeVehicle || stats.avgKmPerLiter === null) {
       setComparison(null);
+      setLoading(false);
       return;
     }
 
@@ -79,7 +79,7 @@ export function useBenchmark(stats: Stats): {
     return () => {
       cancelled = true;
     };
-  }, [user, activeVehicle, stats.avgKmPerLiter, stats.avgPricePaid]);
+  }, [user, activeVehicle, stats.avgKmPerLiter, stats.avgPricePaid, enabled]);
 
-  return { comparison, loading };
+  return { comparison: enabled ? comparison : null, loading: enabled && loading };
 }

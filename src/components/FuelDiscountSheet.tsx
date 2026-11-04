@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
 import { parseDecimal, price } from '../lib/format';
@@ -9,12 +10,15 @@ import { Field } from './Field';
 import { Num } from './Num';
 import { Segmented } from './Segmented';
 import { Sheet } from './Sheet';
+import { useAccountScope } from './account/useAccountScope';
 
 /** Mounted anew on opening, scoped to the selected vehicle. */
 export function FuelDiscountSheet({ vehicle, official, onClose }: {
   vehicle: Vehicle; official: number | null; onClose: () => void;
 }) {
   const { updateVehicle } = useData();
+  const { user } = useAuth();
+  const captureScope = useAccountScope(`${user?.uid ?? ''}/${vehicle.id}`);
   const { showToast } = useToast();
   const initial = vehicleDiscount(vehicle);
   const [kind, setKind] = useState<'none' | FuelDiscount['kind']>(initial?.value ? initial.kind : 'none');
@@ -28,18 +32,21 @@ export function FuelDiscountSheet({ vehicle, official, onClose }: {
 
   async function save() {
     if (!valid || saving) return;
+    const current = captureScope();
     setSaving(true);
     try {
       const receipt = await updateVehicle(vehicle.id, { priceDiscount: discount, priceAdjustment: 0, manualPricePerLiter: null });
+      if (!current()) return;
       const acknowledged = await Promise.race([receipt.settled, new Promise<null>(resolve => setTimeout(() => resolve(null), 6000))]);
+      if (!current()) return;
       if (acknowledged === false) throw new Error('discount-rejected');
       showToast({ tone: acknowledged ? 'success' : 'info', title: acknowledged ? 'ההנחה נשמרה' : 'ההנחה נשמרה במכשיר', detail: acknowledged ? undefined : 'תסתנכרן כשיהיה חיבור לשרת' });
       onClose();
-    } catch { showToast({ tone: 'error', title: 'ההנחה לא נשמרה', detail: 'אפשר לנסות שוב' }); }
-    finally { setSaving(false); }
+    } catch { if (current()) showToast({ tone: 'error', title: 'ההנחה לא נשמרה', detail: 'אפשר לנסות שוב' }); }
+    finally { if (current()) setSaving(false); }
   }
 
-  return <Sheet open onClose={onClose} title={<h2 className="text-[18px] font-semibold">הנחה מהמחיר הרשמי</h2>}>
+  return <Sheet open onClose={onClose} title="הנחה בתדלוק">
     <div className="flex flex-col gap-4">
       <p className="text-[14px] text-muted">המחיר מתעדכן אוטומטית. רק ההנחה נשארת קבועה.</p>
       <Segmented ariaLabel="סוג הנחה" value={kind} onChange={nextKind => { setKind(nextKind); setValue(''); }} options={[

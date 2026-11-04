@@ -1,4 +1,5 @@
 import { EMPTY_EXTRA, type ExtraData, type EXTRA_COLLECTIONS } from './model';
+import type { NotificationBaselineSnapshot } from './notificationBaseline';
 
 export interface ExtraSourceState {
   scope: string;
@@ -7,6 +8,7 @@ export interface ExtraSourceState {
   cached: string[];
   errors: string[];
   malformed: number;
+  notificationSnapshot?: NotificationBaselineSnapshot;
 }
 
 export function emptyExtraSources(scope = ''): ExtraSourceState {

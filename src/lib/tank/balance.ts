@@ -473,7 +473,7 @@ export function replayBalance(input: BalanceInput): BalanceResult {
         null,
         events[events.length - 1].at,
         null,
-        "אין נקודת עיגון — עדכנו את מד הדלק או אשרו תדלוק מיכל מלא",
+        "אין נקודת עיגון — עדכנו את מד הדלק או אשרו תדלוק עד הסוף",
       ),
     );
   }

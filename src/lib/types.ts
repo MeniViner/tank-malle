@@ -7,9 +7,9 @@ export type Units = "kmPerLiter" | "litersPer100";
 
 export interface UserSettings {
   theme: ThemeSetting;
-  /** Accent id from ACCENTS, or "custom". */
+  /** Curated accent id; legacy IDs resolve to plate without rewriting stored data. */
   accentColor: string;
-  /** Hex value, only meaningful when accentColor === "custom". */
+  /** Retained for backup compatibility; custom colours now resolve to plate. */
   customAccent?: string | null;
   units: Units;
   activeVehicleId?: string | null;
@@ -27,7 +27,7 @@ export interface UserSettings {
 
 export const DEFAULT_SETTINGS: UserSettings = {
   theme: "system",
-  accentColor: "teal",
+  accentColor: "plate",
   customAccent: null,
   units: "kmPerLiter",
   activeVehicleId: null,

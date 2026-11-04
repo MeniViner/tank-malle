@@ -30,9 +30,9 @@ const RECORD = {
 async function lookUp(page: Page): Promise<void> {
   await page.goto("/vehicles/new");
   for (const digit of PLATE) {
-    await page.getByRole("button", { name: digit, exact: true }).click();
+    await page.getByTestId(`wizard-key-${digit}`).click();
   }
-  await page.getByRole("button", { name: "אתר רכב" }).click();
+  await page.getByTestId("wizard-lookup").click();
 }
 
 test.beforeEach(async ({ page }) => {
@@ -52,10 +52,11 @@ test("a match fills the vehicle in", async ({ page }) => {
   );
 
   await lookUp(page);
-  await expect(page.getByLabel("יצרן", { exact: true })).toHaveValue("מאזדה", {
+  await expect(page.getByTestId("wizard-make-value")).toHaveText("מאזדה", {
     timeout: 25_000,
   });
-  await expect(page.getByLabel("דגם", { exact: true })).toHaveValue("3");
+  await expect(page.getByTestId("wizard-model-value")).toHaveText("3");
+  await expect(page.getByTestId("wizard-make")).toHaveCount(0);
 });
 
 test("a confirmed empty result says the vehicle was not found", async ({ page }) => {
@@ -189,7 +190,7 @@ test("a previously found vehicle is offered from cache when the registry is down
     }),
   );
   await lookUp(page);
-  await expect(page.getByLabel("יצרן", { exact: true })).toHaveValue("מאזדה", {
+  await expect(page.getByTestId("wizard-make-value")).toHaveText("מאזדה", {
     timeout: 25_000,
   });
 
@@ -202,7 +203,7 @@ test("a previously found vehicle is offered from cache when the registry is down
     page.getByText("מוצגים הפרטים שנמצאו בבדיקה הקודמת", { exact: false }),
   ).toBeVisible({ timeout: 30_000 });
   // And the cached details are actually offered, not merely mentioned.
-  await expect(page.getByLabel("יצרן", { exact: true })).toHaveValue("מאזדה");
+  await expect(page.getByTestId("wizard-make-value")).toHaveText("מאזדה");
 });
 
 test("manual entry is always available, whatever the registry does", async ({ page }) => {

@@ -18,9 +18,9 @@ function MarketFuelReading({ fuelType, compact }: { fuelType: MarketFuelType; co
     <span className="text-muted">מחירון דלק · שירות מלא</span>
     <p><Num className={compact ? 'text-[24px] font-semibold' : 'text-[28px] font-semibold'}>{reading ? price(reading.prices[fuelType]) : '—'}</Num> <span className="text-muted">לליטר</span></p>
     <span>{FUEL_TYPE_SHORT[fuelType]} · מחוץ לאילת</span>
-    <a href={MARKET_PRICE_URL} target="_blank" rel="noopener noreferrer" className="min-h-10 w-fit content-center text-accent underline">{date ? `מחירון מתאריך ${date}` : 'למחירון הרשת'}</a>
+    <a href={MARKET_PRICE_URL} target="_blank" rel="noopener noreferrer" className="min-h-10 w-fit content-center text-ink underline">{date ? `מחירון מתאריך ${date}` : 'למחירון הרשת'}</a>
     <p className="text-muted">מחירון הרשת; המחיר ששולם בתחנה עשוי להיות שונה.</p>
     {failed ? <p role="status" className="text-muted">{reading ? 'הרענון לא הצליח; מוצג המחיר האחרון שנקרא.' : 'המחירון אינו זמין כרגע.'}</p> : stale ? <p role="status" className="text-muted">מחירון ישן; ממתינים לעדכון מאומת.</p> : null}
-    <button type="button" className="min-h-10 w-fit text-start font-semibold text-accent" disabled={refreshing} onClick={refresh}>{refreshing ? 'בודקים מחירון…' : 'רענון מחירון'}</button>
+    <button type="button" className="min-h-10 w-fit text-start font-semibold text-ink" disabled={refreshing} onClick={refresh}>{refreshing ? 'בודקים מחירון…' : 'רענון מחירון'}</button>
   </section>;
 }

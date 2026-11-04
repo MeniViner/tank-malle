@@ -1,888 +1,323 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useData } from "../context/DataContext";
+import { useData, type VehicleCreationSubmission, type VehicleSelectionResult } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
+import { useAccountScope } from "../components/account/useAccountScope";
+import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
 import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
 import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
-import { FUEL_TYPE_LABELS, formatPlate, parseDecimal } from "../lib/format";
-import type { FuelType, PlateLookupResult, Vehicle } from "../lib/types";
-import { Button, Spinner } from "../components/Button";
-import { Field } from "../components/Field";
-import { Card, Label } from "../components/Card";
-import { Num } from "../components/Num";
-import { Sheet } from "../components/Sheet";
-import { CarIcon, CheckIcon, ChevronStart, SearchIcon, WarningIcon } from "../components/icons";
+import { NumericText, NumRun } from "../components/Fmt";
+import { ChevronEnd } from "../components/icons";
+import { PlateStep } from "../components/vehicle-wizard/PlateStep";
+import { ConfirmStep } from "../components/vehicle-wizard/ConfirmStep";
+import { ExtrasStep } from "../components/vehicle-wizard/ExtrasStep";
+import { WizardCreationStatus, WizardRecovery, type VehicleReceiptState } from "../components/vehicle-wizard/WizardRecovery";
+import {
+  EMPTY_WIZARD_DRAFT, buildWizardVehicle, clearWizardSuggestions, emptyWizardNumbers,
+  suggestWizardNumbers, typeWizardNumber, validateWizardDetails, wizardIdentity,
+  type WizardDraft, type WizardErrors, type WizardStep,
+} from "../components/vehicle-wizard/wizardState";
+import "../vehicle-wizard-design.css";
 
-type Step = "plate" | "confirm" | "extras";
+interface WizardRequest { controller: AbortController; generation: number }
+interface SpecsRequest extends WizardRequest { key: string; status: "pending" | "complete" | "failed" }
 
-interface CatalogEntry {
-  make: string;
-  models: { model: string; from: number | null; to: number | null }[];
-}
-
-interface Draft {
-  make: string;
-  model: string;
-  year: string;
-  fuelType: FuelType;
-  plateNumber: string;
-  category?: string;
-  fromRegistry: boolean;
-  tozeretCd?: number | null;
-  degemCd?: number | null;
-}
-
-const EMPTY_DRAFT: Draft = {
-  make: "",
-  model: "",
-  year: "",
-  fuelType: "95",
-  plateNumber: "",
-  fromRegistry: false,
-  tozeretCd: null,
-  degemCd: null,
-};
-
-/**
- * First-vehicle wizard (designs 06–08).
- *
- * Three tiers, in order of effort: plate lookup against the national
- * registry, then a make/model/year picker from the static catalog, then a
- * fully manual entry. Nothing ever blocks creating a vehicle.
- */
+/** One controller owns the draft, async generation and the actual creation attempt. */
 export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   const navigate = useNavigate();
-  const { addVehicle, vehicles } = useData();
   const { user } = useAuth();
+  const uid = user?.uid ?? "";
+  const { addVehicle, activeVehicle, vehicles, outbox, outboxReady, outboxHealth } = useData();
   const { showToast } = useToast();
-
-  const [step, setStep] = useState<Step>("plate");
+  const captureScope = useAccountScope(uid);
+  const root = useRef<HTMLElement>(null);
+  const [step, setStep] = useState<WizardStep>("plate");
   const [plate, setPlate] = useState("");
+  const [draft, setDraft] = useState<WizardDraft>(EMPTY_WIZARD_DRAFT);
+  const [editing, setEditing] = useState(false);
+  const [numbers, setNumbers] = useState(emptyWizardNumbers);
+  const [nickname, setNickname] = useState("");
   const [looking, setLooking] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
-  /** Only a temporary failure is worth retrying; a confirmed miss is not. */
   const [canRetryLookup, setCanRetryLookup] = useState(false);
-  /** Follows the user to the confirm step when cached details were used. */
   const [lookupNotice, setLookupNotice] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
-  const [saving, setSaving] = useState(false);
-
-  const [tankLiters, setTankLiters] = useState("");
-  const [declaredKmPerLiter, setDeclaredKmPerLiter] = useState("");
-  const [nickname, setNickname] = useState("");
   const [specs, setSpecs] = useState<VehicleSpecs | null>(null);
   const [loadingSpecs, setLoadingSpecs] = useState(false);
+  const [errors, setErrors] = useState<WizardErrors>({});
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [differentVehicle, setDifferentVehicle] = useState(false);
+  const [creation, setCreation] = useState<VehicleCreationSubmission | null>(null);
+  const [creationPhase, setCreationPhase] = useState<VehicleReceiptState>("pending");
+  const [selection, setSelection] = useState<VehicleSelectionResult | null>(null);
+  const [selectionPhase, setSelectionPhase] = useState<VehicleReceiptState>("pending");
+  const generation = useRef(0);
+  const lookupRequest = useRef<WizardRequest | null>(null);
+  const specsRequest = useRef<SpecsRequest | null>(null);
+  const saveLock = useRef(false);
+  const creationRef = useRef<VehicleCreationSubmission | null>(null);
+  const selectionLock = useRef(false);
+  const selectionGeneration = useRef(0);
 
-  const abortRef = useRef<AbortController | null>(null);
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    generation.current++;
+    lookupRequest.current?.controller.abort();
+    specsRequest.current?.controller.abort();
+  }, []);
+  useEffect(() => {
+    if (!validationAttempt) return;
+    (root.current?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?? root.current?.querySelector<HTMLElement>('[data-testid="wizard-correct"]'))?.focus();
+  }, [validationAttempt]);
 
+  const dirty = !creation && (step !== "plate" || !!plate || !!nickname || numbers.tank.authored || numbers.declared.authored);
+  useAppUpdateBlocker(dirty || saving);
   const canExit = !firstRun || vehicles.length > 0;
+  const retained = outbox.filter(operation => operation.uid === uid && operation.kind === "vehicle.add");
+  const inventoryReady = outboxReady && outboxHealth.state === "ok";
+  const recoveryState = !outboxReady ? "loading" : outboxHealth.state !== "ok" ? "unknown" : "retained";
+  const needsRecovery = !creation && !differentVehicle && (!inventoryReady || retained.length > 0);
+  const stepIndex = step === "plate" ? 1 : step === "confirm" ? 2 : 3;
+
+  function cancelRequests(clearSuggestions = false) {
+    generation.current++;
+    lookupRequest.current?.controller.abort();
+    specsRequest.current?.controller.abort();
+    lookupRequest.current = null;
+    specsRequest.current = null;
+    setLooking(false);
+    setLoadingSpecs(false);
+    if (clearSuggestions) { setSpecs(null); setNumbers(clearWizardSuggestions); }
+    return generation.current;
+  }
+
+  function startSpecs(candidate: WizardDraft, requestGeneration: number, accountCurrent: () => boolean) {
+    const key = wizardIdentity(candidate);
+    const previous = specsRequest.current;
+    if (previous?.key === key && previous.generation === requestGeneration
+      && !previous.controller.signal.aborted && previous.status !== "failed") return;
+    previous?.controller.abort();
+    const request: SpecsRequest = { key, generation: requestGeneration, controller: new AbortController(), status: "pending" };
+    specsRequest.current = request;
+    const current = () => accountCurrent() && generation.current === requestGeneration
+      && specsRequest.current === request && !request.controller.signal.aborted;
+    setLoadingSpecs(true);
+    void fetchVehicleSpecs({ make: candidate.make, model: candidate.model, year: candidate.year ? Number(candidate.year) : null,
+      fuelType: candidate.fuelType, engineCc: candidate.engineCc, tozeretCd: candidate.tozeretCd, degemCd: candidate.degemCd,
+    }, request.controller.signal).then(found => {
+      if (!current()) return;
+      request.status = "complete";
+      setSpecs(found);
+      setNumbers(value => suggestWizardNumbers(value, found));
+    }).catch(() => {
+      if (!current()) return;
+      request.status = "failed";
+    }).finally(() => { if (current()) setLoadingSpecs(false); });
+  }
+
+  function changePlate(next: string) {
+    if (next === plate) return;
+    cancelRequests(true);
+    setPlate(next);
+    setLookupError(null);
+    setCanRetryLookup(false);
+  }
 
   async function runLookup() {
+    if (!uid || plate.length < 5 || plate.length > 8 || saveLock.current || creationRef.current) return;
+    const accountCurrent = captureScope();
+    const nextGeneration = cancelRequests(true);
+    const request: WizardRequest = { controller: new AbortController(), generation: nextGeneration };
+    lookupRequest.current = request;
+    const current = () => accountCurrent() && generation.current === nextGeneration
+      && lookupRequest.current === request && !request.controller.signal.aborted;
     setLookupError(null);
+    setCanRetryLookup(false);
     setLooking(true);
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
     try {
-      const outcome = await lookupPlate(plate, {
-        signal: controller.signal,
-        uid: user?.uid ?? null,
-      });
-
-      // Three distinct outcomes. A registry outage must never be reported as
-      // "this vehicle does not exist" — and when we hold a previous good
-      // answer for the same plate, it is offered rather than discarded.
-      if (outcome.status === "unavailable") {
-        const message = outcome.cached
-          ? LOOKUP_MESSAGES.cachedFallback
-          : LOOKUP_MESSAGES.unavailable;
-        setLookupError(message);
-        setCanRetryLookup(true);
-        // Cached details are still shown, but never as if they were fresh.
-        setLookupNotice(outcome.cached ? message : null);
-        if (!outcome.cached) return;
-      } else if (outcome.status === "not-found") {
+      const outcome = await lookupPlate(plate, { uid, signal: request.controller.signal });
+      if (!current()) return;
+      if (outcome.status === "not-found") {
         setLookupError(LOOKUP_MESSAGES.notFound);
-        setCanRetryLookup(false);
         setLookupNotice(null);
         return;
-      } else {
-        setCanRetryLookup(false);
-        setLookupNotice(null);
       }
-
-      const result: PlateLookupResult =
-        outcome.status === "found"
-          ? outcome.vehicle
-          : (outcome.cached as PlateLookupResult);
-
-      {
-        setDraft({
-          make: result.make ?? "",
-          model: result.model ?? "",
-          year: result.year ? String(result.year) : "",
-          fuelType: result.fuelType ?? "95",
-          plateNumber: result.plateNumber,
-          category: result.category,
-          fromRegistry: true,
-          tozeretCd: result.tozeretCd ?? null,
-          degemCd: result.degemCd ?? null,
-        });
-        setStep("confirm");
-
-        // Second hop: the certified CO₂ figure for this exact model, which
-        // gives the manufacturer's declared consumption for free.
-        setLoadingSpecs(true);
-        fetchVehicleSpecs(
-          {
-            make: result.make, model: result.model, engineCc: result.engineVolume,
-            tozeretCd: result.tozeretCd,
-            degemCd: result.degemCd,
-            year: result.year,
-            fuelType: result.fuelType ?? "95",
-          },
-          controller.signal,
-        )
-          .then((found) => {
-            setSpecs(found);
-            if (found.trustedTankLiters) setTankLiters(String(found.trustedTankLiters));
-            // Only an exact-year certified figure is pre-filled. A hit on
-            // another year of the same model is offered as a suggestion, not
-            // typed into the field as though it were this car's.
-            if (found.declaredKmPerLiter && found.declaredSource === "exact-year") {
-              setDeclaredKmPerLiter(String(found.declaredKmPerLiter));
-            }
-            // Tank capacity is deliberately NOT pre-filled. Our figure is a
-            // body-type guess, and a guess written into the field becomes a
-            // stored "specification" that then drives a range headline.
-          })
-          .catch(() => undefined)
-          .finally(() => setLoadingSpecs(false));
-      }
+      if (outcome.status === "unavailable") {
+        const message = outcome.cached ? LOOKUP_MESSAGES.cachedFallback : LOOKUP_MESSAGES.unavailable;
+        setLookupError(message);
+        setCanRetryLookup(true);
+        setLookupNotice(outcome.cached ? message : null);
+        if (!outcome.cached) return;
+      } else setLookupNotice(null);
+      const result = outcome.status === "found" ? outcome.vehicle : outcome.cached;
+      if (!result) return;
+      const next: WizardDraft = {
+        make: result.make ?? "", model: result.model ?? "", year: result.year ? String(result.year) : "",
+        fuelType: result.fuelType ?? "95", plateNumber: result.plateNumber,
+        category: result.category, fromRegistry: true, tozeretCd: result.tozeretCd ?? null,
+        degemCd: result.degemCd ?? null, engineCc: result.engineVolume ?? null,
+      };
+      setDraft(next); setEditing(false); setErrors({}); setStep("confirm");
+      startSpecs(next, nextGeneration, accountCurrent);
     } catch (error) {
-      if ((error as Error).name === "AbortError") return;
-      // Anything that escapes the classifier is still an outage, not an answer.
-      setLookupError(LOOKUP_MESSAGES.unavailable);
-      setCanRetryLookup(true);
-    } finally {
-      setLooking(false);
-    }
+      if (!current() || (error as Error).name === "AbortError") return;
+      setLookupError(LOOKUP_MESSAGES.unavailable); setCanRetryLookup(true);
+    } finally { if (current()) setLooking(false); }
   }
 
   function goManual() {
-    setLookupNotice(null);
-    setDraft({ ...EMPTY_DRAFT, plateNumber: plate.replace(/\D/g, "") });
-    setStep("confirm");
+    cancelRequests(true);
+    setLookupNotice(null); setLookupError(null); setErrors({});
+    setDraft({ ...EMPTY_WIZARD_DRAFT, plateNumber: plate }); setEditing(true); setStep("confirm");
+  }
+
+  function changeIdentity(patch: Partial<WizardDraft>) {
+    const next = { ...draft, ...patch };
+    if (wizardIdentity(next) !== wizardIdentity(draft) || patch.fromRegistry === false && draft.fromRegistry) {
+      cancelRequests(true);
+      setLookupNotice(null);
+      setDraft({ ...next, fromRegistry: false, tozeretCd: null, degemCd: null, engineCc: null, category: undefined });
+    } else setDraft(next);
+    setErrors({}); setEditing(true);
+  }
+
+  function nextStep() {
+    const nextErrors = validateWizardDetails(draft);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length) { setValidationAttempt(value => value + 1); return; }
+    setStep("extras");
+    startSpecs(draft, generation.current, captureScope());
+  }
+
+  function openRetained(submitted: VehicleCreationSubmission) {
+    if (submitted.isCurrent()) navigate("/settings/unsynced");
+  }
+
+  function trackSelection(submitted: VehicleCreationSubmission, result: VehicleSelectionResult, localCurrent: () => boolean) {
+    if (!submitted.isCurrent()) return;
+    const version = ++selectionGeneration.current;
+    if (localCurrent()) { setSelection(result); setSelectionPhase("pending"); }
+    const retryToast = () => {
+      if (!submitted.isCurrent() || version !== selectionGeneration.current) return;
+      showToast({ tone: "error", title: "בחירת הרכב עוד לא הושלמה",
+        undoLabel: "ניסיון נוסף", onUndo: () => retrySelection(submitted, localCurrent) });
+    };
+    if (result.state === "blocked") {
+      // Creation failure already exposes its actual retained operation. A
+      // selection retry cannot substitute for recovering that creation.
+      if (result.reason === "creation-unconfirmed") return;
+      if (result.reason === "vehicle-selection-unverified" || result.reason === "vehicle-selection-ended") {
+        showToast({ tone: "error", title: "בחירת הרכב עוד לא הושלמה", detail: result.message,
+          undoLabel: "בחירת רכב", onUndo: () => { if (submitted.isCurrent()) navigate("/settings/vehicles"); } });
+      } else retryToast();
+    }
+    if (result.state === "submitted") void result.receipt.settled.then(ok => {
+      if (!submitted.isCurrent() || version !== selectionGeneration.current) return;
+      if (localCurrent()) setSelectionPhase(ok ? "accepted" : "failed");
+      if (!ok) retryToast();
+    });
+  }
+
+  async function retrySelection(submitted: VehicleCreationSubmission, localCurrent: () => boolean) {
+    if (!submitted.isCurrent() || selectionLock.current) return;
+    selectionLock.current = true;
+    if (localCurrent()) setSaving(true);
+    try { trackSelection(submitted, await submitted.retrySelection(), localCurrent); }
+    catch {
+      if (submitted.isCurrent()) showToast({ tone: "error", title: "הבחירה לא הושלמה",
+        undoLabel: "בדיקה", onUndo: () => openRetained(submitted) });
+    } finally {
+      selectionLock.current = false;
+      if (localCurrent()) setSaving(false);
+    }
   }
 
   async function save() {
-    if (!draft.make.trim()) return;
-    setSaving(true);
+    if (saveLock.current || creationRef.current) return;
+    const result = buildWizardVehicle(draft, numbers, nickname, specs);
+    if (!result.ok) {
+      setErrors(result.errors);
+      setValidationAttempt(value => value + 1);
+      if (result.errors.make || result.errors.model || result.errors.year) setStep("confirm");
+      return;
+    }
+    const localCurrent = captureScope();
+    cancelRequests();
+    saveLock.current = true;
+    setSaving(true); setSaveError(null);
+    const submittedAttempt = (): VehicleCreationSubmission | null => creationRef.current;
     try {
-      const vehicle: Omit<Vehicle, "id" | "createdAt"> = {
-        make: draft.make.trim(),
-        model: draft.model.trim(),
-        year: draft.year ? Number.parseInt(draft.year, 10) : null,
-        plateNumber: draft.plateNumber || null,
-        fuelType: draft.fuelType,
-        // Typed here, it is the user's own number and is trusted. Left blank,
-        // our body-type approximation is stored as an ESTIMATE rather than
-        // thrown away: as a placeholder it helped nobody who did not go and
-        // find their owner's manual, and an approximation that says it is one
-        // beats no capacity at all. `tankLitersSource` keeps them apart, so
-        // nothing gated on a trusted capacity changes.
-        tankLiters: tankLiters
-          ? parseDecimal(tankLiters)
-          : (specs?.suggestedTankLiters ?? null),
-        tankLitersSource: tankLiters
-          ? (specs?.trustedTankLiters === parseDecimal(tankLiters) ? "trusted" as const : "user" as const)
-          : specs?.suggestedTankLiters
-            ? ("estimate" as const)
-            : null,
-        declaredKmPerLiter: declaredKmPerLiter ? parseDecimal(declaredKmPerLiter) : null,
-        declaredSource: declaredKmPerLiter
-          ? specs?.declaredSource === "exact-year" &&
-            declaredKmPerLiter === String(specs.declaredKmPerLiter)
-            ? (specs.consumptionIsOfficial ? "exact-year" as const : "co2-estimate" as const)
-            : ("user" as const)
-          : null,
-        tankSourceUrl: specs?.tankSourceUrl ?? null,
-        specSourceUrl: specs?.sourceUrl ?? null,
-        priceAdjustment: 0,
-        manualPricePerLiter: null,
-        nickname: nickname.trim() || null,
-        archived: false,
-        tozeretCd: draft.tozeretCd ?? null,
-        degemCd: draft.degemCd ?? null,
-      };
-      await addVehicle(vehicle);
-      showToast({ tone: "success", title: "הרכב נוסף", detail: "אפשר להתחיל לתעד תדלוקים" });
-      navigate("/", { replace: true });
-    } catch {
-      showToast({ tone: "error", title: "שמירת הרכב נכשלה", detail: "נסו שוב בעוד רגע" });
+      await addVehicle(result.vehicle, { onSubmitted: submitted => {
+        // Capture the actual operation before the first vehicle can unmount this wizard.
+        creationRef.current = submitted;
+        if (!submitted.isCurrent()) return;
+        if (localCurrent()) { setCreation(submitted); setCreationPhase("pending"); }
+        void submitted.creation.receipt.settled.then(ok => {
+          if (!submitted.isCurrent()) return;
+          if (localCurrent()) setCreationPhase(ok ? "accepted" : "failed");
+          if (!ok) showToast({ tone: "error", title: "פרטי הרכב נשמרו במכשיר", detail: "השליחה לענן לא הושלמה.",
+            undoLabel: "בדיקה", onUndo: () => openRetained(submitted) });
+        });
+        void submitted.selection.then(selectionResult => trackSelection(submitted, selectionResult, localCurrent));
+      } });
+      const submitted = submittedAttempt();
+      if (!submitted?.isCurrent()) return;
+      showToast({ tone: "info", title: "הרכב נשמר במכשיר" });
+      if (localCurrent()) navigate("/", { replace: true });
+    } catch (error) {
+      const submitted = submittedAttempt();
+      if (submitted) {
+        // A failure after enqueue belongs to this operation; it is never a new create.
+        if (localCurrent()) setSaveError("פרטי הרכב שמורים במכשיר. בדקו את מצב השליחה לענן.");
+        if (submitted.isCurrent()) showToast({ tone: "info", title: "פרטי הרכב שמורים במכשיר",
+          undoLabel: "בדיקה", onUndo: () => openRetained(submitted) });
+      } else if (localCurrent()) {
+        setSaveError(error instanceof Error ? error.message : "השמירה לא הושלמה. הפרטים נשארו כאן.");
+      }
     } finally {
-      setSaving(false);
+      saveLock.current = false;
+      if (localCurrent()) setSaving(false);
     }
   }
 
-  const stepIndex = step === "plate" ? 1 : step === "confirm" ? 2 : 3;
+  function back() {
+    if (saveLock.current || selectionLock.current) return;
+    if (creation) { navigate("/", { replace: true }); return; }
+    if (step === "extras") setStep("confirm");
+    else if (step === "confirm") { cancelRequests(); setStep("plate"); }
+    else if (canExit) navigate(-1);
+  }
 
-  return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-bg pt-safe">
-      <header className="flex flex-none items-center justify-between px-5 pb-2 pt-3">
-        <button
-          type="button"
-          onClick={() => {
-            if (step === "extras") setStep("confirm");
-            else if (step === "confirm") setStep("plate");
-            else if (canExit) navigate(-1);
-          }}
-          disabled={step === "plate" && !canExit}
-          aria-label="חזרה"
-          className="flex size-[40px] items-center justify-center rounded-full text-ink transition-[background-color,scale] duration-200 active:scale-[0.96] active:bg-surface-2 disabled:opacity-0"
-        >
-          <ChevronStart size={18} />
+  return <main ref={root} className="vehicle-wizard" data-testid="vehicle-wizard"
+    data-step={needsRecovery ? "recovery" : creation ? "submitted" : step}>
+    <header className="wizard-header">
+      <div className="wizard-top">
+        <button type="button" className="wizard-back" data-testid="wizard-back" aria-label="חזרה" disabled={saving || step === "plate" && !canExit && !creation} onClick={back}>
+          <ChevronEnd size={22}/>
         </button>
-
-        <span className="text-[13.5px] text-muted">שלב <Num>{stepIndex}</Num> מתוך 3</span>
-      </header>
-
-      <div className="px-5 pb-5"><div className="tm-steps" aria-label={`שלב ${stepIndex} מתוך 3`}>{[1, 2, 3].map(n => <span key={n} data-active={n <= stepIndex} />)}</div></div>
-      {step === "plate" ? (
-        <PlateStep
-          plate={plate}
-          setPlate={setPlate}
-          looking={looking}
-          error={lookupError}
-          canRetry={canRetryLookup}
-          onLookup={runLookup}
-          onManual={goManual}
-        />
-      ) : step === "confirm" ? (
-        <ConfirmStep
-          draft={draft}
-          setDraft={(next) => {
-            if (next.make !== draft.make || next.model !== draft.model || next.year !== draft.year || next.fuelType !== draft.fuelType) {
-              abortRef.current?.abort();
-              setSpecs(null);
-              if (specs?.trustedTankLiters === parseDecimal(tankLiters)) setTankLiters('');
-              if (specs?.declaredKmPerLiter === parseDecimal(declaredKmPerLiter)) setDeclaredKmPerLiter('');
-              setDraft({ ...next, tozeretCd: null, degemCd: null, fromRegistry: false });
-            } else setDraft(next);
-          }}
-          onNext={() => {
-            setStep("extras");
-            if (!specs) {
-              abortRef.current?.abort();
-              const controller = new AbortController();
-              abortRef.current = controller;
-              setLoadingSpecs(true);
-              void fetchVehicleSpecs({ ...draft, year: Number(draft.year) }, controller.signal).then(found => {
-                if (controller.signal.aborted) return;
-                setSpecs(found);
-                if (found.trustedTankLiters) setTankLiters(current => current || String(found.trustedTankLiters));
-                if (found.declaredKmPerLiter && found.declaredSource === 'exact-year') setDeclaredKmPerLiter(current => current || String(found.declaredKmPerLiter));
-              }).catch(() => undefined).finally(() => { if (!controller.signal.aborted) setLoadingSpecs(false); });
-            }
-          }}
-          notice={lookupNotice}
-        />
-      ) : (
-        <ExtrasStep
-          tankLiters={tankLiters}
-          setTankLiters={setTankLiters}
-          declaredKmPerLiter={declaredKmPerLiter}
-          setDeclaredKmPerLiter={setDeclaredKmPerLiter}
-          nickname={nickname}
-          setNickname={setNickname}
-          specs={specs}
-          loadingSpecs={loadingSpecs}
-          saving={saving}
-          onSave={save}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ---------------- step 1: plate ---------------- */
-
-function PlateStep({
-  plate,
-  setPlate,
-  looking,
-  error,
-  canRetry,
-  onLookup,
-  onManual,
-}: {
-  plate: string;
-  setPlate: (value: string) => void;
-  looking: boolean;
-  error: string | null;
-  /** True only for a temporary failure — a confirmed miss is not retryable. */
-  canRetry: boolean;
-  onLookup: () => void;
-  onManual: () => void;
-}) {
-  const digits = plate.replace(/\D/g, "");
-
-  return (
-    <div className="flex flex-1 flex-col px-5 pb-8">
-      <div className="flex flex-col gap-2 pt-2">
-        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">מה מספר הרכב?</h1>
-        <p className="text-[14.5px] leading-relaxed text-muted">
-          נאתר את פרטי הרכב אוטומטית ממאגר משרד התחבורה.
-        </p>
+        {!needsRecovery && !creation ? <span className="wizard-step-count">שלב <NumRun>{stepIndex}</NumRun> מתוך <NumRun>3</NumRun></span> : <span/>}
+        <span className="wizard-top-spacer" aria-hidden="true"/>
       </div>
-
-      {/* Israeli plate: yellow field with the blue IL strip on the leading edge. */}
-      <div className="mt-7 flex justify-center">
-        <div className="tm-plate">
-          <span className="tm-plate-il">IL</span>
-          <input
-            className="tm-plate-number num bg-transparent text-center outline-none placeholder:text-[#14171a]/30 focus-visible:bg-white/20"
-            aria-label="מספר רכב"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="00-000-00"
-            value={formatPlate(digits)}
-            onChange={event => setPlate(event.target.value.replace(/\D/g, "").slice(0, 8))}
-            onKeyDown={event => { if (event.key === "Enter" && digits.length >= 5 && !looking) onLookup(); }}
-          />
-        </div>
-      </div>
-
-      <p className="mt-3 text-center text-[14px] text-muted">
-        המספר משמש לאיתור בלבד ונשמר רק בחשבון שלכם
-      </p>
-
-      {error ? (
-        <div className="mt-4 flex items-start gap-2.5 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
-          <WarningIcon size={17} className="mt-px flex-none" />
-          <span className="flex flex-col items-start gap-1.5">
-            <span className="text-[13px] leading-relaxed">{error}</span>
-            {canRetry ? (
-              <button
-                type="button"
-                onClick={onLookup}
-                disabled={looking}
-                className="min-h-[32px] text-[13px] font-bold underline underline-offset-2"
-              >
-                נסו שוב
-              </button>
-            ) : null}
-          </span>
-        </div>
-      ) : null}
-
-      <div className="flex-1" />
-
-      <Keypad
-        onDigit={(digit) => digits.length < 8 && setPlate(digits + digit)}
-        onDelete={() => setPlate(digits.slice(0, -1))}
-        onClear={() => setPlate("")}
-      />
-
-      <div className="mt-5 flex flex-col gap-2">
-        <Button full onClick={onLookup} loading={looking} disabled={digits.length < 5}>
-          <SearchIcon size={19} />
-          אתר רכב
-        </Button>
-        <button
-          type="button"
-          onClick={onManual}
-          className="min-h-[48px] text-[14px] font-semibold text-muted"
-        >
-          אין מספר רכב? הזנה ידנית
-        </button>
-      </div>
-    </div>
-  );
-}
-
-const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
-
-function Keypad({
-  onDigit,
-  onDelete,
-  onClear,
-}: {
-  onDigit: (digit: string) => void;
-  onDelete: () => void;
-  onClear: () => void;
-}) {
-  return (
-    <div dir="ltr" className="grid grid-cols-3 gap-2">
-      {KEYS.map((key) => (
-        <Key key={key} onClick={() => onDigit(key)}>
-          {key}
-        </Key>
-      ))}
-      <Key onClick={onClear} muted>
-        נקה
-      </Key>
-      <Key onClick={() => onDigit("0")}>0</Key>
-      <Key onClick={onDelete} muted ariaLabel="מחיקת ספרה">
-        ⌫
-      </Key>
-    </div>
-  );
-}
-
-function Key({
-  children,
-  onClick,
-  muted = false,
-  ariaLabel,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  muted?: boolean;
-  ariaLabel?: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={ariaLabel}
-      className={`num min-h-[54px] rounded-[10px] text-[23px] font-semibold transition-[background-color,scale] duration-150 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.96] active:bg-surface-2 ${
-        muted ? "bg-surface-2 text-[15px] text-muted" : "bg-surface text-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ---------------- step 2: confirm ---------------- */
-
-const FUEL_OPTIONS: FuelType[] = ["95", "98", "diesel", "other"];
-
-function ConfirmStep({
-  draft,
-  setDraft,
-  onNext,
-  notice,
-}: {
-  draft: Draft;
-  setDraft: (draft: Draft) => void;
-  onNext: () => void;
-  /**
-   * Carried over from the lookup step. When the registry was down and we fell
-   * back to a previously cached answer, the user has to be told HERE — the
-   * step where the message was raised is unmounted the moment the details are
-   * filled in, so showing it only there told nobody anything.
-   */
-  notice?: string | null;
-}) {
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const review = draft.fromRegistry && !editing;
-
-  return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
-      <div className="flex flex-col gap-2 pt-2">
-        {draft.fromRegistry && !notice ? (
-          <span className="tm-status text-success">
-            <CheckIcon size={14} />
-            נמצא במאגר משרד התחבורה
-          </span>
-        ) : null}
-        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">
-          {draft.fromRegistry ? "זה הרכב שלך?" : "פרטי הרכב"}
-        </h1>
-      </div>
-
-      {notice ? (
-        <div className="flex items-start gap-2.5 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
-          <WarningIcon size={17} className="mt-px flex-none" />
-          <span className="text-[13px] leading-relaxed">{notice}</span>
-        </div>
-      ) : null}
-
-      {draft.plateNumber ? (
-        <Card className="flex items-center gap-3 p-3.5">
-          <span className="text-muted">
-            <CarIcon size={18} />
-          </span>
-          <Num className="text-[16px] font-bold text-ink">{formatPlate(draft.plateNumber)}</Num>
-          {draft.category ? (
-            <span className="ms-auto truncate text-[14px] text-muted">{draft.category}</span>
-          ) : null}
-        </Card>
-      ) : null}
-
-      <div className="overflow-hidden rounded-card bg-surface">
-        <Field
-          row
-          readOnly={review}
-          label="יצרן"
-          dir="rtl"
-          value={draft.make}
-          onChange={(event) => setDraft({ ...draft, make: event.target.value })}
-          placeholder="לדוגמה: מזדה"
-        />
-        <Field
-          row
-          readOnly={review}
-          label="דגם"
-          dir="rtl"
-          value={draft.model}
-          onChange={(event) => setDraft({ ...draft, model: event.target.value })}
-          placeholder="לדוגמה: 3 אקטיב"
-        />
-        <Field
-          row
-          readOnly={review}
-          label="שנת ייצור"
-          inputMode="numeric"
-          value={draft.year}
-          maxLength={4}
-          onChange={(event) =>
-            setDraft({ ...draft, year: event.target.value.replace(/\D/g, "").slice(0, 4) })
-          }
-          placeholder="2018"
-        />
-
-        <div className="flex flex-col gap-2 border-t border-[var(--hairline)] px-4 py-3">
-          <Label>סוג דלק</Label>
-          {review ? <span className="text-[15.5px] font-semibold">{FUEL_TYPE_LABELS[draft.fuelType]}</span> : <div className="grid grid-cols-2 gap-2">
-            {FUEL_OPTIONS.map((option) => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => setDraft({ ...draft, fuelType: option })}
-                className={`min-h-[48px] rounded-[14px] border px-3 text-[14px] font-semibold transition-[background-color,border-color,color,scale] duration-200 active:scale-[0.96] ${
-                  draft.fuelType === option
-                    ? "border-accent bg-accent-soft text-accent"
-                    : "border-line bg-surface text-muted"
-                }`}
-              >
-                {FUEL_TYPE_LABELS[option]}
-              </button>
-            ))}
-          </div>}
-        </div>
-      </div>
-
-      {review ? <button type="button" className="tm-text-action self-start" onClick={() => setEditing(true)}>תיקון פרטים</button> : (
-      <button
-        type="button"
-        onClick={() => setCatalogOpen(true)}
-        className="flex min-h-[52px] items-center justify-between rounded-[14px] bg-surface-2 px-4 text-start"
-      >
-        <span className="flex flex-col">
-          <span className="text-[14px] font-semibold text-ink">הרכב לא נמצא? חיפוש ידני</span>
-          <span className="text-[14px] text-muted">בחירת יצרן ← דגם ← שנה</span>
-        </span>
-        <ChevronStart size={18} className="rotate-180 text-muted" />
-      </button>
-      )}
-
-      <div className="flex-1" />
-
-      <Button full onClick={onNext} disabled={!draft.make.trim()}>
-        {draft.fromRegistry ? "כן, זה הרכב שלי" : "המשך"}
-      </Button>
-
-      <CatalogPicker
-        open={catalogOpen}
-        onClose={() => setCatalogOpen(false)}
-        onPick={(make, model, year) => {
-          setDraft({
-            ...draft,
-            make,
-            model,
-            year: year ? String(year) : draft.year,
-            fromRegistry: false,
-          });
-          setCatalogOpen(false);
-        }}
-      />
-    </div>
-  );
-}
-
-/* ---------------- tier 2: catalog picker ---------------- */
-
-let catalogCache: CatalogEntry[] | null = null;
-
-function CatalogPicker({
-  open,
-  onClose,
-  onPick,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onPick: (make: string, model: string, year: number | null) => void;
-}) {
-  const [catalog, setCatalog] = useState<CatalogEntry[] | null>(catalogCache);
-  const [loading, setLoading] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const [query, setQuery] = useState("");
-  const [make, setMake] = useState<CatalogEntry | null>(null);
-  const [model, setModel] = useState<CatalogEntry["models"][number] | null>(null);
-
-  // Lazy-loaded on first open, then cached in-module for the session.
-  useEffect(() => {
-    if (!open || catalog || loading) return;
-    setLoading(true);
-    fetch("/vehicle-catalog.json")
-      .then((response) => response.json())
-      .then((payload: { makes: CatalogEntry[] }) => {
-        catalogCache = payload.makes;
-        setCatalog(payload.makes);
-      })
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
-  }, [open, catalog, loading]);
-
-  useEffect(() => {
-    if (!open) {
-      setMake(null);
-      setModel(null);
-      setQuery("");
-    }
-  }, [open]);
-
-  const makes = useMemo(() => {
-    if (!catalog) return [];
-    const term = query.trim();
-    if (!term) return catalog;
-    return catalog.filter((entry) => entry.make.includes(term));
-  }, [catalog, query]);
-
-  const models = useMemo(() => {
-    if (!make) return [];
-    const term = query.trim();
-    if (!term) return make.models;
-    return make.models.filter((entry) => entry.model.toLowerCase().includes(term.toLowerCase()));
-  }, [make, query]);
-
-  const years = useMemo(() => {
-    if (!model?.from || !model?.to) return [];
-    const list: number[] = [];
-    for (let year = model.to; year >= model.from; year -= 1) list.push(year);
-    return list;
-  }, [model]);
-
-  const title = model ? "בחירת שנה" : make ? "בחירת דגם" : "בחירת יצרן";
-
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title={
-        <div className="flex items-center justify-between">
-          <h2 className="text-[18px] font-semibold text-ink">{title}</h2>
-          {make ? (
-            <button
-              type="button"
-              onClick={() => (model ? setModel(null) : setMake(null))}
-              className="text-[14px] font-semibold text-accent"
-            >
-              חזרה
-            </button>
-          ) : null}
-        </div>
-      }
-    >
-      <div className="flex max-h-[62vh] flex-col gap-3">
-        {!model ? (
-          <div className="flex min-h-[46px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5">
-            <SearchIcon size={17} className="text-muted" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={make ? "חיפוש דגם…" : "חיפוש יצרן…"}
-              className="min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
-            />
-          </div>
-        ) : null}
-
-        {loading ? (
-          <div className="flex justify-center py-10 text-muted">
-            <Spinner size={26} />
-          </div>
-        ) : failed ? (
-          <p className="py-8 text-center text-[14px] text-muted">
-            לא הצלחנו לטעון את רשימת הדגמים. אפשר להזין את הפרטים ידנית.
-          </p>
-        ) : (
-          <div className="no-scrollbar flex flex-col overflow-y-auto">
-            {!make
-              ? makes.map((entry) => (
-                  <PickerRow
-                    key={entry.make}
-                    label={entry.make}
-                    meta={`${entry.models.length} דגמים`}
-                    onClick={() => {
-                      setMake(entry);
-                      setQuery("");
-                    }}
-                  />
-                ))
-              : !model
-                ? models.map((entry) => (
-                    <PickerRow
-                      key={entry.model}
-                      label={entry.model}
-                      meta={entry.from ? `${entry.from}–${entry.to}` : undefined}
-                      onClick={() => {
-                        if (entry.from && entry.to && entry.from !== entry.to) setModel(entry);
-                        else onPick(make.make, entry.model, entry.from);
-                      }}
-                    />
-                  ))
-                : years.map((year) => (
-                    <PickerRow
-                      key={year}
-                      label={String(year)}
-                      onClick={() => onPick(make.make, model.model, year)}
-                    />
-                  ))}
-
-            {!loading && makes.length === 0 && !make ? (
-              <p className="py-8 text-center text-[14px] text-muted">לא נמצאו יצרנים תואמים</p>
-            ) : null}
-          </div>
-        )}
-      </div>
-    </Sheet>
-  );
-}
-
-function PickerRow({
-  label,
-  meta,
-  onClick,
-}: {
-  label: string;
-  meta?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex min-h-[50px] items-center justify-between gap-3 border-b border-line px-2 text-start last:border-b-0 active:bg-surface-2"
-    >
-      <span className="truncate text-[15px] font-semibold text-ink">{label}</span>
-      {meta ? <Num className="flex-none text-[14px] text-muted">{meta}</Num> : null}
-    </button>
-  );
-}
-
-/* ---------------- step 3: optional extras ---------------- */
-
-function ExtrasStep({
-  tankLiters,
-  setTankLiters,
-  declaredKmPerLiter,
-  setDeclaredKmPerLiter,
-  nickname,
-  setNickname,
-  specs,
-  loadingSpecs,
-  saving,
-  onSave,
-}: {
-  tankLiters: string;
-  setTankLiters: (value: string) => void;
-  declaredKmPerLiter: string;
-  setDeclaredKmPerLiter: (value: string) => void;
-  nickname: string;
-  setNickname: (value: string) => void;
-  specs: VehicleSpecs | null;
-  loadingSpecs: boolean;
-  saving: boolean;
-  onSave: () => void;
-}) {
-  const autoFilled = Boolean(specs?.consumptionIsOfficial);
-
-  return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-5 pb-8">
-      <div className="flex flex-col gap-2 pt-2">
-        <div className="flex items-center gap-2">
-          <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">עוד כמה פרטים</h1>
-          <span className="rounded-pill bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-muted">
-            רשות
-          </span>
-        </div>
-        <p className="text-[14.5px] text-muted">
-          {loadingSpecs
-            ? "מושכים את נתוני היצרן…"
-            : autoFilled
-              ? "מילאנו את הצריכה המוצהרת לפי נתוני היצרן. אפשר לשנות הכול."
-              : "אפשר לדלג ולהשלים מאוחר יותר בהגדרות."}
-        </p>
-      </div>
-
-      {loadingSpecs ? (
-        <div className="flex items-center gap-2.5 rounded-[14px] bg-surface-2 px-3.5 py-3 text-muted">
-          <Spinner size={17} />
-          <span className="text-[13px]">מאתרים נתוני צריכה רשמיים לדגם…</span>
-        </div>
-      ) : null}
-
-      <div className="flex flex-col gap-3.5">
-        <Field
-          label="נפח מיכל"
-          inputMode="decimal"
-          suffix="ליטר"
-          value={tankLiters}
-          onChange={(event) => setTankLiters(event.target.value)}
-          placeholder={specs?.suggestedTankLiters ? String(specs.suggestedTankLiters) : "51"}
-          hint={
-            specs?.trustedTankLiters ? `מפרט יצרן · ${specs.trustedTankLiters} ליטר` : specs?.suggestedTankLiters
-              ? `הערכה לפי סוג הרכב: ${specs.suggestedTankLiters} ל׳ — מלאו את הערך מהמדריך למשתמש`
-              : "מופיע במדריך למשתמש. משמש לחישוב טווח נסיעה"
-          }
-        />
-        <Field
-          label={!specs?.consumptionIsOfficial && specs?.declaredKmPerLiter === parseDecimal(declaredKmPerLiter) ? "צריכת ייחוס משוערת" : "צריכה מוצהרת"}
-          inputMode="decimal"
-          suffix="קמ״ל"
-          value={declaredKmPerLiter}
-          onChange={(event) => setDeclaredKmPerLiter(event.target.value)}
-          placeholder="16.2"
-          hint={
-            specs?.declaredSource === "exact-year" &&
-            declaredKmPerLiter === String(specs.declaredKmPerLiter)
-              ? `נתון תקינה אירופאי · ${specs.matchedYear}`
-              : specs?.declaredKmPerLiter
-                ? `קירוב מנתוני CO₂ במשרד התחבורה · ${specs.matchedYear}. ניתן לתקן לפי מפרט היצרן.`
-                : "לפי נתוני היצרן — נשווה אליה את הצריכה בפועל"
-          }
-        />
-        <Field
-          label="כינוי לרכב"
-          dir="rtl"
-          value={nickname}
-          onChange={(event) => setNickname(event.target.value)}
-          placeholder="המאזדה של יעל"
-        />
-      </div>
-
-      <div className="flex-1" />
-
-      <div className="flex flex-col gap-2">
-        <Button full onClick={onSave} loading={saving}>
-          שמירת הרכב
-        </Button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={saving}
-          className="min-h-[48px] text-[14px] font-semibold text-muted disabled:opacity-50"
-        >
-          אשלים מאוחר יותר
-        </button>
-      </div>
-    </div>
-  );
+      {!needsRecovery && !creation ? <div className="wizard-progress" role="progressbar" aria-label="הוספת רכב" aria-valuemin={1} aria-valuemax={3} aria-valuenow={stepIndex}>
+        {[1, 2, 3].map(number => <span key={number} data-active={number <= stepIndex}/>)}
+      </div> : null}
+    </header>
+    {needsRecovery ? <WizardRecovery state={recoveryState} operations={retained} onDifferentVehicle={() => setDifferentVehicle(true)}/>
+      : creation ? <WizardCreationStatus submission={creation} phase={creationPhase} selection={selection} selectionPhase={selectionPhase} selected={activeVehicle?.id === creation.vehicleId}
+        busy={saving} error={saveError} onRetrySelection={() => void retrySelection(creation, captureScope())}
+        onDone={() => { if (creation.isCurrent()) navigate("/", { replace: true }); }}/>
+        : <>
+          {saveError ? <p className="wizard-error wizard-save-error" data-testid="wizard-error" role="alert"><NumericText>{saveError}</NumericText></p> : null}
+          {step === "plate" ? <PlateStep plate={plate} onPlateChange={changePlate} looking={looking} error={lookupError}
+            canRetry={canRetryLookup} onLookup={() => void runLookup()} onManual={goManual}/>
+            : step === "confirm" ? <ConfirmStep draft={draft} review={draft.fromRegistry && !editing} notice={lookupNotice} errors={errors}
+              onChange={changeIdentity} onCorrect={() => setEditing(true)} onNext={nextStep}/>
+              : <ExtrasStep draft={draft} numbers={numbers} nickname={nickname} specs={specs} loadingSpecs={loadingSpecs}
+                saving={saving} errors={errors} onTankChange={value => { setNumbers(current => ({ ...current, tank: typeWizardNumber(value) })); setErrors(current => ({ ...current, tank: undefined })); }}
+                onDeclaredChange={value => { setNumbers(current => ({ ...current, declared: typeWizardNumber(value) })); setErrors(current => ({ ...current, declared: undefined })); }}
+                onNicknameChange={value => { setNickname(value); setErrors(current => ({ ...current, nickname: undefined })); }} onSave={() => void save()}/>}
+        </>}
+  </main>;
 }

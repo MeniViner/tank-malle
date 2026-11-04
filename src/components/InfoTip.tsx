@@ -34,7 +34,7 @@ export function InfoTip({
         aria-expanded={open}
         onClick={() => setOpen(true)}
         className={`flex size-10 flex-none items-center justify-center rounded-full transition-[color,scale] duration-200 active:scale-[0.96] ${
-          open ? "text-accent" : "text-muted/70"
+          open ? "text-ink" : "text-muted/70"
         }`}
       >
         <InfoIcon size={16} />

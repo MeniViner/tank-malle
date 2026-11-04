@@ -16,7 +16,8 @@ import sharp from "sharp";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ICONS = resolve(ROOT, "public/icons");
 
-const ACCENT = "#0E7A6B";
+const ACCENT = "#FFC915";
+const INK = "#111";
 
 /** @param {{ scale: number, background: string, radius: number | null }} options */
 function markSvg({ scale, background, radius }) {
@@ -32,9 +33,9 @@ function markSvg({ scale, background, radius }) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   ${shape}
   <g transform="translate(${inset} ${inset}) scale(${glyph / 64})">
-    <path d="M14 41A21 21 0 1 1 50 41" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-    <path d="M32 36 45 26" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="32" cy="37" r="4" fill="#FFFFFF"/>
+    <path d="M14 41A21 21 0 1 1 50 41" stroke="${INK}" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+    <path d="M32 36 45 26" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="32" cy="37" r="4" fill="${INK}"/>
   </g>
 </svg>`;
 }
@@ -70,9 +71,9 @@ async function main() {
 
   const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="${ACCENT}"/>
-  <path d="M17 40A17 17 0 1 1 47 40" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" fill="none"/>
-  <path d="M32 37 43 28" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="32" cy="38" r="3.6" fill="#FFFFFF"/>
+  <path d="M17 40A17 17 0 1 1 47 40" stroke="${INK}" stroke-width="4.5" stroke-linecap="round" fill="none"/>
+  <path d="M32 37 43 28" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="32" cy="38" r="3.6" fill="${INK}"/>
 </svg>`;
   await writeFile(resolve(ROOT, "public/favicon.svg"), favicon, "utf8");
   console.log("  favicon.svg");

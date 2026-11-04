@@ -51,7 +51,7 @@ test('exact receipt identity blocks import before offering an uncertain duplicat
 test('the two supplied photographs advance automatically and populate the normal review form',async({page})=>{
   test.skip(!process.env.CARE_PUMP_PHOTO||!process.env.CARE_ODO_PHOTO,'Private photographs supplied through local environment paths only.');
   await signedInWithData(page,{fillups:[]});
-  await page.route('**/*',route=>{const url=new URL(route.request().url());return ['blob:','data:'].includes(url.protocol)||['127.0.0.1','localhost'].includes(url.hostname)?route.continue():route.abort();});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await page.route('**/*',route=>{const url=new URL(route.request().url());return ['blob:','data:'].includes(url.protocol)||['127.0.0.1','localhost'].includes(url.hostname)?route.continue():route.abort();});await page.goto('/fillup/new');await page.getByTestId("fillup-camera").click();
   await page.evaluate(()=>{
     (window as any).__photoTimes={};(window as any).__photoStages=[];
     const decode=HTMLImageElement.prototype.decode;
@@ -75,9 +75,9 @@ test('the two supplied photographs advance automatically and populate the normal
   await expect(page.getByText('המשאבה נקראה',{exact:true})).toBeVisible();const pumpMs=Date.now()-start;
   const odoStart=Date.now();await page.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles(process.env.CARE_ODO_PHOTO!);
   await expect(page.getByRole('dialog')).toHaveCount(0);const odoMs=Date.now()-odoStart;
-  await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue('202.73');
+  await expect(page.getByTestId("fillup-total")).toHaveValue('202.73');
   await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('26.092');
-  await expect(page.getByLabel(/^קילומטראז׳ (נוכחי|בתאריך זה)$/)).toHaveValue('171272');
+  await expect(page.getByTestId("fillup-odometer")).toHaveValue('171272');
   console.info(`PHOTO_AUTOMATION_MS pump=${pumpMs} odometer=${odoMs}; CHANGE_TO_RENDER_MS ${JSON.stringify(await page.evaluate(()=>({render:(window as any).__photoTimes,stages:(window as any).__photoStages})))}`);
 });
 
@@ -87,11 +87,11 @@ test('the guided care picker and details remain usable in light and dark phone a
   for(const colorScheme of ['light','dark'] as const)for(const width of [320,390,430,1280]) {
     await page.emulateMedia({colorScheme});await page.setViewportSize({width,height:844});
     await page.getByRole('button',{name:'הוספת טיפול',exact:true}).click();const dialog=page.getByRole('dialog');
-    await expect(dialog.getByRole('heading',{name:'מה בוצע ברכב?',exact:true})).toBeVisible();
+    await expect(dialog.getByRole('heading',{name:'מה עשו ברכב?',exact:true})).toBeVisible();
     for(const name of ['צמיגים','בלמים']) {
-      const choice=dialog.getByRole('button',{name,exact:true});const box=await choice.boundingBox();expect(box!.width).toBeGreaterThanOrEqual(40);expect(box!.height).toBeGreaterThanOrEqual(40);await choice.click();
+      const choice=dialog.getByRole('button',{name,exact:true});const box=await choice.boundingBox();expect(box!.width).toBeGreaterThanOrEqual(44);expect(box!.height).toBeGreaterThanOrEqual(44);await choice.click();
     }
-    await dialog.getByRole('button',{name:'המשך לפרטי הטיפול',exact:true}).click();await expect(dialog.getByRole('button',{name:'שינוי סוג הרשומה'})).toContainText('צמיגים · בלמים');
+    await dialog.getByRole('button',{name:'המשך לפרטי הטיפול',exact:true}).click();await expect(dialog.getByRole('heading',{name:'צמיגים · בלמים',exact:true})).toBeVisible();
     await expect(dialog.getByLabel('תיאור',{exact:true})).not.toBeVisible();await expect(dialog.getByLabel('עלות כוללת',{exact:true})).toBeVisible();
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
@@ -102,11 +102,11 @@ test('the guided care picker and details remain usable in light and dark phone a
 
 test('unreadable and corrupt photographs leave the manual path available without guessed values',async({page})=>{
   const sharp=(await import('sharp')).default;
-  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByRole('button',{name:/הוספה בשני צילומים/}).click();
+  await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByTestId("fillup-camera").click();
   const input=page.getByLabel('תמונת משאבה',{exact:true});
   const blank=await sharp({create:{width:640,height:480,channels:4,background:'#808080'}}).png().toBuffer();
   await input.setInputFiles({name:'unreadable.png',mimeType:'image/png',buffer:blank});await expect(page.getByText(/הספרות עדיין לא ברורות מספיק/)).toBeVisible();
   await input.setInputFiles({name:'broken.jpg',mimeType:'image/jpeg',buffer:Buffer.from('not an image')});await expect(page.getByText(/התמונה לא נפתחה/)).toBeVisible();
   await page.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
-  await expect(page.getByLabel('סה״כ לתשלום',{exact:true})).toHaveValue('');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('');
+  await expect(page.getByTestId("fillup-total")).toHaveValue('');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('');
 });

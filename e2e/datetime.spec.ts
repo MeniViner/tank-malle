@@ -13,13 +13,9 @@ import { ALICE, createVehicle, signIn } from "./helpers/app";
 
 test.describe.configure({ mode: "serial" });
 
-test.beforeAll(async () => {
-  await resetEmulators();
-});
-
 async function openDateSheet(page: import("@playwright/test").Page): Promise<void> {
   await page.goto("/fillup/new");
-  await page.getByRole("button", { name: /תאריך ושעה/ }).first().click();
+  await page.getByTestId("fillup-date").click();
   await expect(page.getByLabel("שעה — הקלדה ידנית")).toBeVisible();
 }
 
@@ -32,11 +28,9 @@ function yesterdayIso(): string {
 }
 
 test.beforeEach(async ({ page }) => {
+  await resetEmulators();
   await signIn(page, ALICE);
-  const header = page.getByText("מאזדה 3", { exact: false }).first();
-  if (!(await header.count())) {
-    await createVehicle(page, { make: "מאזדה", model: "3" });
-  }
+  await createVehicle(page, { account: ALICE, make: "מאזדה", model: "3" });
 });
 
 test("an exact minute can be typed", async ({ page }) => {

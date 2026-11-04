@@ -1,210 +1,78 @@
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
-  UNITS,
-  int,
-  num,
-  percent,
-  percentPlain,
-  price as priceText,
-  shekel,
-  shekelSigned,
+  UNITS, int, num, percent, percentPlain, price as priceText, shekel, shekelSigned,
 } from "../lib/format";
 
-/**
- * Semantic formatting primitives.
- *
- * The rule the whole app follows: the numeric run — digits, sign, decimal and
- * thousands separators and the currency symbol — is one atomic LTR island. The
- * Hebrew unit word is NOT part of that island; it stays ordinary RTL content
- * beside it. Putting both into one uncontrolled dir="ltr" span is what produces
- * "35%+" and reversed unit order.
- *
- * <bdi> isolates the run from the surrounding bidi context so a leading "+" or
- * "−" cannot be dragged to the wrong end of the number.
- */
-
-/** The LTR island itself. Everything numeric goes through here. */
-export function NumRun({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
+export interface NumberPresentation {
   className?: string;
-}) {
-  return (
-    <bdi dir="ltr" className={`num inline-block ${className}`}>
-      {children}
-    </bdi>
-  );
+  /** A standalone value begins at the right edge of the surrounding RTL layout. */
+  block?: boolean;
+  /** Row-end amounts can explicitly align left without changing their LTR order. */
+  align?: "leading" | "trailing" | "inherit";
 }
 
-/** A number followed by a Hebrew unit that stays outside the LTR island. */
-function WithUnit({
-  value,
-  unit,
-  className = "",
-  unitClassName = "",
-}: {
+export interface NumRunProps extends NumberPresentation { children: ReactNode }
+
+/** Digits, signs and currency form one isolated LTR run; Hebrew stays outside. */
+export function NumRun({ children, className = "", block = false, align = "leading" }: NumRunProps) {
+  return <bdi dir="ltr" data-number-align={align}
+    className={`num tm-number${block ? " tm-number-block" : ""} ${className}`}>{children}</bdi>;
+}
+
+/** Mixed labels keep numeric fragments isolated; this never formats their values. */
+export function NumericText({ children }: { children: string }) {
+  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*)?\d(?:[\d,.:/]*\d)?[%₪]?)/gu)
+    .map((part, index) => index % 2 ? <NumRun key={index}>{part}</NumRun> : part)}</>;
+}
+
+/** A unit such as ל׳/100 ק״מ still isolates its embedded numeric run. */
+function UnitText({ value }: { value: string }) {
+  return <>{value.split(/(\d+(?:[.,]\d+)*)/).map((part, index) =>
+    /^\d/.test(part) ? <NumRun key={index}>{part}</NumRun> : part)}</>;
+}
+
+interface WithUnitProps extends NumberPresentation {
   value: string;
   unit: string;
-  className?: string;
   unitClassName?: string;
-}) {
-  return (
-    <span className={className}>
-      <NumRun>{value}</NumRun>
-      <span className={`unit ${unitClassName}`}> {unit}</span>
-    </span>
-  );
+}
+function WithUnit({ value, unit, className = "", unitClassName = "", block = false, align = "leading" }: WithUnitProps) {
+  return <span data-number-align={align} className={`tm-number-with-unit${block ? " tm-number-block" : ""} ${className}`}>
+    <NumRun>{value}</NumRun><span className={`unit ${unitClassName}`}> <UnitText value={unit} /></span>
+  </span>;
 }
 
-/** ₪217 (whole-shekel display; source values retain their precision). */
-export function Money({
-  value,
-  className = "",
-}: {
-  value: number;
-  className?: string;
+/** Whole-shekel display only; editable and persisted values keep their precision. */
+export function Money({ value, ...presentation }: NumberPresentation & { value: number }) {
+  return <NumRun {...presentation}>{shekel(value)}</NumRun>;
+}
+export function SignedMoney({ value, ...presentation }: NumberPresentation & { value: number }) {
+  return <NumRun {...presentation}>{shekelSigned(value)}</NumRun>;
+}
+export function PricePerLiter({ value, ...presentation }: NumberPresentation & { value: number; unitClassName?: string }) {
+  return <WithUnit value={priceText(value)} unit={UNITS.perLiter} {...presentation} />;
+}
+export function SignedPercent({ value, digits = 0, ...presentation }: NumberPresentation & { value: number; digits?: number }) {
+  return <NumRun {...presentation}>{percent(value, digits)}</NumRun>;
+}
+export function Percent({ value, digits = 0, ...presentation }: NumberPresentation & { value: number; digits?: number }) {
+  return <NumRun {...presentation}>{percentPlain(value, digits)}</NumRun>;
+}
+export function Quantity({ value, digits = 2, long = false, ...presentation }: NumberPresentation & {
+  value: number; digits?: number; long?: boolean; unitClassName?: string;
 }) {
-  return <NumRun className={className}>{shekel(value)}</NumRun>;
+  return <WithUnit value={num(value, digits)} unit={long ? UNITS.litersLong : UNITS.liters} {...presentation} />;
+}
+export function Distance({ value, ...presentation }: NumberPresentation & { value: number; unitClassName?: string }) {
+  return <WithUnit value={int(value)} unit={UNITS.km} {...presentation} />;
 }
 
-/** +₪1 / −₪2 */
-export function SignedMoney({
-  value,
-  className = "",
-}: {
-  value: number;
-  className?: string;
+/** Canonical km/L is converted together with its unit, never just relabelled. */
+export function ConsumptionValue({ kmPerLiter, units, long = false, ...presentation }: NumberPresentation & {
+  kmPerLiter: number | null; units: "kmPerLiter" | "litersPer100"; long?: boolean; unitClassName?: string;
 }) {
-  return <NumRun className={className}>{shekelSigned(value)}</NumRun>;
-}
-
-/** ₪7.35 לליטר */
-export function PricePerLiter({
-  value,
-  className = "",
-  unitClassName = "",
-}: {
-  value: number;
-  className?: string;
-  unitClassName?: string;
-}) {
-  return (
-    <WithUnit
-      value={priceText(value)}
-      unit={UNITS.perLiter}
-      className={className}
-      unitClassName={unitClassName}
-    />
-  );
-}
-
-/** +35% / −8% — the sign leads and stays attached to the digits. */
-export function SignedPercent({
-  value,
-  digits = 0,
-  className = "",
-}: {
-  value: number;
-  digits?: number;
-  className?: string;
-}) {
-  return <NumRun className={className}>{percent(value, digits)}</NumRun>;
-}
-
-/** 72% */
-export function Percent({
-  value,
-  digits = 0,
-  className = "",
-}: {
-  value: number;
-  digits?: number;
-  className?: string;
-}) {
-  return <NumRun className={className}>{percentPlain(value, digits)}</NumRun>;
-}
-
-/** 26.762 ל׳ */
-export function Quantity({
-  value,
-  digits = 2,
-  long = false,
-  className = "",
-  unitClassName = "",
-}: {
-  value: number;
-  digits?: number;
-  /** "ליטר" instead of "ל׳". */
-  long?: boolean;
-  className?: string;
-  unitClassName?: string;
-}) {
-  return (
-    <WithUnit
-      value={num(value, digits)}
-      unit={long ? UNITS.litersLong : UNITS.liters}
-      className={className}
-      unitClassName={unitClassName}
-    />
-  );
-}
-
-/** 201,050 ק״מ */
-export function Distance({
-  value,
-  className = "",
-  unitClassName = "",
-}: {
-  value: number;
-  className?: string;
-  unitClassName?: string;
-}) {
-  return (
-    <WithUnit
-      value={int(value)}
-      unit={UNITS.km}
-      className={className}
-      unitClassName={unitClassName}
-    />
-  );
-}
-
-/**
- * 12.4 קמ״ל / 8.1 ל׳/100 ק״מ.
- *
- * The unit follows the user's setting AND the value is converted to match it.
- * Changing only the label while leaving the value in km/L is the bug this
- * component exists to make impossible: it takes km/L and converts internally.
- */
-export function ConsumptionValue({
-  kmPerLiter,
-  units,
-  className = "",
-  unitClassName = "",
-}: {
-  kmPerLiter: number | null;
-  units: "kmPerLiter" | "litersPer100";
-  className?: string;
-  unitClassName?: string;
-}) {
-  const unit = units === "kmPerLiter" ? UNITS.kmPerLiter : UNITS.litersPer100;
-  if (kmPerLiter === null || !Number.isFinite(kmPerLiter) || kmPerLiter <= 0) {
-    return (
-      <span className={className}>
-        <NumRun>—</NumRun>
-        <span className={`unit ${unitClassName}`}> {unit}</span>
-      </span>
-    );
-  }
-  const value = units === "kmPerLiter" ? kmPerLiter : 100 / kmPerLiter;
-  return (
-    <WithUnit
-      value={num(value, 1)}
-      unit={unit}
-      className={className}
-      unitClassName={unitClassName}
-    />
-  );
+  const unit = long ? units === "kmPerLiter" ? "ק״מ לליטר" : "ל׳ ל-100 ק״מ" : units === "kmPerLiter" ? UNITS.kmPerLiter : UNITS.litersPer100;
+  const valid = kmPerLiter !== null && Number.isFinite(kmPerLiter) && kmPerLiter > 0;
+  const value = valid ? num(units === "kmPerLiter" ? kmPerLiter : 100 / kmPerLiter, 1) : "—";
+  return <WithUnit value={value} unit={unit} {...presentation} />;
 }

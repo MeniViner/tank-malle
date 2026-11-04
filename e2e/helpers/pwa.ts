@@ -1,4 +1,5 @@
 import { expect, type Page } from "@playwright/test";
+import { finishFillupSave, setFillupEndState } from "./fillup";
 
 /**
  * Helpers for the production-build rig (the `pwa` Playwright project).
@@ -142,9 +143,8 @@ export async function fillForm(
   await page.getByLabel("ליטרים", { exact: true }).fill(String(input.liters));
   await page.getByLabel("מחיר לליטר").fill(String(input.price));
   if (input.full !== false) {
-    if (!(await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).isVisible())) await page.getByRole('button',{name:'פתיחת מצב המיכל',exact:true}).click();
-    await page.getByRole("button", { name: "מילאתי מיכל מלא", exact: true }).click();
+    await setFillupEndState(page, "full");
   }
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
-  await expect(page).toHaveURL(/127\.0\.0\.1:\d+\/(\?.*)?$/, { timeout: 20_000 });
+  await finishFillupSave(page);
 }

@@ -1,3 +1,4 @@
+import { expectConsumptionCounts } from "./helpers/design-v2-home";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { test, expect, type Page } from "@playwright/test";
@@ -258,12 +259,10 @@ test.describe(() => {
     // one is the stretch across the undocumented fill-ups, which belongs to
     // nobody.
     await page.goto("/");
-    await expect(
-      page.getByText(/23 מקטעים · 25 תדלוקים/),
-    ).toBeVisible({ timeout: 25_000 });
+    await expectConsumptionCounts(page, 23, 25);
 
     await page.goto("/history");
-    await expect(page.getByText("התחלת תקופה חדשה")).toBeVisible({ timeout: 25_000 });
+    await expect(page.getByText("אחרי תדלוקים שלא נרשמו")).toBeVisible({ timeout: 25_000 });
   });
 
   test("re-importing the attached workbook adds nothing", async ({ page }) => {
