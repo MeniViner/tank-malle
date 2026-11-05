@@ -4,6 +4,7 @@ import {
   getDocument, monthKeyInBrowserTimeZone, seedFillups, seedVehicle, setDocument,
   type SeedFillup, type SeedVehicle,
 } from "./emulator";
+import { israelMidnight } from "../../src/lib/prices/publicSource";
 import { outboxCount } from "./pwa";
 
 export const DAY = 86_400_000;
@@ -128,7 +129,7 @@ export async function homePriceChange(now: number) {
   const currentKey = monthKeyInBrowserTimeZone(new Date(now));
   const [year, month] = currentKey.split("-").map(Number);
   const previousKey = monthKeyInBrowserTimeZone(new Date(Date.UTC(year, month - 2, 15, 12)));
-  const current = { pricePerLiter: 7.77, updatedAt: new Date(now) };
+  const current = { pricePerLiter: 7.77, effectiveFrom: new Date(israelMidnight(year, month, 1)!), updatedAt: new Date(now) };
   const history = { [previousKey]: 7.52, [currentKey]: 7.77 };
   await setDocument("appConfig/fuelPrices", {
     byFuelType: { "95": { self: { current, history, scheduledHistory: history, source: "scheduled", retrievedAt: new Date(now) } } },

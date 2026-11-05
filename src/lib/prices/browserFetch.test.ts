@@ -15,13 +15,13 @@ describe('independent browser price read', () => {
     const fetcher = vi.fn(async (url: string) => {
       if (!url.startsWith('https://r.jina.ai/')) throw new TypeError('CORS');
       if (url.includes('collectors')) return new Response('https://www.gov.il/he/pages/fuel-october-5-2026 https://www.gov.il/he/pages/fuel-october-2026');
-      return new Response(body.replace('8.27', '7.77'));
+      return url.endsWith('fuel-october-5-2026') ? new Response('בחצות הלילה (5.10.2026), יעודכנו המחירים. ' + body.replace('8.27', '7.77')) : new Response('', { status: 404 });
     });
     const result = await fetchBrowserPrice(Date.parse('2026-10-16'), fetcher as typeof fetch);
     expect(result.price).toBe(7.77);
     expect(result.effectiveFrom).toBe(Date.parse('2026-10-04T21:00:00Z'));
     expect(result.via).toBe('public-reader');
-    expect(fetcher).toHaveBeenCalledTimes(4);
+    expect(fetcher.mock.calls.some(([url]) => url === 'https://r.jina.ai/https://www.gov.il/he/pages/fuel-october-5-2026')).toBe(true);
   });
   it('rejects challenge pages instead of presenting them as a successful update', async () => {
     const fetcher = vi.fn(async () => new Response(`Target URL returned error 403 ${body}`));

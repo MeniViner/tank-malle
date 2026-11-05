@@ -1,12 +1,8 @@
 name: Fuel price
 
-# The regulated 95 price, refreshed daily — the free replacement for the
-# scheduled Cloud Function, which needs the Blaze plan.
-#
-# Cost: one ~40-second job a day. Public repositories get unlimited Actions
-# minutes; a private one gets 2,000 free minutes a month, of which this uses
-# about twenty. Nothing here is billed by Firebase either: the job writes one
-# document, well inside the Spark free quota.
+# The regulated 95 price and confirmed upcoming notices, refreshed every two hours.
+# A published change can arrive within a month. GitHub schedules may be delayed;
+# the browser also checks public notices while the app is in use.
 #
 # ONE-TIME SETUP
 #   1. Firebase console → Project settings → Service accounts → Generate new
@@ -21,10 +17,8 @@ name: Fuel price
 
 on:
   schedule:
-    # 02:15 UTC — early morning in Israel, after the ministry publishes and
-    # well before anyone fills up. GitHub runs cron on UTC and does not
-    # observe local daylight saving.
-    - cron: "15 2 * * *"
+    # UTC; actual price activation is derived from the notice in Asia/Jerusalem.
+    - cron: "17 */2 * * *"
   workflow_dispatch:
 
 concurrency:

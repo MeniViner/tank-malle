@@ -1,8 +1,9 @@
-import { consumption, heMonthName, int, monthYear, price, shekel } from "../format";
+import { consumption, int, monthYear, shekel } from "../format";
 import type { MaintenancePlan } from "../maintenance/model";
 import type { OutboxOperation } from "../outbox";
-import { officialPriceFor, type RegulatedPriceConfig } from "../prices/regulated";
-import { isTankCapacityTrusted, monthKey, type Stats, type Vehicle } from "../stats";
+import { type RegulatedPriceConfig } from "../prices/regulated";
+import { monthKey, type Stats, type Vehicle } from "../stats";
+import { priceSpotlights } from "./priceSpotlight";
 import type { LedgerRow, MileageEvidence } from "../vehicle/derived";
 
 export interface SpotlightItem {
@@ -75,24 +76,8 @@ export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
   }
   const date = new Date(now);
   const previousDate = new Date(date.getFullYear(), date.getMonth(), 0, 23, 59, 59, 999);
-  const currentMonth = monthKey(now), previousMonth = monthKey(+previousDate);
-  if (vehicle.fuelType === "95") {
-    const current = officialPriceFor(prices, "95", now), previous = officialPriceFor(prices, "95", +previousDate);
-    if (current.isRegulated && previous.isRegulated && current.price !== null && current.price > 0 && previous.price !== null && previous.price > 0
-        && current.effectiveMonth === currentMonth && previous.effectiveMonth === previousMonth) {
-      const delta = current.price - previous.price;
-      if (Math.abs(delta) >= .005) {
-        const tankDifference = isTankCapacityTrusted(vehicle) ? Math.abs(delta) * vehicle.tankLiters! : null;
-        const tankText = tankDifference === null ? "" : Math.round(tankDifference) === 0
-          ? " השינוי למיכל מלא קטן משקל." : ` מיכל מלא ${delta < 0 ? "זול" : "יקר"} בכ-${shekel(tankDifference)}.`;
-        items.push({ id: `price:95:${currentMonth}:${current.price}`, tone: "info", icon: "coin",
-          title: `בנזין 95 ${delta < 0 ? "ירד" : "עלה"} ב-${price(Math.abs(delta))} לליטר`,
-          body: `${price(current.price)} לליטר ב${heMonthName(date.getMonth() + 1)}.${tankText}`,
-          target: { kind: "price" },
-        });
-      }
-    }
-  }
+  const previousMonth = monthKey(+previousDate);
+  items.push(...priceSpotlights(prices, vehicle, now));
   if (input.historyComplete !== false && date.getDate() <= 7) {
     const rows = ledger.filter(row => row.day.startsWith(previousMonth) && row.financial);
     const fuel = rows.filter(row => row.kind === "fuel"), services = rows.filter(row => row.kind === "service");

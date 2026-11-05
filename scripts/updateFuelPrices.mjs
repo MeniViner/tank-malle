@@ -1,8 +1,8 @@
 /**
- * Nightly refresh of the regulated fuel price, without a Cloud Function.
+ * Regular refresh of regulated fuel prices and confirmed upcoming notices, without a Cloud Function.
  *
  * The scheduled function in `functions/` needs Blaze. This does the same job
- * from anywhere that can run Node once a day — GitHub Actions, in our case —
+ * from anywhere that can run Node periodically — GitHub Actions, in our case —
  * which is free and stays free. See .github/workflows/fuel-prices.yml.
  *
  *   # print what it would write, no credentials needed
@@ -53,15 +53,16 @@ import { pathToFileURL } from "node:url";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
-import { readPublicPrice, parsePublicAnnouncement, priceTimeline } from '../src/lib/prices/publicSource.ts';
+import { readPublicPrices, parsePublicAnnouncement, priceTimeline, noticeFromReading, israelMidnight, NOTICE_FRESHNESS_MS } from '../src/lib/prices/publicSource.ts';
 function monthKey(date) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).format(date).slice(0, 7); }
 export function parseAnnouncement(raw) {
   const p = parsePublicAnnouncement(raw);
   return p ? { selfService: p.price, fullService: p.fullService } : null;
 }
 export async function readCurrentPrice(now = new Date()) {
-  const p = await readPublicPrice(now.getTime());
-  return { ...p, selfService: p.price };
+  const snapshot = await readPublicPrices(now.getTime());
+  const current = snapshot.notices.filter(p => p.effectiveFrom <= now.getTime()).at(-1);
+  return { ...snapshot, ...current, selfService: current?.price };
 }
 
 async function credentials() {
@@ -101,6 +102,7 @@ function toMillis(value) {
  */
 export function planWrite(existing, reading, now, projectId = null) {
   const attemptAt = now;
+  if (reading.ok && Array.isArray(reading.notices)) return planSnapshot(existing, reading, now, projectId);
 
   if (!reading.ok) {
     return {
@@ -118,8 +120,12 @@ export function planWrite(existing, reading, now, projectId = null) {
   }
 
   const { selfService, fullService, month, via } = reading;
-  const effectiveFrom = reading.effectiveFrom != null ? new Date(reading.effectiveFrom) : new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 1, 1);
+  const effectiveFrom = reading.effectiveFrom != null ? new Date(reading.effectiveFrom) : new Date(israelMidnight(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 1));
 
+  if (effectiveFrom.getTime() > now.getTime()) {
+    if (reading.effectiveDateSource === 'notice') return planSnapshot(existing, { notices: [{ ...reading, price: selfService }], readAt: now.getTime() }, now, projectId);
+    return planWrite(existing, { ok: false, error: 'Unconfirmed future price retained separately; active price unchanged' }, now, projectId);
+  }
   const previousAt = toMillis(existing?.byFuelType?.['95']?.self?.current?.effectiveFrom);
   if (previousAt && previousAt > effectiveFrom.getTime()) {
     return planWrite(existing, { ok: false, error: 'Source returned an older publication; previous price retained' }, now, projectId);
@@ -136,7 +142,7 @@ export function planWrite(existing, reading, now, projectId = null) {
   };
 
   /** One fuel-type/service-mode series, in the shape the app reads. */
-  const scheduledSeries = (price) => ({
+  const scheduledSeries = (price, mode) => ({
     current: { pricePerLiter: price, effectiveFrom, updatedAt: attemptAt },
     history: { [month]: price },
     scheduledHistory: { [month]: price },
@@ -144,7 +150,7 @@ export function planWrite(existing, reading, now, projectId = null) {
     retrievedAt: attemptAt,
     sourceUrl: reading.url ?? null,
     timeline: priceTimeline(
-      { ...existing?.byFuelType?.['95']?.[price === selfService ? 'self' : 'full'], current: { effectiveFrom: price === selfService ? previousAt : toMillis(existing?.byFuelType?.['95']?.full?.current?.effectiveFrom) } },
+      { ...existing?.byFuelType?.['95']?.[mode], current: { ...existing?.byFuelType?.['95']?.[mode]?.current, effectiveFrom: toMillis(existing?.byFuelType?.['95']?.[mode]?.current?.effectiveFrom) } },
       { month, effectiveFrom: effectiveFrom.getTime(), price }),
   });
 
@@ -167,7 +173,7 @@ export function planWrite(existing, reading, now, projectId = null) {
         byFuelType: {
           95: {
             self: { scheduledHistory: { [month]: selfService }, retrievedAt: attemptAt },
-            ...(fullService ? { full: scheduledSeries(fullService) } : {}),
+            ...(fullService ? { full: scheduledSeries(fullService, 'full') } : {}),
           },
         },
         automation,
@@ -181,8 +187,8 @@ export function planWrite(existing, reading, now, projectId = null) {
     payload: {
       byFuelType: {
         95: {
-          self: { ...scheduledSeries(selfService), ...(overrideMonth === month ? { manualOverride: null } : {}) },
-          ...(fullService ? { full: scheduledSeries(fullService) } : {}),
+          self: { ...scheduledSeries(selfService, 'self'), ...(overrideMonth === month ? { manualOverride: null } : {}) },
+          ...(fullService ? { full: scheduledSeries(fullService, 'full') } : {}),
         },
       },
       // The legacy top-level fields, still read by the adapter for older
@@ -193,6 +199,57 @@ export function planWrite(existing, reading, now, projectId = null) {
       automation,
     },
   };
+}
+
+
+/** Batch evidence survives missed app openings; future entries never overwrite active legacy fields. */
+function planSnapshot(existing, snapshot, now, projectId) {
+  const at = now.getTime();
+  const readings = snapshot.notices.filter(p => noticeFromReading(p) && p.readAt <= at);
+  const selfNotices = { ...existing?.byFuelType?.['95']?.self?.notices };
+  const fullNotices = { ...existing?.byFuelType?.['95']?.full?.notices };
+  for (const notices of [selfNotices, fullNotices]) {
+    for (const notice of Object.values(notices)) {
+      if (notice && toMillis(notice.retrievedAt) < toMillis(notice.effectiveFrom) && (toMillis(notice.retrievedAt) ?? 0) <= snapshot.readAt
+          && snapshot.checkedUrls?.includes(notice.sourceUrl)
+          && !readings.some(p => p.url === notice.sourceUrl && p.effectiveFrom === toMillis(notice.effectiveFrom))) {
+        // A tombstone survives Firestore's recursive merge and is reversible by a later verified notice.
+        notices[toMillis(notice.effectiveFrom)] = { ...notice, retrievedAt: snapshot.readAt, withdrawn: true };
+      }
+    }
+  }
+  const accepted = [];
+  for (const reading of readings) {
+    const notice = noticeFromReading(reading);
+    if ((toMillis(selfNotices[notice.effectiveFrom]?.retrievedAt) ?? 0) > notice.retrievedAt) continue;
+    selfNotices[notice.effectiveFrom] = notice;
+    const full = noticeFromReading(reading, true);
+    if (full && (toMillis(fullNotices[full.effectiveFrom]?.retrievedAt) ?? 0) <= full.retrievedAt) fullNotices[full.effectiveFrom] = full;
+    accepted.push(reading);
+  }
+  const active = accepted.filter(p => p.effectiveFrom <= at && p.effectiveFrom - p.readAt <= NOTICE_FRESHNESS_MS).sort((a, b) => a.effectiveFrom - b.effectiveFrom).at(-1);
+  const previousAt = toMillis(existing?.byFuelType?.['95']?.self?.current?.effectiveFrom) ?? 0;
+  const latestRead = accepted.at(-1);
+  const withdrawnCurrent = selfNotices[previousAt]?.withdrawn === true;
+  // An advance-only price can be withdrawn after midnight. Allow the prior verified active reading to restore the pointer.
+  const writeExisting = withdrawnCurrent ? { ...existing, byFuelType: { ...existing?.byFuelType, '95': { ...existing?.byFuelType?.['95'],
+    self: { ...existing?.byFuelType?.['95']?.self, current: null },
+  } } } : existing;
+  const plan = active && (active.effectiveFrom >= previousAt || withdrawnCurrent)
+    ? planWrite(writeExisting, { ok: true, ...active, selfService: active.price }, now, projectId)
+    : { keptOverride: false, summary: 'confirmed notices stored; active price retained', payload: { automation: {
+      lastAttemptAt: now, lastSuccessAt: now, lastError: null, targetProjectId: projectId,
+      ...(latestRead ? { lastReadMonth: latestRead.month, lastReadPrice: latestRead.price, lastVia: latestRead.via } : {}),
+    } } };
+  const modes = plan.payload.byFuelType?.['95'] ?? {};
+  return { ...plan, summary: `${plan.summary}; ${accepted.filter(p => p.effectiveFrom > at).length} upcoming notice(s)`, payload: {
+    ...plan.payload,
+    byFuelType: { ...plan.payload.byFuelType, '95': {
+      ...modes,
+      self: { ...modes.self, notices: selfNotices },
+      ...(Object.keys(fullNotices).length ? { full: { ...modes.full, notices: fullNotices } } : {}),
+    } },
+  } };
 }
 
 async function main() {
@@ -212,8 +269,9 @@ async function main() {
   let reading;
   try {
     reading = { ok: true, ...(await readCurrentPrice(now)) };
-    console.log(`read ${reading.url} via ${reading.via}`);
-    console.log(`  95 self-service : ₪${reading.selfService} (${reading.month})`);
+    console.log(`read ${reading.notices.length} official dated notice(s)`);
+    console.log(`active source: ${reading.url ?? "not read; existing active price retained"}`);
+    if (reading.selfService != null) console.log(`  95 self-service : ₪${reading.selfService} (${reading.month})`);
     console.log(
       `  95 full service : ${reading.fullService ? `₪${reading.fullService}` : "not stated"}`,
     );
