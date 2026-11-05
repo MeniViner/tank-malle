@@ -60,6 +60,28 @@ describe("Home presentation preserves source meaning", () => {
     expect(officialPriceHistory(null, now)).toEqual([]);
   });
 
+  it.each([
+    { boundary: "summer", previousMonth: "2026-07", month: "2026-08",
+      previousStart: "2026-06-30T21:00:00Z", monthStart: "2026-07-31T21:00:00Z",
+      previousPoint: "2026-07-01T09:00:00Z", point: "2026-08-01T09:00:00Z" },
+    { boundary: "winter after DST ends", previousMonth: "2026-10", month: "2026-11",
+      previousStart: "2026-09-30T21:00:00Z", monthStart: "2026-10-31T22:00:00Z",
+      previousPoint: "2026-10-01T09:00:00Z", point: "2026-11-01T10:00:00Z" },
+    { boundary: "year", previousMonth: "2026-12", month: "2027-01",
+      previousStart: "2026-11-30T22:00:00Z", monthStart: "2026-12-31T22:00:00Z",
+      previousPoint: "2026-12-01T10:00:00Z", point: "2027-01-01T10:00:00Z" },
+  ])("keeps dated price history on both sides of the Israel $boundary boundary, independently of host time zone", ({ previousMonth, month, previousStart, monthStart, previousPoint, point }) => {
+    // Fixed UTC instants make the expected Israel month independent of the runner's TZ.
+    const effectiveFrom = Date.parse(monthStart);
+    const source: RegulatedPriceConfig = { byFuelType: { "95": { self: {
+      source: "scheduled", history: {}, timeline: { [Date.parse(previousStart)]: 7 },
+      current: { pricePerLiter: 8, effectiveFrom },
+    } } } };
+    const previous = { month: previousMonth, at: Date.parse(previousPoint), value: 7 };
+    expect(officialPriceHistory(source, effectiveFrom - 1)).toEqual([previous]);
+    expect(officialPriceHistory(source, effectiveFrom)).toEqual([previous, { month, at: Date.parse(point), value: 8 }]);
+  });
+
   it("uses one fuel/km outcome without changing the canonical measurement", () => {
     expect(consumptionComparison(10, 12)).toEqual({ tone: "worse", percent: 20 });
     expect(consumptionComparison(15, 12)).toEqual({ tone: "better", percent: 20 });
