@@ -191,3 +191,86 @@ describe("planWrite policy", () => {
     expect(plan.payload.automation.lastSuccessAt).toBeUndefined();
   });
 });
+
+// These fixtures describe transitions, not live defaults used by the app.
+import { CHECKED_AT, FIFTH, NOVEMBER, NOVEMBER_FIFTH, NOVEMBER_START, SNAPSHOT } from '../src/lib/prices/__fixtures__/officialNotices';
+import { normalizePriceDocument, officialPriceFor, upcomingOfficialPrice, withPublicPrices } from '../src/lib/prices/regulated';
+
+/** Firestore merge recursively preserves omitted map keys; timestamps round-trip through wire values. */
+function mergeStored(before: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...before };
+  for (const [key, value] of Object.entries(patch)) {
+    result[key] = value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date)
+      ? mergeStored((result[key] as Record<string, unknown>) ?? {}, value as Record<string, unknown>) : value;
+  }
+  return result;
+}
+function wireValue(value: unknown): unknown {
+  if (value instanceof Date) return { seconds: value.getTime() / 1000 };
+  if (Array.isArray(value)) return value.map(wireValue);
+  return value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, child]) => [key, wireValue(child)])) : value;
+}
+function storedPlan(previous: Record<string, unknown>, reading: object, at: number) {
+  const plan = planWrite(previous, { ok: true, ...reading }, new Date(at), 'test-only');
+  return mergeStored(previous, JSON.parse(JSON.stringify(wireValue(plan.payload))));
+}
+
+describe('dated notice persistence across server runs', () => {
+  it('stores a future notice without touching today’s active price, then keeps the November 1 history on activation', () => {
+    const before = storedPlan({}, SNAPSHOT, CHECKED_AT);
+    expect((before.current as { pricePerLiter: number }).pricePerLiter).toBe(7.35);
+    expect(officialPriceFor(normalizePriceDocument(before), '95', NOVEMBER_FIFTH - 1).price).toBe(7.35);
+    expect(upcomingOfficialPrice(normalizePriceDocument(before), CHECKED_AT)?.pricePerLiter).toBe(7.85);
+    const after = storedPlan(before, { ...SNAPSHOT, readAt: NOVEMBER_FIFTH, notices: SNAPSHOT.notices.map(p => ({ ...p, readAt: NOVEMBER_FIFTH })) }, NOVEMBER_FIFTH);
+    expect((after.current as { pricePerLiter: number }).pricePerLiter).toBe(7.85);
+    expect(officialPriceFor(normalizePriceDocument(after), '95', NOVEMBER_START).price).toBe(7.35);
+    expect(officialPriceFor(normalizePriceDocument(after), '95', NOVEMBER_FIFTH).price).toBe(7.85);
+  });
+  it('retains the current fields when the only readable publication is future', () => {
+    const before = storedPlan({}, { notices: [NOVEMBER], readAt: CHECKED_AT }, CHECKED_AT);
+    const futurePlan = planWrite(before, { ok: true, notices: [FIFTH], readAt: CHECKED_AT }, new Date(CHECKED_AT), 'test-only');
+    expect(futurePlan.payload.current).toBeUndefined();
+    expect(futurePlan.payload.history).toBeUndefined();
+    expect(futurePlan.payload.byFuelType['95'].self.current).toBeUndefined();
+    expect(futurePlan.payload.byFuelType['95'].self.scheduledHistory).toBeUndefined();
+    expect(futurePlan.payload.byFuelType['95'].self.notices[NOVEMBER_FIFTH].pricePerLiter).toBe(7.85);
+  });
+  it('persists withdrawal across recursive Firestore merge, normalization and an older browser cache', () => {
+    const before = storedPlan({}, SNAPSHOT, CHECKED_AT);
+    const later = CHECKED_AT + 1000;
+    const withdrawn = storedPlan(before, { notices: [NOVEMBER], checkedUrls: [FIFTH.url], readAt: later }, later);
+    const normalized = normalizePriceDocument(withdrawn);
+    expect(normalized.byFuelType?.['95']?.self?.notices?.[NOVEMBER_FIFTH]).toMatchObject({ withdrawn: true, retrievedAt: later });
+    const replayed = withPublicPrices(normalized, SNAPSHOT, later);
+    expect(upcomingOfficialPrice(replayed, later)).toBeNull();
+    expect(officialPriceFor(replayed, '95', NOVEMBER_FIFTH).price).toBe(7.35);
+  });
+  it('records a failed read without withdrawing a confirmed future price or changing current fields', () => {
+    const before = storedPlan({}, SNAPSHOT, CHECKED_AT);
+    const plan = planWrite(before, { ok: false, error: 'offline' }, new Date(CHECKED_AT + 1000));
+    expect(Object.keys(plan.payload)).toEqual(['automation']);
+    const after = normalizePriceDocument(mergeStored(before, plan.payload));
+    expect(officialPriceFor(after, '95', CHECKED_AT).price).toBe(7.35);
+    expect(upcomingOfficialPrice(after, CHECKED_AT + 1000)?.pricePerLiter).toBe(7.85);
+  });
+  it('does not roll a corrected notice back when a delayed older read arrives', () => {
+    const corrected = { ...FIFTH, price: 7.8, readAt: CHECKED_AT + 1000 };
+    const before = storedPlan({}, { ...SNAPSHOT, readAt: corrected.readAt, notices: [NOVEMBER, corrected] }, corrected.readAt);
+    const after = storedPlan(before, SNAPSHOT, CHECKED_AT + 2000);
+    expect(upcomingOfficialPrice(normalizePriceDocument(after), CHECKED_AT + 2000)?.pricePerLiter).toBe(7.8);
+  });
+});
+
+describe('late withdrawal persistence', () => {
+  it('restores the prior price if an advance-only notice was promoted before its withdrawal became readable', () => {
+    const before = storedPlan({}, SNAPSHOT, CHECKED_AT);
+    const promoted = storedPlan(before, SNAPSHOT, NOVEMBER_FIFTH + 1);
+    expect((promoted.current as { pricePerLiter: number }).pricePerLiter).toBe(7.85);
+    const later = NOVEMBER_FIFTH + 1000;
+    const cancelled = storedPlan(promoted, { notices: [{ ...NOVEMBER, readAt: later }], checkedUrls: [FIFTH.url], readAt: later }, later);
+    expect((cancelled.current as { pricePerLiter: number }).pricePerLiter).toBe(7.35);
+    const normalized = normalizePriceDocument(cancelled);
+    expect(officialPriceFor(normalized, '95', later).price).toBe(7.35);
+    expect(officialPriceFor(withPublicPrices(normalized, SNAPSHOT, later), '95', later).price).toBe(7.35);
+  });
+});

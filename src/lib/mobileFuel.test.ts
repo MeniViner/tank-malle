@@ -25,10 +25,11 @@ describe('mobile fuel release regressions', () => {
     expect(authErrorMessage('auth/popup-blocked')).toContain('חלון');
     expect(authErrorMessage('auth/popup-closed-by-user')).toBeNull();
   });
-  it('orders effective dates, ignores future or foreign publications, and handles winter time', () => {
+  it('discovers upcoming official publications without inferring their activation, ignores foreign links, and handles winter time', () => {
     const links = publicationLinks('https://evil.example/fuel-october-10-2026 https://www.gov.il/he/pages/fuel-november-2026 https://www.gov.il/he/pages/fuel-october-2026 https://www.gov.il/he/pages/fuel-october-5-2026', fifth + 1000);
-    expect(links).toHaveLength(2);
-    expect(links[0]).toContain('october-5');
+    expect(links).toHaveLength(3);
+    expect(links[0]).toContain('november');
+    expect(links[1]).toContain('october-5');
     expect(publicationDate('https://www.gov.il/he/pages/fuel-november-2026')).toBe(Date.parse('2026-10-31T22:00:00Z'));
     expect(publicationDate('https://www.gov.il/he/pages/fuel-february-31-2026')).toBeNull();
   });
@@ -46,11 +47,11 @@ describe('mobile fuel release regressions', () => {
     expect(manufacturerTank('יונדאי', 'I20', 2020)).toBeNull();
     expect(manufacturerTank('יונדאי', 'I20', 2012, 'other')).toBeNull();
   });
-  it('preserves month-start history when a stale current pointer is from the previous month', () => {
+  it('does not invent a month-start timestamp from a legacy bucket when its current pointer is older', () => {
     const old = { byFuelType: { '95': { self: { history: { '2026-09': 8.25, '2026-10': 8.27 }, scheduledHistory: { '2026-09': 8.25, '2026-10': 8.27 }, source: 'scheduled' as const, current: { pricePerLiter: 8.25, effectiveFrom: Date.parse('2026-09-01T00:00:00Z') } } } } };
     const next = withPublicPrice(old, { price: 7.77, month: '2026-10', effectiveFrom: fifth, readAt: fifth + 1000, url: 'https://www.gov.il/he/pages/fuel-october-5-2026' });
     expect(regulatedMaxPrice(next, '95', Date.parse('2026-09-15T00:00:00Z')).price).toBe(8.25);
-    expect(regulatedMaxPrice(next, '95', first + 1000).price).toBe(8.27);
+    expect(regulatedMaxPrice(next, '95', first + 1000)).toMatchObject({ price: 8.25, fromHistory: false, effectiveMonth: '2026-09' });
     expect(regulatedMaxPrice(next, '95', fifth + 1000).price).toBe(7.77);
   });
   it('requires the same test year, emissions, fuel, power and transmission for declared economy', () => {

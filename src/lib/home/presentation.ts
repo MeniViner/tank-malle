@@ -1,5 +1,6 @@
 import { adaptLegacyConfig, officialPriceFor, type RegulatedPriceConfig } from "../prices/regulated";
-import { monthKey, type Fillup, type Segment } from "../stats";
+import { israelMidnight, israelMonthKey } from "../prices/publicSource";
+import type { Fillup, Segment } from "../stats";
 import type { LedgerRow } from "../vehicle/derived";
 
 /** Do not present a known subtotal as the cost of the entire measured segment. */
@@ -29,14 +30,18 @@ export function officialPriceHistory(config: RegulatedPriceConfig | null, now: n
   const series = adaptLegacyConfig(config).byFuelType?.["95"]?.self;
   if (!series) return [];
   const keys = new Set(Object.keys(series.history ?? {}));
-  for (const at of Object.keys(series.timeline ?? {})) if (Number.isFinite(Number(at)) && Number(at) <= now) keys.add(monthKey(Number(at)));
-  if (series.current?.effectiveFrom && series.current.effectiveFrom <= now) keys.add(monthKey(series.current.effectiveFrom));
-  const current = monthKey(now);
+  for (const at of Object.keys(series.timeline ?? {})) if (Number.isFinite(Number(at)) && Number(at) <= now) keys.add(israelMonthKey(Number(at)));
+  if (series.current?.effectiveFrom && series.current.effectiveFrom <= now) keys.add(israelMonthKey(series.current.effectiveFrom));
+  const current = israelMonthKey(now);
   return [...keys].filter(key => /^\d{4}-(0[1-9]|1[0-2])$/.test(key) && key <= current).sort().flatMap(key => {
     const [year, month] = key.split("-").map(Number);
-    const at = key === current ? now : new Date(year, month, 0, 23, 59, 59, 999).getTime();
+    const start = israelMidnight(year, month, 1);
+    const nextStart = month === 12 ? israelMidnight(year + 1, 1, 1) : israelMidnight(year, month + 1, 1);
+    if (start === null || nextStart === null) return [];
+    // A host-local month end may already be the next month in the regulated lookup's Israel calendar.
+    const at = key === current ? now : nextStart - 1;
     const lookup = officialPriceFor(config, "95", at);
     return lookup.price !== null && lookup.price > 0 && lookup.isRegulated && lookup.effectiveMonth === key
-      ? [{ month: key, at: new Date(year, month - 1, 1, 12).getTime(), value: lookup.price }] : [];
+      ? [{ month: key, at: start + 12 * 3_600_000, value: lookup.price }] : [];
   });
 }

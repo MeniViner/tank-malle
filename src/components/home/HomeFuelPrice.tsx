@@ -5,8 +5,9 @@ import { fullDate, heMonthShort, monthYear, price } from "../../lib/format";
 import { officialPriceHistory, type OfficialPricePoint } from "../../lib/home/presentation";
 import { discountedPrice, vehicleDiscount } from "../../lib/prices/discount";
 import { MARKET_PRICE_URL, marketPriceIsStale } from "../../lib/prices/marketSource";
-import { officialPriceFor } from "../../lib/prices/regulated";
-import { monthKey, type Vehicle } from "../../lib/stats";
+import { officialPriceFor, officialPriceMoment, upcomingOfficialPrice } from "../../lib/prices/regulated";
+import { israelMonthKey, publicationDate } from "../../lib/prices/publicSource";
+import { type Vehicle } from "../../lib/stats";
 import { Button } from "../Button";
 import { Pill } from "../DesignPrimitives";
 import { FuelDiscountSheet } from "../FuelDiscountSheet";
@@ -39,7 +40,7 @@ function PriceCard({ vehicle, now, open, onOpen, onClose, lookup, market }: Prop
   const marketValue = marketFuel && market?.reading ? market.reading.prices[marketFuel] : null;
   const value = lookup.price ?? marketValue;
   const fromMarket = lookup.price === null && !!market;
-  const current = lookup.effectiveMonth === monthKey(now);
+  const current = lookup.effectiveMonth === israelMonthKey(now);
   const name = fuel === "95" ? "בנזין 95" : fuel === "98" ? "בנזין 98" : fuel === "diesel" ? "סולר" : "דלק";
   const label = fromMarket ? `מחירון ${fuel === "98" ? "98" : "סולר"}` : fuel === "other" ? "מחיר הדלק"
     : current ? `${fuel === "diesel" ? "סולר" : fuel} היום` : `מחיר ${fuel === "diesel" ? "סולר" : fuel}`;
@@ -48,6 +49,8 @@ function PriceCard({ vehicle, now, open, onOpen, onClose, lookup, market }: Prop
   const staleMarket = market?.reading ? marketPriceIsStale(market.reading, now) : false;
   const caption = value === null ? "לא ידוע" : fromMarket ? staleMarket ? "מחירון אחרון" : "מחירון הרשת"
     : !current ? "מחיר אחרון" : lookup.isManual ? "הוזן ידנית" : after !== null ? "לפני ההנחה" : lookup.isRegulated ? "מחיר מרבי" : "מחיר שנשמר";
+  const upcoming = fuel === "95" ? upcomingOfficialPrice(prices, now) : null;
+  const officialUrl = lookup.sourceUrl && publicationDate(lookup.sourceUrl) !== null ? lookup.sourceUrl : null;
   const history = useMemo(() => fuel === "95" ? officialPriceHistory(prices, now).slice(-6) : [], [fuel, prices, now]);
   return <>
     <button type="button" className="home-trio-cell" onClick={onOpen} data-testid="home-fuel-price">
@@ -65,9 +68,18 @@ function PriceCard({ vehicle, now, open, onOpen, onClose, lookup, market }: Prop
           <p className="home-sheet-note">מחירון הרשת; המחיר ששולם בתחנה עשוי להיות שונה.</p>
         </> : <>
           <p className="home-sheet-note"><NumericText>{lookup.price === null ? "אין מחיר עדכני לסוג הדלק הזה" : lookup.isManual ? "מחיר שהוזן ידנית" : lookup.isRegulated ? "מחיר מרבי מפוקח · שירות עצמי" : "מחיר שנשמר"}</NumericText></p>
-          {lookup.effectiveMonth ? <p className="home-sheet-note"><NumericText>{`${current ? "מחיר ל" : "המחיר האחרון שנשמר: "}${monthYear(lookup.effectiveMonth)}`}</NumericText></p> : null}
+          {lookup.effectiveFrom ? <p className="home-sheet-note"><NumericText>{`בתוקף מ-${officialPriceMoment(lookup.effectiveFrom)} (שעון ישראל)`}</NumericText></p> : lookup.effectiveMonth ? <p className="home-sheet-note"><NumericText>{`${current ? "מחיר ל" : "המחיר האחרון שנשמר: "}${monthYear(lookup.effectiveMonth)}`}</NumericText></p> : null}
           {lookup.updatedAt ? <p className="home-sheet-note"><NumericText>{`עודכן ${fullDate(lookup.updatedAt)}`}</NumericText></p> : null}
         </>}
+        {officialUrl ? <a className="home-text-action" href={officialUrl} target="_blank" rel="noopener noreferrer">להודעת משרד האנרגיה על המחיר הנוכחי</a> : null}
+        {upcoming ? <section className="home-sheet-stack" aria-label="עדכון מחיר שפורסם" data-testid="upcoming-official-price">
+          <h3>עדכון מחיר שפורסם</h3>
+          <PricePerLiter value={upcoming.pricePerLiter} />
+          <p className="home-sheet-note"><NumericText>{`ייכנס לתוקף ב-${officialPriceMoment(upcoming.effectiveFrom)} (שעון ישראל). עד אז חל המחיר הנוכחי.`}</NumericText></p>
+          {upcoming.publishedOn ? <p className="home-sheet-note"><NumericText>{`תאריך פרסום ההודעה: ${upcoming.publishedOn.split('-').reverse().join('.')}`}</NumericText></p> : null}
+          <p className="home-sheet-note"><NumericText>{`נבדק מול המקור ב-${officialPriceMoment(upcoming.retrievedAt)}`}</NumericText></p>
+          <a className="home-text-action" href={upcoming.sourceUrl} target="_blank" rel="noopener noreferrer">להודעת משרד האנרגיה על המחיר הבא</a>
+        </section> : null}
         {after !== null ? <Pill tone="better"><span>אחרי ההנחה שלך: <NumRun>{price(after)}</NumRun></span></Pill> : null}
         {history.length ? <OfficialHistory points={history} /> : null}
         {fuel === "95" ? <>
