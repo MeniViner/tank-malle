@@ -300,9 +300,8 @@ test("an odometer update is a reading, not a fill-up", async ({ page }, testInfo
   await gauge.press("Home");
   await gauge.press("PageUp");
   await page.getByTestId("tank-save-gauge").click();
-  await expect(page.getByText("עדכון המחוון נשמר במכשיר")).toBeVisible({
-    timeout: 20_000,
-  });
+  await expect(page.getByTestId("tank-sheet")).toHaveCount(0);
+  await expect(page.getByText("עדכון המחוון נשמר במכשיר")).toHaveCount(0);
 
   await page.getByTestId("tank-hero").click();
   await page.getByTestId("tank-open-odometer").click();
@@ -313,7 +312,8 @@ test("an odometer update is a reading, not a fill-up", async ({ page }, testInfo
   });
   await page.getByTestId("tank-odometer-sheet").getByRole("button", { name: "שמירה", exact: true }).click();
 
-  await expect(page.getByText("עדכון הקילומטראז׳ נשמר במכשיר")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("tank-odometer-sheet")).toHaveCount(0);
+  await expect(page.getByText("עדכון הקילומטראז׳ נשמר במכשיר")).toHaveCount(0);
 
   const observations = await waitForDocuments(
     `users/${uid}/vehicles/${vehicleId}/observations`,

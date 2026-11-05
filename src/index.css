@@ -262,6 +262,27 @@
   white-space: nowrap;
 }
 
+/* Text entry stays visually quiet while editing; buttons and native choices
+   keep their keyboard focus indicators. Designed borders remain in place. */
+:is(input:not([type]), input[type="text"], input[type="number"], input[type="search"],
+  input[type="email"], input[type="password"], input[type="tel"], input[type="url"],
+  input[type="date"], input[type="time"], textarea):is(:focus, :focus-visible) {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* In RTL rows the final unit is physically left of the numeric entry. */
+:is(.tm-field-control, .tm-field-input, .tm-pump-value, .fillup-pump-price-field, .admin-price-field) {
+  direction: rtl;
+}
+.tm-number-with-unit.tm-number-block { display: flex; }
+.tm-number-with-unit[data-number-align="trailing"] { justify-content: flex-end; }
+.tm-unit-symbol { font-size: .8em; font-family: var(--font-sans); }
+.tm-input-unit.tm-unit-symbol { font-size: 11px; }
+.tm-pump-unit.tm-unit-symbol { font-size: 13px; }
+.fillup-pump-price-field .tm-unit-symbol { font-size: .85em; }
+.admin-detail-sheet .admin-price-field > .tm-unit-symbol { font-size: 18px; }
+
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

@@ -402,3 +402,13 @@ Retained diagnostic failures: one unit and one Rules assertion initially used a 
 
 
 The final privacy review covered cached pre-cost PWAs: Rules preserve a private first-publication marker and require a fresh server-timestamped modern erasure intent for marked accounts. Modern account deletion revokes cost consent and verifies all cost-summary removal before deleting vehicles/profile/auth; old-client attempts and stale retries are refused. Vehicle deletion cannot finish while its cost summary remains. The real emulator reauthentication/deletion flow passes with an orphaned cost row and a preserved foreign peer. All272 Rules tests and1,147 unit tests pass;12development flows pass. Full Unified/PWA is being repeated unfiltered on this final implementation; final PR/merge CI and deployment gates remain pending.
+
+## Input, camera and immediate-data follow-up — 1.7.2 candidate (2026-11-05)
+
+Text-entry fields retain their designed borders without added focus frames. Shared numeric inputs reject word/mixed-word edits and pasted words without rounding editable values; units sit physically left and currency/percent glyphs use smaller text. Manual civil dates mask DDMMYYYY into DD/MM/YYYY, preserve partial/invalid drafts for correction, and keep local calendar days stable.
+
+Vehicle document costs project only guarded pending intent into the display, without changing raw conditional-write captures. Server ACK publishes the acknowledged document before journal retirement so a delayed listener cannot return the view to its old value. Failed/conflicting/foreign intents do not project. Transiently terminated listeners reconnect with bounded backoff and account/attachment guards. Routine local-save notifications are removed; actionable errors, recovery and actual acknowledged success remain truthful.
+
+Live camera has a compact horizontal zoom control using verified native zoom or labelled digital cropping; preview and deterministic recognition receive the same crop. Streams and in-flight captures remain scoped. Physical Android/iPhone camera checks remain NOT_TESTED.
+
+Local integrated checks: TypeScript PASS; 1,204 unit tests PASS / 12 existing private-fixture skips; lint 18 warnings / budget20; app and Functions builds PASS. New browser regressions cover word rejection/unit geometry/no added input frames, date typing/caret/invalid drafts, costs before and after ACK without reload or Listen echo, and zoom preview/scanned pixels/stream cleanup. Full unfiltered Main and Unified/PWA exact-head CI with zero retries, actual merged CI and clean production rebuild remain release gates. No deployment is claimed at this checkpoint.

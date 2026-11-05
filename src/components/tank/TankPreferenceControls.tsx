@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
-import { useToast } from "../../context/ToastContext";
 import type { TankEstimate } from "../../lib/tank";
 import { useAccountScope } from "../account/useAccountScope";
 import { Button } from "../Button";
@@ -16,7 +15,6 @@ import "../../tank-design.css";
 export function TankPreferenceControls({ estimate, embedded = false }: { estimate: TankEstimate; embedded?: boolean }) {
   const { user } = useAuth();
   const { activeVehicle, tankPreferences, updateTankPreferences } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
   const [editor, setEditor] = useState<"reserve" | "habit" | "reset" | null>(null);
   const [saving, setSaving] = useState(false);
@@ -32,7 +30,6 @@ export function TankPreferenceControls({ estimate, embedded = false }: { estimat
     setError("");
     try {
       await updateTankPreferences({ refuelLevelOverride: null });
-      if (current()) showToast({ tone: "info", title: "הבחירה בלמידה אוטומטית נשמרה במכשיר" });
     } catch {
       if (current()) setError("ההעדפה לא נשמרה. אפשר לנסות שוב.");
     } finally {
@@ -65,23 +62,22 @@ export function TankPreferenceControls({ estimate, embedded = false }: { estimat
     {error ? <p role="alert" className="tm-tank-error">{error}</p> : null}
     {editor === "reserve" ? <PreferenceLevelSheet title="רזרבה"
       description="הרמה שממנה כדאי לתדלק. זו העדפה שלך, ולא נפח הרזרבה של היצרן או נורית הדלק."
-      initial={tankPreferences.reserveFraction} success="הרזרבה נשמרה במכשיר"
+      initial={tankPreferences.reserveFraction}
       onSave={level => updateTankPreferences({ reserveFraction: level })} onClose={() => setEditor(null)} /> : null}
     {editor === "habit" ? <PreferenceLevelSheet title="מתי לתדלק"
       description="קביעה ידנית מחליפה את ההרגל שנלמד. אפשר לחזור ללמידה אוטומטית בכל רגע."
-      initial={tankPreferences.refuelLevelOverride ?? estimate.habit.typicalLevel} success="ההעדפה נשמרה במכשיר"
+      initial={tankPreferences.refuelLevelOverride ?? estimate.habit.typicalLevel}
       onSave={level => updateTankPreferences({ refuelLevelOverride: level })} onClose={() => setEditor(null)} /> : null}
     {editor === "reset" ? <ResetHabitDialog onClose={() => setEditor(null)} /> : null}
   </>;
 }
 
-function PreferenceLevelSheet({ title, description, initial, success, onSave, onClose }: {
-  title: string; description: string; initial: number; success: string;
+function PreferenceLevelSheet({ title, description, initial, onSave, onClose }: {
+  title: string; description: string; initial: number;
   onSave: (level: number) => Promise<void>; onClose: () => void;
 }) {
   const { user } = useAuth();
   const { activeVehicle } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
   const [level, setLevel] = useState(initial);
   const [saving, setSaving] = useState(false);
@@ -97,7 +93,6 @@ function PreferenceLevelSheet({ title, description, initial, success, onSave, on
     try {
       await onSave(level);
       if (!current()) return;
-      showToast({ tone: "info", title: success });
       onClose();
     } catch {
       if (current()) setError("ההעדפה לא נשמרה. הבחירה נשארה כאן, ואפשר לנסות שוב.");
@@ -121,7 +116,6 @@ function PreferenceLevelSheet({ title, description, initial, success, onSave, on
 function ResetHabitDialog({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const { activeVehicle, updateTankPreferences } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -136,7 +130,6 @@ function ResetHabitDialog({ onClose }: { onClose: () => void }) {
     try {
       await updateTankPreferences({ habitResetAt: Date.now() });
       if (!current()) return;
-      showToast({ tone: "info", title: "איפוס ההרגלים נשמר במכשיר" });
       onClose();
     } catch {
       if (current()) setError("בקשת האיפוס לא נשמרה. אפשר לנסות שוב.");

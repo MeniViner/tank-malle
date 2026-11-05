@@ -4,6 +4,7 @@ import type { Units } from "../../lib/types";
 import { consumption, num, price } from "../../lib/format";
 import { consumptionComparison } from "../../lib/consumptionPresentation";
 import { Button } from "../Button";
+import { NumericInput } from "../NumericInput";
 import { CloseIcon, CheckIcon } from "../icons";
 import { ConsumptionValue, Distance, Money, NumRun, NumericText, Percent, Quantity } from "../Fmt";
 
@@ -83,7 +84,7 @@ export function FillupSaved({ result, units, deadline, secondsLeft, writeState, 
         <button type="button" className="tm-icon-button" aria-label="סגירת מסך השמירה" onClick={onDone}><CloseIcon size={20} /></button>
       </header>
       <div className="fillup-saved-write-state" data-testid="fillup-saved-status" role="status">
-        {writeState === "pending" ? "נשמר במכשיר · ממתין לאישור מהענן" : writeState === "attention"
+        {writeState === "attention"
           ? <button type="button" onClick={onReviewWrite}>השמירה דורשת בדיקה</button> : ""}
       </div>
 
@@ -122,10 +123,10 @@ export function FillupSaved({ result, units, deadline, secondsLeft, writeState, 
           <p>{pumpDifferent ? "מה המחיר שהיה כתוב במשאבה?" : <>המחיר במשאבה היה <NumRun>{price(result.written.pricePerLiter)}</NumRun>?</>}</p>
           {pumpDifferent ? <div className="fillup-pump-answer">
             <label htmlFor="fillup-pump-price" className="sr-only">מחיר המשאבה</label>
-            <span className="fillup-pump-price-field"><input id="fillup-pump-price" data-testid="fillup-pump-price" dir="ltr" inputMode="decimal"
+            <span className="fillup-pump-price-field"><NumericInput id="fillup-pump-price" data-testid="fillup-pump-price" dir="ltr" inputMode="decimal"
               autoFocus value={pumpPrice} onChange={event => onPumpPrice(event.currentTarget.value)} placeholder="0.00"
               disabled={busy} aria-invalid={pumpError ? true : undefined} aria-describedby={pumpError ? "fillup-pump-error" : undefined} />
-              <span>₪ לליטר</span></span>
+              <span><span className="tm-unit-symbol">₪</span> לליטר</span></span>
             <button type="button" data-testid="fillup-pump-confirm" disabled={!canConfirm || busy || ruleStatus !== "ready"}
               onClick={onSavePumpPrice}>{pumpWriteState === "journaling" ? "שומרים…" : "שמירה"}</button>
           </div> : <div className="fillup-pump-choices">
@@ -134,8 +135,8 @@ export function FillupSaved({ result, units, deadline, secondsLeft, writeState, 
           </div>}
           {pumpDifferent ? <small>ההפרש יירשם כהנחה או התאמה אישית, ולא כמחיר התחנה.</small> : null}
           {pumpDifferent && ruleStatus !== "ready" ? <small role="status">{ruleStatus === "loading" ? "טוענים את ההנחות שלך…" : "ההנחות שלך לא זמינות כרגע. אפשר לסיים ולבדוק בהמשך."}</small> : null}
-          {!canConfirm && !busy ? <small data-testid="fillup-pump-waiting">{writeState !== "accepted" ? "האישור ייפתח אחרי שהתדלוק יישמר בענן." : "אפשר לאשר אחרי שזמן הביטול יסתיים."}</small> : null}
-          {pumpWriteState === "pending" ? <p role="status" data-testid="fillup-pump-pending">הבקשה נשמרה במכשיר · ממתינים לאישור</p> : null}
+          {!canConfirm && !busy && writeState === "accepted" ? <small data-testid="fillup-pump-waiting">אפשר לאשר אחרי שזמן הביטול יסתיים.</small> : null}
+          {pumpWriteState === "pending" ? <p role="status" data-testid="fillup-pump-pending" className="sr-only">שומרים…</p> : null}
         </> : pumpWriteState === "accepted" ? <p ref={pumpResultRef} tabIndex={-1} className="fillup-pump-result" role="status" data-testid="fillup-pump-confirmed">
           {pumpDifferent ? pumpScopeKind === "receipt" ? "ההתאמה נשמרה לתדלוק הזה בלבד." : "ההתאמה האישית נשמרה לתדלוקים הבאים כאן." : "מחיר המשאבה אושר."}
         </p> : <p ref={pumpResultRef} tabIndex={-1} className="fillup-pump-result" role="status" data-testid="fillup-pump-attention">הבקשה שמורה במכשיר ודורשת בדיקה. <button type="button" onClick={onReviewWrite}>לבדיקה</button></p>}

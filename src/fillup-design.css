@@ -44,7 +44,7 @@
 .fillup-note-field { display: grid; gap: 8px; font-size: 14px; font-weight: 600; }
 .fillup-note-field textarea { min-height: 86px; width: 100%; resize: vertical; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); font: 400 15px/1.5 var(--font-sans); }
 .fillup-note-field textarea::placeholder { color: var(--ink-2); opacity: 1; }
-.fillup-note-field textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+
 .fillup-error { color: var(--danger-ink); font-size: 13.5px; font-weight: 600; line-height: 1.5; }
 .fillup-tank-advanced { min-width: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .fillup-tank-advanced summary { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 48px; list-style: none; font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -92,7 +92,7 @@
 .fillup-pump-question .fillup-pump-yes { background: #111; color: var(--accent); }
 .fillup-pump-answer { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
 .fillup-pump-price-field { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; padding: 6px 10px; border: 1.5px solid #111; border-radius: 12px; background: #fff; }
-.fillup-pump-price-field:focus-within { outline: 2px solid #111; outline-offset: 3px; }
+
 .fillup-pump-price-field input { width: 100%; min-width: 0; min-height: 44px; color: #111; background: transparent; border: 0; font: 500 22px/1.2 var(--font-mono); text-align: right; }
 .fillup-pump-price-field > span { flex: none; font-size: 12px; }
 .fillup-pump-price-field input::placeholder { color: #625D50; opacity: 1; }
@@ -101,7 +101,7 @@
 .fillup-saved .tm-button-ink { background: #111; color: var(--accent); border-color: #111; }
 .fillup-saved-undo { min-height: 44px; padding: 5px 8px; color: #111; font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .fillup-saved-undo:disabled { text-decoration: none; cursor: default; }
-:is(.fillup-saved-undo,.fillup-pump-question button,.fillup-pump-price-field input,.fillup-saved-write-state button,.fillup-pump-result):focus-visible { outline: 2px solid #111; outline-offset: 3px; }
+:is(.fillup-saved-undo,.fillup-pump-question button,.fillup-saved-write-state button,.fillup-pump-result):focus-visible { outline: 2px solid #111; outline-offset: 3px; }
 [data-theme="dark"] .fillup-pump-question { background: #F4EEDD; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="dark"]) .fillup-pump-question { background: #F4EEDD; } }
 @media (max-width: 359px) {

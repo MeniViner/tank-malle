@@ -155,6 +155,36 @@ function sameSelected(left: VehicleDocumentGuard, right: VehicleDocumentGuard): 
     rawDocumentMatches(left.selected, right.selected);
 }
 
+/** Display-only intent; raw capture images and the conditional server write stay unchanged. */
+export function vehicleDocumentView(operation: OutboxOperation, images: VehicleDocumentImages) {
+  if (operation.status !== 'pending') return null;
+  try {
+    const { intent, before } = readOperation(operation);
+    const image = images[intent.key];
+    if (!image) return null;
+    const current = readGuard(image), desired = target(before, intent);
+    if (!sameSelected(current, before) && !sameSelected(current, desired)) return null;
+    return { key: intent.key, value: desired.selected.present ? desired.selected.value : null,
+      image: immutableRawImage(desired as unknown as OutboxPayload), applied: sameSelected(current, desired) };
+  } catch { return null; }
+}
+
+export function projectVehicleDocuments(uid: string, vehicle: Vehicle, images: VehicleDocumentImages, operations: readonly OutboxOperation[]): Vehicle {
+  const path = `users/${uid}/vehicles/${vehicle.id}`;
+  const candidates = operations.filter(operation => operation.uid === uid && operation.vehicleId === vehicle.id &&
+    operation.path === path && isVehicleDocumentOperation(operation));
+  const views = candidates.map(operation => ({ operation, view: vehicleDocumentView(operation, images) }));
+  let result = vehicle;
+  for (const { operation, view } of views) {
+    if (!view || view.applied || candidates.some(other => {
+      if (other.opId === operation.opId) return false;
+      try { return readOperation(other).intent.key === view.key; } catch { return true; }
+    })) continue;
+    result = { ...result, docs: { ...(isVehicleDocMap(result.docs) ? result.docs : {}), [view.key]: view.value } };
+  }
+  return result;
+}
+
 function checkNeighbors(operation: OutboxOperation, key: VehicleDocKey, operations: readonly OutboxOperation[]): void {
   for (const other of operations) {
     if (other.opId === operation.opId || other.path !== operation.path) continue;
@@ -169,6 +199,7 @@ function checkNeighbors(operation: OutboxOperation, key: VehicleDocKey, operatio
 
 export async function writeVehicleDocumentOperation(
   db: Firestore, outbox: Outbox, operation: OutboxOperation, isCurrent: () => boolean,
+  onCommitted?: () => void,
 ): Promise<void> {
   const { intent, before } = readOperation(operation);
   const neighbors = (all: readonly OutboxOperation[]) => checkNeighbors(operation, intent.key, all);
@@ -187,6 +218,9 @@ export async function writeVehicleDocumentOperation(
     if (!sameSelected(before, server)) throw conflict();
     transaction.update(ref, { [`docs.${intent.key}`]: desired.selected.present ? desired.selected.value : null });
   });
+  // Publish the acknowledged view before retiring its optimistic journal view.
+  // This also covers a lagging collection listener without a manual reload.
+  if (isCurrent()) onCommitted?.();
   await retireVehicleAttempt(outbox, operation, isCurrent);
 }
 

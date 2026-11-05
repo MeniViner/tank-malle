@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
-import { useToast } from "../../context/ToastContext";
 import { parseDecimal } from "../../lib/format";
 import { addLocalDays } from "../../lib/tank/calendar";
 import { DEFAULT_TIME_ZONE } from "../../lib/tank/config";
@@ -32,7 +31,6 @@ const MODES: SegmentedOption<TripMode>[] = [
 export function TankTripSheet({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
   const { activeVehicle, addPlan } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(user && activeVehicle ? `${user.uid}/${activeVehicle.id}` : null);
   const busyRef = useRef(false);
   const [distance, setDistance] = useState("");
@@ -60,8 +58,6 @@ export function TankTripSheet({ onClose }: { onClose: () => void }) {
         bufferKm: Number.isFinite(parsedBuffer) && parsedBuffer > 0 ? parsedBuffer : null,
       });
       if (!current()) return;
-      // addPlan returns after durable journaling and SDK handoff, before server ACK.
-      showToast({ tone: "info", title: "הנסיעה נשמרה במכשיר", detail: "ממתינה לאישור השרת." });
       onClose();
     } catch {
       if (current()) setError("השמירה לא הושלמה. נסו שוב.");

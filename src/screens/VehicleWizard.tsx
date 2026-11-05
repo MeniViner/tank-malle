@@ -264,7 +264,6 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
       } });
       const submitted = submittedAttempt();
       if (!submitted?.isCurrent()) return;
-      showToast({ tone: "info", title: "הרכב נשמר במכשיר" });
       if (localCurrent()) navigate("/", { replace: true });
     } catch (error) {
       const submitted = submittedAttempt();

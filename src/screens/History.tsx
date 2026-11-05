@@ -41,7 +41,7 @@ export function History() {
 
 function HistorySession() {
   const vehicle = useVehicleData(), data = useData(), stats = useStats();
-  const { showToast, dismissToast } = useToast(), navigate = useNavigate();
+  const { showToast } = useToast(), navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState(""), [limit, setLimit] = useState(50);
   const [selection, setSelection] = useState<string | null>(null);
@@ -144,7 +144,7 @@ function HistorySession() {
       const submission = submitted.current;
       if (!submission) throw new Error("בקשת המחיקה לא נשמרה.");
       if (current()) setDeleting(null);
-      observeDeletion(submission, showToast, dismissToast);
+      observeDeletion(submission, showToast);
     } catch (reason) {
       if (current()) setError(reason instanceof Error ? reason.message : "בקשת המחיקה לא נשמרה.");
     } finally {
@@ -271,12 +271,9 @@ function HistorySession() {
 function observeDeletion(
   submission: FillupSubmission | RecordDeletionSubmission,
   showToast: (toast: Omit<Toast, "id">) => number,
-  dismissToast: (id: number) => void,
 ) {
   if (!submission.isCurrent()) return;
-  const waiting = showToast({ tone: "info", title: "בקשת המחיקה נשמרה במכשיר", detail: "ממתינה לאישור בענן" });
   void submission.receipt.settled.then(accepted => {
-    dismissToast(waiting);
     if (!submission.isCurrent()) return;
     if (!accepted) {
       showToast({ tone: "info", title: "המחיקה דורשת בדיקה", detail: "הבקשה שמורה בשינויים שעוד לא עלו לענן" });
@@ -293,7 +290,6 @@ function observeDeletion(
       try {
         const receipt = await restore!();
         if (!submission.isCurrent()) return;
-        showToast({ tone: "info", title: "בקשת השחזור נשמרה במכשיר" });
         const restored = await receipt.settled;
         if (submission.isCurrent()) showToast({ tone: restored ? "success" : "info", title: restored ? "הרשומה שוחזרה" : "השחזור דורש בדיקה" });
       } catch (reason) {

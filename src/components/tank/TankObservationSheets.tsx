@@ -1,7 +1,6 @@
 import { useRef, useState, type ReactNode, type Ref } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
-import { useToast } from "../../context/ToastContext";
 import { num, timeAgo } from "../../lib/format";
 import { parseNumber } from "../../lib/numeric";
 import type { TankEstimate } from "../../lib/tank";
@@ -27,7 +26,6 @@ interface GaugeEditorProps {
 export function GaugeObservationEditor({ estimate, onSaved, children, controlRef }: GaugeEditorProps) {
   const { user } = useAuth();
   const { activeVehicle, addObservation } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
   const [level, setLevel] = useState<number | null>(() => {
     const displayed = displayTankLevel(estimate);
@@ -68,8 +66,6 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
         phase: "standalone",
       });
       if (!current()) return;
-      // This API promises a durable journal and SDK handoff, not server ACK.
-      showToast({ tone: "info", title: "עדכון המחוון נשמר במכשיר" });
       onSaved();
     } catch {
       if (current()) setError("העדכון לא נשמר. הפרטים שהקלדת נשארו כאן, ואפשר לנסות שוב.");
@@ -100,7 +96,6 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
 export function TankOdometerSheet({ estimate, onClose }: { estimate: TankEstimate; onClose: () => void }) {
   const { user } = useAuth();
   const { activeVehicle, addObservation } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
   const [value, setValue] = useState("");
   const [saving, setSaving] = useState(false);
@@ -119,7 +114,6 @@ export function TankOdometerSheet({ estimate, onClose }: { estimate: TankEstimat
     try {
       await addObservation({ observedAt: Date.now(), kind: "odometer", odometer: parsed, confirmed: true, phase: "standalone" });
       if (!current()) return;
-      showToast({ tone: "info", title: "עדכון הקילומטראז׳ נשמר במכשיר" });
       onClose();
     } catch {
       if (current()) setError("העדכון לא נשמר. אפשר לנסות שוב בלי להקליד מחדש.");

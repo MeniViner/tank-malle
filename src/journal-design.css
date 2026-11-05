@@ -10,7 +10,7 @@
 .journal-search input { flex: 1; width: 0; min-width: 0; height: 44px; min-height: 44px; padding: 0; border: 0; border-radius: 0; outline: none; background: transparent; color: var(--ink); font: 400 15px/1.4 var(--font-sans); }
 .journal-search input:focus { border: 0; box-shadow: none; outline: none; }
 .journal-search input::placeholder { color: var(--ink-2); opacity: 1; }
-.journal-search:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+
 .journal-search .period-trigger-compact { width: 44px; min-width: 44px; min-height: 44px; padding: 0; border-inline-start: 1px solid var(--line); border-radius: 0; color: var(--ink); }
 .journal-search .period-trigger-compact > span { border: 0; }
 .journal-filters { display: flex; flex: none; gap: 8px; width: calc(100% + 40px); margin-inline: -20px; padding: 4px 20px; overflow-x: auto; scrollbar-width: none; }

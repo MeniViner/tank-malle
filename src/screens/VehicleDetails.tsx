@@ -34,7 +34,7 @@ function ReminderDetailContent() {
   const v = useVehicleData();
   const data = useData();
   const navigate = useNavigate();
-  const { showToast, dismissToast } = useToast();
+  const { showToast } = useToast();
   const captureScope = useAccountScope(v.scope);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +66,7 @@ function ReminderDetailContent() {
       submitting.current = true; setError('');
       void data.deleteCareRecord(v.vehicleId, 'maintenancePlans', plan, {
         onSubmitted: submission => {
-          observeVehicleRecordDeletion(submission, showToast, dismissToast);
+          observeVehicleRecordDeletion(submission, showToast);
           if (isCurrent()) { setDeleting(false); navigate('/vehicle'); }
         },
       }).catch(cause => { if (isCurrent()) { setDeleting(false); setError(cause instanceof Error ? cause.message : 'לא ניתן למחוק'); } })
@@ -85,7 +85,7 @@ function IssueDetailContent() {
   const { issueId } = useParams();
   const v = useVehicleData();
   const { saveCareRecord } = useData();
-  const { showToast, dismissToast } = useToast();
+  const { showToast } = useToast();
   const captureScope = useAccountScope(v.scope);
   const [resolving, setResolving] = useState(false);
   const [error, setError] = useState('');
@@ -102,20 +102,17 @@ function IssueDetailContent() {
     const next: VehicleIssue = { ...issue, status: 'resolved', version: issue.version + 1,
       history: [...issue.history, { day: v.today, status: 'resolved' as const, note: issue.notes.slice(0, 500) }].slice(-10) };
     submitting.current = true; setResolving(true); setError('');
-    let pendingToast: number | undefined;
     try {
       const receipt = await saveCareRecord(v.vehicleId, 'vehicleIssues', next, issue);
       if (!isCurrent()) return;
-      pendingToast = showToast({ tone: 'info', title: 'סימון התיקון נשמר במכשיר — ממתין לסנכרון' });
-      const accepted = await receipt.settled;
-      dismissToast(pendingToast); pendingToast = undefined;
-      if (!isCurrent()) return;
-      if (accepted) showToast({ tone: 'success', title: 'סומן כתוקן' });
-      else setError('סימון התיקון טרם אושר. אפשר לבדוק בשינויים שעוד לא עלו לענן.');
+      void receipt.settled.then(accepted => {
+        if (!isCurrent()) return;
+        if (accepted) showToast({ tone: 'success', title: 'סומן כתוקן' });
+        else setError('סימון התיקון טרם אושר. אפשר לבדוק בשינויים שעוד לא עלו לענן.');
+      });
     } catch (cause) {
       if (isCurrent()) setError(cause instanceof Error ? cause.message : 'לא ניתן לשמור את סימון התיקון.');
     } finally {
-      if (pendingToast !== undefined) dismissToast(pendingToast);
       submitting.current = false;
       if (isCurrent()) setResolving(false);
     }
@@ -124,7 +121,7 @@ function IssueDetailContent() {
     <p className="tm-vehicle-status"><WarningIcon size={17}/>{{ open: 'פתוחה', watching: 'במעקב', resolved: 'נפתרה' }[issue.status]} · {issue.importance === 'important' ? 'חשובה' : 'למעקב'}</p>
     <div className="tm-vehicle-detail-hero"><span className="tm-vehicle-eyebrow"><NumericText>{`זוהתה ב־${vehicleDay(issue.day)}${issue.odometer !== null ? ` · ${issue.odometer.toLocaleString('he-IL')} ק״מ` : ''}`}</NumericText></span><p className="whitespace-pre-wrap"><NumericText>{issue.symptoms || 'לא תועדו תסמינים נוספים.'}</NumericText></p></div>
     {issue.notes ? <p className="whitespace-pre-wrap"><NumericText>{issue.notes}</NumericText></p> : null}
-    {issue.status !== 'resolved' || resolving ? <Button full data-testid="issue-resolve" disabled={resolving} onClick={() => void resolve()}><CheckIcon size={19}/>{resolving ? 'ממתינים לאישור' : 'תוקן'}</Button> : null}
+    {issue.status !== 'resolved' || resolving ? <Button full data-testid="issue-resolve" disabled={resolving} onClick={() => void resolve()}><CheckIcon size={19}/>{resolving ? 'שומרים…' : 'תוקן'}</Button> : null}
     <Button full variant={issue.status === 'resolved' ? 'primary' : 'line'} disabled={resolving} onClick={() => v.edit({ collection: 'vehicleIssues', record: issue })}>עדכון מצב וקישור לטיפול</Button>
     {error ? <p ref={errorNode} tabIndex={-1} role="alert" className="tm-vehicle-error"><NumericText>{error}</NumericText></p> : null}
     <section className="tm-vehicle-section"><h2 className="tm-vehicle-section-title">טיפולים מקושרים</h2><div className="tm-vehicle-links">{linked.map((record, index) => record ? <button className="tm-vehicle-link" key={record.id} type="button" onClick={() => v.edit({ collection: 'serviceEvents', record })}><span><NumericText>{record.title}</NumericText><small><NumericText>{vehicleDay(record.day)}</NumericText></small></span><span><NumericText>{vehicleMoney(record.costAgorot)}</NumericText></span></button> : <p className="tm-vehicle-link tm-vehicle-note" key={index}>הטיפול המקושר הוסר או אינו זמין.</p>)}</div>{!linked.length ? <p className="tm-vehicle-note">עדיין לא קושרו טיפולים לתקלה.</p> : null}<VehicleInfo title="איך נשמרים עלות התיקון והק״מ?"><p>עלות התיקון נספרת רק בטיפול, פעם אחת. קריאת הק״מ בגילוי תקלה משמשת למעקב ואינה מדידה מאומתת לאומדן הדלק במיכל.</p></VehicleInfo></section>

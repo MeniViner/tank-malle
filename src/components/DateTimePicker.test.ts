@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseTypedTime } from "../lib/format";
-import { parseDate } from "../lib/import/normalize";
+import { civilDayAtTime } from "../lib/civilDate";
+
+const parseDate = (text: string) => civilDayAtTime(text, new Date(2026, 0, 1));
 
 const SOURCE = readFileSync(new URL("./DateTimePicker.tsx", import.meta.url), "utf8");
 

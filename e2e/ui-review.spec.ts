@@ -108,7 +108,7 @@ test('care is compact, has no duplicate mileage action and preserves several job
   await dialog.getByRole('button',{name:'המשך לפרטי הטיפול'}).click();await dialog.getByLabel('עלות כוללת',{exact:true}).fill('850');
   const notes=dialog.getByTestId('care-notes');await notes.fill('לבדוק לחץ אוויר');await notes.focus();
   expect(await notes.evaluate(e=>getComputedStyle(e).direction)).toBe('rtl');expect(await notes.evaluate(e=>getComputedStyle(e).textAlign)).toBe('right');
-  expect(await notes.evaluate(e=>{const style=getComputedStyle(e);return style.outlineStyle!=='none'||style.boxShadow!=='none';})).toBe(true);
+  expect(await notes.evaluate(e=>{const style=getComputedStyle(e);return {outline:style.outlineStyle,shadow:style.boxShadow};})).toEqual({outline:'none',shadow:'none'});
   await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await page.getByRole('button',{name:'הוספת טיפול',exact:true}).click();
   await expect(dialog.getByLabel('עלות כוללת',{exact:true})).toHaveValue('850');await expect(dialog.getByRole('heading',{name:'צמיגים · בלמים',exact:true})).toBeVisible();
 });

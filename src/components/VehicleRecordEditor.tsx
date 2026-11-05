@@ -25,7 +25,7 @@ export function VehicleRecordEditor() {
     if('odometer' in record&&record.odometer!==null){const issue=mileageIssue({day:record.day,odometer:record.odometer},state.mileage.filter(r=>r.source!==edit.collection||r.id!==record.id));if(issue)throw new Error(issue);}
     try {
       const receipt=await saveCareRecord(state.vehicleId,edit.collection,record,base);
-      if(!isCurrent())return;onAccepted?.();state.edit(null);showToast({tone:'info',title:'נשמר במכשיר — ממתין לסנכרון'});
+      if(!isCurrent())return;onAccepted?.();state.edit(null);
       void receipt.settled.then(ok=>{if(isCurrent()&&!ok)showToast({tone:'error',title:'הסנכרון לא הושלם — בדקו שינויים שעוד לא עלו לענן'});});
     } catch(error) { if(isCurrent())throw error; }
   };
@@ -48,7 +48,7 @@ function IssueEditor({original,onClose,captureParentScope}:{original?:VehicleIss
     if(!day){setError('בדקו את התאריך — למשל 05/09/2026.');return;}
     const next={...value,day,title:value.title.trim(),version:original?original.version+1:1,history:changes};
     if(!validVehicleRecord('vehicleIssues',next)){setError('בדקו את הכותרת, התאריך והקילומטראז׳.');return;}if(!isCurrent()||!isScopeCurrent())return;saving.current=true;setBusy(true);setError('');
-    void saveCareRecord(vehicleId,'vehicleIssues',next,original).then(receipt=>{if(!isScopeCurrent())return;if(isCurrent())onClose();showToast({tone:'info',title:'התקלה נשמרה במכשיר — ממתינה לסנכרון'});void receipt.settled.then(ok=>{if(!ok&&isScopeCurrent())showToast({tone:'error',title:'שמירת התקלה טרם אושרה',detail:'אפשר לבדוק בשינויים שעוד לא עלו לענן.'});});}).catch(e=>{if(isCurrent())setError(e instanceof Error?e.message:'לא ניתן לשמור');else if(isScopeCurrent())showToast({tone:'error',title:'שמירת התקלה לא הושלמה',detail:'בדקו את הפרטים ואת השינויים שעוד לא עלו לענן.'});}).finally(()=>{saving.current=false;if(isCurrent())setBusy(false);});
+    void saveCareRecord(vehicleId,'vehicleIssues',next,original).then(receipt=>{if(!isScopeCurrent())return;if(isCurrent())onClose();void receipt.settled.then(ok=>{if(!ok&&isScopeCurrent())showToast({tone:'error',title:'שמירת התקלה טרם אושרה',detail:'אפשר לבדוק בשינויים שעוד לא עלו לענן.'});});}).catch(e=>{if(isCurrent())setError(e instanceof Error?e.message:'לא ניתן לשמור');else if(isScopeCurrent())showToast({tone:'error',title:'שמירת התקלה לא הושלמה',detail:'בדקו את הפרטים ואת השינויים שעוד לא עלו לענן.'});}).finally(()=>{saving.current=false;if(isCurrent())setBusy(false);});
   }}>
     <fieldset disabled={busy}>
     {!original?<div className="tm-vehicle-issue-chips" aria-label="תסמינים נפוצים">{['רעש מוזר','נורה בלוח','רעידות','ריח'].map(title=><button type="button" className="tm-vehicle-chip" key={title} aria-pressed={value.title===title} onClick={()=>patch({title})}>{title}</button>)}</div>:null}

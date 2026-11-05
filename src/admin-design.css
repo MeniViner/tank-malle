@@ -82,7 +82,7 @@
 .admin-detail-sheet .admin-price-field > span:first-child { grid-column: 1 / -1; font-size: 12px; }
 .admin-detail-sheet .admin-price-field > input { min-height: 48px; width: 100%; padding: 0; color: var(--ink); font: 600 36px/1.2 var(--font-mono); text-align: right; }
 .admin-detail-sheet .admin-price-field > span:last-child { color: var(--ink); font-size: 22px; }
-.admin-detail-sheet .admin-price-field:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; box-shadow: none; }
+
 .admin-detail-sheet .tm-text-action { min-height: 44px; overflow-wrap: anywhere; }
 @media (max-width: 359px) {
   .tm-admin { padding-inline: 16px; }

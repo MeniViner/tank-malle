@@ -42,7 +42,8 @@ async function fieldAccessibility(input: Locator) {
   });
   expect(measurement.placeholderOpacity).toBe("1");
   expect(measurement.placeholderColor).not.toMatch(/rgba\([^)]*,\s*0\./);
-  expect(measurement.focusOutline !== "none" || measurement.focusShadow !== "none").toBe(true);
+  expect(measurement.focusOutline).toBe("none");
+  expect(measurement.focusShadow).toBe("none");
   return measurement;
 }
 
@@ -428,7 +429,7 @@ test("a server-rejected write has the first sticky spotlight and retries without
     await openFillupMore(page);
     await page.getByLabel("הערה").fill("כרטיס שגיאת שמירה");
     await page.getByRole("button", { name: "שמירת שינויים", exact: true }).click();
-    await expect(page.getByText("השינויים נשמרו במכשיר", { exact: true })).toBeVisible();
+    await expect(page).toHaveURL("/");
     await page.goto("/settings/unsynced");
     await expect(page.locator('[data-outbox-status="failed"]')).toHaveCount(1);
     expect(await getDocument(path)).toEqual(before);

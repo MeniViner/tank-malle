@@ -6,7 +6,7 @@ import { Outbox, type OutboxOperation, type OutboxPayload } from './outbox';
 import { decodeRawDocument, encodeRawDocument, rawDocumentMatches } from './rawDocument';
 import { captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture,
   vehicleDocumentIntent, isVehicleDocumentOperation, writeVehicleDocumentOperation, reconcileVehicleDocumentOperation,
-  canRebaseVehicleDocumentOperation, rebaseVehicleDocumentOperation, vehicleDocumentDisplay } from './vehicleDocumentPersistence';
+  canRebaseVehicleDocumentOperation, rebaseVehicleDocumentOperation, vehicleDocumentDisplay, projectVehicleDocuments, vehicleDocumentView } from './vehicleDocumentPersistence';
 import { vehicleSelectionBase, vehicleSelectionIntent, isVehicleSelectionOperation, writeVehicleSelectionOperation,
   reconcileVehicleSelectionOperation, vehicleSelectionDisplay } from './vehicleSelection';
 import { presentOutboxOperation, outboxDifferences, outboxFieldText } from './outboxPresentation';
@@ -372,5 +372,61 @@ describe('new-family fail-closed presentation', () => {
     const base = decodeRawDocument(operation.beforeImage!);
     expect(rawDocumentMatches((base.selected as { value: OutboxPayload }).value.future, { seconds: 10, nanoseconds: 123456789 })).toBe(false);
     expect(decodeRawDocument(encodeRawDocument(raw))).toEqual(raw);
+  });
+});
+
+
+describe('live document display without a reload', () => {
+  it('projects an exact durable pending cost immediately without mutating its source or raw siblings', async () => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    const operation = await documentWrite(outbox, raw, 'mandatory', { cost: 987.123456789 });
+    const projected = projectVehicleDocuments('alice', record, captureVehicleDocumentImages(raw), [operation]);
+    expect((projected.docs as typeof raw.docs).mandatory.cost).toBe(987.123456789);
+    expect((projected.docs as typeof raw.docs).mandatory.future).toEqual(raw.docs.mandatory.future);
+    expect(raw.docs.mandatory.cost).toBe(123.456789);
+    expect((record.docs as typeof raw.docs).mandatory.cost).toBe(123.456789);
+    expect(await outbox.get(operation.opId)).toEqual(operation);
+  });
+  it.each(['failed', 'conflict'] as const)('shows the source again after a %s operation, never a claimed save', async status => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    const operation = await documentWrite(outbox, raw, 'mandatory', { cost: 0 });
+    expect(projectVehicleDocuments('alice', record, captureVehicleDocumentImages(raw), [{ ...operation, status }])).toBe(record);
+  });
+  it('does not project another account, vehicle, replaced parent or concurrent selected-document change', async () => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    const operation = await documentWrite(outbox, raw, 'mandatory', { cost: 0 });
+    expect(projectVehicleDocuments('bob', record, captureVehicleDocumentImages(raw), [operation])).toBe(record);
+    expect(projectVehicleDocuments('alice', { ...record, id: 'other' }, captureVehicleDocumentImages(raw), [operation]).docs).toBe(record.docs);
+    for (const changed of [{ ...raw, createdAt: new Timestamp(1, 1) }, { ...raw, docs: { mandatory: { ...raw.docs.mandatory, cost: 42 } } }]) {
+      expect(projectVehicleDocuments('alice', record, captureVehicleDocumentImages(changed), [operation])).toBe(record);
+    }
+  });
+  it('keeps acknowledged zero and authored clears exact and stops projecting once the listener has caught up', async () => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    for (const cost of [0, null]) {
+      const operation = await documentWrite(outbox, raw, 'mandatory', { cost });
+      const projected = projectVehicleDocuments('alice', record, captureVehicleDocumentImages(raw), [operation]);
+      expect((projected.docs as typeof raw.docs).mandatory.cost).toBe(cost);
+      const caughtUp = { ...raw, docs: projected.docs };
+      expect(vehicleDocumentView(operation, captureVehicleDocumentImages(caughtUp))?.applied).toBe(true);
+      expect(projectVehicleDocuments('alice', projected, captureVehicleDocumentImages(caughtUp), [operation])).toBe(projected);
+      await outbox.acknowledge(operation.opId, operation.version);
+    }
+  });
+  it('publishes the committed view only after server success and before the journal is retired', async () => {
+    const { outbox } = await open(), operation = await documentWrite(outbox, rawVehicle(), 'mandatory', { cost: 77 });
+    const held = gate(), read = gate(); let committed = false;
+    sdk.afterRead = async readPath => { if (readPath === path) { read.resolve(); await held.promise; } };
+    const running = writeVehicleDocumentOperation(db, outbox, operation, current, () => { committed = true; });
+    await read.promise; expect(committed).toBe(false); expect(await outbox.get(operation.opId)).not.toBeNull();
+    held.resolve(); await running;
+    expect(committed).toBe(true); expect(await outbox.list()).toEqual([]);
+    expect((sdk.data.get(path)!.docs as ReturnType<typeof defaultDocs>).mandatory.cost).toBe(77);
+  });
+  it('never publishes an acknowledged view after a conflicting server edit', async () => {
+    const { outbox } = await open(), operation = await documentWrite(outbox);
+    sdk.data.set(path, rawVehicle({ mandatory: { due: '2030-01-01' } })); let committed = false;
+    await expect(writeVehicleDocumentOperation(db, outbox, operation, current, () => { committed = true; })).rejects.toMatchObject({ code: 'conflict' });
+    expect(committed).toBe(false); expect(await outbox.get(operation.opId)).not.toBeNull();
   });
 });

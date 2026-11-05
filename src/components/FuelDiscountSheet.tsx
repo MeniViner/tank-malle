@@ -16,7 +16,7 @@ import { useAccountScope } from './account/useAccountScope';
 export function FuelDiscountSheet({ vehicle, official, onClose }: {
   vehicle: Vehicle; official: number | null; onClose: () => void;
 }) {
-  const { updateVehicle } = useData();
+  const { updateVehicle, captureVehicleAction } = useData();
   const { user } = useAuth();
   const captureScope = useAccountScope(`${user?.uid ?? ''}/${vehicle.id}`);
   const { showToast } = useToast();
@@ -33,14 +33,16 @@ export function FuelDiscountSheet({ vehicle, official, onClose }: {
   async function save() {
     if (!valid || saving) return;
     const current = captureScope();
+    const actionCurrent = captureVehicleAction();
     setSaving(true);
     try {
       const receipt = await updateVehicle(vehicle.id, { priceDiscount: discount, priceAdjustment: 0, manualPricePerLiter: null });
       if (!current()) return;
-      const acknowledged = await Promise.race([receipt.settled, new Promise<null>(resolve => setTimeout(() => resolve(null), 6000))]);
-      if (!current()) return;
-      if (acknowledged === false) throw new Error('discount-rejected');
-      showToast({ tone: acknowledged ? 'success' : 'info', title: acknowledged ? 'ההנחה נשמרה' : 'ההנחה נשמרה במכשיר', detail: acknowledged ? undefined : 'תסתנכרן כשיהיה חיבור לשרת' });
+      void receipt.settled.then(acknowledged => {
+        if (!actionCurrent()) return;
+        showToast(acknowledged ? { tone: 'success', title: 'ההנחה נשמרה' }
+          : { tone: 'error', title: 'ההנחה לא אושרה', detail: 'אפשר לבדוק בשינויים שעוד לא עלו לענן.' });
+      });
       onClose();
     } catch { if (current()) showToast({ tone: 'error', title: 'ההנחה לא נשמרה', detail: 'אפשר לנסות שוב' }); }
     finally { if (current()) setSaving(false); }

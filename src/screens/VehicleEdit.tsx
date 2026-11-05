@@ -175,9 +175,8 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
           <Field label={declaredSource === 'co2-estimate' ? 'צריכת ייחוס משוערת' : 'נתון יצרן'} inputMode="decimal" suffix="ק״מ/ל׳" value={declared} error={declaredError ? <NumericText>{declaredError}</NumericText> : null} placeholder="לא ידוע" onChange={event => { setDeclared(event.target.value); setDeclaredSource('user'); setSpecUrl(null); touch('declared'); }} hint={declaredSource === 'co2-estimate' ? 'קירוב מנתוני CO₂. אפשר להזין נתון יצרן מדויק.' : declaredSource === 'other-year' ? 'נתון משנת ייצור אחרת — כדאי לבדוק התאמה לרכב.' : undefined}/>
         </div>
       </fieldset>
-      {state === 'pending' ? <p role="status" className="tm-vehicle-note">הפרטים נשמרו במכשיר וממתינים לאישור מהשרת. אפשר לצאת מהמסך; מצב השמירה מופיע גם בשינויים שעוד לא עלו לענן.</p> : null}
       {error ? <p ref={errorNode} tabIndex={-1} role="alert" className="tm-vehicle-error"><NumericText>{error}</NumericText></p> : null}
-      <Button type="submit" full disabled={state !== 'idle' || refreshing || !dirty.size}>{state === 'pending' ? 'ממתינים לאישור' : state === 'submitting' ? 'שומרים…' : 'שמירת שינויים'}</Button>
+      <Button type="submit" full disabled={state !== 'idle' || refreshing || !dirty.size}>{state !== 'idle' ? 'שומרים…' : 'שמירת שינויים'}</Button>
       {state === 'pending' || error ? <Link className="tm-vehicle-chip" to="/settings/unsynced">שינויים שעוד לא עלו לענן</Link> : null}
     </form>
   </VehicleEditPage>;

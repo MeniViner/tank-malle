@@ -19,11 +19,11 @@ import { vehicleSelectionBase, selectedVehicleFromBase, vehicleSelectionIntent, 
   vehicleSelectionTargetId, vehicleSelectionApplied, writeVehicleSelectionOperation, reconcileVehicleSelectionOperation } from '../lib/vehicleSelection';
 import { retireVehicleAttempt, sameVehicleAttempt, vehicleWriteError } from '../lib/vehicleWriteAttempt';
 import {
-  captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture, vehicleDocumentIntent,
+  captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture, vehicleDocumentIntent, projectVehicleDocuments, vehicleDocumentView,
   isVehicleDocumentOperation, writeVehicleDocumentOperation, reconcileVehicleDocumentOperation,
   rebaseVehicleDocumentOperation, rawVehicleIdentity, type VehicleDocumentImages,
 } from '../lib/vehicleDocumentPersistence';
-import type { VehicleDocKey, VehicleDocChanges, VehicleDocumentSnapshot } from '../lib/vehicle/documents';
+import { isVehicleDocMap, type VehicleDocKey, type VehicleDocChanges, type VehicleDocumentSnapshot } from '../lib/vehicle/documents';
 import {
   createObservationCapture, createRecordUndo, immutableRawImage, readObservationCapture,
   type ObservationDeletionSnapshot, type RecordDeletionOptions,
@@ -772,7 +772,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const selectionIntentRef = useRef({ scope: accountScope, version: 0 });
   useLayoutEffect(() => { selectionIntentRef.current = { scope: accountScope, version: 0 }; }, [accountScope]);
   const [vehicleSnapshot, setVehicleSnapshot] = useState<VehicleSnapshot | null>(null);
-  const vehicles = useMemo(() => vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.records : [], [accountScope, vehicleSnapshot]);
+  useEffect(() => {
+    if (uid && vehicleSnapshot?.scope === accountScope) writeCache(uid, 'vehicles', vehicleSnapshot.records);
+  }, [uid, vehicleSnapshot, accountScope]);
   // Retry compares stored fields, not the display model's id/default values.
   const vehicleDocumentsRef = useRef(new Map<string, OutboxPayload>());
   const [fillups, setFillups] = useState<Fillup[]>([]);
@@ -806,6 +808,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [observationSnapshot, setObservationSnapshot] = useState<ObservationSnapshot | null>(null);
   const [planSnapshot, setPlanSnapshot] = useState<ScopedTankInput<TankPlan> | null>(null);
   const [outboxOps, setOutboxOps] = useState<OutboxOperation[]>([]);
+  const vehicles = useMemo(() => vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.records.map(vehicle =>
+    projectVehicleDocuments(uid ?? '', vehicle, vehicleSnapshot.documentImages.get(vehicle.id) ?? {}, outboxOps)) : [],
+  [accountScope, vehicleSnapshot, uid, outboxOps]);
+
   const [outboxHealth, setOutboxHealth] = useState<OutboxHealth>(UNOPENED_HEALTH);
   const [outboxReady, setOutboxReady] = useState(false);
   const [pendingFillupIds, setPendingFillupIds] = useState<ReadonlySet<string>>(new Set());
@@ -1221,9 +1227,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const captureVehicleDocument = useCallback(function<K extends VehicleDocKey>(vehicle: Vehicle, key: K) {
     return createVehicleDocumentCapture({ records: vehicles, vehicleId: activeVehicleId,
       images: vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.documentImages : new Map(),
-      pendingIds: vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.pendingIds : new Set(),
+      pendingIds: new Set([...(vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.pendingIds : []),
+        ...outboxOps.filter(operation => operation.uid === uid && operation.status === 'pending' && isVehicleDocumentOperation(operation)).map(operation => operation.vehicleId!)]),
     }, captureMutationScope())(vehicle, key);
-  }, [vehicles, activeVehicleId, vehicleSnapshot, accountScope, captureMutationScope]);
+  }, [vehicles, activeVehicleId, vehicleSnapshot, accountScope, captureMutationScope, outboxOps, uid]);
 
   const { records: observations, status: observationsStatus } = readScopedTankInput(observationSnapshot, tankInputScope);
   const { records: plans, status: plansStatus } = readScopedTankInput(planSnapshot, tankInputScope);
@@ -1760,8 +1767,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     assertMutationScope(stillCurrent);
     return submit({ kind: 'vehicle.update', path: userPath('vehicles', vehicleId), vehicleId,
       payload, beforeImage: captured.beforeImage, opType: 'update' },
-    operation => writeVehicleDocumentOperation(db, outbox, operation, stillCurrent), undefined, stillCurrent);
-  }, [uid, activeVehicleId, captureMutationScope, requireOutbox, submit, userPath]);
+    operation => writeVehicleDocumentOperation(db, outbox, operation, stillCurrent, () => {
+      if (!stillCurrent()) return;
+      setVehicleSnapshot(previous => {
+        if (previous?.scope !== accountScope) return previous;
+        const images = previous.documentImages.get(vehicleId) ?? {};
+        const view = vehicleDocumentView(operation, images);
+        if (!view || view.applied) return previous;
+        const documentImages = new Map(previous.documentImages);
+        documentImages.set(vehicleId, { ...images, [view.key]: view.image });
+        return { ...previous, documentImages, records: previous.records.map(vehicle => vehicle.id === vehicleId
+          ? { ...vehicle, docs: { ...(isVehicleDocMap(vehicle.docs) ? vehicle.docs : {}), [view.key]: view.value } } : vehicle) };
+      });
+    }), undefined, stillCurrent);
+  }, [uid, activeVehicleId, captureMutationScope, requireOutbox, submit, userPath, accountScope]);
 
   const enrichVehicleSpecs = useCallback(
     async (vehicle: Vehicle, patch: Partial<Vehicle>, signal?: AbortSignal) => {

@@ -852,9 +852,7 @@ function FillupEditor({
     try {
       const receipt = await session.submission.undoCreation();
       if (!session.submission.isCurrent()) return;
-      const pendingToast = showToast({ tone: "info", title: "בקשת הביטול נשמרה", detail: "ממתינה לאישור בענן" });
       void receipt.settled.then(accepted => {
-        dismissToast(pendingToast);
         if (!session.submission.isCurrent()) return;
         showToast({ tone: accepted ? "success" : "info", title: accepted ? "התדלוק בוטל" : "בקשת הביטול דורשת בדיקה",
           detail: accepted ? undefined : "הנתונים שמורים בשינויים שעוד לא עלו לענן" });
@@ -866,14 +864,14 @@ function FillupEditor({
       if (stillMounted()) setUndoBusy(false);
       showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר", detail: "התדלוק נשאר כמו שנשמר" });
     }
-  }, [captureUi, navigate, showToast, dismissToast]);
+  }, [captureUi, navigate, showToast]);
 
   const transferRemainingUndo = useCallback((session: SavedSession) => {
     if (!session.submission.isCurrent()) return;
     const remaining = session.deadline - Date.now();
     if (remaining > 0 && session.lock.action === "idle" && !session.lock.transferred) {
       session.lock.transferred = true;
-      showToast({ tone: "success", title: "התדלוק נשמר במכשיר", duration: remaining,
+      showToast({ tone: "info", title: "תדלוק חדש", duration: remaining,
         undoLabel: "ביטול", onUndo: () => undoSaved(session, false) });
     }
   }, [showToast, undoSaved]);
@@ -910,18 +908,33 @@ function FillupEditor({
         const submission = submitted.current;
         clearDraft();
         if (!stillMounted() || !submission?.isCurrent()) return;
-        showToast({ tone: "success", title: operation ? "התדלוק נשלח מחדש" : "השינויים נשמרו במכשיר",
-          detail: "ממתינים לאישור בענן", duration: 5000, undoLabel: submission.undoEdit ? "ביטול" : undefined,
-          onUndo: !submission.undoEdit ? undefined : async () => {
-            if (!submission.isCurrent()) return;
-            try {
-              const receipt = await submission.undoEdit!();
-              if (!(await receipt.settled) && submission.isCurrent()) {
-                showToast({ tone: "error", title: "הביטול לא אושר", detail: "הבקשה נשמרה לבדיקה" });
-              }
+        const undoDeadline = Date.now() + 5000;
+        let undoUsed = false;
+        const undoEdit = !submission.undoEdit ? undefined : async () => {
+          if (!submission.isCurrent()) return;
+          undoUsed = true;
+          try {
+            const receipt = await submission.undoEdit!();
+            if (!(await receipt.settled) && submission.isCurrent()) {
+              showToast({ tone: "error", title: "הביטול לא אושר", detail: "הבקשה נשמרה לבדיקה" });
             }
-            catch (error) { if (submission.isCurrent()) showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר" }); }
-          },
+          }
+          catch (error) { if (submission.isCurrent()) showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר" }); }
+        };
+        // Keep Undo available during handoff without claiming a server receipt.
+        const undoToast = undoEdit ? showToast({ tone: "info", title: "עריכת תדלוק", duration: 5000,
+          undoLabel: "ביטול", onUndo: undoEdit }) : undefined;
+        void submission.receipt.settled.then(accepted => {
+          if (!submission.isCurrent() || undoUsed) return;
+          if (!accepted) {
+            showToast({ tone: "error", title: "שמירת התדלוק דורשת בדיקה", detail: "אפשר לבדוק בשינויים שעוד לא עלו לענן." });
+            return;
+          }
+          if (undoToast !== undefined) dismissToast(undoToast);
+          const remaining = undoDeadline - Date.now();
+          showToast({ tone: "success", title: "התדלוק עודכן", duration: remaining > 0 ? remaining : 5000,
+            undoLabel: remaining > 0 && undoEdit ? "ביטול" : undefined,
+            onUndo: remaining > 0 ? undoEdit : undefined });
         });
         navigate(operation ? "/settings/unsynced" : "/", { replace: true });
       } else {
@@ -936,10 +949,9 @@ function FillupEditor({
           deadline: submitted.at + 5000, lock: { action: "idle", transferred: false },
         };
         if (operation) {
-          showToast({ tone: "success", title: "התדלוק נשלח מחדש", detail: "נשמר במכשיר · יאושר בענן ברקע",
+          if (submission.undoCreation) showToast({ tone: "info", title: "שליחה מחדש",
             duration: Math.max(1, session.deadline - Date.now()),
-            undoLabel: submission.undoCreation ? "ביטול" : undefined,
-            onUndo: submission.undoCreation ? () => undoSaved(session, false) : undefined });
+            undoLabel: "ביטול", onUndo: () => undoSaved(session, false) });
           navigate("/settings/unsynced", { replace: true });
         } else {
           setClock(Date.now());
@@ -971,9 +983,7 @@ function FillupEditor({
       const submission = submitted.current;
       clearDraft();
       if (!stillMounted() || !submission?.isCurrent()) return;
-      const pendingToast = showToast({ tone: "info", title: "בקשת המחיקה נשמרה", detail: "ממתינה לאישור בענן" });
       void submission.receipt.settled.then(accepted => {
-        dismissToast(pendingToast);
         if (!submission.isCurrent()) return;
         showToast({ tone: accepted ? "success" : "info", title: accepted ? "התדלוק נמחק" : "המחיקה דורשת בדיקה",
           detail: accepted ? undefined : "בקשת המחיקה שמורה במכשיר", duration: 5000,

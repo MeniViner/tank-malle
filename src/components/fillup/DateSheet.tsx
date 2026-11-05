@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { odometerBounds } from "../../lib/stats";
 import { num } from "../../lib/format";
 import { Sheet } from "../Sheet";
@@ -20,6 +21,8 @@ export function DateSheet({
   bounds: ReturnType<typeof odometerBounds>;
   onChange: (value: number) => void;
 }) {
+  const [validDraft, setValidDraft] = useState(true);
+  const [pickerVersion, setPickerVersion] = useState(0);
   return (
     <Sheet
       open={open}
@@ -27,7 +30,7 @@ export function DateSheet({
       title="תאריך ושעה"
     >
       <div className="flex flex-col gap-3">
-        <DateTimePicker value={value} onChange={onChange} maxDate={maxDate} />
+        <DateTimePicker key={pickerVersion} value={value} onChange={onChange} maxDate={maxDate} onValidityChange={setValidDraft} />
 
         {bounds.min !== null || bounds.max !== null ? (
           <InfoStrip>
@@ -42,7 +45,7 @@ export function DateSheet({
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => onChange(Date.now())}
+            onClick={() => { onChange(Date.now()); setPickerVersion(version => version + 1); setValidDraft(true); }}
             className="min-h-[46px] flex-1 rounded-pill bg-surface-2 text-[14px] font-semibold text-ink transition-[background-color,scale] duration-200 active:scale-[0.97]"
           >
             עכשיו
@@ -50,7 +53,8 @@ export function DateSheet({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[46px] flex-1 rounded-pill bg-accent text-[14px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97] active:brightness-[0.97]"
+            disabled={!validDraft}
+            className="min-h-[46px] flex-1 rounded-pill bg-accent text-[14px] font-bold text-accent-contrast transition-[filter,scale] duration-200 active:scale-[0.97] active:brightness-[0.97] disabled:opacity-50"
           >
             אישור
           </button>

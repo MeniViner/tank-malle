@@ -35,6 +35,7 @@ import { ScreenHeader } from "../components/AppHeader";
 import { Card, IconTile, Skeleton } from "../components/Card";
 import { Num } from "../components/Num";
 import { NumericText } from "../components/Fmt";
+import { NumericInput } from "../components/NumericInput";
 import { useAccountScope } from "../components/account/useAccountScope";
 import { StationBrandMark } from "../components/StationBrand";
 import { Avatar } from "../components/Avatar";
@@ -568,7 +569,6 @@ function FuelPriceEditor() {
 
   /** Returns after both journal and SDK disk acceptance; server acknowledgement remains visible below. */
   async function save(fuelType: FuelType, value: number) {
-    const current = captureScope();
     const now = new Date();
     const month = monthKey(now.getTime());
     const prefix = `byFuelType.${fuelType}.${REGULATED_SERVICE_MODE}`;
@@ -580,7 +580,6 @@ function FuelPriceEditor() {
       [`${prefix}.source`]: "manual",
       [`${prefix}.manualOverride`]: { pricePerLiter: value, month, setAt: Date.now(), note: null },
     });
-    if (current()) showToast({ tone: "info", title: "הקלט נשמר במכשיר — ממתין לאישור השרת" });
   }
 
   async function restoreScheduled(fuelType: FuelType, month: string, scheduled: number) {
@@ -776,9 +775,9 @@ function FuelPriceRow({
     <Sheet className="admin-detail-sheet admin-price-sheet" open={editing} onClose={closeEditor} title={<h2>מחיר לליטר · <NumericText>{label}</NumericText></h2>}>
       <form className="admin-price-editor" onSubmit={event => { event.preventDefault(); if (!changed || !writable || saving || operation?.status === 'pending') return; setSaving(true); void onSave(parsed).catch(error => showToast({ tone: 'error', title: failureTitle(error) })).finally(() => setSaving(false)); }}>
         <p className="helper">{label === 'בנזין 95' ? 'ערך ידני מחליף את המחיר האוטומטי לחודש הנוכחי. תדלוקים קיימים אינם משתנים.' : 'סוג דלק זה אינו בפיקוח. הערך הידני ישמש כברירת מחדל בתדלוקים חדשים.'}</p>
-        <label className="admin-price-field"><span>מחיר לליטר</span><input inputMode="decimal" aria-label={`מחיר חדש לליטר · ${label}`} value={draft} onChange={event => { const value = event.target.value; setDraft(value); try { localStorage.setItem(draftKey, value); setDraftError(false); } catch { setDraftError(true); } }} placeholder={lookup.price !== null ? String(lookup.price) : '—'} dir="ltr" className="num" /><span>₪</span></label>
+        <label className="admin-price-field"><span>מחיר לליטר</span><NumericInput inputMode="decimal" aria-label={`מחיר חדש לליטר · ${label}`} value={draft} onChange={event => { const value = event.target.value; setDraft(value); try { localStorage.setItem(draftKey, value); setDraftError(false); } catch { setDraftError(true); } }} placeholder={lookup.price !== null ? String(lookup.price) : '—'} dir="ltr" className="num" /><span className="tm-unit-symbol">₪</span></label>
         {draftError ? <p role="alert" className="text-[13px] text-danger-ink">הטיוטה לא נשמרה באחסון המקומי. השאירו את המסך פתוח עד לשמירה.</p> : null}
-        {draft && !valid ? <p role="alert" className="text-[13px] text-danger-ink">הזינו מחיר מלא בין 0 ל־20 ₪.</p> : null}
+        {draft && !valid ? <p role="alert" className="text-[13px] text-danger-ink"><NumericText>{`הזינו מחיר מלא בין 0 ל־${price(20)}.`}</NumericText></p> : null}
         <div className="text-[13px] leading-relaxed" aria-live="polite">{status}</div>
         <Button type="submit" full disabled={!changed || !writable || operation?.status === 'pending'} loading={saving}>שמירה</Button>
         {overrideActive && scheduledForMonth !== null && override ? <button type="button" disabled={restoring || !writable || operation?.status === 'pending'} onClick={() => { setRestoring(true); void onRestore(override.month, scheduledForMonth).catch(error => showToast({ tone: 'error', title: failureTitle(error) })).finally(() => setRestoring(false)); }} className="tm-text-action">{restoring ? 'מחזירים…' : `החזרת הערך האוטומטי (${price(scheduledForMonth)})`}</button> : null}

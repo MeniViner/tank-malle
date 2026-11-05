@@ -2,6 +2,7 @@ import { forwardRef, useId, type CSSProperties, type InputHTMLAttributes, type R
 import { formatPlate, int, percentPlain } from "../lib/format";
 import { levelFromKey, snapLevel } from "../lib/tank/gaugeInteraction";
 import { NumRun } from "./Fmt";
+import { NumericInput } from "./NumericInput";
 import { ChevronStart } from "./icons";
 
 export function Pill({ children, tone = "neutral", className = "" }: {
@@ -127,9 +128,9 @@ export const PumpDisplayRow = forwardRef<HTMLInputElement, PumpDisplayRowProps>(
     <div className="tm-pump-line">
       <label htmlFor={inputId} className="tm-pump-label">{label}</label>
       <span className="tm-pump-value">
-        {unit ? <span className="tm-pump-unit">{unit}</span> : null}
-        <input ref={ref} inputMode="decimal" autoComplete="off" {...inputProps} id={inputId} dir="ltr"
+        <NumericInput ref={ref} inputMode="decimal" autoComplete="off" {...inputProps} id={inputId} dir="ltr"
           aria-invalid={error ? true : inputProps["aria-invalid"]} aria-describedby={describedBy} />
+        {unit ? <span className={`tm-pump-unit${unit === "₪" || unit === "%" ? " tm-unit-symbol" : ""}`}>{unit}</span> : null}
       </span>
     </div>
     {error || caption ? <div id={captionId} className="tm-pump-caption" role={error ? "alert" : undefined}>{error || caption}</div> : null}

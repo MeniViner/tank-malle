@@ -315,7 +315,7 @@ test("a legacy empty-note Journal edit and its Undo preserve precise receipt fie
   for (const [key, value] of Object.entries(original)) {
     if (!["notes", "version", "writeId"].includes(key)) expect(edited[key], key).toEqual(value);
   }
-  await expect(page.locator("[data-toast-title]").filter({ hasText: /^השינויים נשמרו במכשיר$/ })).toBeVisible();
+  await expect(page.locator("[data-toast-title]").filter({ hasText: /^התדלוק עודכן$/ })).toBeVisible();
   await captureJournal(page, "legacy-edit-undo-toast-light-plate");
   await page.getByRole("button", { name: "ביטול", exact: true }).click();
   await expect.poll(async () => (await getDocument(scope.path))?.notes).toBe("");

@@ -45,7 +45,7 @@ export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: b
       </span>
       <span id={summaryId} className="tm-tco-number"><Amount value={tco.month} className="tm-tco-value" /><span className="tm-tco-unit">בחודש</span></span>
       <span className="tm-tco-sub">{tco.year === null ? 'ממתינים לעלות מתועדת' : <>כ־<Money value={tco.year} /> בשנה</>}
-        {tco.perKm !== null ? <> · <NumRun>{num(tco.perKm, 2)}</NumRun> ₪ לכל ק״מ</> : null}</span>
+        {tco.perKm !== null ? <> · <NumRun>{`₪${num(tco.perKm, 2)}`}</NumRun> לכל ק״מ</> : null}</span>
       <span className="tm-tco-bar" data-testid="tco-bar" aria-hidden="true">
         {parts.map(part => <i key={part.id} data-tco-part={part.id} style={{ flexGrow: total ? part.knownValue / total : 0, background: COLORS[part.id] }} />)}
       </span>
@@ -90,7 +90,7 @@ function TcoSheet({ tco, onClose, returnFocus }: { tco: TcoResult; onClose: () =
           </button>;
         })}</div>
         <div className="tm-tco-duo">
-          <div><span>כל ק״מ עולה לך{tco.complete ? ' באמת' : tco.lowerBound ? ' לפחות' : ''}</span><strong><NumRun>{tco.perKm === null ? '—' : num(tco.perKm, 2)}</NumRun>{tco.perKm !== null ? ' ₪' : ''}</strong><small>{tco.perKm === null ? 'אחרי שתהיה נסועה יומית ידועה' : 'כולל העלויות המתועדות'}</small></div>
+          <div><span>כל ק״מ עולה לך{tco.complete ? ' באמת' : tco.lowerBound ? ' לפחות' : ''}</span><strong><NumRun>{tco.perKm === null ? '—' : `₪${num(tco.perKm, 2)}`}</NumRun></strong><small>{tco.perKm === null ? 'אחרי שתהיה נסועה יומית ידועה' : 'כולל העלויות המתועדות'}</small></div>
           <div><span>{tco.complete ? 'מתוך זה דלק' : 'דלק מתוך הסכום הידוע'}</span><strong><NumRun>{fuelShare === null ? '—' : percentPlain(fuelShare)}</NumRun></strong><small>{fuel.value === null ? 'עלות הדלק עדיין אינה מלאה' : <><Money value={fuel.value * multiplier} /> {period === 'month' ? 'בחודש' : 'בשנה'}</>}</small></div>
         </div>
         <CostCommunity tco={tco} />

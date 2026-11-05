@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Children, Fragment, type ReactNode } from "react";
 import {
   UNITS, int, num, percent, percentPlain, price as priceText, shekel, shekelSigned,
 } from "../lib/format";
@@ -15,14 +15,32 @@ export interface NumRunProps extends NumberPresentation { children: ReactNode }
 
 /** Digits, signs and currency form one isolated LTR run; Hebrew stays outside. */
 export function NumRun({ children, className = "", block = false, align = "leading" }: NumRunProps) {
+  const parts = Children.toArray(children).reduce<ReactNode[]>((result, child) => {
+    const last = result.at(-1);
+    if (typeof child === "string" || typeof child === "number") {
+      if (typeof last === "string") result[result.length - 1] = last + child;
+      else result.push(String(child));
+    } else result.push(child);
+    return result;
+  }, []);
+  const content = parts.map((child, index) => {
+    if (typeof child !== "string") return child;
+    const numeric = child.match(/^([+−-]?)(₪?)\s*([+−-]?)([\d,\u200e\u200f.]+)([%₪]?)$/);
+    if (!numeric || !(numeric[2] || numeric[5])) return child;
+    const [, leadingSign, currency, priceSign, digits, suffix] = numeric;
+    if (leadingSign && priceSign || currency && suffix) return child;
+    return <span key={index}><span className="tm-unit-symbol">{currency || suffix}</span>{leadingSign || priceSign}{digits}</span>;
+  });
   return <bdi dir="ltr" data-number-align={align}
-    className={`num tm-number${block ? " tm-number-block" : ""} ${className}`}>{children}</bdi>;
+    className={`num tm-number${block ? " tm-number-block" : ""} ${className}`}>{content}</bdi>;
 }
 
 /** Mixed labels keep numeric fragments isolated; this never formats their values. */
 export function NumericText({ children }: { children: string }) {
-  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*)?\d(?:[\d,.:/]*\d)?[%₪]?)/gu)
-    .map((part, index) => index % 2 ? <NumRun key={index}>{part}</NumRun> : part)}</>;
+  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*[+−-]?)?\d(?:[\d,.:/]*\d)?[%₪]?)/gu)
+    .map((part, index) => index % 2 ? <NumRun key={index}>{part}</NumRun>
+      : !/[₪%]/.test(part) ? part : <Fragment key={index}>{part.split(/([₪%])/).map((text, symbolIndex) => text === "₪" || text === "%"
+        ? <span key={symbolIndex} className="tm-unit-symbol">{text}</span> : text)}</Fragment>)}</>;
 }
 
 /** A unit such as ל׳/100 ק״מ still isolates its embedded numeric run. */
