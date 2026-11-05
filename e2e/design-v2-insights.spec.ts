@@ -86,7 +86,7 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await page.keyboard.press("Escape");
   await expect(tableEntry).toBeFocused();
   await selectInsight(page, "price");
-  const priceTicks = page.getByTestId("insights-price-chart").locator(".recharts-yAxis text");
+  const priceTicks = page.getByTestId("insights-price-chart").locator(".insights-price-axis-tick");
   await expect(priceTicks.first()).toBeVisible();
   const tickGeometry = await priceTicks.evaluateAll(ticks => ticks.map(tick => {
     const pieces = Array.from(tick.querySelectorAll("tspan"));

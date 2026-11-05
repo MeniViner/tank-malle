@@ -13,7 +13,7 @@ const PRICE_CHART_MARGIN = { ...CHART_MARGIN, left: 8 };
 /** SVG labels use the same public price formatter, with a smaller currency glyph. */
 function PriceTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value?: string | number } }) {
   const label = price(Number(payload?.value));
-  return <text x={x} y={y} dy=".32em" textAnchor="start" fill="var(--ink-2)" fontSize={12}
+  return <text className="insights-price-axis-tick" x={x} y={y} dy=".32em" textAnchor="start" fill="var(--ink-2)" fontSize={12}
     direction="ltr" unicodeBidi="isolate">
     {label.split(/(₪)/).map((part, index) => <tspan key={index} fontSize={part === '₪' ? '.8em' : undefined}>{part}</tspan>)}
   </text>;
