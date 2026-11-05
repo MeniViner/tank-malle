@@ -35,6 +35,48 @@ test('missing specs are filled without Functions, with source labels and preserv
   expect((await getDocument(path))?.declaredKmPerLiter).toBe(14.8);
 });
 
+test('a same-identity listener refresh cannot cancel and acknowledge a gated missing-spec proposal', async ({ page }) => {
+  await page.route('https://data.gov.il/**', route => route.fulfill({ json: { result: { records: [{
+    tozeret_cd: 502, degem_cd: 81, tozeret_nm: 'יונדאי הודו', tozar: 'יונדאי', shnat_yitzur: 2012,
+    kamut_CO2: 146, nefah_manoa: 1396, merkav: "הצ'בק", kinuy_mishari: 'I20',
+  }] } } }));
+  const { uid, vehicleId } = await signedInWithData(page, { vehicle: {
+    make: 'יונדאי', model: 'I20 INSPIRE', year: 2012,
+    tankLiters: 50, tankLitersSource: 'trusted', declaredKmPerLiter: 15, declaredSource: 'exact-year',
+  } });
+  const path = `users/${uid}/vehicles/${vehicleId}`;
+  const original = (await getDocument(path))!;
+  let held = false;
+  let release = () => {};
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const batchGet = /\/documents:batchGet(?:\?|$)/;
+  await page.route(batchGet, async route => {
+    const url = new URL(route.request().url());
+    if (!held && url.hostname === '127.0.0.1' && url.pathname.includes('/projects/demo-tankmaleh/')
+      && route.request().postData()?.includes(path)) {
+      held = true;
+      await gate;
+    }
+    await route.continue();
+  });
+  try {
+    const missing = { ...original, tankLiters: null, tankLitersSource: null, declaredKmPerLiter: null, declaredSource: null };
+    await setDocument(path, missing);
+    await expect.poll(() => held).toBe(true);
+    await setDocument(path, { ...missing, nickname: 'אותו רכב עם תווית חדשה' });
+    await expect(page.getByTestId('home-first-fillup')).toContainText('אותו רכב עם תווית חדשה');
+    expect((await getDocument(path))?.tankLiters).toBeNull();
+    release();
+    await expect.poll(async () => (await getDocument(path))?.tankLiters).toBe(45);
+    expect((await getDocument(path))?.tankLitersSource).toBe('trusted');
+    await expect.poll(async () => (await getDocument(path))?.declaredSource).toBe('co2-estimate');
+    await expect.poll(() => outboxCount(page, uid)).toBe(0);
+  } finally {
+    release();
+    await page.unroute(batchGet);
+  }
+});
+
 test('delayed automatic specs cannot overwrite another device’s manual values after offline recovery and reload', async ({ page, context }) => {
   let releaseLookup = () => {};
   const lookupGate = new Promise<void>(resolve => { releaseLookup = resolve; });

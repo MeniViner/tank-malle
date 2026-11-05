@@ -55,6 +55,13 @@ async function keyboardVisibility(page: Page, state: string) {
 async function controlMeasurement(target: Locator, label: string) {
   await target44(target);
   await target.focus();
+  if (await target.evaluate(element => element.tagName === "BUTTON")) {
+    // Programmatic focus inherits pointer modality. Exercise actual keyboard
+    // navigation before asserting a button's :focus-visible indicator.
+    await target.page().keyboard.press("Tab");
+    await target.page().keyboard.press("Shift+Tab");
+    await expect(target).toBeFocused();
+  }
   return target.evaluate((element, label) => {
     const box = element.getBoundingClientRect();
     const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);

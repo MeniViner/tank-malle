@@ -7,7 +7,7 @@ import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS, vehiclePayload as carePayload,
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
 import { storedDeclaredSource } from '../lib/vehicleSpecs';
-import { isVehicleEnrichmentOperation, isVehicleEnrichmentPatch, recoveryGroupsWithVehicleEnrichment, vehicleEnrichmentDecision, vehicleEnrichmentVerdict, vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
+import { isVehicleEnrichmentOperation, isVehicleEnrichmentPatch, recoveryGroupsWithVehicleEnrichment, readCurrentVehicleEnrichmentDecision, vehicleEnrichmentVerdict, vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
 import { decodeReusablePumpRule } from '../lib/fillupPricing';
 import { assertMutationScope, conditionalRawWrite, decodeRawDocument, encodeRawDocument, storedRawDocumentMatches } from '../lib/rawDocument';
 import { isVersionedFillupDelete, partitionFillupDeletes, retainedCreationUndo } from '../lib/fillupUndo';
@@ -507,11 +507,11 @@ function writeVehicleEnrichment(
   stillCurrent: () => boolean,
 ): Promise<void> {
   return runTransaction(db, async transaction => {
-    if (!stillCurrent()) return;
     const ref = doc(db, path);
-    const snapshot = await transaction.get(ref);
-    if (!stillCurrent()) return;
-    const decision = vehicleEnrichmentDecision(payload, before, snapshot.exists() ? snapshot.data() : null);
+    const decision = await readCurrentVehicleEnrichmentDecision(payload, before, async () => {
+      const snapshot = await transaction.get(ref);
+      return snapshot.exists() ? snapshot.data() : null;
+    }, stillCurrent);
     if (decision.state === 'unverified') {
       throw Object.assign(new Error('לא ניתן לאמת את מפרט הרכב המקורי — ההצעה לא הוחלה'), { code: 'unverified' });
     }
@@ -1798,6 +1798,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return submit(
         { kind: 'vehicle.update', path, vehicleId: vehicle.id, payload, opType: 'update', beforeImage },
         op => writeVehicleEnrichment(path, op.payload, op.beforeImage, stillCurrent),
+        undefined, stillCurrent,
       );
     },
     [uid, submit, userPath],

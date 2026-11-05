@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { OutboxOperation, OutboxPayload } from './outbox';
+import type { Vehicle } from './types';
 import {
   isVehicleEnrichmentOperation,
   isVehicleEnrichmentPatch,
@@ -7,6 +8,7 @@ import {
   vehicleEnrichmentDecision,
   vehicleEnrichmentVerdict,
   vehicleSpecIdentityMatches,
+  vehicleEnrichmentRequestKey, vehicleEnrichmentSettled, readCurrentVehicleEnrichmentDecision,
 } from './vehicleEnrichment';
 
 const base: OutboxPayload = Object.freeze({
@@ -135,5 +137,75 @@ describe('automatic missing vehicle specifications', () => {
   it('leaves an unapplied recoverable proposal unconfirmed rather than dispatching it', () => {
     expect(vehicleEnrichmentVerdict(operation(), base)).toMatchObject({ verdict: 'unconfirmed' });
     expect(vehicleEnrichmentVerdict(operation(), { ...base, ...proposed })).toEqual({ opId: 'spec-op', version: 1, verdict: 'synced' });
+  });
+});
+
+
+describe('automatic enrichment lifetime and durable settlement', () => {
+  const vehicle = () => ({ id: 'v1', ...base }) as unknown as Vehicle;
+  function gate<T>() {
+    let release!: (value: T) => void;
+    const promise = new Promise<T>(resolve => { release = resolve; });
+    return { promise, release };
+  }
+
+  it('keeps a same-identity listener refresh alive through a gated server read', async () => {
+    let current = vehicle();
+    const key = vehicleEnrichmentRequestKey('owner', current), read = gate<OutboxPayload | null>();
+    const decision = readCurrentVehicleEnrichmentDecision(proposed, base, () => read.promise,
+      () => vehicleEnrichmentRequestKey('owner', current) === key);
+    // Metadata/listener replacement and unrelated document changes must not
+    // abort an already journaled missing-spec proposal.
+    current = { ...current, nickname: 'new label', docs: { mandatory: { cost: 100 } } };
+    expect(vehicleEnrichmentRequestKey('owner', current)).toBe(key);
+    read.release({ ...base, nickname: 'new label' });
+    await expect(decision).resolves.toEqual({ state: 'update', patch: proposed });
+  });
+
+  it('rejects cancellation while the transaction read is gated, rather than reporting a successful empty write', async () => {
+    let current = true;
+    const read = gate<OutboxPayload | null>();
+    const decision = readCurrentVehicleEnrichmentDecision(proposed, base, () => read.promise, () => current);
+    const rejected = expect(decision).rejects.toMatchObject({ code: 'vehicle-enrichment-cancelled' });
+    current = false; read.release(base);
+    await rejected;
+  });
+
+  it('does not start a server read for an already cancelled account or vehicle scope', async () => {
+    let reads = 0;
+    await expect(readCurrentVehicleEnrichmentDecision(proposed, base, async () => { reads++; return base; }, () => false))
+      .rejects.toMatchObject({ code: 'vehicle-enrichment-cancelled' });
+    expect(reads).toBe(0);
+  });
+
+  it('still permits a verified obsolete no-op when manual values arrived before commit', async () => {
+    const manual = { ...base, tankLiters: 47, tankLitersSource: 'user', declaredKmPerLiter: 14.8, declaredSource: 'user' };
+    await expect(readCurrentVehicleEnrichmentDecision(proposed, base, async () => manual, () => true))
+      .resolves.toEqual({ state: 'complete' });
+    expect(manual).toMatchObject({ tankLiters: 47, declaredKmPerLiter: 14.8 });
+  });
+
+  it('changes effect identity for account/car identity and missing-state changes only', () => {
+    const original = vehicle(), key = vehicleEnrichmentRequestKey('owner', original);
+    expect(vehicleEnrichmentRequestKey('other-owner', original)).not.toBe(key);
+    for (const change of [{ id: 'v2' }, { year: 2013 }, { createdAt: 1700000000001 }, { tozeretCd: 502 },
+      { tankLiters: 45, tankLitersSource: 'trusted' }, { tankLitersSource: 'user' }]) {
+      expect(vehicleEnrichmentRequestKey('owner', { ...original, ...change } as Vehicle)).not.toBe(key);
+    }
+    expect(vehicleEnrichmentRequestKey('owner', { ...original, tankLiters: 47, declaredKmPerLiter: 14.8 })).toBeNull();
+    expect(vehicleEnrichmentRequestKey('owner', { ...original, tankLitersSource: 'user', declaredSource: 'user' })).toBeNull();
+  });
+
+  it('does not consume an accepted receipt before its real settlement', async () => {
+    const settled = gate<boolean>();
+    let finished = false;
+    const completion = vehicleEnrichmentSettled({ id: 'op', settled: settled.promise }, () => true)
+      .then(result => { finished = true; return result; });
+    await Promise.resolve(); expect(finished).toBe(false);
+    settled.release(true);
+    await expect(completion).resolves.toBe(true);
+    await expect(vehicleEnrichmentSettled({ id: 'rejected', settled: Promise.resolve(false) }, () => true)).resolves.toBe(false);
+    await expect(vehicleEnrichmentSettled({ id: 'stale', settled: Promise.resolve(true) }, () => false)).resolves.toBe(false);
+    await expect(vehicleEnrichmentSettled(null, () => true)).resolves.toBe(false);
   });
 });

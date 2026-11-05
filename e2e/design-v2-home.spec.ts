@@ -188,7 +188,7 @@ test("a missing partial cost never becomes a complete segment or monthly fuel to
 
 test("the three recent records and Journal share refund, unknown cost and quiet odometer rows", async ({ page }) => {
   const scope = await homeFixture(page);
-  await expect(page.getByTestId("tank-hero")).toHaveAccessibleDescription(/100%/);
+  await expect(page.getByTestId("tank-hero")).toHaveAccessibleDescription(/100\s*%/);
   await expect(page.getByTestId("tank-hero")).toHaveAccessibleDescription(/הערכה מהטנק המלא האחרון/);
   await homeMixedRecent(scope);
   await page.goto("/");
