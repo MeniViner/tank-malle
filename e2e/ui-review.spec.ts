@@ -108,7 +108,7 @@ test('care is compact, has no duplicate mileage action and preserves several job
   await dialog.getByRole('button',{name:'המשך לפרטי הטיפול'}).click();await dialog.getByLabel('עלות כוללת',{exact:true}).fill('850');
   const notes=dialog.getByTestId('care-notes');await notes.fill('לבדוק לחץ אוויר');await notes.focus();
   expect(await notes.evaluate(e=>getComputedStyle(e).direction)).toBe('rtl');expect(await notes.evaluate(e=>getComputedStyle(e).textAlign)).toBe('right');
-  expect(await notes.evaluate(e=>{const style=getComputedStyle(e);return style.outlineStyle!=='none'||style.boxShadow!=='none';})).toBe(true);
+  expect(await notes.evaluate(e=>{const style=getComputedStyle(e);return {outline:style.outlineStyle,shadow:style.boxShadow};})).toEqual({outline:'none',shadow:'none'});
   await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await page.getByRole('button',{name:'הוספת טיפול',exact:true}).click();
   await expect(dialog.getByLabel('עלות כוללת',{exact:true})).toHaveValue('850');await expect(dialog.getByRole('heading',{name:'צמיגים · בלמים',exact:true})).toBeVisible();
 });
@@ -119,8 +119,8 @@ test('every setting uses the same compact accessible switch and quick entry pers
     const target=await sw.boundingBox();expect(target!.width).toBeCloseTo(52,3);expect(target!.height).toBeCloseTo(44,3);
     const track=await sw.locator('.tm-switch-track').boundingBox();expect(track!.width).toBeCloseTo(52,3);expect(track!.height).toBeCloseTo(32,3);
   }};
-  await checkSwitches(page.getByRole('switch'),4);
-  for(const label of ['טסט, ביטוח וטיפולים','שינוי במחיר הדלק','שיתוף סיכום להשוואה'])await expect(page.getByRole('switch',{name:label,exact:true})).toBeVisible();
+  await checkSwitches(page.getByRole('switch'),5);
+  for(const label of ['טסט, ביטוח וטיפולים','שינוי במחיר הדלק','שיתוף סיכום דלק להשוואה','שיתוף סיכום עלות הרכב'])await expect(page.getByRole('switch',{name:label,exact:true})).toBeVisible();
   const quick=page.getByRole('switch',{name:'כפתור תדלקתי פותח מצלמה',exact:true});await quick.click();await expect(quick).toBeChecked();
   await expect(async()=>expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({quickEntry:true})).toPass();await page.reload();await expect(quick).toBeChecked();
   await page.goto('/vehicle?tab=prefs');await checkSwitches(page.getByRole('switch'),1);await expect(page.getByRole('switch',{name:'התאמה אישית אוטומטית',exact:true})).toBeVisible();

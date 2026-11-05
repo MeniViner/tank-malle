@@ -496,13 +496,30 @@ service cloud.firestore {
             || (isNumber(data.avgPricePerLiter) && data.avgPricePerLiter >= 0));
     }
 
+    // A previously used financial-sharing account needs a fresh erasure intent.
+    // A cached pre-TCO client cannot silently skip the new collection on retry.
+    function costDeletionAttempt(before, after) {
+      let previous = before.get('settings', {});
+      let settings = after.get('settings', {});
+      return after.get('deletionPending', false) == true
+        && after.get('costDeletionAttemptAt', null) is timestamp
+        && after.costDeletionAttemptAt == request.time
+        && settings is map && settings.get('shareTcoBenchmarks', true) == false
+        && after.diff(before).affectedKeys().hasOnly(['deletionPending', 'costDeletionAttemptAt', 'settings'])
+        && settings.diff(previous is map ? previous : {}).affectedKeys().hasOnly(['shareTcoBenchmarks']);
+    }
+
     match /users/{uid} {
       // Admins read the PROFILE only — display name, email, join date — which
       // the dashboard needs to list accounts and support needs to find one.
       // Vehicles and fill-ups below are owner-only, with no admin exception.
       allow read: if isOwner(uid) || isAdmin();
       allow create, update: if isOwner(uid)
-        && (accountWritable(uid) || (request.resource.data.deletionPending == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletionPending'])))
+        && (accountWritable(uid) || (request.resource.data.deletionPending == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deletionPending']))
+          || costDeletionAttempt(resource == null ? {} : resource.data, request.resource.data))
+        && (resource == null || resource.data.get('costSharingUsed', false) != true || request.resource.data.get('costSharingUsed', false) == true)
+        && (resource == null || resource.data.get('costSharingUsed', false) != true || request.resource.data.get('deletionPending', false) != true
+          || costDeletionAttempt(resource.data, request.resource.data))
         && request.resource.data.get('deletionPending', false) is bool
         && (!('settings' in request.resource.data) || request.resource.data.settings is map)
         // Login stamps, rotated once per authentication event. Numbers only,
@@ -510,7 +527,10 @@ service cloud.firestore {
         && optionalEpochMillis(request.resource.data, 'previousLoginAt')
         && optionalEpochMillis(request.resource.data, 'currentLoginAt')
         && optionalEpochMillis(request.resource.data, 'lastProcessedAuthTime');
-      allow delete: if isOwner(uid);
+      allow delete: if isOwner(uid) && (resource.data.get('costSharingUsed', false) != true
+        || (resource.data.get('deletionPending', false) == true
+          && resource.data.get('settings', {}).get('shareTcoBenchmarks', true) == false
+          && resource.data.get('costDeletionAttemptAt', null) is timestamp));
 
       /**
        * Raw community price reports.
@@ -595,7 +615,7 @@ service cloud.firestore {
        */
       match /vehicles/{vehicleId} {
         allow read: if isOwner(uid);
-        allow delete: if isOwner(uid);
+        allow delete: if isOwner(uid) && !existsAfter(/databases/$(database)/documents/costBenchmarks/$(uid + '__' + vehicleId));
         allow create, update: if isOwner(uid) && accountWritable(uid)
           && validVehicleWrite(resource == null ? {} : resource.data, request.resource.data);
 
@@ -785,6 +805,36 @@ service cloud.firestore {
           || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('settings', {}).get('shareBenchmarks', true) != false)
         && validBenchmark(request.resource.data);
       allow delete: if ownsBenchmark(docId) || isAdmin();
+    }
+
+    // Explicit opt-in ownership-cost summary. No receipt/component/person/place fields.
+    function validCostBenchmark(data) {
+      return data.keys().hasOnly(['vehicleId', 'modelKey', 'fuelType', 'monthlyCost', 'months', 'method', 'updatedAt'])
+        && data.keys().hasAll(['vehicleId', 'modelKey', 'fuelType', 'monthlyCost', 'months', 'method', 'updatedAt'])
+        && isString(data.vehicleId, 64) && data.vehicleId.size() > 0
+        && isString(data.modelKey, 80) && data.modelKey.size() > 0
+        && data.fuelType in ['95', '98', 'diesel', 'other']
+        && isNumber(data.monthlyCost) && data.monthlyCost > 0 && data.monthlyCost <= 1000000
+        && data.months is int && data.months >= 1 && data.months <= 12
+        && data.method == 1 && data.updatedAt is timestamp && data.updatedAt == request.time;
+    }
+    function costSharingAllowed(vehicleId, fuelType) {
+      let profile = getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let vehicle = get(/databases/$(database)/documents/users/$(request.auth.uid)/vehicles/$(vehicleId)).data;
+      return profile.get('deletionPending', false) == false
+        && profile.get('costSharingUsed', false) == true
+        && profile.get('settings', {}).get('shareTcoBenchmarks', false) == true
+        && vehicle.get('archived', false) == false && vehicle.get('deletionPending', false) == false
+        && vehicle.fuelType == fuelType;
+    }
+    match /costBenchmarks/{docId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && validCostBenchmark(request.resource.data)
+        && docId == request.auth.uid + '__' + request.resource.data.vehicleId
+        && costSharingAllowed(request.resource.data.vehicleId, request.resource.data.fuelType);
+      // Missing rows need no mutation; owned orphan rows remain erasable after vehicle removal.
+      allow delete: if isSignedIn() && (!exists(/databases/$(database)/documents/costBenchmarks/$(docId))
+        || docId == request.auth.uid + '__' + resource.data.vehicleId);
     }
 
     // Product feedback. A user may file and read back their own notes; only

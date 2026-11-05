@@ -19,7 +19,7 @@
 .admin-kinds > span { display:inline-flex;gap:5px;align-items:center;padding:4px 9px;border-radius:99px;background:var(--surface-2);font-size:12px;color:var(--muted); }
 .admin-search { display:flex;align-items:center;gap:10px;min-height:46px;padding:0 14px;background:var(--surface);border-radius:var(--radius-control);color:var(--muted); }
 .admin-search input { flex:1;min-width:0;background:transparent;border:0;text-align:start;color:var(--ink);outline:none; }
-.admin-search:focus-within { box-shadow:0 0 0 2px var(--accent); }
+
 .admin-user-row { display:flex;width:100%;align-items:center;gap:12px;min-height:72px;padding:12px 16px;text-align:start; }
 .admin-row-main { display:flex;flex:1;min-width:0;flex-direction:column;gap:2px; }
 .admin-row-main strong { font-size:15px;font-weight:600; }
@@ -40,7 +40,7 @@
 .admin-price-editor input:focus { outline:none;box-shadow:none; }
 .admin-price-field { display:flex;gap:12px;align-items:center;border-bottom:1px solid var(--line);padding:14px 0; }
 .admin-price-field > input { min-width:0;flex:1;background:transparent;font-size:28px;font-weight:600; }
-.admin-price-field:focus-within { border-color:var(--ink);box-shadow:0 1px 0 var(--accent); }
+
 .admin-price-field span { color:var(--muted);font-size:15px; }
 .admin-price-status button { color:var(--ink);font-weight:600;min-height:44px; }
 .admin-page button:active { background-color:var(--surface-2); }

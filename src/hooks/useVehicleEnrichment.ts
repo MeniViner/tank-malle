@@ -4,7 +4,7 @@ import { useData } from '../context/DataContext';
 import { fetchVehicleSpecs } from '../lib/vehicleSpecs';
 import { lookupPlate } from '../lib/plateLookup';
 import type { Vehicle } from '../lib/stats';
-import { vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
+import { vehicleEnrichmentRequestKey, vehicleEnrichmentSettled, vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
 
 /** Enrich missing fields only; stale requests cannot modify a different account/car. */
 export function useVehicleEnrichment() {
@@ -13,13 +13,12 @@ export function useVehicleEnrichment() {
   const latest = useRef({ vehicle: activeVehicle, uid: user?.uid });
   useLayoutEffect(() => { latest.current = { vehicle: activeVehicle, uid: user?.uid }; }, [activeVehicle, user?.uid]);
   const attempted = useRef(new Set<string>());
+  const requestKey = vehicleEnrichmentRequestKey(user?.uid, activeVehicle);
   const [loading, setLoading] = useState(false);
   useEffect(() => {
-    const vehicle = activeVehicle;
-    const uid = user?.uid;
-    if (!uid || !vehicle || !outboxReady || (vehicle.tankLiters && vehicle.declaredKmPerLiter)) { setLoading(false); return; }
-    const key = JSON.stringify([uid, vehicle.id, vehicle.make, vehicle.model, vehicle.year, vehicle.plateNumber,
-      vehicle.fuelType, vehicle.tozeretCd, vehicle.degemCd, vehicle.createdAt]);
+    const { vehicle, uid } = latest.current;
+    if (!uid || !vehicle || !outboxReady || !requestKey) { setLoading(false); return; }
+    const key = requestKey;
     if (attempted.current.has(key)) { setLoading(false); return; }
     const abort = new AbortController();
     setLoading(true);
@@ -43,11 +42,11 @@ export function useVehicleEnrichment() {
       if (!Object.keys(patch).length) attempted.current.add(key);
       else {
         const receipt = await enrichVehicleSpecs(vehicle, patch, abort.signal);
-        if (receipt) attempted.current.add(key);
+        if (await vehicleEnrichmentSettled(receipt, () => !abort.signal.aborted)) attempted.current.add(key);
       }
     })().catch(() => { /* Manual refresh remains available in vehicle settings. */ })
       .finally(() => { if (!abort.signal.aborted) setLoading(false); });
     return () => abort.abort();
-  }, [user?.uid, activeVehicle, outboxReady, enrichVehicleSpecs]);
+  }, [requestKey, outboxReady, enrichVehicleSpecs]);
   return loading;
 }

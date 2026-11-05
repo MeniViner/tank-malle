@@ -12,8 +12,8 @@ import { outboxCount } from "./helpers/pwa";
  * that mirroring would fix it, and it does not, because the run sits inside an
  * LTR island.
  *
- * `innerText` on the LTR island gives the reading order the user actually
- * sees, so that is what is checked.
+ * Text assertions retain logical reading order; geometry assertions check the
+ * actual visual unit placement independently of flex whitespace.
  */
 
 test.describe.configure({ mode: "serial" });
@@ -44,8 +44,14 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
 
   /* --- money: the currency symbol leads the digits --- */
   const money = await islandText(page, /₪/);
-  expect(money).toMatch(/^₪[\d,]/);
-  expect(money).not.toMatch(/[\d,]₪$/);
+  expect(money).toMatch(/^₪\s*[\d,]/);
+  expect(money).not.toMatch(/[\d,]\s*₪$/);
+  const geometry = await page.locator('bdi[dir="ltr"], span[dir="ltr"]').filter({ hasText: /₪/ }).first().evaluate(island => {
+    const symbol = island.querySelector(".tm-unit-symbol")!, digits = island.querySelector(".tm-number-value")!;
+    return { left: symbol.getBoundingClientRect().right <= digits.getBoundingClientRect().left + .5,
+      smaller: parseFloat(getComputedStyle(symbol).fontSize) < parseFloat(getComputedStyle(digits).fontSize) };
+  });
+  expect(geometry).toEqual({ left: true, smaller: true });
 });
 
 test("a signed money delta puts the sign before the currency symbol", async ({ page }) => {
@@ -60,7 +66,7 @@ test("a signed money delta puts the sign before the currency symbol", async ({ p
     hasText: /^[+−]₪/,
   });
   if (await signed.count()) {
-    const text = (await signed.first().innerText()).trim();
+    const text = (await signed.first().innerText()).replace(/\s+/g, "");
     expect(text).toMatch(/^[+−]₪\d/);
     // A hyphen would read as a list dash next to Hebrew; U+2212 is used.
     expect(text.startsWith("-")).toBe(false);

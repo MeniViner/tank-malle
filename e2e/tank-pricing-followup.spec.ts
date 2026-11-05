@@ -19,10 +19,12 @@ test('official price stays live; amount and percent discounts persist without a 
  await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();
  await expect(page.getByRole('dialog')).toHaveCount(0);
  const path=`users/${uid}/vehicles/${vehicleId}`;
- expect((await getDocument(path))?.priceDiscount).toEqual({kind:'percent',value:5});
- expect((await getDocument(path))?.manualPricePerLiter).toBeNull();
  await page.goto('/fillup/new');
  await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7.6');
+ // Closing the editor follows durable local acceptance; server ACK is a
+ // separate assertion and must not depend on a synchronous REST read race.
+ await expect.poll(async()=>(await getDocument(path))?.priceDiscount,{timeout:20000}).toEqual({kind:'percent',value:5});
+ await expect.poll(async()=>(await getDocument(path))?.manualPricePerLiter,{timeout:20000}).toBeNull();
  await seedRegulatedPrice(7.77);
  await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7.382');
  await page.goto('/settings');

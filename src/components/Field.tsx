@@ -1,9 +1,10 @@
 import { useId, type InputHTMLAttributes, type ReactNode } from "react";
 import { WarningIcon } from "./icons";
+import { NumericInput } from "./NumericInput";
 
 interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   label: ReactNode;
-  /** Unit shown after the value, e.g. "ק״מ" / "ליטר". */
+  /** Unit shown physically left of the value, e.g. "ק״מ" / "ליטר". */
   suffix?: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
@@ -32,6 +33,8 @@ export function Field({
   ...rest
 }: FieldProps) {
   const id = useId();
+  const numeric = rest.inputMode === "decimal" || rest.inputMode === "numeric" || rest.type === "number";
+  const Input = numeric ? NumericInput : "input";
   const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null]
     .filter(Boolean)
     .join(" ");
@@ -53,11 +56,11 @@ export function Field({
             ? "border-danger"
             : warning
               ? "border-warning"
-              : "border-line focus-within:border-ink"
+              : "border-line"
         }`}
       >
         {icon}
-        <input
+        <Input
           id={id}
           dir={rest.inputMode === 'decimal' || rest.inputMode === 'numeric' || rest.type === 'number' || rest.type === 'date' ? 'ltr' : 'rtl'}
           aria-invalid={error ? true : undefined}
@@ -68,7 +71,7 @@ export function Field({
           {...rest}
         />
         {suffix ? (
-          <span className="flex-none text-[13px] font-semibold text-muted">{suffix}</span>
+          <span className={`tm-input-unit flex-none text-[13px] font-semibold text-muted${suffix === "₪" || suffix === "%" ? " tm-unit-symbol" : ""}`}>{suffix}</span>
         ) : null}
       </div>
 

@@ -55,8 +55,18 @@ async function keyboardVisibility(page: Page, state: string) {
 async function controlMeasurement(target: Locator, label: string) {
   await target44(target);
   await target.focus();
+  if (await target.evaluate(element => element.tagName === "BUTTON")) {
+    // Programmatic focus inherits pointer modality. Exercise actual keyboard
+    // navigation before asserting a button's :focus-visible indicator.
+    await target.page().keyboard.press("Tab");
+    await target.page().keyboard.press("Shift+Tab");
+    await expect(target).toBeFocused();
+  }
   return target.evaluate((element, label) => {
     const box = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+    const pickerOverlay = element.tagName === "BUTTON" && hit instanceof HTMLInputElement
+      && ["date", "time"].includes(hit.type) && hit.parentElement === element.parentElement;
     const own = getComputedStyle(element);
     const parent = getComputedStyle(element.parentElement!);
     let ancestor = element.parentElement;
@@ -71,11 +81,12 @@ async function controlMeasurement(target: Locator, label: string) {
       }
       ancestor = ancestor.parentElement;
     }
-    return { kind: "control", label, width: box.width, height: box.height,
+    return { kind: "control", label, tag: element.tagName, width: box.width, height: box.height,
+      unobscured: hit === element || !!hit && element.contains(hit) || pickerOverlay,
       outline: own.outlineStyle, outlineColor: own.outlineColor, outlineWidth: own.outlineWidth,
       inputBoxShadow: own.boxShadow, outlinedAncestor,
       parentOutline: parent.outlineStyle, parentOutlineColor: parent.outlineColor,
-      parentOutlineWidth: parent.outlineWidth, borderColor: parent.borderColor };
+      parentOutlineWidth: parent.outlineWidth, parentBoxShadow: parent.boxShadow, borderColor: parent.borderColor };
   }, label);
 }
 
@@ -401,19 +412,40 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     for (const id of ["fillup-total", "fillup-liters", "fillup-price", "fillup-odometer"]) {
       const field = page.getByTestId(id);
       await target44(field);
+      await field.evaluate(input => input.blur());
+      const borders = await field.evaluate(input => [input, input.closest(".tm-pump-value")!, input.closest(".tm-pump-row")!]
+        .map(element => getComputedStyle(element).border));
       await field.focus();
-      measurements.push(await field.evaluate(input => {
+      const measurement = await field.evaluate(input => {
         const box = input.getBoundingClientRect();
         const row = input.closest(".tm-pump-row")!;
+        const value = input.closest(".tm-pump-value")!;
+        const unit = value.querySelector(".tm-pump-unit")!;
+        const unitBox = unit.getBoundingClientRect();
         const placeholder = getComputedStyle(input, "::placeholder");
         return { id: input.id, width: box.width, height: box.height, textAlign: getComputedStyle(input).textAlign,
           dir: input.getAttribute("dir"), placeholder: placeholder.color, placeholderOpacity: placeholder.opacity,
           focusOutline: getComputedStyle(row).outlineStyle, focusShadow: getComputedStyle(row).boxShadow,
           inputOutline: getComputedStyle(input).outlineStyle, inputOutlineWidth: getComputedStyle(input).outlineWidth,
           inputOutlineColor: getComputedStyle(input).outlineColor, inputOutlineOffset: getComputedStyle(input).outlineOffset,
-          inputBoxShadow: getComputedStyle(input).boxShadow };
-      }));
+          inputBoxShadow: getComputedStyle(input).boxShadow,
+          frames: [input, value, row].map(element => ({ border: getComputedStyle(element).border,
+            outline: getComputedStyle(element).outlineStyle, shadow: getComputedStyle(element).boxShadow })),
+          unitCount: value.querySelectorAll(".tm-pump-unit").length,
+          unit: unit.textContent, unitLeft: unitBox.right <= box.left + .5 };
+      });
+      measurements.push(measurement);
+      expect(measurement.unitCount, id).toBe(1);
+      expect(measurement.unitLeft, id).toBe(true);
+      expect(measurement.unit, id).toBe(({ "fillup-total": "₪", "fillup-liters": "ל׳", "fillup-price": "₪", "fillup-odometer": "ק״מ" })[id]);
+      expect(measurement.frames.map(frame => frame.border), id).toEqual(borders);
+      for (const frame of measurement.frames) expect(frame, id).toMatchObject({ outline: "none", shadow: "none" });
       await expect(field).toHaveAttribute("dir", "ltr");
+      const original = await field.inputValue();
+      await field.pressSequentially("מילים");
+      await expect(field).toHaveValue(original);
+      await field.fill("123שלום");
+      await expect(field).toHaveValue(original);
     }
     await page.getByTestId("fillup-save").click();
     await expect(page.getByTestId("fillup-odometer")).toHaveAttribute("aria-invalid", "true");
@@ -451,8 +483,15 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     for (const label of ["תאריך — הקלדה ידנית", "שעה — הקלדה ידנית", "בחירת תאריך מהמכשיר", "בחירת שעה מהמכשיר", "פתיחת לוח השנה", "פתיחת בורר השעה"]) {
       const measurement = await controlMeasurement(dateDialog.getByLabel(label, { exact: true }), label);
       measurements.push(measurement);
-      expect(measurement.outlinedAncestor?.outline, label).toBe("solid");
-      expect(parseFloat(measurement.outlinedAncestor?.outlineWidth ?? "0"), label).toBeGreaterThanOrEqual(2);
+      expect(measurement.unobscured, label).toBe(true);
+      if (label.includes("הקלדה ידנית") || label.includes("בחירת תאריך") || label.includes("בחירת שעה")) {
+        expect(measurement, label).toMatchObject({ outline: "none", inputBoxShadow: "none", parentOutline: "none", parentBoxShadow: "none" });
+        expect(measurement.outlinedAncestor, label).toBeNull();
+      } else {
+        const outline = measurement.outline === "solid" ? measurement : measurement.outlinedAncestor;
+        expect(outline?.outline, label).toBe("solid");
+        expect(parseFloat(outline?.outlineWidth ?? "0"), label).toBeGreaterThanOrEqual(2);
+      }
     }
     measurements.push(await page.evaluate(() => ({ kind: "reduced-motion", reduced: matchMedia("(prefers-reduced-motion: reduce)").matches,
       elements: [".tm-sheet-panel", ".fillup-disclosure", ".fillup-chevron-open", '[data-testid="fillup-save"]'].map(selector => {
@@ -492,8 +531,8 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await page.getByTestId("fillup-pump-price").fill("7.77");
     const pumpPrice = await controlMeasurement(page.getByTestId("fillup-pump-price"), "המחיר במשאבה");
     measurements.push(pumpPrice);
-    expect(pumpPrice.outlinedAncestor?.outline).toBe("solid");
-    expect(parseFloat(pumpPrice.outlinedAncestor?.outlineWidth ?? "0")).toBeGreaterThanOrEqual(2);
+    expect(pumpPrice).toMatchObject({ outline: "none", inputBoxShadow: "none", parentOutline: "none", parentBoxShadow: "none", unobscured: true });
+    expect(pumpPrice.outlinedAncestor).toBeNull();
     await target44(page.getByTestId("fillup-pump-confirm"));
     await capture(page, `fillup-pump-different-${suffix}`);
     await page.getByTestId("fillup-pump-confirm").click();

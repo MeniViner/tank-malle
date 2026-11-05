@@ -27,8 +27,8 @@ body{-webkit-font-smoothing:antialiased}h1,h2,h3{text-wrap:balance}p{text-wrap:p
 .home-average-row{font-size:clamp(12px,3.4vw,13.5px)}.num.font-display{font-weight:700}.care-amount input{font-family:var(--font-num);font-weight:500}
 
 /* Review refinements: one focus indicator, compact switches and quiet ranges. */
-input:not([type=checkbox]):not([type=radio]):focus,textarea:focus,select:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 2px var(--accent)}
-.tm-field-control:focus-within,.tm-field-input:focus-within{box-shadow:0 0 0 2px var(--accent);border-color:var(--ink)}
+select:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 2px var(--accent)}
+
 .tm-field-control input:focus,.tm-field-input input:focus{outline:none;box-shadow:none}
 .tm-field-control input,.tm-field-input input,textarea{ text-align:right }
 textarea{direction:rtl}
@@ -45,7 +45,7 @@ textarea{direction:rtl}
 .care-choice>svg:first-child{width:21px;height:21px}
 .v-filter-line{align-items:center;gap:16px}
 .ledger-search{display:flex;align-items:center;gap:8px;flex:1;min-width:0;border-bottom:1px solid var(--line);color:var(--muted)}
-.ledger-search:focus-within{border-color:var(--ink)}
+
 .v-filter-line .ledger-search input{width:100%;min-width:0;min-height:44px;border:0;border-radius:0;background:transparent;padding:8px 0;color:var(--ink);text-align:right;font-size:14px}
 .v-filter-line .ledger-search input:focus{box-shadow:none;outline:none}
 .period-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;max-width:100%;color:var(--ink);font-size:13px;background:transparent;border:0;border-radius:6px;flex:none}

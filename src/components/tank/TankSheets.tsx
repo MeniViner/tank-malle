@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
-import { useToast } from "../../context/ToastContext";
 import { dayMonthShort, timeAgo } from "../../lib/format";
 import type { TankEstimate } from "../../lib/tank";
 import { primaryNote } from "../../lib/tank/balance";
@@ -35,7 +34,6 @@ export function TankSheets(props: TankSheetsProps) {
 function TankSheetSession({ handle, entry, enriching, onClose }: TankSheetsProps) {
   const { user } = useAuth();
   const { activeVehicle, plans, deletePlan, settings } = useData();
-  const { showToast } = useToast();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
   const [nested, setNested] = useState<"odometer" | "trip" | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -65,7 +63,6 @@ function TankSheetSession({ handle, entry, enriching, onClose }: TankSheetsProps
     setError("");
     try {
       await deletePlan(id);
-      if (current()) showToast({ tone: "info", title: "בקשת מחיקת הנסיעה נשמרה במכשיר" });
     } catch {
       if (current()) setError("בקשת המחיקה לא נשמרה. אפשר לנסות שוב.");
     } finally {

@@ -1,3 +1,4 @@
+import { restoredArchiveFollowupFlow } from './helpers/vehicle-archive';
 import { openCareHistory,openCareRecord } from "./helpers/care";
 import { expect,test } from '@playwright/test';
 import { signedInWithData } from './helpers/app';
@@ -110,3 +111,5 @@ test('unreadable and corrupt photographs leave the manual path available without
   await page.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByTestId("fillup-total")).toHaveValue('');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('');
 });
+
+test('restoring before an archive follow-up finishes keeps the active vehicle and retires only the obsolete intent', async ({ page }) => restoredArchiveFollowupFlow(page));

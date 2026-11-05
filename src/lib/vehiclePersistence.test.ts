@@ -6,7 +6,7 @@ import { Outbox, type OutboxOperation, type OutboxPayload } from './outbox';
 import { decodeRawDocument, encodeRawDocument, rawDocumentMatches } from './rawDocument';
 import { captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture,
   vehicleDocumentIntent, isVehicleDocumentOperation, writeVehicleDocumentOperation, reconcileVehicleDocumentOperation,
-  canRebaseVehicleDocumentOperation, rebaseVehicleDocumentOperation, vehicleDocumentDisplay } from './vehicleDocumentPersistence';
+  canRebaseVehicleDocumentOperation, rebaseVehicleDocumentOperation, vehicleDocumentDisplay, projectVehicleDocuments, vehicleDocumentView } from './vehicleDocumentPersistence';
 import { vehicleSelectionBase, vehicleSelectionIntent, isVehicleSelectionOperation, writeVehicleSelectionOperation,
   reconcileVehicleSelectionOperation, vehicleSelectionDisplay } from './vehicleSelection';
 import { presentOutboxOperation, outboxDifferences, outboxFieldText } from './outboxPresentation';
@@ -202,8 +202,9 @@ describe('field-only automatic selection', () => {
     const raw = { ...profile(), settings: { activeVehicleId: 'existing-b', theme: 'dark' } };
     sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/existing-b`, rawVehicle());
     const operation = await selectionWrite(outbox, raw, 'existing-b');
-    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-obsolete' });
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
     expect(sdk.data.get(profilePath)).toEqual(raw); expect(sdk.writes).toEqual([]);
+    expect(await outbox.list()).toEqual([]);
   });
   it('preserves every other setting and raw account timestamp', async () => {
     const { outbox } = await open(), raw = profile(); const operation = await selectionWrite(outbox, raw);
@@ -220,23 +221,34 @@ describe('field-only automatic selection', () => {
     await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-target' });
     expect(sdk.writes).toEqual([]); expect((await outbox.get(operation.opId))?.payload).toEqual(operation.payload);
   });
-  it('refuses a newer preference and a restored source after an archive/delete ACK', async () => {
+  it('refuses a newer preference and retires an obsolete follow-up after source restoration', async () => {
     const { outbox } = await open(), raw = { ...profile(), settings: { ...profile().settings, activeVehicleId: 'old' } };
     sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/old`, { ...rawVehicle(), archived: true });
     const operation = await selectionWrite(outbox, raw, 'old');
     sdk.data.set(profilePath, { ...raw, settings: { ...raw.settings, activeVehicleId: 'newer' } });
     await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'conflict' });
     sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/old`, rawVehicle());
-    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-obsolete' });
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
     expect(sdk.writes).toEqual([]);
+    expect(sdk.data.get(profilePath)).toEqual(raw);
+    expect(await outbox.list()).toEqual([]);
   });
   it('rechecks source/target reads atomically when a source becomes available before commit', async () => {
     const { outbox } = await open(), raw = { ...profile(), settings: { activeVehicleId: 'old' } };
     sdk.data.set(profilePath, raw); const oldPath = `${profilePath}/vehicles/old`;
     sdk.data.set(oldPath, { ...rawVehicle(), archived: true }); const operation = await selectionWrite(outbox, raw, 'old');
     let first = true; sdk.afterRead = async readPath => { if (readPath === oldPath && first) { first = false; sdk.data.set(oldPath, rawVehicle()); } };
-    await expect(writeVehicleSelectionOperation(db, outbox, operation, current)).rejects.toMatchObject({ code: 'vehicle-selection-obsolete' });
+    await writeVehicleSelectionOperation(db, outbox, operation, current);
     expect(sdk.writes).toEqual([]);
+    expect(sdk.data.get(profilePath)).toEqual(raw);
+    expect(await outbox.list()).toEqual([]);
+  });
+  it('reconciles an obsolete automatic follow-up after reload without changing the restored preference', async () => {
+    const { outbox } = await open(), raw = { ...profile(), settings: { ...profile().settings, activeVehicleId: 'old' } };
+    sdk.data.set(profilePath, raw); sdk.data.set(`${profilePath}/vehicles/old`, rawVehicle());
+    const operation = await selectionWrite(outbox, raw, 'old');
+    expect(await reconcileVehicleSelectionOperation(db, outbox, operation, current)).toBe(true);
+    expect(sdk.writes).toEqual([]); expect(sdk.data.get(profilePath)).toEqual(raw); expect(await outbox.list()).toEqual([]);
   });
   it('retries the same ID after reload without overwriting a late choice', async () => {
     const { outbox, options } = await open(); const operation = await selectionWrite(outbox);
@@ -360,5 +372,61 @@ describe('new-family fail-closed presentation', () => {
     const base = decodeRawDocument(operation.beforeImage!);
     expect(rawDocumentMatches((base.selected as { value: OutboxPayload }).value.future, { seconds: 10, nanoseconds: 123456789 })).toBe(false);
     expect(decodeRawDocument(encodeRawDocument(raw))).toEqual(raw);
+  });
+});
+
+
+describe('live document display without a reload', () => {
+  it('projects an exact durable pending cost immediately without mutating its source or raw siblings', async () => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    const operation = await documentWrite(outbox, raw, 'mandatory', { cost: 987.123456789 });
+    const projected = projectVehicleDocuments('alice', record, captureVehicleDocumentImages(raw), [operation]);
+    expect((projected.docs as typeof raw.docs).mandatory.cost).toBe(987.123456789);
+    expect((projected.docs as typeof raw.docs).mandatory.future).toEqual(raw.docs.mandatory.future);
+    expect(raw.docs.mandatory.cost).toBe(123.456789);
+    expect((record.docs as typeof raw.docs).mandatory.cost).toBe(123.456789);
+    expect(await outbox.get(operation.opId)).toEqual(operation);
+  });
+  it.each(['failed', 'conflict'] as const)('shows the source again after a %s operation, never a claimed save', async status => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    const operation = await documentWrite(outbox, raw, 'mandatory', { cost: 0 });
+    expect(projectVehicleDocuments('alice', record, captureVehicleDocumentImages(raw), [{ ...operation, status }])).toBe(record);
+  });
+  it('does not project another account, vehicle, replaced parent or concurrent selected-document change', async () => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    const operation = await documentWrite(outbox, raw, 'mandatory', { cost: 0 });
+    expect(projectVehicleDocuments('bob', record, captureVehicleDocumentImages(raw), [operation])).toBe(record);
+    expect(projectVehicleDocuments('alice', { ...record, id: 'other' }, captureVehicleDocumentImages(raw), [operation]).docs).toBe(record.docs);
+    for (const changed of [{ ...raw, createdAt: new Timestamp(1, 1) }, { ...raw, docs: { mandatory: { ...raw.docs.mandatory, cost: 42 } } }]) {
+      expect(projectVehicleDocuments('alice', record, captureVehicleDocumentImages(changed), [operation])).toBe(record);
+    }
+  });
+  it('keeps acknowledged zero and authored clears exact and stops projecting once the listener has caught up', async () => {
+    const { outbox } = await open(), raw = rawVehicle(), record = { id: 'car', ...raw } as unknown as Vehicle;
+    for (const cost of [0, null]) {
+      const operation = await documentWrite(outbox, raw, 'mandatory', { cost });
+      const projected = projectVehicleDocuments('alice', record, captureVehicleDocumentImages(raw), [operation]);
+      expect((projected.docs as typeof raw.docs).mandatory.cost).toBe(cost);
+      const caughtUp = { ...raw, docs: projected.docs };
+      expect(vehicleDocumentView(operation, captureVehicleDocumentImages(caughtUp))?.applied).toBe(true);
+      expect(projectVehicleDocuments('alice', projected, captureVehicleDocumentImages(caughtUp), [operation])).toBe(projected);
+      await outbox.acknowledge(operation.opId, operation.version);
+    }
+  });
+  it('publishes the committed view only after server success and before the journal is retired', async () => {
+    const { outbox } = await open(), operation = await documentWrite(outbox, rawVehicle(), 'mandatory', { cost: 77 });
+    const held = gate(), read = gate(); let committed = false;
+    sdk.afterRead = async readPath => { if (readPath === path) { read.resolve(); await held.promise; } };
+    const running = writeVehicleDocumentOperation(db, outbox, operation, current, () => { committed = true; });
+    await read.promise; expect(committed).toBe(false); expect(await outbox.get(operation.opId)).not.toBeNull();
+    held.resolve(); await running;
+    expect(committed).toBe(true); expect(await outbox.list()).toEqual([]);
+    expect((sdk.data.get(path)!.docs as ReturnType<typeof defaultDocs>).mandatory.cost).toBe(77);
+  });
+  it('never publishes an acknowledged view after a conflicting server edit', async () => {
+    const { outbox } = await open(), operation = await documentWrite(outbox);
+    sdk.data.set(path, rawVehicle({ mandatory: { due: '2030-01-01' } })); let committed = false;
+    await expect(writeVehicleDocumentOperation(db, outbox, operation, current, () => { committed = true; })).rejects.toMatchObject({ code: 'conflict' });
+    expect(committed).toBe(false); expect(await outbox.get(operation.opId)).not.toBeNull();
   });
 });

@@ -4,27 +4,13 @@ import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
 import { loadUnifiedBackup, readUnifiedBackup, backupPreview, restoreBackupDrafts, type UnifiedBackup } from "../lib/vehicle/backup";
 import { downloadCareFile } from "../lib/maintenance/export";
-import type { UserSettings } from "../lib/types";
+import { restorablePreferences } from "../lib/restorablePreferences";
 import { Button } from "./Button";
 import { GroupRow } from "./DesignPrimitives";
 import { NumericText, NumRun } from "./Fmt";
 import { DownloadIcon, UploadIcon } from "./icons";
 import { Sheet } from "./Sheet";
 import { useAccountScope } from "./account/useAccountScope";
-
-const preferences = (raw: Record<string, unknown>): Partial<UserSettings> => {
-  const out: Partial<UserSettings> = {};
-  for (const key of ["quickEntry", "reminderNotifications", "issueNotifications", "syncNotifications", "priceNotifications", "shareBenchmarks"] as const) {
-    if (typeof raw[key] === "boolean") out[key] = raw[key];
-  }
-  if ([1, 3, 7, 14].includes(Number(raw.reminderLeadDays)) && typeof raw.reminderLeadDays === "number") out.reminderLeadDays = raw.reminderLeadDays;
-  if ([500, 1000, 2000].includes(Number(raw.reminderLeadKm)) && typeof raw.reminderLeadKm === "number") out.reminderLeadKm = raw.reminderLeadKm;
-  if (["light", "dark", "system"].includes(String(raw.theme))) out.theme = raw.theme as UserSettings["theme"];
-  if (["kmPerLiter", "litersPer100"].includes(String(raw.units))) out.units = raw.units as UserSettings["units"];
-  if (typeof raw.accentColor === "string") out.accentColor = raw.accentColor;
-  if (typeof raw.customAccent === "string" && /^#[0-9a-f]{6}$/i.test(raw.customAccent)) out.customAccent = raw.customAccent;
-  return out;
-};
 
 /** The same full backup pipeline, scoped to the current account/sheet lifetime. */
 export function UnifiedTransfer({ onImported }: { onImported?: () => void }) {
@@ -98,7 +84,7 @@ export function UnifiedTransfer({ onImported }: { onImported?: () => void }) {
     try {
       const result = await data.importBackupEntries(candidate.preview.additions);
       if (!current()) return;
-      if (restorePrefs) await data.updateSettings(preferences(candidate.backup.cloud.settings));
+      if (restorePrefs) await data.updateSettings(restorablePreferences(candidate.backup.cloud.settings));
       if (!current()) return;
       const drafts = restoreDrafts ? restoreBackupDrafts(candidate.backup, uid) : null;
       setCandidate(null);

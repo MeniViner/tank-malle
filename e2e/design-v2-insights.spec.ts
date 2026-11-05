@@ -86,6 +86,20 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await page.keyboard.press("Escape");
   await expect(tableEntry).toBeFocused();
   await selectInsight(page, "price");
+  const priceTicks = page.getByTestId("insights-price-chart").locator(".insights-price-axis-tick");
+  await expect(priceTicks.first()).toBeVisible();
+  const tickGeometry = await priceTicks.evaluateAll(ticks => ticks.map(tick => {
+    const pieces = Array.from(tick.querySelectorAll("tspan"));
+    const symbol = pieces.find(piece => piece.textContent === "₪")!;
+    const digits = pieces.find(piece => /\d/.test(piece.textContent ?? ""))!;
+    return { label: tick.textContent, smaller: parseFloat(getComputedStyle(symbol).fontSize) < parseFloat(getComputedStyle(digits).fontSize),
+      left: symbol.getBoundingClientRect().right <= digits.getBoundingClientRect().left + .5 };
+  }));
+  for (const tick of tickGeometry) {
+    expect(tick.label).toMatch(/^₪[\d,]+\.\d{2}$/);
+    expect(tick).toMatchObject({ smaller: true, left: true });
+  }
+
   await expect(page.getByTestId("insights-paid-average")).toContainText("₪7.36");
   await expect(page.getByTestId("insights-price-difference")).toContainText("₪0.41");
   await expect(page.getByTestId("insights-price-difference")).toContainText("פחות");
@@ -174,7 +188,7 @@ test("comparison waits for four vehicle summaries, states percentile direction t
   await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "ready");
   await expect(page.getByTestId("insights-community-status")).toContainText("50% מהסיכומים מצביעים על צריכת דלק גבוהה משלך לק״מ");
   await page.goto("/account");
-  await page.getByRole("switch", { name: "שיתוף סיכום להשוואה", exact: true }).click();
+  await page.getByRole("switch", { name: "שיתוף סיכום דלק להשוואה", exact: true }).click();
   await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
   await page.goto("/stats?tab=community");
   await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "off");
@@ -375,7 +389,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await expect(page.getByTestId("insights-source-status")).toHaveCount(0);
     await capture("insights-liters-per-100");
     await page.goto("/account");
-    await page.getByRole("switch", { name: "שיתוף סיכום להשוואה", exact: true }).click();
+    await page.getByRole("switch", { name: "שיתוף סיכום דלק להשוואה", exact: true }).click();
     await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
     await page.goto("/stats?tab=community");
     await expect(page.getByTestId("insights-community-status")).toHaveAttribute("data-state", "off");

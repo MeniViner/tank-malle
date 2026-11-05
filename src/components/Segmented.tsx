@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { NumRun } from "./Fmt";
+import { NumericText } from "./Fmt";
 
 export interface SegmentedOption<T extends string> {
   value: T;
@@ -58,8 +58,7 @@ export function Segmented<T extends string>({
             className="tm-segment"
           >
             {option.icon}
-            {option.label.split(/(\d[\d,.]*)/).map((part, partIndex) =>
-              /^\d/.test(part) ? <NumRun key={partIndex}>{part}</NumRun> : part)}
+            <NumericText>{option.label}</NumericText>
           </button>
         );
       })}

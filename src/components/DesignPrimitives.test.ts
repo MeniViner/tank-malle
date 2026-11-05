@@ -1,24 +1,43 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ConsumptionValue, Money, PricePerLiter } from "./Fmt";
+import { ConsumptionValue, Money, NumRun, Percent, PricePerLiter, SignedMoney, SignedPercent } from "./Fmt";
 import { Gauge, PumpDisplayRow } from "./DesignPrimitives";
 import { SpotlightCard } from "./SpotlightCard";
 import { Segmented } from "./Segmented";
+
+const text = (markup: string) => markup.replace(/<[^>]*>/g, "");
 
 describe("Plate number and input contracts", () => {
   it("keeps money whole, prices precise, and Hebrew outside isolated numeric runs", () => {
     const money = renderToStaticMarkup(createElement(Money, { value: 216.775, block: true }));
     expect(money).toContain('dir="ltr" data-number-align="leading"');
     expect(money).toContain("tm-number-block");
-    expect(money).toContain("₪217");
+    expect(text(money)).toBe("₪217");
+    expect(money).toContain('<span class="tm-unit-symbol">₪</span>');
     const price = renderToStaticMarkup(createElement(PricePerLiter, { value: 7.356 }));
-    expect(price).toContain("₪7.36</bdi>");
+    expect(text(price)).toBe("₪7.36 לליטר");
     expect(price).toContain("לליטר");
     const consumption = renderToStaticMarkup(createElement(ConsumptionValue, { kmPerLiter: 12, units: "litersPer100", className: "font-display" }));
     expect(consumption).toContain("8.3</bdi>");
     expect(consumption).toContain("100</bdi>");
     for (const run of consumption.matchAll(/<bdi[^>]*>([^<]*)<\/bdi>/g)) expect(run[1]).not.toMatch(/[א-ת]/);
+  });
+
+  it("preserves semantic percent and signed-currency order while styling unit symbols separately", () => {
+    const signedMoney = renderToStaticMarkup(createElement(SignedMoney, { value: -25.2 }));
+    expect(text(signedMoney)).toBe("−₪25");
+    const percentage = renderToStaticMarkup(createElement(SignedPercent, { value: -7.25, digits: 2 }));
+    expect(text(percentage)).toBe("−7.25%");
+    expect(percentage).toContain('class="tm-symbol-number"');
+    expect(percentage).toContain('<span class="tm-unit-symbol">%</span>');
+    const zero = renderToStaticMarkup(createElement(Percent, { value: 0 }));
+    expect(text(zero)).toBe("0%");
+    const separate = renderToStaticMarkup(createElement(NumRun, null, 25, "%"));
+    expect(text(separate)).toBe("25%");
+    for (const original of ["19%", "+19%", "−₪25", "+₪25", "₪-0.25", "₪ 216.775000", "19₪"]) {
+      expect(text(renderToStaticMarkup(createElement(NumRun, null, original)))).toBe(original);
+    }
   });
 
   it("does not format or round an editable pump value", () => {
@@ -27,6 +46,8 @@ describe("Plate number and input contracts", () => {
       caption: "הסכום שהקלדתם", error: "בדקו את הסכום",
     }));
     expect(markup).toContain('value="216.775"');
+    expect(markup.match(/class="tm-pump-unit tm-unit-symbol"/g)).toHaveLength(1);
+    expect(markup.indexOf('<input')).toBeLessThan(markup.indexOf('class="tm-pump-unit'));
     expect(markup).toContain('aria-invalid="true"');
     expect(markup).toContain('role="alert"');
     const captionId = markup.match(/aria-describedby="([^"]+)"/)?.[1];

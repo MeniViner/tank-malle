@@ -36,8 +36,8 @@ test("F03: Settings withdraws every contribution and reports the server result",
   const { uid } = await signedInWithData(page);
   for (const suffix of ["", "__v1", "__archived", "__deleted"]) await setDocument(`benchmarks/${uid}${suffix}`, { modelKey: "x", fuelType: "95", year: 2020, avgKmPerLiter: 12, segments: 3, avgPricePerLiter: 7 });
   await page.goto("/settings");
-  await page.getByRole("switch", { name: "שיתוף סיכום להשוואה" }).click();
-  await expect(page.getByText("השיתוף כבוי. נתוני ההשוואה שלכם הוסרו מהשרת.")).toBeVisible();
+  await page.getByRole("switch", { name: "שיתוף סיכום דלק להשוואה" }).click();
+  await expect(page.getByText("שיתוף הדלק כבוי. סיכומי הדלק הוסרו מהשרת.")).toBeVisible();
   expect((await listDocuments("benchmarks")).filter((d) => d.id.startsWith(uid))).toHaveLength(0);
   expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({ shareBenchmarks: false });
 });

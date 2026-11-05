@@ -33,6 +33,12 @@ export interface ParsedNumber {
 
 const NOT_A_NUMBER: ParsedNumber = { value: Number.NaN, ambiguous: false, interpretation: null };
 
+/** Editing is lexical only: keep precision and unfinished decimals, reject words
+ * as one edit (including paste), and leave field-specific validation to callers. */
+export function isNumericInputEdit(raw: string): boolean {
+  return /^-?[\d٠-٩۰-۹.,\s  ]*$/.test(raw);
+}
+
 function finish(text: string, ambiguous: boolean, interpretation: string | null): ParsedNumber {
   const value = Number(text);
   if (!Number.isFinite(value)) return NOT_A_NUMBER;

@@ -204,3 +204,17 @@ Same four tabs (סקירה · משתמשים · נתונים · משוב) and th
 
 ## 8. Out of scope for the redesign
 `stats.ts`, `continuity`, `tank/*` engine, `prices/*` resolver, outbox/write states, Firestore rules semantics (only additive optional vehicle fields), import pipeline, benchmarks. The redesign changes what the user sees and how they get there, not what is computed.
+
+
+## TCO community sharing extension — 1.7.2
+
+Meni explicitly authorized optional sharing of a full ownership-cost summary, extending the earlier `docs.test.cost`-only data boundary. Fuel sharing and ownership-cost sharing are independent. `settings.shareTcoBenchmarks` defaults to false; enabling it requires a separate disclosure and confirmation in Account. A backup restores ordinary preferences but never grants this financial-sharing consent.
+
+The new `costBenchmarks/{uid}__{vehicleId}` pool shares only model key, fuel type, complete monthly ownership cost, calendar-month count (1–12), method version and server update time, plus vehicle ID for ownership. It contains no component costs, receipts, insurer details, names, emails, plates, odometers or record dates. It is pseudonymous: every signed-in user can read a shared summary and link updates by account/vehicle ID. The consent sheet and Privacy1.2 say this explicitly. No Functions or aggregate backend is required or deployed.
+
+Publish only a positive, bounded, complete estimate from settled server-backed selected-vehicle sources; verify current explicit consent, account/vehicle lifecycle and unchanged document metadata in a server transaction. Do not queue financial summaries offline. Cost opt-out verifies server consent has been withdrawn, removes every owned vehicle summary and confirms server emptiness. Transactional consent checks preserve a newer opt-in; archive, vehicle deletion and account deletion remove corresponding summaries. A failed/offline withdrawal is never described as confirmed. Prefix-matching accounts must not be mistaken for the owner.
+
+The cost sheet queries a bounded sample of the same model and fuel from the server, with no fallback to a different model or a fuel-only summary. Require at least four distinct other accounts; exclude every own vehicle, incompatible method, invalid values, future/stale rows (90days), and duplicate drivers (latest summary per account). Comparison is `(your monthly cost / peer mean - 1) × 100`; year/month selection does not change that ratio. State the available peer count below threshold, a server error when unavailable, or incomplete own data explicitly. Source windows can differ, and this limitation is visible. Preserve existing whole-shekel and RTL formatting.
+
+
+Deletion compatibility: first cost publication atomically records a private, irreversible `costSharingUsed` marker. For marked accounts, Rules require a fresh server-timestamped `costDeletionAttemptAt` and revoked cost consent to start/retry account erasure; cached pre-cost clients cannot run an obsolete cleanup. The modern deletion pipeline withdraws and verifies all cost summaries before deleting vehicles/profile/auth. A vehicle cannot be deleted while its cost summary still exists after the write. Existing never-used accounts retain the previous deletion behavior. These are private lifecycle fields, not part of the shared payload, and no Functions deployment is needed.

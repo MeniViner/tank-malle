@@ -29,7 +29,7 @@ function render(care: CareData, fillups = fuel, incomplete = false, from = '2026
   return renderToStaticMarkup(createElement(StaticRouter, { location: '/vehicle' },
     createElement(RunningCosts, { from, to: '2026-10-31' })));
 }
-const value = (markup: string, id: string) => markup.match(new RegExp(`data-testid="${id}"><bdi[^>]*>([^<]*)</bdi>`))?.[1];
+const value = (markup: string, id: string) => markup.match(new RegExp(`data-testid="${id}"><bdi[^>]*>(.*?)</bdi>`))?.[1].replace(/<[^>]*>/g, '');
 
 describe('vehicle running-cost display boundaries', () => {
   it('shows agorot/km from the real shared interval while whole-shekel totals retain exact source money', () => {

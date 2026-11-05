@@ -126,7 +126,7 @@ button.tm-group-row { cursor: pointer; }
 .tm-number { direction: ltr; unicode-bidi: isolate; text-align: right; font-family: inherit; font-weight: inherit; font-variant-numeric: tabular-nums; }
 bdi.tm-number { display: inline-block; }
 .tm-number.block, .tm-number.tm-number-block, .tm-number-with-unit.tm-number-block { display: block; width: 100%; }
-.tm-number-with-unit { text-align: right; }
+.tm-number-with-unit { display: inline-flex; direction: rtl; align-items: baseline; gap: .25em; text-align: right; }
 .tm-number[data-number-align="trailing"], .tm-number-with-unit[data-number-align="trailing"] { text-align: left; }
 .tm-number[data-number-align="inherit"], .tm-number-with-unit[data-number-align="inherit"] { text-align: inherit; }
 .tm-number.font-display, .tm-number-with-unit.font-display > .tm-number { font-family: var(--font-display); font-weight: 700; }
@@ -219,7 +219,7 @@ button.tm-odometer { cursor: pointer; }
 .tm-pump-unit { flex: none; color: var(--tm-readout-muted); font-size: 15px; }
 .tm-pump-value input { width: 100%; min-width: 0; min-height: 44px; padding: 2px 0; border: 0; border-radius: 0; background: transparent; color: var(--tm-readout-ink); font: 600 36px/1.1 var(--font-mono); direction: ltr; text-align: left; caret-color: var(--accent); }
 .tm-pump-value input::placeholder { color: var(--tm-readout-muted); opacity: .85; }
-.tm-pump-value input:focus { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 3px; color: var(--accent); }
+
 .tm-pump-row-small input { font-size: 26px; }
 .tm-pump-caption { color: var(--tm-readout-muted); font-size: 12.5px; line-height: 1.5; text-align: left; }
 .tm-pump-row-error .tm-pump-caption { color: #FF9B85; }

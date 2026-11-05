@@ -7,7 +7,7 @@ import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS, vehiclePayload as carePayload,
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrice, refreshPublicPrice } from "../lib/prices/browserFetch";
 import { storedDeclaredSource } from '../lib/vehicleSpecs';
-import { isVehicleEnrichmentOperation, isVehicleEnrichmentPatch, recoveryGroupsWithVehicleEnrichment, vehicleEnrichmentDecision, vehicleEnrichmentVerdict, vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
+import { isVehicleEnrichmentOperation, isVehicleEnrichmentPatch, recoveryGroupsWithVehicleEnrichment, readCurrentVehicleEnrichmentDecision, vehicleEnrichmentVerdict, vehicleSpecIdentityMatches } from '../lib/vehicleEnrichment';
 import { decodeReusablePumpRule } from '../lib/fillupPricing';
 import { assertMutationScope, conditionalRawWrite, decodeRawDocument, encodeRawDocument, storedRawDocumentMatches } from '../lib/rawDocument';
 import { isVersionedFillupDelete, partitionFillupDeletes, retainedCreationUndo } from '../lib/fillupUndo';
@@ -19,11 +19,11 @@ import { vehicleSelectionBase, selectedVehicleFromBase, vehicleSelectionIntent, 
   vehicleSelectionTargetId, vehicleSelectionApplied, writeVehicleSelectionOperation, reconcileVehicleSelectionOperation } from '../lib/vehicleSelection';
 import { retireVehicleAttempt, sameVehicleAttempt, vehicleWriteError } from '../lib/vehicleWriteAttempt';
 import {
-  captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture, vehicleDocumentIntent,
+  captureVehicleDocumentImages, createVehicleDocumentCapture, readVehicleDocumentCapture, vehicleDocumentIntent, projectVehicleDocuments, vehicleDocumentView,
   isVehicleDocumentOperation, writeVehicleDocumentOperation, reconcileVehicleDocumentOperation,
   rebaseVehicleDocumentOperation, rawVehicleIdentity, type VehicleDocumentImages,
 } from '../lib/vehicleDocumentPersistence';
-import type { VehicleDocKey, VehicleDocChanges, VehicleDocumentSnapshot } from '../lib/vehicle/documents';
+import { isVehicleDocMap, type VehicleDocKey, type VehicleDocChanges, type VehicleDocumentSnapshot } from '../lib/vehicle/documents';
 import {
   createObservationCapture, createRecordUndo, immutableRawImage, readObservationCapture,
   type ObservationDeletionSnapshot, type RecordDeletionOptions,
@@ -72,6 +72,7 @@ import { reauthenticateWithPopup } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
 import { accountDataDeletionSteps, clearAccountLocalStorage, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
 import { withdrawBenchmark } from "../lib/benchmarks";
+import { withdrawVehicleCost } from "../lib/costBenchmarks";
 import { pruneOldCaches, readCache, writeCache } from "../lib/cache";
 import {
   EMPTY_WRITE_STATUS,
@@ -506,11 +507,11 @@ function writeVehicleEnrichment(
   stillCurrent: () => boolean,
 ): Promise<void> {
   return runTransaction(db, async transaction => {
-    if (!stillCurrent()) return;
     const ref = doc(db, path);
-    const snapshot = await transaction.get(ref);
-    if (!stillCurrent()) return;
-    const decision = vehicleEnrichmentDecision(payload, before, snapshot.exists() ? snapshot.data() : null);
+    const decision = await readCurrentVehicleEnrichmentDecision(payload, before, async () => {
+      const snapshot = await transaction.get(ref);
+      return snapshot.exists() ? snapshot.data() : null;
+    }, stillCurrent);
     if (decision.state === 'unverified') {
       throw Object.assign(new Error('לא ניתן לאמת את מפרט הרכב המקורי — ההצעה לא הוחלה'), { code: 'unverified' });
     }
@@ -771,7 +772,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const selectionIntentRef = useRef({ scope: accountScope, version: 0 });
   useLayoutEffect(() => { selectionIntentRef.current = { scope: accountScope, version: 0 }; }, [accountScope]);
   const [vehicleSnapshot, setVehicleSnapshot] = useState<VehicleSnapshot | null>(null);
-  const vehicles = useMemo(() => vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.records : [], [accountScope, vehicleSnapshot]);
+  useEffect(() => {
+    if (uid && vehicleSnapshot?.scope === accountScope) writeCache(uid, 'vehicles', vehicleSnapshot.records);
+  }, [uid, vehicleSnapshot, accountScope]);
   // Retry compares stored fields, not the display model's id/default values.
   const vehicleDocumentsRef = useRef(new Map<string, OutboxPayload>());
   const [fillups, setFillups] = useState<Fillup[]>([]);
@@ -805,6 +808,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [observationSnapshot, setObservationSnapshot] = useState<ObservationSnapshot | null>(null);
   const [planSnapshot, setPlanSnapshot] = useState<ScopedTankInput<TankPlan> | null>(null);
   const [outboxOps, setOutboxOps] = useState<OutboxOperation[]>([]);
+  const vehicles = useMemo(() => vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.records.map(vehicle =>
+    projectVehicleDocuments(uid ?? '', vehicle, vehicleSnapshot.documentImages.get(vehicle.id) ?? {}, outboxOps)) : [],
+  [accountScope, vehicleSnapshot, uid, outboxOps]);
+
   const [outboxHealth, setOutboxHealth] = useState<OutboxHealth>(UNOPENED_HEALTH);
   const [outboxReady, setOutboxReady] = useState(false);
   const [pendingFillupIds, setPendingFillupIds] = useState<ReadonlySet<string>>(new Set());
@@ -1220,9 +1227,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const captureVehicleDocument = useCallback(function<K extends VehicleDocKey>(vehicle: Vehicle, key: K) {
     return createVehicleDocumentCapture({ records: vehicles, vehicleId: activeVehicleId,
       images: vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.documentImages : new Map(),
-      pendingIds: vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.pendingIds : new Set(),
+      pendingIds: new Set([...(vehicleSnapshot?.scope === accountScope ? vehicleSnapshot.pendingIds : []),
+        ...outboxOps.filter(operation => operation.uid === uid && operation.status === 'pending' && isVehicleDocumentOperation(operation)).map(operation => operation.vehicleId!)]),
     }, captureMutationScope())(vehicle, key);
-  }, [vehicles, activeVehicleId, vehicleSnapshot, accountScope, captureMutationScope]);
+  }, [vehicles, activeVehicleId, vehicleSnapshot, accountScope, captureMutationScope, outboxOps, uid]);
 
   const { records: observations, status: observationsStatus } = readScopedTankInput(observationSnapshot, tankInputScope);
   const { records: plans, status: plansStatus } = readScopedTankInput(planSnapshot, tankInputScope);
@@ -1759,8 +1767,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     assertMutationScope(stillCurrent);
     return submit({ kind: 'vehicle.update', path: userPath('vehicles', vehicleId), vehicleId,
       payload, beforeImage: captured.beforeImage, opType: 'update' },
-    operation => writeVehicleDocumentOperation(db, outbox, operation, stillCurrent), undefined, stillCurrent);
-  }, [uid, activeVehicleId, captureMutationScope, requireOutbox, submit, userPath]);
+    operation => writeVehicleDocumentOperation(db, outbox, operation, stillCurrent, () => {
+      if (!stillCurrent()) return;
+      setVehicleSnapshot(previous => {
+        if (previous?.scope !== accountScope) return previous;
+        const images = previous.documentImages.get(vehicleId) ?? {};
+        const view = vehicleDocumentView(operation, images);
+        if (!view || view.applied) return previous;
+        const documentImages = new Map(previous.documentImages);
+        documentImages.set(vehicleId, { ...images, [view.key]: view.image });
+        return { ...previous, documentImages, records: previous.records.map(vehicle => vehicle.id === vehicleId
+          ? { ...vehicle, docs: { ...(isVehicleDocMap(vehicle.docs) ? vehicle.docs : {}), [view.key]: view.value } } : vehicle) };
+      });
+    }), undefined, stillCurrent);
+  }, [uid, activeVehicleId, captureMutationScope, requireOutbox, submit, userPath, accountScope]);
 
   const enrichVehicleSpecs = useCallback(
     async (vehicle: Vehicle, patch: Partial<Vehicle>, signal?: AbortSignal) => {
@@ -1778,6 +1798,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return submit(
         { kind: 'vehicle.update', path, vehicleId: vehicle.id, payload, opType: 'update', beforeImage },
         op => writeVehicleEnrichment(path, op.payload, op.beforeImage, stillCurrent),
+        undefined, stillCurrent,
       );
     },
     [uid, submit, userPath],
@@ -1811,11 +1832,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const receipt = await updateVehicle(vehicleId, { archived });
       if (!(await receipt.settled)) throw new Error("vehicle-archive-rejected");
       if (archived && accountCurrent()) {
+        await withdrawVehicleCost(uid!, vehicleId, db, accountCurrent);
         const selection = await selectAfterVehicleRemoval(vehicleId, accountCurrent, intentVersion);
         notifyVehicleSelection(options, selection, accountCurrent);
       }
     },
-    [updateVehicle, captureAccountScope, selectAfterVehicleRemoval],
+    [uid, updateVehicle, captureAccountScope, selectAfterVehicleRemoval],
   );
 
   /** Remove a vehicle and every subcollection under it. */
@@ -1836,6 +1858,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           await batch.commit();
         }
       }
+      await withdrawVehicleCost(uid, vehicleId);
       await deleteDoc(vehicleRef);
       clearVehicleLocalDrafts(uid,vehicleId);
     },

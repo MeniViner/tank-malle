@@ -1,8 +1,11 @@
-import { forwardRef, useId, useState } from "react";
-import { formatCivilDay, parseCivilDay } from "../lib/civilDate";
+import { forwardRef, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { editCivilDateDraft, formatCivilDay, parseCivilDay } from "../lib/civilDate";
 import { CalendarIcon } from "./icons";
 import { NumericText } from "./Fmt";
 import "../vehicle-page-design.css";
+
+const useCaretLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+const INVALID_CIVIL_DAY = "תאריך לא תקין — למשל 05/09/2026";
 
 interface CivilDateFieldProps {
   label: string;
@@ -22,8 +25,14 @@ export const CivilDateField = forwardRef<HTMLInputElement, CivilDateFieldProps>(
   const generatedId = useId();
   const inputId = id ?? generatedId;
   const [blurred, setBlurred] = useState(false);
+  const pendingCaret = useRef<{ input: HTMLInputElement; start: number; end: number } | null>(null);
+  useCaretLayoutEffect(() => {
+    const pending = pendingCaret.current;
+    pendingCaret.current = null;
+    if (pending && document.activeElement === pending.input) pending.input.setSelectionRange(pending.start, pending.end);
+  });
   const day = parseCivilDay(draftText);
-  const message = error || (blurred && draftText.trim() && !day ? "תאריך לא תקין — למשל 05/09/2026" : null);
+  const message = error || (blurred && draftText.trim() && !day ? INVALID_CIVIL_DAY : null);
   const normalize = () => {
     setBlurred(true);
     if (day) {
@@ -42,7 +51,14 @@ export const CivilDateField = forwardRef<HTMLInputElement, CivilDateFieldProps>(
         autoComplete="off" placeholder="DD/MM/YYYY" value={draftText} disabled={disabled}
         aria-required={required || undefined} aria-invalid={!!message || undefined}
         aria-describedby={message ? `${inputId}-error` : undefined}
-        onChange={event => onDraftTextChange(event.target.value)} onBlur={normalize}
+        onChange={event => {
+          const input = event.currentTarget;
+          const edit = editCivilDateDraft(draftText, input.value, input.selectionStart ?? input.value.length,
+            input.selectionEnd ?? input.value.length, (event.nativeEvent as InputEvent).inputType);
+          pendingCaret.current = { input, start: edit.start, end: edit.end };
+          onDraftTextChange(edit.text);
+          setBlurred(false);
+        }} onBlur={normalize}
         onKeyDown={event => { if (event.key === "Enter") { event.preventDefault(); normalize(); } }} />
       <span className="tm-civil-picker" data-disabled={disabled || undefined}>
         <CalendarIcon size={20} aria-hidden="true" />
@@ -61,6 +77,12 @@ export const CivilDateField = forwardRef<HTMLInputElement, CivilDateFieldProps>(
           }} />
       </span>
     </div>
-    {message ? <p id={`${inputId}-error`} role="alert" className="tm-vehicle-error"><NumericText>{message}</NumericText></p> : null}
+    {/* Reserve the actual wrapped feedback height before blur. Otherwise a
+        pointerdown on the following checkbox/button can move its click target
+        when blur reveals the error, so pointerup misses the user's action. */}
+    <p id={`${inputId}-error`} role={message ? "alert" : undefined} aria-hidden={!message || undefined}
+      className="tm-vehicle-error tm-civil-feedback" style={{ visibility: message ? undefined : "hidden" }}>
+      <NumericText>{message || INVALID_CIVIL_DAY}</NumericText>
+    </p>
   </div>;
 });

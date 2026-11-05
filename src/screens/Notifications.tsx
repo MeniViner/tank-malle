@@ -20,7 +20,7 @@ type SelectedNote = ScopedAction & { note: VehicleNotification };
 
 export function Notifications() {
   const v = useVehicleData(), data = useData(), notes = useVehicleNotifications();
-  const { showToast, dismissToast } = useToast(), navigate = useNavigate();
+  const { showToast } = useToast(), navigate = useNavigate();
   const viewScope = data.tankInputScope;
   const [selected, setSelected] = useState<SelectedNote | null>(null);
   const [until, setUntil] = useState('');
@@ -67,9 +67,7 @@ export function Notifications() {
       const receipt = await data.saveCareRecord(v.vehicleId, 'notificationStates', next, before);
       if (!current()) return;
       if (mounted.current) setSelected(value => value === chosen ? null : value);
-      const pendingToast = showToast({ tone: 'info', title: 'העדכון נשמר במכשיר — ממתין לסנכרון' });
       void receipt.settled.then(ok => {
-        dismissToast(pendingToast);
         if (!current()) return;
         if (!ok) {
           if (mounted.current) setError('העדכון טרם אושר. בדקו שינויים שעוד לא עלו לענן.');
@@ -80,9 +78,7 @@ export function Notifications() {
         const restore = createNotificationUndo(current, async () => {
           const restored = await data.saveCareRecord(v.vehicleId, 'notificationStates', restoredNotification(base, next), next);
           if (!current()) return;
-          const pendingUndo = showToast({ tone: 'info', title: 'בקשת הביטול נשמרה במכשיר — ממתינה לסנכרון' });
           void restored.settled.then(done => {
-            dismissToast(pendingUndo);
             if (!current()) return;
             showToast(done ? { tone: 'success', title: 'הפעולה בוטלה' }
               : { tone: 'error', title: 'הביטול לא אושר — בדקו את תור הפעולות' });
@@ -119,9 +115,7 @@ export function Notifications() {
           { ...base, read: true, version: base.version + 1 }, before));
       }
       if (!current()) return;
-      const pendingToast = showToast({ tone: 'info', title: 'סימון הקריאה נשמר במכשיר — ממתין לסנכרון' });
       void Promise.all(receipts.map(r => r.settled)).then(results => {
-        dismissToast(pendingToast);
         if (!current()) return;
         if (results.some(ok => !ok)) {
           if (mounted.current) setError('חלק מהסימונים טרם אושרו. בדקו שינויים שעוד לא עלו לענן.');

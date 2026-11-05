@@ -8,8 +8,8 @@ import "../secondary-design.css";
  * Terms of Service and Privacy Policy.
  *
  * Written to be accurate about what this app actually does — the Israeli
- * open-data sources it queries, the one anonymous field it publishes for the
- * benchmark pool, and the fact that fuel prices are indicative rather than
+ * open-data sources it queries, the optional pseudonymous summaries it publishes for the
+ * benchmark pools, and the fact that fuel prices are indicative rather than
  * authoritative. Vague boilerplate would protect nobody.
  */
 
@@ -30,7 +30,7 @@ export function Legal() {
 
       <div className="tm-secondary-body">
         <article className="tm-secondary-legal flex flex-col gap-7 pb-6" aria-label={isPrivacy ? "מדיניות הפרטיות המלאה" : "תנאי השימוש המלאים"}>
-          <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{LAST_UPDATED}</NumericText> · גרסה <Num>1.1</Num></p>
+          <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{LAST_UPDATED}</NumericText> · גרסה <Num>{isPrivacy ? "1.2" : "1.1"}</Num></p>
           {isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}
 
           <div className="tm-secondary-group pt-4">
@@ -266,20 +266,28 @@ function PrivacyPolicy() {
           ]}
         />
         <p>
+          שיתוף סיכום עלות הרכב הוא <b>אפשרות נפרדת, הכבויה כברירת מחדל</b>. רק לאחר
+          אישור מפורש במסך החשבון, ניתן לפרסם לכל רכב סיכום הכולל עלות חודשית כוללת,
+          דגם, סוג דלק ומספר חודשים בחישוב. לא משותפים פירוט הוצאות, חשבוניות או פרטי
+          ביטוח. שיתוף הדלק הקיים אינו מפעיל אפשרות זו, ושחזור גיבוי אינו מעניק הסכמה חדשה.
+        </p>
+        <p>
           רשומה זו <b>אינה כוללת</b> שם, כתובת דוא״ל, תמונה, מספר רישוי, קילומטראז׳,
-          תאריכים, שמות תחנות, מיקומים או הערות. חוקי האבטחה של מסד הנתונים אוכפים את
+          מועדי תדלוקים ורישומים, שמות תחנות, מיקומים או הערות. חוקי האבטחה של מסד הנתונים אוכפים את
           המבנה הזה טכנית, ולא רק כהצהרה.
         </p>
         <p>
           <b>חשוב שנהיה מדויקים:</b> הרשומה היא <b>מזוהה־למחצה ולא אנונימית לחלוטין</b>.
           מזהה הרשומה מכיל את מזהה המשתמש הפנימי שלכם — כך המערכת יכולה לוודא שרק אתם
-          מעדכנים או מוחקים אותה. משתמש אחר לא יכול לדעת מי אתם ולא רואה שם, אימייל או
-          כל פרט מזהה, אבל הוא כן יכול לראות שרשומות מסוימות שייכות לאותו חשבון לאורך
+          מעדכנים או מוחקים אותה. לרשומה מצורף גם מועד עדכון. כל משתמש מחובר יכול לקרוא
+          סיכום משותף ולקשר בין עדכונים של אותו חשבון, אף שלא מצורפים שם או מייל, לאורך
           זמן. אנונימיות מלאה תדרוש עיבוד בצד השרת, שעדיין אינו פעיל.
         </p>
         <p>
           ניתן לבטל את ההשתתפות בכל עת ב„חשבון ← השוואה לנהגים״. ביטול מסיר את רשומות
-          ההשוואה לאחר השלמת הסנכרון. מחיקת החשבון מוחקת אותן אף היא.
+          ההשוואה הרלוונטיות לאחר אישור השרת; לכל סוג שיתוף מתג נפרד. השוואת עלות מוצגת
+          רק כשיש סיכומים מתאימים ועדכניים מארבעה חשבונות אחרים לפחות. מחיקת החשבון מוחקת
+          גם את סיכומי העלות.
         </p>
       </Section>
 

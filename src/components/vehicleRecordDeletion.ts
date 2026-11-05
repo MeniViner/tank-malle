@@ -5,12 +5,9 @@ import type { Toast } from '../context/ToastContext';
 export function observeVehicleRecordDeletion(
   submission: RecordDeletionSubmission,
   showToast: (toast: Omit<Toast, 'id'>) => number,
-  dismissToast: (id: number) => void,
 ) {
   if (!submission.isCurrent()) return;
-  const waiting = showToast({ tone: 'info', title: 'בקשת המחיקה נשמרה במכשיר', detail: 'ממתינה לאישור בענן' });
   void submission.receipt.settled.then(accepted => {
-    dismissToast(waiting);
     if (!submission.isCurrent()) return;
     if (!accepted) {
       showToast({ tone: 'info', title: 'המחיקה דורשת בדיקה', detail: 'הבקשה שמורה בשינויים שעוד לא עלו לענן' }); return;
@@ -24,7 +21,6 @@ export function observeVehicleRecordDeletion(
       try {
         const receipt = await submission.restoreDeleted();
         if (!submission.isCurrent()) return;
-        showToast({ tone: 'info', title: 'בקשת השחזור נשמרה במכשיר' });
         const restored = await receipt.settled;
         if (submission.isCurrent()) showToast({ tone: restored ? 'success' : 'info', title: restored ? 'התזכורת שוחזרה' : 'השחזור דורש בדיקה' });
       } catch (cause) {

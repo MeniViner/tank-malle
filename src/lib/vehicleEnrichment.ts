@@ -1,4 +1,6 @@
 import { toEpochMillis } from './fillupSerializer';
+import type { Vehicle } from './types';
+import type { MutationReceipt } from './writes';
 import { orphanGroups, type OrphanGroup, type OutboxOperation, type OutboxPayload, type ReconcileVerdict } from './outbox';
 
 const TANK = ['tankLiters', 'tankLitersSource', 'tankSourceUrl'] as const;
@@ -107,4 +109,38 @@ export function vehicleEnrichmentVerdict(op: OutboxOperation, server: OutboxPayl
       ? 'לא ניתן לאמת את מפרט הרכב המקורי — ההצעה לא הוחלה'
       : 'השלמת מפרט הרכב לא אושרה — אפשר לנסות שוב',
   };
+}
+
+
+/** Listener object replacement is not a new lookup. Only the account/car's
+ * semantic identity and which groups remain eligible own the effect lifetime. */
+export function vehicleEnrichmentRequestKey(uid: string | null | undefined, vehicle: Vehicle | null): string | null {
+  if (!uid || !vehicle) return null;
+  const tankMissing = !vehicle.tankLiters && vehicle.tankLitersSource !== 'user';
+  const consumptionMissing = !vehicle.declaredKmPerLiter && vehicle.declaredSource !== 'user';
+  if (!tankMissing && !consumptionMissing) return null;
+  return JSON.stringify([uid, vehicle.id, ...IDENTITY.map(key => vehicle[key] ?? null),
+    toEpochMillis(vehicle.createdAt) ?? 0, tankMissing, consumptionMissing]);
+}
+
+/** Cancellation is not a verified obsolete proposal. Rejecting preserves its
+ * durable journal row instead of acknowledging an empty transaction as a save. */
+export async function readCurrentVehicleEnrichmentDecision(
+  payload: OutboxPayload | null, before: OutboxPayload | null,
+  readServer: () => Promise<OutboxPayload | null>, stillCurrent: () => boolean,
+): Promise<VehicleEnrichmentDecision> {
+  const assertCurrent = () => {
+    if (!stillCurrent()) throw Object.assign(new Error('השלמת מפרט הרכב הופסקה לפני אימות השמירה'), {
+      code: 'vehicle-enrichment-cancelled',
+    });
+  };
+  assertCurrent();
+  const server = await readServer();
+  assertCurrent();
+  return vehicleEnrichmentDecision(payload, before, server);
+}
+
+/** Durable acceptance alone cannot consume a lookup attempt. */
+export async function vehicleEnrichmentSettled(receipt: MutationReceipt | null, stillCurrent: () => boolean): Promise<boolean> {
+  return !!receipt && await receipt.settled && stillCurrent();
 }

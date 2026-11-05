@@ -6,7 +6,7 @@
   .tm-field-input { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 44px; border-radius: 8px; }
   .tm-field-input input { text-align: end; min-height: 44px; padding-inline: 6px; border-radius: 8px; }
   .tm-field-input input[dir="ltr"] { text-align: right; }
-  .tm-field-input:focus-within, .tm-field-control:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+
   .tm-field-input input:read-only { cursor: default; }
   .tm-field-row > span { grid-column: 1 / -1; font-size: 13.5px; }
   .tm-page { display: flex; flex-direction: column; gap: 28px; padding: 4px 20px 28px; }

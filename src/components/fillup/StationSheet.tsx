@@ -144,7 +144,7 @@ export function StationSheet({
       title="תחנת דלק"
     >
       <div className="flex max-h-[64vh] flex-col gap-3">
-        <div className="flex min-h-[48px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+        <div className="flex min-h-[48px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5">
           <SearchIcon size={17} className="text-muted" />
           <input
             value={query}

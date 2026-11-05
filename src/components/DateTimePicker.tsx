@@ -1,10 +1,8 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { CalendarIcon, ClockIcon } from "./icons";
 import { parseTypedTime } from "../lib/format";
 import { NumericText } from "./Fmt";
-// The same date parser the importer uses. One implementation, so what the user
-// can type into this field and what a CSV may contain never drift apart.
-import { parseDate } from "../lib/import/normalize";
+import { civilDayAtTime, editCivilDateDraft } from "../lib/civilDate";
 
 /**
  * Date + time entry. Two fields, nothing else.
@@ -13,7 +11,7 @@ import { parseDate } from "../lib/import/normalize";
  * case needs no interaction at all. Beyond that there are exactly two ways in,
  * and they cover everything the month grid used to:
  *
- *   1. type it — 05/09/26, 05/09/2026 or 2026-09-05, and 18:57 for the time;
+ *   1. type it — 05092026 becomes 05/09/2026, and 18:57 for the time;
  *   2. the icon opens the device's own picker, which is what most people
  *      reach for by reflex and what handles "some Tuesday in March".
  *
@@ -29,28 +27,37 @@ function startOfDay(date: Date): Date {
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
+const useCaretLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export function DateTimePicker({
   value,
   onChange,
   maxDate,
   minDate,
+  onValidityChange,
 }: {
   value: number;
   onChange: (value: number) => void;
   maxDate?: number;
   minDate?: number;
+  onValidityChange?: (valid: boolean) => void;
 }) {
   const selected = new Date(value);
   const errorId = useId();
 
-  const [typedDate, setTypedDate] = useState("");
+  const [typedDate, setTypedDate] = useState<string | null>(null);
   const [dateError, setDateError] = useState<string | null>(null);
-  const [typedTime, setTypedTime] = useState("");
+  const [typedTime, setTypedTime] = useState<string | null>(null);
   const [timeError, setTimeError] = useState<string | null>(null);
 
   const nativeDateRef = useRef<HTMLInputElement>(null);
   const nativeTimeRef = useRef<HTMLInputElement>(null);
+  const pendingCaret = useRef<{ input: HTMLInputElement; start: number; end: number } | null>(null);
+  useCaretLayoutEffect(() => {
+    const pending = pendingCaret.current;
+    pendingCaret.current = null;
+    if (pending && document.activeElement === pending.input) pending.input.setSelectionRange(pending.start, pending.end);
+  });
 
   const isoDate = `${selected.getFullYear()}-${pad(selected.getMonth() + 1)}-${pad(selected.getDate())}`;
   const isoTime = `${pad(selected.getHours())}:${pad(selected.getMinutes())}`;
@@ -58,47 +65,51 @@ export function DateTimePicker({
   const shownDate = `${pad(selected.getDate())}/${pad(selected.getMonth() + 1)}/${selected.getFullYear()}`;
 
   // The field mirrors the selection until the user starts typing in it.
-  const dateFieldValue = typedDate || shownDate;
-  const timeFieldValue = typedTime || isoTime;
+  const dateFieldValue = typedDate ?? shownDate;
+  const timeFieldValue = typedTime ?? isoTime;
+  const draftDay = typedDate === null ? selected : civilDayAtTime(typedDate, selected);
+  const draftTime = typedTime === null ? { hours: selected.getHours(), minutes: selected.getMinutes() } : parseTypedTime(typedTime);
+  const draftInstant = draftDay && draftTime ? new Date(draftDay) : null;
+  if (draftInstant && draftTime) draftInstant.setHours(draftTime.hours, draftTime.minutes, 0, 0);
+  const validDraft = !!draftInstant && !dateError && !timeError
+    && (minDate === undefined || draftInstant.getTime() >= minDate)
+    && (maxDate === undefined || (typedTime === null
+      ? startOfDay(draftInstant) <= startOfDay(new Date(maxDate)) : draftInstant.getTime() <= maxDate));
+  useEffect(() => { onValidityChange?.(validDraft); }, [validDraft, onValidityChange]);
 
   function commitTypedDate(raw: string) {
     const text = raw.trim();
     if (text === "") {
-      setTypedDate("");
-      setDateError(null);
+      setDateError("יש להזין תאריך — למשל 05/09/2026");
       return;
     }
 
-    const parsed = parseDate(text);
-    if (!parsed) {
+    const next = civilDayAtTime(text, selected);
+    if (!next) {
       // Keep what they typed; tell them what shapes work.
       setDateError("תאריך לא תקין — נסו 05/09/2026");
       return;
     }
 
-    const next = new Date(parsed);
-    next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-
-    if (minDate && next.getTime() < minDate) {
+    if (minDate !== undefined && next.getTime() < minDate) {
       setDateError("התאריך מוקדם מהמותר");
       return;
     }
-    if (maxDate && startOfDay(next) > startOfDay(new Date(maxDate))) {
+    if (maxDate !== undefined && startOfDay(next) > startOfDay(new Date(maxDate))) {
       setDateError("לא ניתן להזין תאריך עתידי");
       return;
     }
 
     setDateError(null);
-    setTypedDate("");
+    setTypedDate(null);
     // A future time on today's date is clamped, not rejected.
-    onChange(maxDate && next.getTime() > maxDate ? maxDate : next.getTime());
+    onChange(maxDate !== undefined && next.getTime() > maxDate ? maxDate : next.getTime());
   }
 
   function commitTypedTime(raw: string) {
     const text = raw.trim();
     if (text === "") {
-      setTypedTime("");
-      setTimeError(null);
+      setTimeError("יש להזין שעה — למשל 18:57");
       return;
     }
 
@@ -110,13 +121,13 @@ export function DateTimePicker({
 
     const next = new Date(selected);
     next.setHours(parsed.hours, parsed.minutes, 0, 0);
-    if (maxDate && next.getTime() > maxDate) {
+    if (maxDate !== undefined && next.getTime() > maxDate) {
       setTimeError("לא ניתן להזין שעה עתידית");
       return;
     }
 
     setTimeError(null);
-    setTypedTime("");
+    setTypedTime(null);
     onChange(next.getTime());
   }
 
@@ -150,7 +161,11 @@ export function DateTimePicker({
           aria-describedby={dateError ? `${errorId}-date` : undefined}
           value={dateFieldValue}
           onChange={(event) => {
-            setTypedDate(event.target.value);
+            const input = event.currentTarget;
+            const edit = editCivilDateDraft(dateFieldValue, input.value, input.selectionStart ?? input.value.length,
+              input.selectionEnd ?? input.value.length, (event.nativeEvent as InputEvent).inputType);
+            pendingCaret.current = { input, start: edit.start, end: edit.end };
+            setTypedDate(edit.text);
             setDateError(null);
           }}
           onBlur={(event) => commitTypedDate(event.target.value)}
@@ -160,7 +175,7 @@ export function DateTimePicker({
               commitTypedDate((event.target as HTMLInputElement).value);
             }
           }}
-          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none"
         />
       </EntryRow>
 
@@ -201,7 +216,7 @@ export function DateTimePicker({
               commitTypedTime((event.target as HTMLInputElement).value);
             }
           }}
-          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
+          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none"
         />
       </EntryRow>
 
@@ -234,7 +249,7 @@ function EntryRow({
   children: React.ReactNode;
 }) {
   return (
-    <div data-datetime-field={label} className="flex min-h-[56px] items-center gap-3 rounded-[14px] border border-line bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 focus-within:border-ink focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ink">
+    <div data-datetime-field={label} className="flex min-h-[56px] items-center gap-3 rounded-[14px] border border-line bg-surface px-3.5">
       <span className="w-[46px] flex-none text-[13px] font-semibold text-muted">
         {label}
       </span>
@@ -249,8 +264,10 @@ function EntryRow({
             const element = inputRef.current;
             if (!element) return;
             const withPicker = element as HTMLInputElement & { showPicker?: () => void };
-            if (typeof withPicker.showPicker === "function") withPicker.showPicker();
-            else element.click();
+            try {
+              if (typeof withPicker.showPicker === "function") withPicker.showPicker();
+              else element.click();
+            } catch { element.focus(); /* Manual input and native control stay available. */ }
           }}
           className="flex size-11 items-center justify-center rounded-tile bg-accent-soft text-ink transition-[background-color,scale] duration-200 active:scale-[0.94]"
         >

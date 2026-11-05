@@ -223,7 +223,7 @@ test("correcting a rejected edit opens the rejected input, not the server's copy
   await openFillupMore(page);
   await page.getByLabel("הערה").fill("תיקון");
   await page.getByRole("button", { name: "שמירת שינויים" }).click();
-  await expect(page.getByText("השינויים נשמרו במכשיר")).toBeVisible({ timeout: 20_000 });
+  await expect(page).toHaveURL("/");
 
   // The server refused it; the server still holds 40.
   await page.goto("/settings/unsynced");
@@ -320,11 +320,9 @@ test("a stale edit is refused by the server, kept as a conflict, and never overw
   // The server refuses the stale version; the newer 42 stays, the input is
   // kept, and the entry is reported as a CONFLICT (the server moved past the
   // base), whether that verdict comes from the rejection or the reconcile.
-  // The toast fires once the journal transaction has committed; only then is
-  // it meaningful to leave the page. (Navigating within milliseconds of the
-  // click would abandon the save before anything was journaled or sent —
-  // the same as closing an unsaved form.)
-  await expect(page.getByText("השינויים נשמרו במכשיר")).toBeVisible({ timeout: 20_000 });
+  // Returning Home follows durable journal handoff. Only then is it
+  // meaningful to leave the page and inspect the retained conflict.
+  await expect(page).toHaveURL("/");
   await page.goto("/settings/unsynced");
   await expect(page.locator('[data-outbox-status="conflict"]')).toHaveCount(1, { timeout: 20_000 });
   expect((await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`))[0].data.liters).toBe(42);

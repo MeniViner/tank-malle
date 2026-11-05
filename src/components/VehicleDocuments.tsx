@@ -164,7 +164,6 @@ function VehicleDocumentSheet({ opening, onClose, captureParentScope, returnFocu
     try {
       const receipt = await updateVehicleDocument(opening.vehicleId, opening.key, changes, { expected: opening.expected });
       if (!isScopeCurrent()) return;
-      showToast({ tone: 'info', title: 'פרטי הרישוי נשמרו במכשיר — ממתינים לסנכרון' });
       // The provider owns the account/vehicle token. Never reopen or mutate a
       // newer sheet after this durable local submission closes its editor.
       if (isCurrent()) onClose();

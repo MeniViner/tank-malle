@@ -43,7 +43,11 @@ test('device A offline care write cannot resurrect a vehicle deleted on device B
     await second.goto('/settings/vehicles');await second.getByRole('article').getByRole('button',{name:/^מחיקת /}).click();await second.getByRole('alertdialog').getByRole('button',{name:'מחיקת הרכב',exact:true}).click();
     await expect(async()=>expect(await getDocument(base)).toBeNull()).toPass();
     await page.context().setOffline(false);await page.goto('/settings/unsynced');
-    await expect(page.locator('[data-outbox-op]').filter({hasText:'שמירת תחזוקת רכב'})).toBeVisible();
+    const rejected = page.locator('[data-outbox-op]').filter({hasText:'שמירת תחזוקת רכב'});
+    await expect(rejected).toBeVisible();
+    // Await the server decision before tearing down both clients and clearing
+    // the emulator. A merely visible pending intent can still own a transaction.
+    await expect(rejected).toHaveAttribute('data-outbox-status', /^(failed|conflict)$/);
     await expect(async()=>expect(await listDocuments(`${base}/vehicleExpenses`)).toHaveLength(0)).toPass();
     expect(await getDocument(base)).toBeNull();
   } finally {await context.close();await page.context().setOffline(false);}
@@ -81,7 +85,14 @@ test('receipt civil dates and 24-hour time retain invalid drafts and transfer ex
   await day.focus();await time.focus();
   await expect(dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/})).toBeChecked();
   await day.fill('31/02/2026');
-  await dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/}).check();
+  const confirmation=dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/});
+  await confirmation.scrollIntoViewIfNeeded();
+  const targetBeforeBlur=await confirmation.boundingBox();expect(targetBeforeBlur).not.toBeNull();
+  await confirmation.check();
+  await expect(confirmation).toBeChecked();
+  const targetAfterBlur=await confirmation.boundingBox();expect(targetAfterBlur).not.toBeNull();
+  expect(targetAfterBlur!.y).toBeCloseTo(targetBeforeBlur!.y,2);
+  await expect(day).toHaveAttribute('aria-invalid','true');
   await dialog.getByRole('button',{name:'העברה לבדיקה בטופס'}).click();
   await expect(dialog).toBeVisible();await expect(day).toHaveValue('31/02/2026');
   expect(await listDocuments(path)).toHaveLength(0);

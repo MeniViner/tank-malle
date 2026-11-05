@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { parseNumber, parseNumberInput } from "./numeric";
+import { isNumericInputEdit, parseNumber, parseNumberInput } from "./numeric";
+
+describe("numeric input editing", () => {
+  it("rejects whole typed or pasted edits containing words or units", () => {
+    for (const raw of ["שלום", "abc", "12שלום", "12 liters", "40 ל", "₪12", "1e3", "2+3", "--1"]) {
+      expect(isNumericInputEdit(raw), raw).toBe(false);
+    }
+  });
+  it("keeps empty, zero, signed, fractional and unfinished drafts exactly as authored", () => {
+    for (const raw of ["", "0", "0.00", "-", "-0.005", ".", ",", "7.", "7,", ".125", "216.775000", "123,456", "1 234.50", "١٢.٣", "۱۲.۳"]) {
+      expect(isNumericInputEdit(raw), raw).toBe(true);
+    }
+  });
+});
 
 describe("field-aware number parsing", () => {
   it("reads a grouped odometer as a whole number", () => {

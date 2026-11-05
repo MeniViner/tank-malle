@@ -129,10 +129,8 @@
   text-shadow: var(--tm-atmosphere-text-shadow);
 }
 .care-v2-editor :is(button, input, textarea, select, summary) { scroll-margin-block: 12px; }
-.care-v2-editor :is(button, textarea, select, summary):focus-visible,
-.care-entry-top button:focus-visible,
-.care-v2-editor .tm-field-control:focus-within,
-.care-v2-editor .tm-field-input:focus-within {
+.care-v2-editor :is(button, select, summary):focus-visible,
+.care-entry-top button:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }

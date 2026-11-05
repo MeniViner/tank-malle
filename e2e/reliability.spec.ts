@@ -308,7 +308,7 @@ test("Undo after an edit restores the previous record on the server", async ({ p
   await page.getByLabel("ליטרים", { exact: true }).fill("35");
   await page.getByRole("button", { name: "שמירת שינויים" }).click();
 
-  await expect(page.getByText("השינויים נשמרו במכשיר")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText("התדלוק עודכן")).toBeVisible({ timeout: 20_000 });
   await expect
     .poll(async () => (await listDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`))[0]?.data.liters, {
       timeout: 15_000,
