@@ -10,6 +10,15 @@ import { REFERENCE_LABELS, type PriceSummary } from "./presentation";
 
 const PRICE_CHART_MARGIN = { ...CHART_MARGIN, left: 8 };
 
+/** SVG labels use the same public price formatter, with a smaller currency glyph. */
+function PriceTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value?: string | number } }) {
+  const label = price(Number(payload?.value));
+  return <text x={x} y={y} dy=".32em" textAnchor="start" fill="var(--ink-2)" fontSize={12}
+    direction="ltr" unicodeBidi="isolate">
+    {label.split(/(₪)/).map((part, index) => <tspan key={index} fontSize={part === '₪' ? '.8em' : undefined}>{part}</tspan>)}
+  </text>;
+}
+
 export function PriceInsights({ summary, vehicle, range, historyReady }: { summary: PriceSummary; vehicle: Vehicle | null; range: DateRange; historyReady: boolean }) {
   const last = summary.points.filter(point => point.paid !== null).at(-1);
   const referenceLabel = summary.kinds.length === 1 ? REFERENCE_LABELS[summary.kinds[0]] : "מחיר להשוואה לפי מקורו";
@@ -27,7 +36,7 @@ export function PriceInsights({ summary, vehicle, range, historyReady }: { summa
       {summary.average !== null || hasReference ? <>
         <InsightChart label="מחיר לליטר בתאריכי התדלוקים" testId="insights-price-chart" points={summary.plot.length}>
           <LineChart data={summary.plot} margin={PRICE_CHART_MARGIN} accessibilityLayer>
-            <XAxis {...TIME_AXIS} /><YAxis {...VALUE_AXIS} width={48} domain={["auto", "auto"]} tickFormatter={value => price(Number(value))} />
+            <XAxis {...TIME_AXIS} /><YAxis {...VALUE_AXIS} width={48} domain={["auto", "auto"]} tick={<PriceTick />} />
             <Tooltip content={<InsightTooltip kind="price" labels={{ paid: "מה ששילמתם", official: referenceLabel }} />} />
             {hasReference ? <Line type="linear" dataKey="official" stroke="var(--ink-2)" strokeDasharray="4 5" strokeWidth={1.5}
               connectNulls={false} dot={false} isAnimationActive={false} /> : null}

@@ -86,6 +86,20 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await page.keyboard.press("Escape");
   await expect(tableEntry).toBeFocused();
   await selectInsight(page, "price");
+  const priceTicks = page.getByTestId("insights-price-chart").locator(".recharts-yAxis text");
+  await expect(priceTicks.first()).toBeVisible();
+  const tickGeometry = await priceTicks.evaluateAll(ticks => ticks.map(tick => {
+    const pieces = Array.from(tick.querySelectorAll("tspan"));
+    const symbol = pieces.find(piece => piece.textContent === "₪")!;
+    const digits = pieces.find(piece => /\d/.test(piece.textContent ?? ""))!;
+    return { label: tick.textContent, smaller: parseFloat(getComputedStyle(symbol).fontSize) < parseFloat(getComputedStyle(digits).fontSize),
+      left: symbol.getBoundingClientRect().right <= digits.getBoundingClientRect().left + .5 };
+  }));
+  for (const tick of tickGeometry) {
+    expect(tick.label).toMatch(/^₪[\d,]+\.\d{2}$/);
+    expect(tick).toMatchObject({ smaller: true, left: true });
+  }
+
   await expect(page.getByTestId("insights-paid-average")).toContainText("₪7.36");
   await expect(page.getByTestId("insights-price-difference")).toContainText("₪0.41");
   await expect(page.getByTestId("insights-price-difference")).toContainText("פחות");
