@@ -278,6 +278,21 @@
 .tm-number-with-unit.tm-number-block { display: flex; }
 .tm-number-with-unit[data-number-align="trailing"] { justify-content: flex-end; }
 .tm-unit-symbol { font-size: .8em; font-family: var(--font-sans); }
+.tm-symbol-number { display: inline-flex; direction: ltr; align-items: baseline; }
+.tm-number .tm-symbol-number, .tm-symbol-number > :not(.tm-unit-symbol) {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+.tm-symbol-number > :not(.tm-unit-symbol) { order: 1; }
+.tm-number .tm-symbol-number > .tm-unit-symbol {
+  order: 0;
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: .8em;
+  color: inherit;
+}
+.tm-symbol-number > .tm-number-spacing { white-space: pre; }
 .tm-input-unit.tm-unit-symbol { font-size: 11px; }
 .tm-pump-unit.tm-unit-symbol { font-size: 13px; }
 .fillup-pump-price-field .tm-unit-symbol { font-size: .85em; }

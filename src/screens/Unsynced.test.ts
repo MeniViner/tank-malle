@@ -79,7 +79,7 @@ describe('raw operation recovery presentation', () => {
     expect(markup).toContain('data-testid="outbox-conflict-odometer"');
     expect(markup).toContain('השדה לא נשמר');
     expect(markup).toContain('לא הוזן');
-    expect(numberRuns(markup)).toContain('%0');
+    expect(numberRuns(markup)).toContain('0%');
   });
 
   it('flags a real total difference hidden by whole-shekel display', () => {

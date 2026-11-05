@@ -5,6 +5,7 @@ import { NumericText } from "./Fmt";
 import "../vehicle-page-design.css";
 
 const useCaretLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+const INVALID_CIVIL_DAY = "תאריך לא תקין — למשל 05/09/2026";
 
 interface CivilDateFieldProps {
   label: string;
@@ -31,7 +32,7 @@ export const CivilDateField = forwardRef<HTMLInputElement, CivilDateFieldProps>(
     if (pending && document.activeElement === pending.input) pending.input.setSelectionRange(pending.start, pending.end);
   });
   const day = parseCivilDay(draftText);
-  const message = error || (blurred && draftText.trim() && !day ? "תאריך לא תקין — למשל 05/09/2026" : null);
+  const message = error || (blurred && draftText.trim() && !day ? INVALID_CIVIL_DAY : null);
   const normalize = () => {
     setBlurred(true);
     if (day) {
@@ -76,6 +77,12 @@ export const CivilDateField = forwardRef<HTMLInputElement, CivilDateFieldProps>(
           }} />
       </span>
     </div>
-    {message ? <p id={`${inputId}-error`} role="alert" className="tm-vehicle-error"><NumericText>{message}</NumericText></p> : null}
+    {/* Reserve the actual wrapped feedback height before blur. Otherwise a
+        pointerdown on the following checkbox/button can move its click target
+        when blur reveals the error, so pointerup misses the user's action. */}
+    <p id={`${inputId}-error`} role={message ? "alert" : undefined} aria-hidden={!message || undefined}
+      className="tm-vehicle-error tm-civil-feedback" style={{ visibility: message ? undefined : "hidden" }}>
+      <NumericText>{message || INVALID_CIVIL_DAY}</NumericText>
+    </p>
   </div>;
 });

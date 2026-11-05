@@ -25,11 +25,19 @@ export function NumRun({ children, className = "", block = false, align = "leadi
   }, []);
   const content = parts.map((child, index) => {
     if (typeof child !== "string") return child;
-    const numeric = child.match(/^([+−-]?)(₪?)\s*([+−-]?)([\d,\u200e\u200f.]+)([%₪]?)$/);
-    if (!numeric || !(numeric[2] || numeric[5])) return child;
-    const [, leadingSign, currency, priceSign, digits, suffix] = numeric;
+    const numeric = child.match(/^([+−-]?)(₪?)(\s*)([+−-]?)([\d,\u200e\u200f.]+)([%₪]?)$/);
+    if (!numeric || !(numeric[2] || numeric[6])) return child;
+    const [, leadingSign, currency, spacing, priceSign, digits, suffix] = numeric;
     if (leadingSign && priceSign || currency && suffix) return child;
-    return <span key={index}><span className="tm-unit-symbol">{currency || suffix}</span>{leadingSign || priceSign}{digits}</span>;
+    // DOM/reading order stays exactly as authored; CSS places the unit on the
+    // left without changing copied text, accessible names, signs or precision.
+    return <span key={index} className="tm-symbol-number">
+      {leadingSign ? <span className="tm-number-sign">{leadingSign}</span> : null}
+      {currency ? <span className="tm-unit-symbol">{currency}</span> : null}
+      {spacing ? <span className="tm-number-spacing">{spacing}</span> : null}
+      <span className="tm-number-value">{priceSign}{digits}</span>
+      {suffix ? <span className="tm-unit-symbol">{suffix}</span> : null}
+    </span>;
   });
   return <bdi dir="ltr" data-number-align={align}
     className={`num tm-number${block ? " tm-number-block" : ""} ${className}`}>{content}</bdi>;

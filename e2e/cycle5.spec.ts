@@ -85,7 +85,14 @@ test('receipt civil dates and 24-hour time retain invalid drafts and transfer ex
   await day.focus();await time.focus();
   await expect(dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/})).toBeChecked();
   await day.fill('31/02/2026');
-  await dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/}).check();
+  const confirmation=dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/});
+  await confirmation.scrollIntoViewIfNeeded();
+  const targetBeforeBlur=await confirmation.boundingBox();expect(targetBeforeBlur).not.toBeNull();
+  await confirmation.check();
+  await expect(confirmation).toBeChecked();
+  const targetAfterBlur=await confirmation.boundingBox();expect(targetAfterBlur).not.toBeNull();
+  expect(targetAfterBlur!.y).toBeCloseTo(targetBeforeBlur!.y,2);
+  await expect(day).toHaveAttribute('aria-invalid','true');
   await dialog.getByRole('button',{name:'העברה לבדיקה בטופס'}).click();
   await expect(dialog).toBeVisible();await expect(day).toHaveValue('31/02/2026');
   expect(await listDocuments(path)).toHaveLength(0);

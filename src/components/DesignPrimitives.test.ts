@@ -6,14 +6,17 @@ import { Gauge, PumpDisplayRow } from "./DesignPrimitives";
 import { SpotlightCard } from "./SpotlightCard";
 import { Segmented } from "./Segmented";
 
+const text = (markup: string) => markup.replace(/<[^>]*>/g, "");
+
 describe("Plate number and input contracts", () => {
   it("keeps money whole, prices precise, and Hebrew outside isolated numeric runs", () => {
     const money = renderToStaticMarkup(createElement(Money, { value: 216.775, block: true }));
     expect(money).toContain('dir="ltr" data-number-align="leading"');
     expect(money).toContain("tm-number-block");
-    expect(money).toContain('<span class="tm-unit-symbol">₪</span>217');
+    expect(text(money)).toBe("₪217");
+    expect(money).toContain('<span class="tm-unit-symbol">₪</span>');
     const price = renderToStaticMarkup(createElement(PricePerLiter, { value: 7.356 }));
-    expect(price).toContain('<span class="tm-unit-symbol">₪</span>7.36');
+    expect(text(price)).toBe("₪7.36 לליטר");
     expect(price).toContain("לליטר");
     const consumption = renderToStaticMarkup(createElement(ConsumptionValue, { kmPerLiter: 12, units: "litersPer100", className: "font-display" }));
     expect(consumption).toContain("8.3</bdi>");
@@ -21,15 +24,20 @@ describe("Plate number and input contracts", () => {
     for (const run of consumption.matchAll(/<bdi[^>]*>([^<]*)<\/bdi>/g)) expect(run[1]).not.toMatch(/[א-ת]/);
   });
 
-  it("puts currency and percent symbols before signed digits without rounding editable values", () => {
+  it("preserves semantic percent and signed-currency order while styling unit symbols separately", () => {
     const signedMoney = renderToStaticMarkup(createElement(SignedMoney, { value: -25.2 }));
-    expect(signedMoney).toContain('<span class="tm-unit-symbol">₪</span>−25');
+    expect(text(signedMoney)).toBe("−₪25");
     const percentage = renderToStaticMarkup(createElement(SignedPercent, { value: -7.25, digits: 2 }));
-    expect(percentage).toContain('<span class="tm-unit-symbol">%</span>−7.25');
+    expect(text(percentage)).toBe("−7.25%");
+    expect(percentage).toContain('class="tm-symbol-number"');
+    expect(percentage).toContain('<span class="tm-unit-symbol">%</span>');
     const zero = renderToStaticMarkup(createElement(Percent, { value: 0 }));
-    expect(zero).toContain('<span class="tm-unit-symbol">%</span>0');
+    expect(text(zero)).toBe("0%");
     const separate = renderToStaticMarkup(createElement(NumRun, null, 25, "%"));
-    expect(separate).toContain('<span class="tm-unit-symbol">%</span>25');
+    expect(text(separate)).toBe("25%");
+    for (const original of ["19%", "+19%", "−₪25", "+₪25", "₪-0.25", "₪ 216.775000", "19₪"]) {
+      expect(text(renderToStaticMarkup(createElement(NumRun, null, original)))).toBe(original);
+    }
   });
 
   it("does not format or round an editable pump value", () => {
