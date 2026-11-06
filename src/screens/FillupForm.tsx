@@ -21,7 +21,7 @@ import type { FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
 import { resolveStationPrice } from "../lib/prices/resolver";
 import { buildPumpRuleScope, createPumpPriceRule, publicPriceStationId, reusableStationName, suggestFillupPrice, type PumpRuleScope } from "../lib/fillupPricing";
-import { EMPTY_TANK_DRAFT, draftFromFields, effectiveEndChoice, hasTankAnswer, withEndChoice, type TankStateDraft } from "../lib/tank/draft";
+import { effectiveEndChoice, hasTankAnswer, withEndChoice, type TankStateDraft } from "../lib/tank/draft";
 import { Button } from "../components/Button";
 import { Card, Skeleton } from "../components/Card";
 import { ConfirmDialog } from "../components/Sheet";
@@ -33,7 +33,7 @@ import { FillupSaved, type PumpWriteState, type SavedFillupResult, type SavedWri
 import { StationSheet } from "../components/fillup/StationSheet";
 import { DateSheet } from "../components/fillup/DateSheet";
 import { savedFillupResult } from "../components/fillup/savedResult";
-import { resolveEditedTank, selectTankOriginal } from "../components/fillup/tankEdit";
+import { resolveEditedTank, selectTankDraft, selectTankOriginal } from "../components/fillup/tankEdit";
 const ReceiptImport = lazy(() => import("../components/ReceiptImport").then(module => ({ default: module.ReceiptImport })));
 const ScanWizard = lazy(() => import("../components/scan/ScanWizard").then(module => ({ default: module.ScanWizard })));
 type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
@@ -387,7 +387,7 @@ function FillupEditor({
   });
 
   const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
-    restoredDraft?.tankDraft ?? (tankOriginal ? draftFromFields(tankOriginal) : EMPTY_TANK_DRAFT),
+    selectTankDraft(tankOriginal, restoredDraft?.tankDraft),
   );
 
   const [continuityBreak, setContinuityBreak] = useState(

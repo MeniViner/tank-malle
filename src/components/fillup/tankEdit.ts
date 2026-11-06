@@ -2,7 +2,7 @@ import type { FillupDraft } from "../../lib/fillupDraft";
 import type { Fillup } from "../../lib/stats";
 import type { ResolvedCapacity } from "../../lib/tank/capacity";
 import { GAUGE_SD_BY_SOURCE, TANK_SCHEMA_VERSION } from "../../lib/tank/config";
-import { draftFromFields, effectiveEndChoice, impliedAfterSd, resolveTankOutcome, type PersistedTankFields, type TankOutcome, type TankStateDraft } from "../../lib/tank/draft";
+import { draftFromFields, effectiveEndChoice, EMPTY_TANK_DRAFT, impliedAfterSd, resolveTankOutcome, type PersistedTankFields, type TankOutcome, type TankStateDraft } from "../../lib/tank/draft";
 import { resolveEndState } from "../../lib/tank/observations";
 import type { FillEndState, FillupTankFields, LevelSource } from "../../lib/tank/types";
 
@@ -43,6 +43,19 @@ export function selectTankOriginal({ initial, restored, correctingOperation }: {
     ? restored.tankOriginal ?? null
     : correctingOperation ? initial : restored?.base ?? initial;
   return original ? { ...original } : null;
+}
+
+/** Restore old edit drafts without treating their absent reason as a new deletion. */
+export function selectTankDraft(original: Fillup | null, restored: TankStateDraft | null | undefined): TankStateDraft {
+  if (!restored) return original ? draftFromFields(original) : EMPTY_TANK_DRAFT;
+  // Before 1.7.3, legacy records opened with an empty tank draft even when a
+  // historical reason existed. Only recover that metadata; the restored
+  // physical answers and their provenance must remain the user's own inputs.
+  const legacy = original && (original.tankSchemaVersion == null || original.tankSchemaVersion < TANK_SCHEMA_VERSION);
+  if (legacy && restored.reason == null && original.refuelReason != null) {
+    return { ...restored, reason: original.refuelReason };
+  }
+  return restored;
 }
 
 export interface EditedTank {
