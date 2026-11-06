@@ -1,4 +1,4 @@
-import type { PublicPriceReading, PublicPriceSnapshot } from '../publicSource';
+import { announcementTarget, type PublicPriceReading, type PublicPriceSnapshot } from '../publicSource';
 
 // Minimal synthetic excerpts preserving the effective-date structures of these public notices:
 // https://www.gov.il/he/pages/fuel-november-2026
@@ -24,3 +24,12 @@ export const NOVEMBER: PublicPriceReading = { price: 7.35, fullService: 7.61, mo
 export const FIFTH: PublicPriceReading = { price: 7.85, fullService: 8.11, month: '2026-11', effectiveFrom: NOVEMBER_FIFTH,
   publishedOn: '2026-11-04', effectiveDateSource: 'notice', url: 'https://www.gov.il/he/pages/fuel-november-05-2026', via: 'public-reader', readAt: CHECKED_AT };
 export const SNAPSHOT: PublicPriceSnapshot = { notices: [OCTOBER, NOVEMBER, FIFTH], readAt: CHECKED_AT, checkedUrls: [OCTOBER.url, NOVEMBER.url, FIFTH.url] };
+
+/** Synthetic admin-browser fixture: the explicit effective date follows the test's fixed clock. */
+export function adminMonthlyNoticeFixture(now: number) {
+  const target = announcementTarget(now);
+  const [year, month] = target.month.split('-');
+  return { ...target, body: `בחצות הלילה (01.${month}.${year}), יעודכנו מחירי הדלק.
+המחיר המרבי לליטר בנזין 95 בשירות עצמי לא יעלה על 8.27 שקלים.
+המחיר המרבי לליטר בנזין 95 בשירות עצמי באילת לא יעלה על 7.01 שקלים.` };
+}
