@@ -3,10 +3,12 @@ import { startCareEditor,setCareTitle,addCareJob } from './helpers/care';
 import { expect,test } from '@playwright/test';
 import { signedInWithData } from './helpers/app';
 import { listDocuments } from './helpers/emulator';
+import { readFile } from 'node:fs/promises';
+import { exportedFileTime } from './helpers/exports';
 
 test('two-photo flow offers manual entry in the normal review form without saving early',async({page})=>{
   const scope=await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByTestId("fillup-camera").click();
-  await page.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('dialog',{name:'תדלוק בשני צילומים',exact:true}).getByRole('button',{name:'סגירה',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByTestId("fillup-total").fill('287.40');await page.getByLabel('ליטרים',{exact:true}).fill('40');await page.getByTestId("fillup-odometer").fill('128450');
   await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7.185');expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`)).toHaveLength(0);
   await page.getByRole('button',{name:/שמירת תדלוק/}).click();
@@ -85,6 +87,27 @@ test('synthetic pixel selection advances both steps while preserving manually au
   expect(await page.evaluate(()=>Object.values(localStorage).some(value=>String(value).includes('data:image')))).toBe(false);
 });
 
+test('closing after a pump reading returns accepted values to the form without saving or replacing manual input',async({page})=>{
+  const sharp=(await import('sharp')).default;const {demoPhoto}=await import('../src/lib/scan/fixtures');
+  const image=demoPhoto('pump');const buffer=await sharp(Buffer.from(image.data),{raw:{width:image.width,height:image.height,channels:4}}).png().toBuffer();
+  const scope=await signedInWithData(page,{fillups:[],regulatedPrice:7.31});
+  await page.goto('/fillup/new');await page.getByTestId('fillup-total').fill('280');
+  await page.getByTestId('fillup-camera').click();
+  const dialog=page.getByRole('dialog',{name:'תדלוק בשני צילומים',exact:true});
+  await dialog.getByLabel('תמונת משאבה',{exact:true}).setInputFiles({name:'pump.png',mimeType:'image/png',buffer});
+  await expect(dialog.getByText('המשאבה נקראה',{exact:true})).toBeVisible();
+  await dialog.getByRole('button',{name:'סגירה',exact:true}).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByTestId('fillup-total')).toHaveValue('280');
+  await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('40.000');
+  await expect(page.getByLabel('מחיר לליטר',{exact:true})).toHaveValue('7');
+  await expect(page.getByTestId('fillup-odometer')).toHaveValue('');
+  expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/fillups`)).toHaveLength(0);
+  await page.getByTestId('fillup-camera').click();
+  await dialog.getByRole('button',{name:'סגירה',exact:true}).click();
+  await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('40.000');
+});
+
 test('camera denial offers manual entry and a late permission result is stopped after closing',async({page})=>{
   await signedInWithData(page,{fillups:[]});await page.goto('/fillup/new');await page.getByTestId("fillup-camera").click();
   const dialog=page.getByRole('dialog');
@@ -95,7 +118,7 @@ test('camera denial offers manual entry and a late permission result is stopped 
   await dialog.getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();await expect(dialog.getByText('פותחים מצלמה…')).toBeVisible();
   await dialog.getByRole('button',{name:'סגירת מצלמה',exact:true}).click();await page.evaluate(()=>(window as any).__release());
   await expect.poll(()=>page.evaluate(()=>(window as any).__stopped)).toBe(true);
-  await dialog.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(page.getByTestId("fillup-total")).toBeVisible();
+  await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(page.getByTestId("fillup-total")).toBeVisible();
 });
 
 test('backup import deduplicates, CSV and date calendar export work on mobile',async({page})=>{
@@ -109,10 +132,17 @@ test('backup import deduplicates, CSV and date calendar export work on mobile',a
   await expect(dialog.getByRole('status')).toContainText('2 רשומות יובאו ואושרו בשרת');
   await dialog.getByLabel('קובץ גיבוי תחזוקה').setInputFiles({name:'backup.json',mimeType:'application/json',buffer});await expect(dialog.getByText(/0 רשומות חדשות · 2 כבר קיימות/)).toBeVisible();
   await expect(dialog.getByRole('button',{name:'ייבוא הרשומות החדשות',exact:true})).toBeDisabled();
-  const [download]=await Promise.all([page.waitForEvent('download'),dialog.getByRole('button',{name:'הורדת גיבוי',exact:true}).click()]);expect(download.suggestedFilename()).toBe('tank-maleh-care.json');
-  const [csv]=await Promise.all([page.waitForEvent('download'),dialog.getByRole('button',{name:'ייצוא עלויות CSV',exact:true}).click()]);expect(csv.suggestedFilename()).toBe('tank-maleh-care-costs.csv');
+  const [download]=await Promise.all([page.waitForEvent('download'),dialog.getByRole('button',{name:'הורדת גיבוי',exact:true}).click()]);
+  const backup=JSON.parse(await readFile((await download.path())!,'utf8'));
+  expect(exportedFileTime(download.suggestedFilename(),'tank-maleh-care.json')).toBe(Date.parse(backup.exportedAt));
+  expect(backup.records.vehicleExpenses[0].costAgorot).toBe(45000);
+  const [csv]=await Promise.all([page.waitForEvent('download'),dialog.getByRole('button',{name:'ייצוא עלויות CSV',exact:true}).click()]);exportedFileTime(csv.suggestedFilename(),'tank-maleh-care-costs.csv');
   await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await page.goto('/vehicle');await page.getByRole('link',{name:/טסט שנתי/}).click();
-  const [calendar]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'הוספה ליומן המכשיר',exact:true}).click()]);expect(calendar.suggestedFilename()).toBe('tank-maleh-reminder.ics');
+  const [calendar]=await Promise.all([page.waitForEvent('download'),page.getByRole('button',{name:'הוספה ליומן המכשיר',exact:true}).click()]);
+  const calendarAt=exportedFileTime(calendar.suggestedFilename(),'tank-maleh-reminder.ics');
+  const ics=await readFile((await calendar.path())!,'utf8');
+  expect(ics).toContain(`DTSTAMP:${new Date(calendarAt).toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z')}`);
+  expect(ics).toContain('DTSTART;VALUE=DATE:20271019');
   expect(await listDocuments(`users/${scope.uid}/vehicles/${scope.vehicleId}/vehicleExpenses`)).toHaveLength(1);
   for(const width of [320,390,430,820]){await page.setViewportSize({width,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);}
 });

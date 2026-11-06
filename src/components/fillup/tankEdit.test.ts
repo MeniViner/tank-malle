@@ -57,6 +57,20 @@ describe("editing existing tank evidence", () => {
     expect(edited.isFullTank).toBe(false);
   });
 
+  it.each([undefined, 1])("an old-schema reason survives a gauge edit and reset without adopting old measurements (schema %s)", tankSchemaVersion => {
+    const original = fillup({ tankSchemaVersion, refuelReason: "before-trip" });
+    const opening = draftFromFields(original);
+    expect(opening).toEqual({ ...EMPTY_TANK_DRAFT, reason: "before-trip" });
+    const changed = { ...opening, beforeLevel: .1 };
+    const edited = resolveEditedTank({ original, draft: changed, litersAdded: 40, capacity });
+    expect(edited.fields).toMatchObject({ refuelReason: "before-trip", preFillLevel: .1, preFillLevelSource: "direct-gauge" });
+    const reset = { ...EMPTY_TANK_DRAFT, reason: changed.reason };
+    const restored = resolveEditedTank({ original, draft: reset, litersAdded: 40, capacity });
+    expect(restored.preserved).toBe(true);
+    expect(restored.fields).toEqual({ ...imported, tankSchemaVersion, refuelReason: "before-trip" });
+    expect(original).toEqual(fillup({ tankSchemaVersion, refuelReason: "before-trip" }));
+  });
+
   it("returning physical answers to the opening values after a local draft reload restores exact preservation", () => {
     const original = fillup();
     const opening = draftFromFields(original);

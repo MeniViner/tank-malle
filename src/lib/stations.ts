@@ -232,24 +232,79 @@ export function searchStationOptions(
 ): StationSearchResult[] {
   const term = normaliseStationText(query);
   if (term.length < 2 || limit <= 0) return [];
+  return collectStationOptions(catalog, history, term, limit);
+}
+
+/** A null term is explicit nearby browsing, not ordinary one-letter search. */
+function collectStationOptions(
+  catalog: Catalog | null,
+  history: readonly Station[],
+  term: string | null,
+  limit = Number.MAX_SAFE_INTEGER,
+): StationSearchResult[] {
   const results: StationSearchResult[] = [];
+  const seen = new Set<string>();
   const add = (result: StationSearchResult) => {
-    if (results.some(({ station }) => stationKey(station) === stationKey(result.station))) return;
+    const key = stationKey(result.station);
+    if (seen.has(key)) return;
+    seen.add(key);
     results.push(result);
   };
   for (const station of history) {
-    if (matchesStationText([station.name, station.brand], term)) {
+    if (term === null || matchesStationText([station.name, station.brand], term)) {
       add({ station, source: "history" });
       if (results.length >= limit) return results;
     }
   }
   // Apply the limit after deduplication; matching historical aliases must not
   // crowd out distinct registry stations.
-  for (const entry of searchStations(catalog, query, Number.MAX_SAFE_INTEGER)) {
+  const registered = [...(catalog?.stations ?? []), ...(catalog?.registryOnly ?? []), ...VERIFIED_SEARCH_STATIONS];
+  for (const entry of registered) {
+    if (term !== null && !matchesStationText([entry.n, entry.c, entry.a], term)) continue;
     add({ station: toStation(entry), address: entry.a ?? undefined, source: "catalog" });
     if (results.length >= limit) break;
   }
   return results;
+}
+
+type Position = { lat: number; lng: number };
+
+function validPosition(value: { lat?: number | null; lng?: number | null }): value is Position {
+  return typeof value.lat === "number" && Number.isFinite(value.lat) && Math.abs(value.lat) <= 90
+    && typeof value.lng === "number" && Number.isFinite(value.lng) && Math.abs(value.lng) <= 180;
+}
+
+export interface StationDistanceOption extends StationSearchResult {
+  /** Straight-line metres; unknown locations remain selectable at the end. */
+  distance: number | null;
+}
+
+/**
+ * Explicit distance ordering considers EVERY match before the UI paginates.
+ * It does not share the small radius used to suggest a station automatically.
+ * Historical selection payloads stay intact, including unresolved identities.
+ */
+export function stationOptionsByDistance(
+  catalog: Catalog | null,
+  history: readonly Station[],
+  query: string,
+  position: Position,
+): StationDistanceOption[] {
+  const term = normaliseStationText(query);
+  const options = collectStationOptions(catalog, history, term.length >= 2 ? term : null);
+  const locatedById = new Map((catalog?.stations ?? [])
+    .filter(station => station.i && validPosition(station)).map(station => [station.i!, station]));
+  return options.map((option, index) => {
+    // A stable registry ID can supply a missing location for ordering only.
+    // Never guess an ID from a label or change the historical picked payload.
+    const point = validPosition(option.station) ? option.station
+      : option.station.stationId ? locatedById.get(option.station.stationId) : null;
+    const distance = validPosition(position) && point ? distanceMeters(position, point) : NaN;
+    return { ...option, distance: Number.isFinite(distance) ? distance : null, index };
+  }).sort((a, b) => {
+    if ((a.distance === null) !== (b.distance === null)) return a.distance === null ? 1 : -1;
+    return (a.distance ?? 0) - (b.distance ?? 0) || a.index - b.index;
+  }).map(({ index: _index, ...option }) => option);
 }
 
 /** Authoritative station count, when the catalog reports one. */
@@ -272,20 +327,25 @@ export interface GeoResult {
  */
 export function locateStations(
   radiusMeters = 400,
+  options: { maximumAge?: number } = {},
 ): Promise<GeoResult> {
   return new Promise((resolve) => {
-    if (!navigator.geolocation) {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
       resolve({ status: "unavailable", position: null, nearby: [] });
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
+    try { navigator.geolocation.getCurrentPosition(
       async (position) => {
         const point = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
-        const catalog = await loadStationCatalog();
+        if (!validPosition(point)) {
+          resolve({ status: "unavailable", position: null, nearby: [] });
+          return;
+        }
+        const catalog = await loadStationCatalog().catch(() => null);
         const nearby = findNearby(catalog, point, radiusMeters);
         resolve({
           status: nearby.length > 0 ? "ok" : "none",
@@ -300,8 +360,10 @@ export function locateStations(
           nearby: [],
         });
       },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
-    );
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: options.maximumAge ?? 60_000 },
+    ); } catch {
+      resolve({ status: "unavailable", position: null, nearby: [] });
+    }
   });
 }
 

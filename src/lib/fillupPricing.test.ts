@@ -4,7 +4,8 @@ import {
   buildPumpRuleScope, createPumpPriceRule, decodeReusablePumpRule, publicPriceStationId,
   suggestFillupPrice, type LastPaidCandidate, type PumpRuleScope,
 } from "./fillupPricing";
-import type { RegulatedPriceConfig } from "./prices/regulated";
+import { withPublicPrices, type RegulatedPriceConfig } from "./prices/regulated";
+import { NOVEMBER_START, NOVEMBER_FIFTH, SNAPSHOT } from "./prices/__fixtures__/officialNotices";
 import { resolveStationPrice } from "./prices/resolver";
 import type { ResolvedPrice } from "./prices/types";
 import { receiptNumbers, suggestReceiptPrice, typeReceiptField, type ReceiptState } from "./receipt";
@@ -239,5 +240,70 @@ describe("fill-up price suggestion composes existing authorities", () => {
     const changed = suggestReceiptPrice(receipt, result.price);
     expect(changed).toEqual(receipt);
     expect(receiptNumbers(changed)).toMatchObject({ liters: 28.23456789, totalCost: 211.87654321, pricePerLiter: 7.500000001 });
+  });
+});
+
+describe("personalised price at the selected transaction date", () => {
+  const viewedAt = NOVEMBER_FIFTH + 86_400_000;
+  const config = withPublicPrices(null, SNAPSHOT, viewedAt)!;
+  const at = (date: number, patch: Partial<Parameters<typeof suggestFillupPrice>[0]> = {}) => suggestion({
+    config, date, now: viewedAt,
+    publicResolved: resolveStationPrice({ stationId: station.stationId!, fuelType: "95", regulated: config, now: date }),
+    ...patch,
+  });
+
+  it.each([
+    [NOVEMBER_START, 7.35], [NOVEMBER_FIFTH - 1, 7.35], [NOVEMBER_FIFTH, 7.85], [NOVEMBER_FIFTH + 1, 7.85],
+  ])("uses the official transition at %i before applying any personal setting", (date, expected) => {
+    expect(at(date)).toMatchObject({ price: expected, kind: "public", reference: { price: expected } });
+  });
+
+  it("applies the currently configured fixed discount to each historical base and says that it is current", () => {
+    const discounted = { ...vehicle, priceDiscount: { kind: "amount" as const, value: 0.2 } };
+    const before = at(NOVEMBER_FIFTH - 1, { vehicle: discounted });
+    const after = at(NOVEMBER_FIFTH, { vehicle: discounted });
+    expect(before.price).toBe(7.15);
+    expect(after.price).toBe(7.65);
+    expect(before.label).toContain("לפי ההגדרה הנוכחית");
+    expect(after.label).toContain("5 בנובמבר 2026 בשעה 00:00");
+    expect(after.reference?.effectiveFrom).toBe(NOVEMBER_FIFTH);
+  });
+
+  it("recalculates percentage discounts without changing legacy or explicit no-discount precedence", () => {
+    const percent = { ...vehicle, priceDiscount: { kind: "percent" as const, value: 5 } };
+    expect(at(NOVEMBER_FIFTH - 1, { vehicle: percent }).price).toBe(6.983);
+    expect(at(NOVEMBER_FIFTH, { vehicle: percent }).price).toBe(7.458);
+    expect(at(NOVEMBER_FIFTH, { vehicle: { ...vehicle, priceAdjustment: -.2 } }).price).toBe(7.65);
+    expect(at(NOVEMBER_FIFTH, { vehicle: { ...vehicle, priceAdjustment: -.2, priceDiscount: null } }).price).toBe(7.85);
+  });
+
+  it("checks private-rule expiry at the fill date, then falls back to the current vehicle discount", async () => {
+    const scope = await scopeFor(), expiresAt = NOVEMBER_FIFTH - 1;
+    const privateRule = ruleFor(scope, .5, { expiresAt });
+    const settings = { scope, eligibleRules: [privateRule], vehicle: { ...vehicle, priceDiscount: { kind: "amount" as const, value: .2 } } };
+    expect(at(expiresAt - 1, settings)).toMatchObject({ price: 6.85, kind: "private-rule", rule: privateRule });
+    expect(at(expiresAt, settings)).toMatchObject({ price: 6.85, kind: "private-rule" });
+    expect(at(expiresAt + 1, settings)).toMatchObject({ price: 7.65, kind: "vehicle-discount", rule: null });
+    expect(at(expiresAt, settings).label).toContain("לפי ההגדרה הנוכחית");
+  });
+
+  it("keeps unknown historical prices unknown even when a personal discount is configured", () => {
+    const older = Date.parse("2026-09-15T10:00:00Z");
+    expect(at(older, { vehicle: { ...vehicle, priceDiscount: { kind: "amount", value: .2 } } })).toMatchObject({
+      price: null, kind: "unknown", rule: null, lastPaid: null,
+    });
+  });
+
+  it("updates only automatic arithmetic when the date moves across the price transition", () => {
+    const settings = { vehicle: { ...vehicle, priceDiscount: { kind: "amount" as const, value: .2 } } };
+    const empty: ReceiptState = { liters: "", pricePerLiter: "", totalCost: "", authored: [] };
+    const before = typeReceiptField(suggestReceiptPrice(empty, at(NOVEMBER_FIFTH - 1, settings).price), "liters", "40");
+    const after = suggestReceiptPrice(before, at(NOVEMBER_FIFTH, settings).price);
+    expect(receiptNumbers(before)).toMatchObject({ liters: 40, pricePerLiter: 7.15, totalCost: 286 });
+    expect(receiptNumbers(after)).toMatchObject({ liters: 40, pricePerLiter: 7.65, totalCost: 306 });
+    const manual = typeReceiptField(before, "pricePerLiter", "6.90123456789");
+    expect(suggestReceiptPrice(manual, at(NOVEMBER_FIFTH, settings).price)).toEqual(manual);
+    const confirmed = typeReceiptField(before, "totalCost", "280.012345");
+    expect(suggestReceiptPrice(confirmed, at(NOVEMBER_FIFTH, settings).price)).toEqual(confirmed);
   });
 });

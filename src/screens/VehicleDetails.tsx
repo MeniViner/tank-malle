@@ -51,7 +51,7 @@ function ReminderDetailContent() {
     <div className="tm-vehicle-links">
       <button className="tm-vehicle-link" type="button" onClick={() => v.edit({ collection: 'maintenancePlans', record: plan })}><PencilIcon size={19}/><span>עריכת התזכורת</span><ChevronStart size={18}/></button>
       <Link className="tm-vehicle-link" to={`/history?kind=service&plan=${encodeURIComponent(plan.id)}`}><span>היסטוריית הטיפולים<small><NumericText>{`${events.length} ${events.length === 1 ? 'טיפול מקושר' : 'טיפולים מקושרים'}`}</NumericText></small></span><ChevronStart size={18}/></Link>
-      {due.day && !due.completed ? <button className="tm-vehicle-link" type="button" onClick={() => { const calendar = careCalendar(v.vehicleId, plan, v.care.data); if (calendar) downloadCareFile(calendar, 'tank-maleh-reminder.ics', 'text/calendar;charset=utf-8'); }}><CalendarIcon size={19}/><span>הוספה ליומן המכשיר</span><span aria-hidden="true">↓</span></button> : null}
+      {due.day && !due.completed ? <button className="tm-vehicle-link" type="button" onClick={() => { const now = new Date(); const calendar = careCalendar(v.vehicleId, plan, v.care.data, now); if (calendar) downloadCareFile(calendar, 'tank-maleh-reminder.ics', 'text/calendar;charset=utf-8', now); }}><CalendarIcon size={19}/><span>הוספה ליומן המכשיר</span><span aria-hidden="true">↓</span></button> : null}
       <Link className="tm-vehicle-link" to="/notifications"><span>דחיית הופעת ההתראה</span><ChevronStart size={18}/></Link>
       <button className="tm-vehicle-link text-danger" type="button" onClick={() => setDeleting(true)}><TrashIcon size={19}/><span>מחיקת התזכורת</span></button>
     </div>

@@ -5,7 +5,7 @@
 import type { StoredPriceRule } from "../context/DataContext";
 import { percentPlain, price } from "./format";
 import { discountedPrice, vehicleDiscount } from "./prices/discount";
-import { officialPriceFor, priceMonthLabel, type RegulatedPriceConfig } from "./prices/regulated";
+import { officialPriceFor, officialPriceMoment, priceMonthLabel, type RegulatedPriceConfig } from "./prices/regulated";
 import { applyPersonalRule } from "./prices/resolver";
 import type { ResolvedPrice } from "./prices/types";
 import { normaliseStationText } from "./stations";
@@ -251,6 +251,9 @@ function referenceLabel(reference: NonNullable<FillupPriceSuggestion["reference"
     : reference.isRegulated
       ? reference.fromHistory ? "מחיר מרבי מפוקח" : "מחיר מפוקח אחרון שידוע"
       : reference.fromHistory ? "מחיר שנשמר" : "מחיר אחרון שנשמר";
+  if (typeof reference.effectiveFrom === "number" && Number.isFinite(reference.effectiveFrom)) {
+    return `${label} · מ־${officialPriceMoment(reference.effectiveFrom)}`;
+  }
   const month = priceMonthLabel(reference.effectiveMonth, date);
   return month ? `${label} · ${month}` : label;
 }
@@ -298,17 +301,19 @@ export function suggestFillupPrice(input: {
   const scopeMatches = scope?.vehicleId === vehicle.id && scope.fuelType === vehicle.fuelType &&
     (scope.kind === "catalog" ? scope.stationId === publicPriceStationId(station) :
       scope.kind === "name" && !station?.stationId && reusableStationName(scope.stationName) === reusableStationName(station?.name));
-  const rule = scopeMatches ? selectedRule(scope, input.eligibleRules, input.now) : null;
+  // The saved rule is the current personal setting, not a reconstruction of
+  // past settings. Its explicit expiry still belongs to the transaction date.
+  const rule = scopeMatches ? selectedRule(scope, input.eligibleRules, input.date) : null;
   if (rule) {
     // applyPersonalRule retains its existing arithmetic. The temporary input
     // uses the genuine public id; the private stored rule remains separate.
-    const adjusted = applyPersonalRule(resolved, [{ ...rule, stationId: resolved.stationId }], input.now);
-    return { ...common, price: adjusted.price, kind: "private-rule", label: `${baseLabel} · ${personalDifferenceLabel(rule.discountPerLiter)}`, rule };
+    const adjusted = applyPersonalRule(resolved, [{ ...rule, stationId: resolved.stationId }], input.date);
+    return { ...common, price: adjusted.price, kind: "private-rule", label: `${baseLabel} · ${personalDifferenceLabel(rule.discountPerLiter)} (לפי ההגדרה הנוכחית)`, rule };
   }
   const discount = vehicleDiscount(vehicle);
   if (discount && discount.value > 0) {
     const detail = discount.kind === "percent" ? `${discount.value < 0.5 ? "פחות מ־1%" : percentPlain(discount.value)} הנחה אישית` : personalDifferenceLabel(discount.value);
-    return { ...common, price: discountedPrice(basePrice, discount), kind: "vehicle-discount", label: `${baseLabel} · ${detail}` };
+    return { ...common, price: discountedPrice(basePrice, discount), kind: "vehicle-discount", label: `${baseLabel} · ${detail} (לפי ההגדרה הנוכחית)` };
   }
   return { ...common, price: basePrice, kind: "public", label: baseLabel };
 }

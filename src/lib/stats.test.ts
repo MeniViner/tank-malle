@@ -365,9 +365,16 @@ describe("computeStats — money, months and records", () => {
   });
 
   it("computes the average price paid and its gap from the official price", () => {
-    const stats = computeStats(list, vehicle, { current: { pricePerLiter: 7.31 } }, base);
+    const stats = computeStats(list, vehicle, { source: "gov.il", history: { "2026-01": 7.31, "2026-02": 7.31 } }, base);
     expect(stats.avgPricePaid).toBeCloseTo(929.5 / 130, 3);
     expect(stats.avgPriceVsOfficial).toBeLessThan(0);
+  });
+
+  it("does not manufacture historical comparisons from an undated current price", () => {
+    const stats = computeStats(list, vehicle, { current: { pricePerLiter: 7.31 } }, base);
+    expect(stats.avgPricePaid).toBeCloseTo(929.5 / 130, 3);
+    expect(stats.avgPriceVsOfficial).toBeNull();
+    expect(stats.priceSeries.every(point => point.official === null)).toBe(true);
   });
 
   it("derives km/day and km/month from the elapsed span", () => {
@@ -532,8 +539,13 @@ describe("resolvePricePerLiter", () => {
     });
   });
 
-  it("falls back to the current price for a month with no history", () => {
+  it("does not borrow a later current price for an older month with no evidence", () => {
     const result = resolvePricePerLiter(new Date("2026-05-15").getTime(), null, prices);
+    expect(result.price).toBeNull();
+  });
+
+  it("can carry an earlier known price forward while identifying the missing month's evidence", () => {
+    const result = resolvePricePerLiter(new Date("2026-09-15").getTime(), null, prices);
     expect(result.price).toBe(7.31);
     // The caller uses this to avoid claiming a month it has no record for.
     expect(result.fromHistory).toBe(false);
@@ -690,7 +702,7 @@ describe("chart series", () => {
   });
 
   it("emits paid and official price points in chronological order", () => {
-    const stats = computeStats(list, vehicle, { current: { pricePerLiter: 7.31 } });
+    const stats = computeStats(list, vehicle, { source: "gov.il", history: { "2026-01": 7.31 } });
     expect(stats.priceSeries).toHaveLength(3);
     expect(stats.priceSeries[0].date).toBeLessThan(stats.priceSeries[2].date);
     expect(stats.priceSeries[0].official).toBe(7.31);

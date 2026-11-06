@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FuelPrices, FuelType, Station } from "../../lib/types";
-import { loadStationCatalog, searchStationOptions, stationKey, toStation, formatDistance, type GeoResult } from "../../lib/stations";
+import { loadStationCatalog, searchStationOptions, stationOptionsByDistance, stationKey, toStation, formatDistance, type GeoResult, type StationSearchResult } from "../../lib/stations";
 import { publicPriceStationId, reusableStationName } from "../../lib/fillupPricing";
 import { adaptLegacyConfig } from "../../lib/prices/regulated";
 import { resolveStationPrice, stationPriceView, type StationPriceView } from "../../lib/prices/resolver";
@@ -39,7 +39,8 @@ export function StationSheet({
   lastPaid: Map<string, { price: number; observedAt: number }>;
   nearby: GeoResult["nearby"];
   geoStatus: GeoResult["status"];
-  onLocate: () => void;
+  /** Fresh location only: the parent must never select a station in this callback. */
+  onLocate: () => Promise<GeoResult | null>;
   current: Station | null;
   onPick: (station: Station | null) => void;
 }) {
@@ -105,35 +106,78 @@ export function StationSheet({
     [nearbyCandidates, sort, blocker, fuelType, kmPerLiter, litersToBuy],
   );
   const [query, setQuery] = useState("");
+  const [nearbyPosition, setNearbyPosition] = useState<GeoResult["position"]>(null);
+  const [ordering, setOrdering] = useState(false);
+  const [locationError, setLocationError] = useState("");
+  const [visibleCount, setVisibleCount] = useState(30);
+  const locationRequest = useRef({ generation: 0 });
   const [catalog, setCatalog] = useState<Awaited<ReturnType<typeof loadStationCatalog>>>(null);
   const [catalogLoading, setCatalogLoading] = useState(true);
 
   useEffect(() => {
     if (!open) return;
     let active = true;
+    const requests = locationRequest.current;
     void loadStationCatalog().then((next) => {
       if (!active) return;
       setCatalog(next);
       setCatalogLoading(false);
     });
-    return () => { active = false; };
+    return () => { active = false; requests.generation++; };
   }, [open]);
 
   // The query is cleared by the events that close the sheet, not by an
   // effect watching `open`.
-  const close = () => {
+  const clear = () => {
+    locationRequest.current.generation++;
     setQuery("");
+    setNearbyPosition(null);
+    setOrdering(false);
+    setLocationError("");
+    setVisibleCount(30);
+  };
+  const close = () => {
+    clear();
     onClose();
   };
   const pick = (next: Station | null) => {
-    setQuery("");
+    clear();
     onPick(next);
   };
 
+  const orderNearby = async () => {
+    if (ordering) return;
+    const request = ++locationRequest.current.generation;
+    setOrdering(true);
+    setLocationError("");
+    try {
+      const result = await onLocate();
+      // Closing, selecting, unmounting or reopening invalidates this request.
+      if (request !== locationRequest.current.generation || result === null) return;
+      if (result.position && (result.status === "ok" || result.status === "none")) {
+        setNearbyPosition(result.position);
+        setVisibleCount(30);
+      } else {
+        const reason = result.status === "denied" ? "הרשאת המיקום נדחתה." : "לא הצלחנו לקבל מיקום.";
+        setLocationError(`${reason} ${nearbyPosition ? "סדר התחנות הקודם נשמר." : "אפשר להמשיך לחפש או לנסות שוב."}`);
+      }
+    } catch {
+      if (request === locationRequest.current.generation) setLocationError("לא הצלחנו לקבל מיקום. אפשר להמשיך לחפש או לנסות שוב.");
+    } finally {
+      if (request === locationRequest.current.generation) setOrdering(false);
+    }
+  };
+
   const matches = useMemo(
-    () => searchStationOptions(catalog, stations, query),
-    [catalog, stations, query],
+    () => nearbyPosition ? [] : searchStationOptions(catalog, stations, query),
+    [catalog, stations, query, nearbyPosition],
   );
+  const orderedMatches = useMemo(
+    () => nearbyPosition ? stationOptionsByDistance(catalog, stations, query, nearbyPosition) : null,
+    [catalog, stations, query, nearbyPosition],
+  );
+  const shownMatches: (StationSearchResult & { distance?: number | null })[] =
+    orderedMatches?.slice(0, visibleCount) ?? matches;
 
   const trimmed = query.trim();
 
@@ -148,26 +192,40 @@ export function StationSheet({
           <SearchIcon size={17} className="text-muted" />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => { setQuery(event.target.value); setVisibleCount(30); }}
             placeholder="חיפוש תחנה…"
             aria-label="חיפוש תחנה" className="min-h-[44px] min-w-0 flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted"
           />
         </div>
 
+        <div className="flex flex-none items-center justify-between gap-3">
+          <button type="button" className="fillup-text-action min-w-[44px]" data-testid="station-nearby-order"
+            onClick={() => void orderNearby()} disabled={ordering} aria-busy={ordering}>בקרבתי</button>
+          {ordering ? <span role="status" className="text-[12px] text-muted">מאתר מיקום…</span>
+            : nearbyPosition ? <span className="text-[12px] text-muted">לפי מרחק בקו אווירי</span> : null}
+        </div>
+        {locationError ? <p role="status" className="text-[13px] text-muted">{locationError}</p> : null}
+
         <div className="no-scrollbar flex flex-col overflow-y-auto">
-          {trimmed.length >= 2 ? (
-            matches.length > 0 ? (
-              matches.map((entry) => (
+          {nearbyPosition || trimmed.length >= 2 ? (
+            shownMatches.length > 0 ? (
+              <>{shownMatches.map((entry) => (
                 <StationRow
                   key={stationKey(entry.station)}
                   label={entry.station.name}
-                  meta={entry.source === "history" ? "תחנה מהיסטוריית התדלוקים" : entry.address}
+                  meta={[entry.source === "history" ? "תחנה מהיסטוריית התדלוקים" : entry.address,
+                    entry.distance === undefined ? null : entry.distance === null ? "מרחק לא ידוע" : formatDistance(entry.distance)]
+                    .filter(Boolean).join(" · ")}
                   brand={entry.station.brand}
                   view={viewFor(entry.station.stationId ?? null, entry.station.name)}
                   selected={current !== null && stationKey(current) === stationKey(entry.station)}
                   onClick={() => pick(entry.station)}
                 />
-              ))
+              ))}
+              {orderedMatches && shownMatches.length < orderedMatches.length ? (
+                <button type="button" className="fillup-text-action" data-testid="station-show-more"
+                  onClick={() => setVisibleCount(count => count + 30)}>עוד תחנות</button>
+              ) : null}</>
             ) : (
               <div className="flex flex-col gap-2 py-5">
                 <p className="text-center text-[14px] text-muted">
@@ -177,13 +235,13 @@ export function StationSheet({
                       ? "לא נמצאה תחנה בשם הזה"
                       : "קטלוג התחנות אינו זמין כרגע — החיפוש כולל את התחנות מההיסטוריה"}
                 </p>
-                <button
+                {trimmed.length >= 2 ? <button
                   type="button"
                   onClick={() => pick({ name: trimmed })}
                   className="min-h-[46px] rounded-pill bg-surface-2 text-[14px] font-semibold text-ink"
                 >
                   שמירה בשם „<NumericText>{trimmed}</NumericText>״
-                </button>
+                </button> : null}
               </div>
             )
           ) : (
@@ -197,7 +255,8 @@ export function StationSheet({
               {geoStatus === "denied" || geoStatus === "unavailable" ? (
                 <button
                   type="button"
-                  onClick={onLocate}
+                  onClick={() => void orderNearby()}
+                  disabled={ordering}
                   className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-ink"
                 >
                   {geoStatus === "denied"
@@ -211,7 +270,8 @@ export function StationSheet({
               ) : nearby.length === 0 && geoStatus !== "locating" ? (
                 <button
                   type="button"
-                  onClick={onLocate}
+                  onClick={() => void orderNearby()}
+                  disabled={ordering}
                   className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-ink"
                 >
                   איתור תחנות בקרבת מקום

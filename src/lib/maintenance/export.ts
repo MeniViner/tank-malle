@@ -1,10 +1,11 @@
 import { CARE_COLLECTIONS, EXPENSES, JOBS, nextDue, validCareRecord, type CareCollection, type CareData, type CareRecord, type MaintenancePlan } from './model';
+import { exportFilename } from '../exportFilename';
 export interface CareBackup {
   format:'tank-maleh-care'; version:1; currency:'ILS'; vehicle:{id:string;label:string}; exportedAt:string;
   incomplete:boolean; records:CareData;
 }
-export function careBackup(vehicle:CareBackup['vehicle'],records:CareData,incomplete:boolean): string {
-  return JSON.stringify({format:'tank-maleh-care',version:1,currency:'ILS',vehicle,exportedAt:new Date().toISOString(),incomplete,records} satisfies CareBackup,null,2);
+export function careBackup(vehicle:CareBackup['vehicle'],records:CareData,incomplete:boolean,now=new Date()): string {
+  return JSON.stringify({format:'tank-maleh-care',version:1,currency:'ILS',vehicle,exportedAt:now.toISOString(),incomplete,records} satisfies CareBackup,null,2);
 }
 export function readCareBackup(text:string): CareBackup {
   if (text.length>5_000_000) throw new Error('קובץ הגיבוי גדול מדי (עד 5 MB).');
@@ -60,6 +61,6 @@ export function careCalendar(vehicleId:string,plan:MaintenancePlan,data:CareData
     parts.push(current);return parts.join('\r\n');
   }).join('\r\n')+'\r\n';
 }
-export function downloadCareFile(text:string,filename:string,type:string): void {
-  const url=URL.createObjectURL(new Blob([text],{type}));const anchor=document.createElement('a');anchor.href=url;anchor.download=filename;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+export function downloadCareFile(text:string,filename:string,type:string,now=new Date()): void {
+  const url=URL.createObjectURL(new Blob([text],{type}));const anchor=document.createElement('a');anchor.href=url;anchor.download=exportFilename(filename,now);document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }

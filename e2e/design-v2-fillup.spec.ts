@@ -224,12 +224,24 @@ for (const amount of [
   expect(await listDocuments(scope.collection)).toHaveLength(1);
 });
 
-test("changing only the refuel reason preserves all original physical tank evidence", async ({ page }) => {
+test("editing a note preserves the historical refuel reason and all original physical tank evidence", async ({ page }) => {
   const { scope, path, original } = await importedEditFixture(page);
   await openFillupMore(page);
-  await page.getByRole("button", { name: "לפני נסיעה", exact: true }).click();
+  await page.getByTestId("fillup-notes").fill("הערה מעודכנת בלבד");
   const after = await savedEdit(page, scope.uid, path);
-  for (const [key, value] of Object.entries({ ...original, refuelReason: "before-trip" })) expect(after[key], key).toEqual(value);
+  for (const [key, value] of Object.entries({ ...original, notes: "הערה מעודכנת בלבד" })) expect(after[key], key).toEqual(value);
+  expect(await listDocuments(scope.collection)).toHaveLength(1);
+});
+
+test("clearing gauges preserves the hidden historical refuel reason and exact receipt", async ({ page }) => {
+  const { scope, path, original } = await importedEditFixture(page);
+  await openFillupTankAdvanced(page);
+  await page.getByRole("button", { name: "ניקוי המדים", exact: true }).click();
+  const after = await savedEdit(page, scope.uid, path);
+  expect(after.preFillLevel).toBeNull();
+  for (const key of ["refuelReason", "pricePerLiter", "totalCost", "liters", "postedPricePerLiter", "notes"]) {
+    expect(after[key], key).toEqual(original[key]);
+  }
   expect(await listDocuments(scope.collection)).toHaveLength(1);
 });
 
@@ -461,7 +473,6 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
     await target44(before);
     await before.press("Home"); await before.press("PageUp"); await before.press("ArrowUp");
-    await page.getByRole("button", { name: "לפני נסיעה", exact: true }).click();
     await page.getByTestId("fillup-notes").fill("הנתונים מהקבלה, לפני הנסיעה");
     await capture(page, `fillup-more-${suffix}`, true);
     await page.keyboard.press("Tab");

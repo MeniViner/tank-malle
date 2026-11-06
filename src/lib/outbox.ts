@@ -1051,11 +1051,11 @@ export function outboxStatusText(status: OutboxStatus): string {
 }
 
 /** A portable, human-readable export of the operations (no credentials). */
-export function exportOperations(operations: readonly OutboxOperation[]): string {
+export function exportOperations(operations: readonly OutboxOperation[], now = new Date()): string {
   return JSON.stringify(
     {
       format: "tank-malle-outbox-export-v2",
-      exportedAt: new Date().toISOString(),
+      exportedAt: now.toISOString(),
       operations,
     },
     null,

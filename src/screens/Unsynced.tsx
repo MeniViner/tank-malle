@@ -16,6 +16,7 @@ import { fullDate, num, price, shekel, time } from "../lib/format";
 import { vehicleMoney } from "../lib/vehicle/format";
 import { fillupFromPayload } from "../lib/fillupSerializer";
 import { exportOperations, outboxStatusText, type OutboxOperation } from "../lib/outbox";
+import { exportFilename } from "../lib/exportFilename";
 import { MUTATION_LABELS, describeError } from "../lib/writes";
 import { outboxDay, outboxFieldText, presentOutboxOperation } from '../lib/outboxPresentation';
 import "../secondary-design.css";
@@ -89,12 +90,13 @@ function AccountUnsynced() {
 
   function exportAll() {
     if (!captureAccountAction()() || !captureScope()()) return;
-    const text = exportOperations(outbox);
+    const now = new Date();
+    const text = exportOperations(outbox, now);
     const blob = new Blob([text], { type: "application/json;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `tank-malle-unsynced-${new Date().toISOString().slice(0, 10)}.json`;
+    anchor.download = exportFilename("tank-malle-unsynced.json", now);
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();

@@ -4,7 +4,9 @@ import { EMPTY_CARE,type CareData,type MaintenancePlan } from './model';
 const data:CareData={...EMPTY_CARE,vehicleExpenses:[{id:'e',schemaVersion:1,version:3,title:'=SUM(A1)',day:'2026-10-01',costAgorot:null,notes:'שורה\nשנייה',category:'insurance'}]};
 const plan:MaintenancePlan={id:'p',schemaVersion:1,version:1,title:'טיפול; שנתי, לרכב\nחדש',dueDay:'2027-01-31',dueOdometer:100000,intervalMonths:12,intervalKm:10000,basis:'completion',source:'owner',job:'oil',notes:'א'.repeat(100),active:true};
 it('round trips a complete, scoped numeric backup and preserves unknown costs',()=>{
-  const backup=readCareBackup(careBackup({id:'v',label:'רכב'},data,false));
+  const now=new Date('2026-11-06T11:39:05.123Z');
+  const backup=readCareBackup(careBackup({id:'v',label:'רכב'},data,false,now));
+  expect(backup.exportedAt).toBe(now.toISOString());
   expect(backup.records).toEqual(data);expect(backup.incomplete).toBe(false);
   expect(importPreview(backup,EMPTY_CARE)).toMatchObject({duplicates:0,conflicts:0,additions:[{collection:'vehicleExpenses',record:{version:1,costAgorot:null}}]});
 });
