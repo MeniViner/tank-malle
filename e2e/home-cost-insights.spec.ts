@@ -108,6 +108,11 @@ test("upcoming reminders group without duplicates and an urgent document survive
   await expect(page.getByRole("link", { name: /החלפת שמן מתוכננת/ })).toBeVisible();
   await page.goto("/");
   await expect(group).toHaveCount(1);
+  // A fresh navigation can load the vehicle documents before maintenance.
+  // Wait for the complete group again before capturing its member-based ID.
+  await expect(group).toContainText("טסט שנתי");
+  await expect(group).toContainText("ביטוח חובה");
+  await expect(group).toContainText("החלפת שמן מתוכננת");
   const id = await group.getAttribute("data-spotlight-id");
   await group.getByTestId(`spotlight-dismiss-${id}`).click();
   await page.reload();
