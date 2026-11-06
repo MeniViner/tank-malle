@@ -4,6 +4,8 @@ import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { ALICE, signIn, signOut, signedInWithData } from './helpers/app';
 import { PROJECT_ID, getDocument, listDocuments } from './helpers/emulator';
+import { announcementTarget, PRICE_NEWS_URL } from '../src/lib/prices/publicSource';
+import { adminMonthlyNoticeFixture } from '../src/lib/prices/__fixtures__/officialNotices';
 
 async function admin(page: import('@playwright/test').Page, edit=true) {
   const account = await signedInWithData(page, { regulatedPrice: 7.31 });
@@ -23,9 +25,18 @@ async function admin(page: import('@playwright/test').Page, edit=true) {
 for (const width of [320, 360, 393]) {
   test(`admin prices fit ${width}px and browser pull runs only on click`, async ({page}, testInfo) => {
     await page.setViewportSize({width,height:780});
+    const now = Date.now();
+    await page.clock.setFixedTime(now);
+    const notice = adminMonthlyNoticeFixture(now);
     const requests: string[] = [];
     await page.route('https://www.gov.il/**', route => { requests.push(route.request().url()); return route.abort('failed'); });
-    await page.route('https://r.jina.ai/**', route => {requests.push(route.request().url()); return route.fulfill({body:'בשירות עצמי לא יעלה על 8.27 שקלים. באילת בשירות עצמי לא יעלה על 7.01 שקלים.',contentType:'text/plain'});});
+    await page.route('https://r.jina.ai/**', route => {
+      const url = route.request().url();
+      requests.push(url);
+      const body = url === `https://r.jina.ai/${PRICE_NEWS_URL}` ? notice.url
+        : url === `https://r.jina.ai/${notice.url}` ? notice.body : null;
+      return route.fulfill({ status: body === null ? 404 : 200, body: body ?? '', contentType: 'text/plain' });
+    });
     await admin(page,false);
     expect(requests).toHaveLength(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -36,7 +47,10 @@ for (const width of [320, 360, 393]) {
     // The source uses an inline price column rather than a separate hero.
     expect(currentPrice!.x).toBeGreaterThanOrEqual(0);
     expect(currentPrice!.x+currentPrice!.width).toBeLessThanOrEqual(width);
-    expect(requests).toHaveLength(4);
+    // Discovery reads the index and previous/current/next months; each direct attempt falls back to the reader.
+    const [year, month] = notice.month.split('-').map(Number);
+    const targets = [PRICE_NEWS_URL, ...[-1, 0, 1].map(offset => announcementTarget(Date.UTC(year, month - 1 + offset, 15)).url)];
+    expect(requests.toSorted()).toEqual(targets.flatMap(url => [url, `https://r.jina.ai/${url}`]).toSorted());
     if (width === 360) {
       await expect(page.getByText('המחיר אומת ונשלח לשמירה', {exact:true})).toHaveCount(0);
       await page.screenshot({path:testInfo.outputPath("admin-mobile-360.png")});

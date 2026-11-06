@@ -1,8 +1,7 @@
 import { vehicleDiscount, discountedPrice, discountLabel } from './discount';
 import type { FuelType, FuelPrices, Vehicle } from "../stats";
-import { monthKey } from "../stats";
 import { heMonthName } from "../format";
-import { priceTimeline } from './publicSource';
+import { isOfficialNotice, israelMidnight, israelMonthKey, noticeFromReading, NOTICE_FRESHNESS_MS, priceTimeline, type OfficialPriceNotice, type PublicPriceReading, type PublicPriceSnapshot } from './publicSource';
 import type { ServiceMode } from "./types";
 
 /**
@@ -42,6 +41,8 @@ export interface RegulatedSeries {
   history: Record<string, number>;
   /** Effective timestamp → price, including changes inside a month. */
   timeline?: Record<string, number>;
+  /** Official dated notices, including future prices. Never copied early into current/history. */
+  notices?: Record<string, OfficialPriceNotice>;
   sourceUrl?: string | null;
   current?: {
     pricePerLiter: number;
@@ -215,6 +216,7 @@ function normalizeSeries(raw: unknown): RegulatedSeries | undefined {
   const normalized: RegulatedSeries = {
     history: numberMap(series.history),
     timeline: numberMap(series.timeline),
+    notices: normalizeNotices(series.notices),
     sourceUrl: series.sourceUrl,
     current: Number.isFinite(price)
       ? {
@@ -232,6 +234,18 @@ function normalizeSeries(raw: unknown): RegulatedSeries | undefined {
     normalized.scheduledHistory = numberMap(series.scheduledHistory);
   }
   return normalized;
+}
+
+function normalizeNotices(raw: unknown): Record<string, OfficialPriceNotice> {
+  const notices: Record<string, OfficialPriceNotice> = {};
+  if (!raw || typeof raw !== 'object') return notices;
+  for (const value of Object.values(raw)) {
+    if (!value || typeof value !== 'object') continue;
+    const candidate = value as OfficialPriceNotice;
+    const notice = { ...candidate, effectiveFrom: millis(candidate.effectiveFrom), retrievedAt: millis(candidate.retrievedAt) };
+    if (isOfficialNotice({ ...notice, withdrawn: false })) notices[notice.effectiveFrom!] = notice as OfficialPriceNotice;
+  }
+  return notices;
 }
 
 function normalizeAutomation(raw: unknown): PriceAutomation | null | undefined {
@@ -302,6 +316,8 @@ export interface RegulatedLookup {
   isManual: boolean;
   /** True only for the one product Israel regulates AND a non-manual figure. */
   isRegulated: boolean;
+  effectiveFrom?: number | null;
+  sourceUrl?: string | null;
 }
 
 const MISSING: RegulatedLookup = {
@@ -317,6 +333,37 @@ const MISSING: RegulatedLookup = {
 /** Whether a series' latest write was a hand entry. Unknown counts as manual. */
 function seriesIsManual(series: RegulatedSeries): boolean {
   return series.source !== "scheduled" && series.source !== "import";
+}
+
+interface DatedPrice {
+  price: number;
+  at: number;
+  notice?: OfficialPriceNotice;
+}
+
+function datedPrices(series: RegulatedSeries): DatedPrice[] {
+  const entries = new Map<number, DatedPrice>();
+  for (const [at, price] of Object.entries(series.timeline ?? {})) {
+    if (Number.isFinite(Number(at)) && Number.isFinite(price) && price > 0) entries.set(Number(at), { at: Number(at), price });
+  }
+  const current = series.current;
+  if (!seriesIsManual(series) && current && Number.isFinite(current.effectiveFrom) && current.pricePerLiter > 0 && !entries.has(current.effectiveFrom!)) {
+    entries.set(current.effectiveFrom!, { at: current.effectiveFrom!, price: current.pricePerLiter });
+  }
+  for (const notice of Object.values(series.notices ?? {})) {
+    if (notice.withdrawn === true) { entries.delete(notice.effectiveFrom); continue; }
+    // A distant advance notice needs rechecking near activation, not an indefinite offline promise.
+    if (!isOfficialNotice(notice)) continue;
+    if (notice.effectiveFrom - notice.retrievedAt <= NOTICE_FRESHNESS_MS) entries.set(notice.effectiveFrom, { at: notice.effectiveFrom, price: notice.pricePerLiter, notice });
+    else if (!(current?.effectiveFrom === notice.effectiveFrom && (current.updatedAt ?? 0) >= notice.effectiveFrom)) entries.delete(notice.effectiveFrom);
+  }
+  return [...entries.values()].sort((a, b) => a.at - b.at);
+}
+
+function overrideApplies(series: RegulatedSeries, date: number, latest?: DatedPrice): boolean {
+  const override = series.manualOverride;
+  return !!override && override.month === israelMonthKey(date) && Number.isFinite(override.pricePerLiter) && override.pricePerLiter > 0
+    && (!latest || israelMonthKey(latest.at) !== override.month || override.setAt >= latest.at);
 }
 
 /**
@@ -340,14 +387,13 @@ export function regulatedMaxPrice(
 
   const regulable =
     fuelType === REGULATED_FUEL_TYPE && serviceMode === REGULATED_SERVICE_MODE;
-  const key = monthKey(date);
+  const key = israelMonthKey(date);
+  const events = datedPrices(series);
+  const dated = events.filter(p => p.at <= date).at(-1);
 
   const override = series.manualOverride;
   if (
-    override &&
-    override.month === key &&
-    Number.isFinite(override.pricePerLiter) &&
-    override.pricePerLiter > 0
+    override && overrideApplies(series, date, dated)
   ) {
     return {
       price: override.pricePerLiter,
@@ -360,17 +406,18 @@ export function regulatedMaxPrice(
     };
   }
 
-  const dated = Object.entries(series.timeline ?? {})
-    .map(([at, price]) => ({ at: Number(at), price }))
-    .filter(p => Number.isFinite(p.at) && p.at <= date && Number.isFinite(p.price) && p.price > 0)
-    .sort((a, b) => b.at - a.at)[0];
-  if (dated && monthKey(dated.at) === key) {
+  if (dated && israelMonthKey(dated.at) === key) {
     return { price: dated.price, fromHistory: true, effectiveMonth: key,
-      updatedAt: series.retrievedAt ?? null, source: 'scheduled', isManual: false, isRegulated: regulable };
+      updatedAt: dated.notice?.retrievedAt ?? series.retrievedAt ?? series.current?.updatedAt ?? null,
+      source: 'scheduled', isManual: false, isRegulated: regulable, effectiveFrom: dated.at,
+      sourceUrl: dated.notice?.sourceUrl ?? series.sourceUrl ?? null };
   }
 
   const historic = series.history?.[key];
-  if (typeof historic === "number" && Number.isFinite(historic)) {
+  // A monthly bucket containing the latest price cannot fill a known earlier gap.
+  const datedMonth = events.some(p => israelMonthKey(p.at) === key)
+    || Object.values(series.notices ?? {}).some(p => p.withdrawn === true && israelMonthKey(p.effectiveFrom) === key);
+  if (!datedMonth && typeof historic === "number" && Number.isFinite(historic) && historic > 0) {
     // A month the job wrote stays "automatic" even after a later manual
     // write flipped the series' source — the scheduled record says so.
     const scheduled = series.scheduledHistory?.[key];
@@ -387,14 +434,22 @@ export function regulatedMaxPrice(
     };
   }
 
+  if (dated) {
+    return { price: dated.price, fromHistory: false, effectiveMonth: israelMonthKey(dated.at),
+      updatedAt: dated.notice?.retrievedAt ?? series.retrievedAt ?? series.current?.updatedAt ?? null,
+      source: 'scheduled', isManual: false, isRegulated: regulable, effectiveFrom: dated.at,
+      sourceUrl: dated.notice?.sourceUrl ?? series.sourceUrl ?? null };
+  }
+
   const current = series.current?.pricePerLiter;
-  if (typeof current === "number" && Number.isFinite(current)) {
+  if (!datedMonth && typeof current === "number" && Number.isFinite(current) && current > 0
+      && (!series.current?.effectiveFrom || series.current.effectiveFrom <= date)) {
     const isManual = seriesIsManual(series);
     return {
       price: current,
       fromHistory: false,
       effectiveMonth: series.current?.effectiveFrom
-        ? monthKey(series.current.effectiveFrom)
+        ? israelMonthKey(series.current.effectiveFrom)
         : latestMonth(series.history),
       updatedAt: series.current?.updatedAt ?? null,
       source: series.source ?? null,
@@ -421,6 +476,7 @@ export function hasRegulatedPrice(
   if (!series) return false;
   return (
     Object.keys(series.history ?? {}).length > 0 ||
+    Object.values(series.notices ?? {}).some(isOfficialNotice) ||
     typeof series.current?.pricePerLiter === "number" ||
     typeof series.manualOverride?.pricePerLiter === "number"
   );
@@ -601,6 +657,8 @@ export function officialPriceFor(
   fromHistory: boolean;
   effectiveMonth: string | null;
   updatedAt: number | null;
+  effectiveFrom?: number | null;
+  sourceUrl?: string | null;
 } {
   const lookup = regulatedMaxPrice(adaptLegacyConfig(config), fuelType, date);
   return {
@@ -610,21 +668,107 @@ export function officialPriceFor(
     fromHistory: lookup.fromHistory,
     effectiveMonth: lookup.effectiveMonth,
     updatedAt: lookup.updatedAt,
+    effectiveFrom: lookup.effectiveFrom,
+    sourceUrl: lookup.sourceUrl,
   };
 }
 
-/** Overlay a verified public reading locally; ordinary users never write global config. */
-export function withPublicPrice(config: RegulatedPriceConfig | null, reading: { price: number; month: string; effectiveFrom: number; readAt: number; url: string } | null): RegulatedPriceConfig | null {
-  if (!reading) return config;
+/** Overlay an already effective legacy reading. Ordinary users never write global config. */
+export function withPublicPrice(config: RegulatedPriceConfig | null, reading: { price: number; month: string; effectiveFrom: number; readAt: number; url: string } | null, now = Date.now()): RegulatedPriceConfig | null {
+  if (!reading || reading.effectiveFrom > now) return config;
   const base = adaptLegacyConfig(config);
   const old = base.byFuelType?.['95']?.self;
-  if ((old?.current?.effectiveFrom ?? 0) > reading.effectiveFrom) return base;
+  if ((old?.current?.effectiveFrom ?? 0) > reading.effectiveFrom && !old?.notices?.[old.current!.effectiveFrom!]?.withdrawn) return base;
   const override = old?.manualOverride;
-  if (override && override.month === reading.month && override.setAt >= reading.effectiveFrom) return base;
-  const series: RegulatedSeries = { ...old, history: { ...old?.history, [reading.month]: reading.price },
+  const keepOverride = override && override.month === reading.month && override.setAt >= reading.effectiveFrom;
+  const series: RegulatedSeries = { ...old, history: { ...old?.history, ...(!keepOverride ? { [reading.month]: reading.price } : {}) },
     scheduledHistory: { ...old?.scheduledHistory, [reading.month]: reading.price },
     timeline: priceTimeline(old, reading),
-    current: { pricePerLiter: reading.price, effectiveFrom: reading.effectiveFrom, updatedAt: reading.readAt },
-    source: 'scheduled', sourceUrl: reading.url, retrievedAt: reading.readAt, manualOverride: null };
+    ...(!keepOverride ? { current: { pricePerLiter: reading.price, effectiveFrom: reading.effectiveFrom, updatedAt: reading.readAt },
+      source: 'scheduled' as const, sourceUrl: reading.url, retrievedAt: reading.readAt,
+      ...(override?.month === reading.month ? { manualOverride: null } : {}) } : {}) };
   return { ...base, byFuelType: { ...base.byFuelType, '95': { ...base.byFuelType?.['95'], self: series } } };
+}
+
+/** Store confirmed notices separately, then update legacy active pointers using only elapsed events. */
+export function withPublicPrices(config: RegulatedPriceConfig | null, snapshot: PublicPriceSnapshot | null, now = Date.now()): RegulatedPriceConfig | null {
+  if (!snapshot) return config;
+  let base = adaptLegacyConfig(config);
+  const old = base.byFuelType?.['95']?.self;
+  const notices = { ...old?.notices };
+  for (const notice of Object.values(notices)) {
+    if (notice.retrievedAt < notice.effectiveFrom && notice.retrievedAt <= snapshot.readAt && snapshot.checkedUrls?.includes(notice.sourceUrl)
+      && !snapshot.notices.some(p => p.url === notice.sourceUrl && p.effectiveFrom === notice.effectiveFrom)) {
+      notices[notice.effectiveFrom] = { ...notice, retrievedAt: snapshot.readAt, withdrawn: true };
+    }
+  }
+  const accepted: PublicPriceReading[] = [];
+  for (const reading of snapshot.notices) {
+    const notice = noticeFromReading(reading);
+    if (!notice || notice.retrievedAt > now || (notices[notice.effectiveFrom]?.retrievedAt ?? 0) > notice.retrievedAt) continue;
+    notices[notice.effectiveFrom] = notice;
+    accepted.push(reading);
+  }
+  base = { ...base, byFuelType: { ...base.byFuelType, '95': { ...base.byFuelType?.['95'], self: { ...old, history: old?.history ?? {}, notices } } } };
+  for (const reading of accepted.sort((a, b) => a.effectiveFrom - b.effectiveFrom)) {
+    if (reading.effectiveFrom <= now && reading.effectiveFrom - reading.readAt <= NOTICE_FRESHNESS_MS) base = withPublicPrice(base, reading, now)!;
+  }
+  return base;
+}
+
+export interface OfficialPriceChange {
+  price: number;
+  previousPrice: number;
+  effectiveFrom: number;
+  delta: number;
+  sourceUrl: string | null;
+}
+
+function changeFor(config: RegulatedPriceConfig, series: RegulatedSeries, current: DatedPrice): OfficialPriceChange | null {
+  const month = israelMonthKey(current.at);
+  const [year, monthNumber] = month.split('-').map(Number);
+  const start = israelMidnight(year, monthNumber, 1)!;
+  let previous = datedPrices(series).filter(p => p.at < current.at).at(-1);
+  // A mid-month change must have an earlier event in the SAME month. October is not evidence of the price on 4 November.
+  if (!previous || israelMonthKey(previous.at) !== month) {
+    // Legacy jobs sometimes stored UTC midnight for a month start. Their previous month's authoritative bucket is still usable.
+    if (current.at - start > 3 * 3_600_000) return null;
+    const lookup = regulatedMaxPrice(config, '95', start - 1);
+    if (!lookup.isRegulated || !lookup.fromHistory || lookup.price === null || lookup.effectiveMonth !== israelMonthKey(start - 1)) return null;
+    previous = { at: start - 1, price: lookup.price };
+  } else {
+    const lookup = regulatedMaxPrice(config, '95', current.at - 1);
+    if (!lookup.isRegulated || lookup.price !== previous.price) return null;
+  }
+  const delta = current.price - previous.price;
+  if (Math.abs(delta) < .005) return null;
+  return { price: current.price, previousPrice: previous.price, effectiveFrom: current.at, delta, sourceUrl: current.notice?.sourceUrl ?? null };
+}
+
+/** Latest actual transition, independent of when this user last opened the app. */
+export function latestOfficialPriceChange(config: RegulatedPriceConfig | null | undefined, now: number): OfficialPriceChange | null {
+  const base = adaptLegacyConfig(config), series = base.byFuelType?.['95']?.self;
+  if (!series) return null;
+  const current = datedPrices(series).filter(p => p.at <= now).at(-1);
+  const lookup = regulatedMaxPrice(base, '95', now);
+  if (!current || !lookup.isRegulated || lookup.price !== current.price || israelMonthKey(current.at) !== israelMonthKey(now)) return null;
+  return changeFor(base, series, current);
+}
+
+/** Hide an unrefreshed advance alert after 48 hours; active price evidence remains available. */
+export function upcomingOfficialPrice(config: RegulatedPriceConfig | null | undefined, now: number): (OfficialPriceNotice & { change: OfficialPriceChange | null }) | null {
+  const base = adaptLegacyConfig(config), series = base.byFuelType?.['95']?.self;
+  if (!series) return null;
+  const notice = Object.values(series.notices ?? {}).filter(isOfficialNotice)
+    .filter(p => p.effectiveFrom > now && p.retrievedAt <= now && now - p.retrievedAt <= NOTICE_FRESHNESS_MS)
+    .sort((a, b) => a.effectiveFrom - b.effectiveFrom)[0];
+  if (!notice) return null;
+  return { ...notice, change: changeFor(base, series, { price: notice.pricePerLiter, at: notice.effectiveFrom, notice }) };
+}
+
+/** Every public-price date is expressed in the jurisdiction that sets the price. */
+export function officialPriceMoment(at: number): string {
+  const date = new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', day: 'numeric', month: 'long', year: 'numeric' }).format(at);
+  const time = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(at);
+  return `${date} בשעה ${time}`;
 }
