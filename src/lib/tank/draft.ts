@@ -110,13 +110,14 @@ export function withEndChoice(
 /**
  * The draft a stored record opens as, for editing.
  *
- * Only a record written by the explicit tank-state UI can seed anything: a
+ * Only a record written by the explicit tank-state UI can seed measurements: a
  * legacy document's `isFullTank` is an assumption nobody made, and
  * pre-selecting "full" from it would turn that assumption into a confirmation
- * the moment the record was opened.
+ * the moment the record was opened. The historical reason is independent of
+ * measurement provenance and survives even when old readings cannot seed a draft.
  */
 export function draftFromFields(fields: FillupTankFields): TankStateDraft {
-  if (fields.tankSchemaVersion !== TANK_SCHEMA_VERSION) return EMPTY_TANK_DRAFT;
+  if (fields.tankSchemaVersion !== TANK_SCHEMA_VERSION) return { ...EMPTY_TANK_DRAFT, reason: fields.refuelReason ?? null };
 
   const confirmedFull =
     fields.fillEndState === "full" && fields.fillEndStateSource === "user-confirmed";

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { openFillupMore } from "./helpers/fillup";
+import { exportedFileTime } from "./helpers/exports";
 import { ALICE, signedInWithData } from "./helpers/app";
 import { getDocument, installRules, listAccounts, listDocuments, restoreRules, seedFillups, seedVehicle, setDocument } from "./helpers/emulator";
 import { fillupsToCsv, rowsToCsv, tankUpdatesToCsv } from "../src/lib/csv";
@@ -186,11 +187,14 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
   const file = await download;
+  exportedFileTime(file.suggestedFilename(), "tank-maleh-all-vehicles.csv");
   const content = readFileSync((await file.path())!, "utf8");
   expect(content).toContain(",v1,"); expect(content).toContain(",v2,");
   const tankDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: /^ייצוא עדכוני מיכל ונסיעות/ }).click();
-  const tankContent = readFileSync((await (await tankDownload).path())!, "utf8");
+  const tankFile = await tankDownload;
+  exportedFileTime(tankFile.suggestedFilename(), "tank-maleh-tank-updates.csv");
+  const tankContent = readFileSync((await tankFile.path())!, "utf8");
   expect(tankContent).toContain("observation,o1,v2,");
   expect(tankContent).toContain("200100,0.5");
   // Both scopes remain available in Account's export sheet.
@@ -201,7 +205,9 @@ test("F08: profile counts and exports all vehicles including archived ones", asy
   await expect(page.getByRole("button", { name: /^היקף הייצוא/ })).toContainText("הרכב הפעיל");
   const activeDownload = page.waitForEvent("download");
   await page.getByRole("button", { name: /^ייצוא תדלוקים/ }).click();
-  const activeContent = readFileSync((await (await activeDownload).path())!, "utf8");
+  const activeFile = await activeDownload;
+  exportedFileTime(activeFile.suggestedFilename(), "tank-maleh-מאזדה-3.csv");
+  const activeContent = readFileSync((await activeFile.path())!, "utf8");
   expect(activeContent).toContain(",v1,"); expect(activeContent).not.toContain(",v2,");
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^ייבוא נתונים/ }).click();

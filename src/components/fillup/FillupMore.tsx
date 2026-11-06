@@ -1,28 +1,16 @@
 import { useState } from "react";
-import { Gauge, GroupRow } from "../DesignPrimitives";
+import { Gauge } from "../DesignPrimitives";
 import { Toggle } from "../Segmented";
 import { NumericText, NumRun, Percent, Quantity } from "../Fmt";
 import { Sheet } from "../Sheet";
 import { ChevronDown, InfoIcon, WarningIcon } from "../icons";
-import { price, relativeDate, time } from "../../lib/format";
+import { price } from "../../lib/format";
 import { EMPTY_TANK_DRAFT, effectiveEndChoice, withEndChoice, type TankOutcome, type TankStateDraft } from "../../lib/tank/draft";
 import type { ResolvedCapacity } from "../../lib/tank/capacity";
-import type { RefuelReason } from "../../lib/tank/types";
-
-const REASONS: { value: RefuelReason; label: string }[] = [
-  { value: "low-fuel", label: "כמעט נגמר" },
-  { value: "good-price", label: "מחיר טוב" },
-  { value: "before-trip", label: "לפני נסיעה" },
-  { value: "routine", label: "כרגיל" },
-  { value: "unsure", label: "לא בטוח" },
-];
 
 export interface FillupMoreProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  date: number;
-  dateConfirmed: boolean;
-  onOpenDate: () => void;
   tankDraft: TankStateDraft;
   onTankChange: (draft: TankStateDraft) => void;
   outcome: TankOutcome;
@@ -42,7 +30,7 @@ export interface FillupMoreProps {
 }
 
 /** Optional readings remain controlled; disclosure state never changes their provenance. */
-export function FillupMore({ open, onOpenChange, date, dateConfirmed, onOpenDate, tankDraft,
+export function FillupMore({ open, onOpenChange, tankDraft,
   onTankChange, outcome, capacity, capacityNote, onReviewCapacity, continuityBreak,
   onContinuityChange, notes, onNotesChange, notesError, legacyEndState,
   storedPostedPrice, clearStoredPosted, onClearStoredPosted, postedPriceError,
@@ -53,11 +41,11 @@ export function FillupMore({ open, onOpenChange, date, dateConfirmed, onOpenDate
   const confirmedFull = choice === "full";
   const patch = (next: Partial<TankStateDraft>) => onTankChange({ ...tankDraft, ...next });
   const resetReadings = () => {
-    onTankChange(withEndChoice(EMPTY_TANK_DRAFT, choice));
+    onTankChange(withEndChoice({ ...EMPTY_TANK_DRAFT, reason: tankDraft.reason }, choice));
     setEditingAfter(false);
   };
   const inconsistent = ["overCapacity", "capacitySuspect", "conflict"].includes(outcome.state);
-  const hasReadings = tankDraft.beforeLevel !== null || tankDraft.afterLevelOverride !== null || tankDraft.reason !== null;
+  const hasReadings = tankDraft.beforeLevel !== null || tankDraft.afterLevelOverride !== null;
   const beforeSource = outcome.fields.preFillLevelSource;
   const afterSource = outcome.fields.postFillLevelSource;
   const afterCapacity = outcome.fields.capacityLitersAtEntry ?? capacity.liters;
@@ -71,13 +59,10 @@ export function FillupMore({ open, onOpenChange, date, dateConfirmed, onOpenDate
   return <section className="fillup-more" data-testid="fillup-more">
     <button type="button" className="fillup-disclosure" aria-expanded={open} aria-controls="fillup-more-content"
       data-testid="fillup-more-toggle" onClick={() => onOpenChange(!open)}>
-      <span>עוד פרטים<small>תאריך, מחוון דלק לפני, סיבה, הערה</small></span>
+      <span>עוד פרטים<small>מחוון דלק, רצף תדלוקים, הערה</small></span>
       <ChevronDown size={20} className={open ? "fillup-chevron-open" : ""} />
     </button>
     {open ? <div id="fillup-more-content" className="fillup-more-content">
-      <GroupRow title="מתי" subtitle={dateConfirmed
-        ? <><NumericText>{relativeDate(date)}</NumericText> · <NumRun>{time(date)}</NumRun></>
-        : "יש לבחור תאריך ושעה"} onClick={onOpenDate} testId="fillup-more-date" />
       <div className="fillup-gauge-field">
         <div className="fillup-field-heading">
           <span>כמה היה במיכל לפני התדלוק? <small>(לא חובה)</small></span>
@@ -90,16 +75,6 @@ export function FillupMore({ open, onOpenChange, date, dateConfirmed, onOpenDate
           {tankDraft.beforeLevel !== null ? <button type="button" onClick={() => patch({ beforeLevel: null })}>ניקוי הסימון</button> : null}
         </div>
       </div>
-      <fieldset className="fillup-reasons">
-        <legend>למה תדלקתם עכשיו?</legend>
-        <div className="fillup-chips">
-          {REASONS.map(reason => <button type="button" key={reason.value} className="tm-chip"
-            aria-pressed={tankDraft.reason === reason.value}
-            onClick={() => patch({ reason: tankDraft.reason === reason.value ? null : reason.value })}>
-            {reason.label}
-          </button>)}
-        </div>
-      </fieldset>
       <div className="fillup-continuity-row">
         <span><b>פספסתי תדלוקים לפני זה</b><small>נתחיל מדידה חדשה מכאן, וההיסטוריה נשארת</small></span>
         <Toggle checked={continuityBreak} onChange={onContinuityChange} ariaLabel="פספסתי תדלוקים לפני זה" />

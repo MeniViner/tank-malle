@@ -2,6 +2,7 @@ import type { Fillup, Vehicle } from "./types";
 import { EXPORT_SCHEMA_VERSION } from "./import/schema";
 import { vehicleLabel } from "./format";
 import type { TankObservation, TankPlan } from "./tank/types";
+import { exportFilename } from "./exportFilename";
 
 /**
  * Versioned raw-data export.
@@ -162,23 +163,21 @@ function download(content: string, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = filename;
+  link.download = exportFilename(filename);
   document.body.appendChild(link);
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
 }
 
-const stamp = () => new Date().toISOString().slice(0, 10);
-
 /** Export one vehicle's records. */
 export function downloadFillupsCsv(fillups: Fillup[], vehicle: Vehicle | null): void {
-  download(fillupsToCsv(fillups, vehicle), `tank-maleh-${slugify(vehicle)}-${stamp()}.csv`);
+  download(fillupsToCsv(fillups, vehicle), `tank-maleh-${slugify(vehicle)}.csv`);
 }
 
 /** Export every vehicle's records in one file, with the vehicle on each row. */
 export function downloadAllVehiclesCsv(rows: ExportRow[]): void {
-  download(rowsToCsv(rows), `tank-maleh-all-vehicles-${stamp()}.csv`);
+  download(rowsToCsv(rows), "tank-maleh-all-vehicles.csv");
 }
 
 /* ------------------------------------------------------------------ *
@@ -274,5 +273,5 @@ export function downloadTankUpdatesCsv(
   observations: readonly TankObservation[],
   plans: readonly TankPlan[],
 ): void {
-  download(tankUpdatesToCsv(observations, plans), `tank-maleh-tank-updates-${stamp()}.csv`);
+  download(tankUpdatesToCsv(observations, plans), "tank-maleh-tank-updates.csv");
 }

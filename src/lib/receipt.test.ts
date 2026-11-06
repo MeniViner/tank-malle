@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   receiptConflict,
+  clearReceiptPriceSuggestion,
   suggestReceiptPrice,
   typeReceiptField,
   editReceiptField,
@@ -58,6 +59,26 @@ describe("receipt ownership", () => {
   it("a typed price is never overwritten by a suggestion", () => {
     const state = suggestReceiptPrice(typeReceiptField(empty, "pricePerLiter", "6.9"), 7.5);
     expect(state.pricePerLiter).toBe("6.9");
+  });
+
+  it("a missing historical price clears only the arithmetic that depended on the suggestion", () => {
+    const fromLiters = typeReceiptField(suggestReceiptPrice(empty, 7.65), "liters", "40.123456");
+    expect(clearReceiptPriceSuggestion(fromLiters)).toEqual({
+      liters: "40.123456", pricePerLiter: "", totalCost: "", authored: ["liters"],
+    });
+    const fromTotal = typeReceiptField(suggestReceiptPrice(empty, 7.65), "totalCost", "306.012345");
+    expect(clearReceiptPriceSuggestion(fromTotal)).toEqual({
+      liters: "", pricePerLiter: "", totalCost: "306.012345", authored: ["totalCost"],
+    });
+  });
+
+  it("missing historical evidence cannot clear a manual or confirmed receipt price", () => {
+    const manual = typeReceiptField(typeReceiptField(empty, "pricePerLiter", "7.185123456"), "liters", "40");
+    expect(clearReceiptPriceSuggestion(manual)).toBe(manual);
+    const confirmed = typeReceiptField(typeReceiptField(empty, "liters", "40"), "totalCost", "287.4");
+    expect(clearReceiptPriceSuggestion(confirmed)).toBe(confirmed);
+    const knownZero = typeReceiptField(empty, "pricePerLiter", "0");
+    expect(clearReceiptPriceSuggestion(knownZero)).toBe(knownZero);
   });
 
   it("three authored figures that disagree are reported, not moved", () => {

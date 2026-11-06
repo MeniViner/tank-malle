@@ -42,7 +42,7 @@ export function CareTransfer({ vehicleId,label,data,incomplete,canImport,onSave,
   return <Sheet open onClose={()=>{if(!busy)onClose();}} title="גיבוי וייצוא תחזוקה"><div className="flex flex-col gap-4">
     <p className="text-sm text-muted"><NumericText>{label}</NumericText> בלבד. הגיבוי כולל טיפולים, תזכורות, הוצאות ועדכוני ק״מ. תדלוקים מיוצאים בנפרד דרך החשבון.</p>
     {incomplete?<p className="rounded-lg bg-warning-soft p-3 text-sm text-warning-ink">העותק במכשיר עשוי להיות חלקי או לכלול שינויים שטרם סונכרנו. הקובץ יסומן בהתאם.</p>:null}
-    <Button variant="secondary" onClick={()=>{downloadCareFile(careBackup({id:vehicleId,label},data,incomplete),'tank-maleh-care.json','application/json;charset=utf-8');setMessage('הגיבוי הוכן להורדה.');}}>הורדת גיבוי</Button>
+    <Button variant="secondary" onClick={()=>{const now=new Date();downloadCareFile(careBackup({id:vehicleId,label},data,incomplete,now),'tank-maleh-care.json','application/json;charset=utf-8',now);setMessage('הגיבוי הוכן להורדה.');}}>הורדת גיבוי</Button>
     <Button variant="secondary" onClick={()=>{downloadCareFile(careCostsCsv(data),'tank-maleh-care-costs.csv','text/csv;charset=utf-8');setMessage('דוח העלויות הוכן להורדה.');}}>ייצוא עלויות CSV</Button>
     <hr className="border-line" />
     <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-line p-3 font-semibold focus-within:ring-2 focus-within:ring-accent">בחירת גיבוי לשחזור<input className="sr-only" type="file" accept="application/json,.json" aria-label="בחירת גיבוי לשחזור, קובץ גיבוי תחזוקה" disabled={busy} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}} /></label>

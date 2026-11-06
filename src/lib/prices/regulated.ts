@@ -383,7 +383,7 @@ export function regulatedMaxPrice(
   serviceMode: ServiceMode = REGULATED_SERVICE_MODE,
 ): RegulatedLookup {
   const series = config?.byFuelType?.[fuelType]?.[serviceMode];
-  if (!series) return MISSING;
+  if (!series || !Number.isFinite(date) || date <= 0) return MISSING;
 
   const regulable =
     fuelType === REGULATED_FUEL_TYPE && serviceMode === REGULATED_SERVICE_MODE;
@@ -416,7 +416,9 @@ export function regulatedMaxPrice(
   const historic = series.history?.[key];
   // A monthly bucket containing the latest price cannot fill a known earlier gap.
   const datedMonth = events.some(p => israelMonthKey(p.at) === key)
-    || Object.values(series.notices ?? {}).some(p => p.withdrawn === true && israelMonthKey(p.effectiveFrom) === key);
+    || Object.values(series.notices ?? {}).some(p => p.withdrawn === true && israelMonthKey(p.effectiveFrom) === key)
+    || typeof series.current?.effectiveFrom === 'number' && Number.isFinite(series.current.effectiveFrom)
+      && series.current.effectiveFrom > date && israelMonthKey(series.current.effectiveFrom) === key;
   if (!datedMonth && typeof historic === "number" && Number.isFinite(historic) && historic > 0) {
     // A month the job wrote stays "automatic" even after a later manual
     // write flipped the series' source — the scheduled record says so.
@@ -442,15 +444,26 @@ export function regulatedMaxPrice(
   }
 
   const current = series.current?.pricePerLiter;
+  const currentFrom = typeof series.current?.effectiveFrom === 'number' && Number.isFinite(series.current.effectiveFrom)
+    && series.current.effectiveFrom > 0 ? series.current.effectiveFrom : null;
+  const lastMonth = latestMonth(series.history);
+  // A monthly record is evidence only for the price it actually contains.
+  // Prefer that period to updatedAt: an advance announcement may have been
+  // read before the month in which its price applies.
+  const currentMonth = lastMonth && series.history[lastMonth] === current ? lastMonth : null;
+  const observedAt = typeof series.current?.updatedAt === 'number' && Number.isFinite(series.current.updatedAt)
+    && series.current.updatedAt > 0 ? series.current.updatedAt : null;
+  const currentKnownByDate = currentFrom !== null ? currentFrom <= date
+    : currentMonth !== null ? currentMonth <= key
+      : observedAt !== null && observedAt <= date;
   if (!datedMonth && typeof current === "number" && Number.isFinite(current) && current > 0
-      && (!series.current?.effectiveFrom || series.current.effectiveFrom <= date)) {
+      && currentKnownByDate) {
     const isManual = seriesIsManual(series);
     return {
       price: current,
       fromHistory: false,
-      effectiveMonth: series.current?.effectiveFrom
-        ? israelMonthKey(series.current.effectiveFrom)
-        : latestMonth(series.history),
+      effectiveMonth: currentFrom !== null ? israelMonthKey(currentFrom)
+        : currentMonth ?? (observedAt !== null ? israelMonthKey(observedAt) : null),
       updatedAt: series.current?.updatedAt ?? null,
       source: series.source ?? null,
       isManual,
@@ -462,7 +475,8 @@ export function regulatedMaxPrice(
 }
 
 function latestMonth(history: Record<string, number> | undefined): string | null {
-  const keys = Object.keys(history ?? {}).sort();
+  const keys = Object.keys(history ?? {}).filter(key => /^\d{4}-(0[1-9]|1[0-2])$/.test(key)
+    && Number.isFinite(history![key]) && history![key] > 0).sort();
   return keys.length ? keys[keys.length - 1] : null;
 }
 

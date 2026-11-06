@@ -1,4 +1,6 @@
 import { finishFillupSave, openFillupMore, setFillupEndState } from "./helpers/fillup";
+import { readFile } from "node:fs/promises";
+import { exportedFileTime } from "./helpers/exports";
 import { test, expect, type BrowserContext, type Page } from "@playwright/test";
 import {
   DENY_ALL_RULES,
@@ -99,7 +101,7 @@ test.afterEach(async () => {
  * The full form reaches the server
  * ------------------------------------------------------------------ */
 
-test("a fill-up with station, before-level, reason, note and pump price is acknowledged by the server", async ({
+test("a fill-up with station, before-level, note and pump price is acknowledged by the server", async ({
   page,
 }) => {
   const { uid, vehicleId } = await signedInWithData(page, {
@@ -122,7 +124,7 @@ test("a fill-up with station, before-level, reason, note and pump price is ackno
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: /פז חגור/ }).first().click();
 
-  // Before-level on the gauge, plus a reason.
+  // Before-level on the optional gauge.
   await openFillupMore(page);
   const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
   await before.focus();
@@ -130,7 +132,6 @@ test("a fill-up with station, before-level, reason, note and pump price is ackno
   await before.press("PageUp");
   await before.press("ArrowUp");
   await expect(before).toHaveValue("0.25");
-  await page.getByRole("button", { name: "כמעט נגמר", exact: true }).click();
 
   await page.getByLabel("הערה").fill("הערה ארוכה למדי על התדלוק הזה");
 
@@ -149,7 +150,7 @@ test("a fill-up with station, before-level, reason, note and pump price is ackno
   const data = records[0].data;
   expect((data.station as { name: string }).name).toContain("פז");
   expect(data.postedPricePerLiter).toBe(7.19);
-  expect(data.refuelReason).toBe("low-fuel");
+  expect(data.refuelReason).toBeNull();
   expect(data.notes).toBe("הערה ארוכה למדי על התדלוק הזה");
   expect(Number(data.preFillLevel)).toBeCloseTo(0.25, 5);
   expect(data.fillEndState).toBe("partial");
@@ -185,6 +186,15 @@ test("three fill-ups saved offline survive a reload and reach the server exactly
   await page.goto("/settings/unsynced");
   await expect(page.locator("[data-outbox-op]")).toHaveCount(3, { timeout: 20_000 });
   await expect(page.locator('[data-outbox-status="pending"]')).toHaveCount(3);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"), page.getByRole("button", { name: "ייצוא", exact: true }).click(),
+  ]);
+  const exported = JSON.parse(await readFile((await download.path())!, "utf8"));
+  expect(exportedFileTime(download.suggestedFilename(), "tank-malle-unsynced.json")).toBe(Date.parse(exported.exportedAt));
+  expect(exported.format).toBe("tank-malle-outbox-export-v2");
+  expect(exported.operations).toHaveLength(3);
+  expect(await outboxCount(page, uid)).toBe(3);
 
   await serverReachable(context);
   const records = await waitForDocuments(`users/${uid}/vehicles/${vehicleId}/fillups`, 3, 30_000);

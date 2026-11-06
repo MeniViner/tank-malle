@@ -127,6 +127,18 @@ export function suggestReceiptPrice(state: ReceiptState, price: number | null): 
   return deriveReceipt({ ...state, pricePerLiter: String(price) });
 }
 
+/** A missing dated price invalidates its arithmetic, never confirmed measurements. */
+export function clearReceiptPriceSuggestion(state: ReceiptState): ReceiptState {
+  const authored = new Set(state.authored);
+  if (authored.has("pricePerLiter") || authored.has("liters") && authored.has("totalCost")) return state;
+  return {
+    ...state,
+    pricePerLiter: "",
+    ...(!authored.has("liters") ? { liters: "" } : {}),
+    ...(!authored.has("totalCost") ? { totalCost: "" } : {}),
+  };
+}
+
 /**
  * Explicit conflict between three authored figures. Null when consistent,
  * when any figure is missing, or when only two are authored (then the third

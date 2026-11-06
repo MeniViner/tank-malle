@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
-import { fillupsToCsv } from "./csv";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { downloadAllVehiclesCsv, downloadFillupsCsv, downloadTankUpdatesCsv, fillupsToCsv, rowsToCsv, tankUpdatesToCsv } from "./csv";
+import { exportFilename } from "./exportFilename";
 import { parseCsv } from "./import/csv";
 import { parseRows } from "./import/rows";
 import { detectFormat } from "./import/schema";
@@ -39,6 +40,8 @@ const fillups: Fillup[] = [
     notes: null,
   },
 ];
+
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("export", () => {
   it("round-trips back into the importer", () => {
@@ -84,9 +87,29 @@ describe("export", () => {
     expect(csv).not.toMatch(/,=HYPERLINK/);
   });
 
-  it("names the file with the standard transliteration", () => {
-    // Filenames are produced by downloadFillupsCsv; assert the spelling used.
-    expect("tank-maleh").not.toContain("tank-male-");
+  it("timestamps every CSV download while keeping the exact importable contents", async () => {
+    const now = new Date(2026, 10, 6, 13, 39, 5, 123);
+    vi.useFakeTimers(); vi.setSystemTime(now);
+    const links: { download: string; href: string; click: () => void; remove: () => void }[] = [];
+    const blobs: Blob[] = [];
+    vi.stubGlobal("document", {
+      createElement: () => { const link = { download: "", href: "", click: vi.fn(), remove: vi.fn() }; links.push(link); return link; },
+      body: { appendChild: vi.fn() },
+    });
+    vi.spyOn(URL, "createObjectURL").mockImplementation(blob => { blobs.push(blob as Blob); return `blob:export-${blobs.length}`; });
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+    const rows = fillups.map(fillup => ({ fillup, vehicle }));
+    downloadFillupsCsv(fillups, vehicle);
+    downloadAllVehiclesCsv(rows);
+    downloadTankUpdatesCsv([], []);
+    expect(links.map(link => link.download)).toEqual([
+      "tank-maleh-מאזדה-3.csv", "tank-maleh-all-vehicles.csv", "tank-maleh-tank-updates.csv",
+    ].map(filename => exportFilename(filename, now)));
+    const downloaded = await Promise.all(blobs.map(async blob => new Uint8Array(await blob.arrayBuffer())));
+    expect(downloaded).toEqual([
+      fillupsToCsv(fillups, vehicle), rowsToCsv(rows), tankUpdatesToCsv([], []),
+    ].map(csv => new TextEncoder().encode(csv)));
+    for (const link of links) expect(link.click).toHaveBeenCalledOnce();
   });
 
   it("writes a UTF-8 BOM so Excel reads Hebrew correctly", () => {

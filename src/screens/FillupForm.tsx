@@ -13,7 +13,7 @@ import { evaluateDraft, hardBlock, odometerBounds, softWarnings, type Fillup } f
 import { capacityNote, resolveCapacity } from "../lib/tank/capacity";
 import { relativeDate, time, vehicleShort } from "../lib/format";
 import { parseNumberInput } from "../lib/numeric";
-import { receiptConflict, receiptNumbers, suggestReceiptPrice, typeReceiptField, type ReceiptState } from "../lib/receipt";
+import { clearReceiptPriceSuggestion, receiptConflict, receiptNumbers, suggestReceiptPrice, typeReceiptField, type ReceiptState } from "../lib/receipt";
 import { fillupFromPayload, serializeFillupPatch, toEpochMillis, validateFillupInput, type FieldError, type FillupWrite } from "../lib/fillupSerializer";
 import { OutboxStorageError, type OutboxOperation } from "../lib/outbox";
 import { distanceMeters, locateStations, stationKey, toStation, type GeoResult } from "../lib/stations";
@@ -21,7 +21,7 @@ import type { FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
 import { resolveStationPrice } from "../lib/prices/resolver";
 import { buildPumpRuleScope, createPumpPriceRule, publicPriceStationId, reusableStationName, suggestFillupPrice, type PumpRuleScope } from "../lib/fillupPricing";
-import { EMPTY_TANK_DRAFT, draftFromFields, effectiveEndChoice, hasTankAnswer, withEndChoice, type TankStateDraft } from "../lib/tank/draft";
+import { effectiveEndChoice, hasTankAnswer, withEndChoice, type TankStateDraft } from "../lib/tank/draft";
 import { Button } from "../components/Button";
 import { Card, Skeleton } from "../components/Card";
 import { ConfirmDialog } from "../components/Sheet";
@@ -33,7 +33,7 @@ import { FillupSaved, type PumpWriteState, type SavedFillupResult, type SavedWri
 import { StationSheet } from "../components/fillup/StationSheet";
 import { DateSheet } from "../components/fillup/DateSheet";
 import { savedFillupResult } from "../components/fillup/savedResult";
-import { resolveEditedTank, selectTankOriginal } from "../components/fillup/tankEdit";
+import { resolveEditedTank, selectTankDraft, selectTankOriginal } from "../components/fillup/tankEdit";
 const ReceiptImport = lazy(() => import("../components/ReceiptImport").then(module => ({ default: module.ReceiptImport })));
 const ScanWizard = lazy(() => import("../components/scan/ScanWizard").then(module => ({ default: module.ScanWizard })));
 type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
@@ -387,7 +387,7 @@ function FillupEditor({
   });
 
   const [tankDraft, setTankDraft] = useState<TankStateDraft>(() =>
-    restoredDraft?.tankDraft ?? (tankOriginal ? draftFromFields(tankOriginal) : EMPTY_TANK_DRAFT),
+    selectTankDraft(tankOriginal, restoredDraft?.tankDraft),
   );
 
   const [continuityBreak, setContinuityBreak] = useState(
@@ -529,7 +529,7 @@ function FillupEditor({
 
   // A suggestion fills the price only while nobody has typed it, and never
   // moves a typed litres or total (see receipt.ts). Runs again when the date
-  // moves to another month or a late price arrives.
+  // moves to a different effective price or a late price arrives.
   useEffect(() => {
     setReceipt(current => {
       // A normalized legacy zero is not evidence of a price. Await raw proof or explicit typing.
@@ -541,8 +541,7 @@ function FillupEditor({
           ...(!current.authored.includes("totalCost") ? { totalCost: "" } : {}) };
       }
       if (resolved.price !== null) return suggestReceiptPrice(current, resolved.price);
-      if (current.authored.includes("pricePerLiter") || current.authored.includes("liters") && current.authored.includes("totalCost")) return current;
-      return { ...current, pricePerLiter: "" };
+      return clearReceiptPriceSuggestion(current);
     });
   }, [resolved.price, openedRecord?.pricePerLiter]);
 
@@ -618,6 +617,23 @@ function FillupEditor({
     },
     [pastStations, captureUi],
   );
+
+  // Explicit proximity sorting refreshes location without choosing a station.
+  // Invalidate an earlier automatic suggestion before requesting a fresh fix.
+  const locateForOrdering = useCallback(async (): Promise<GeoResult | null> => {
+    geoRequested.current = true;
+    const stillMounted = captureUi();
+    const request = geoRequest.current + 1;
+    geoRequest.current = request;
+    const selection = stationSelection.current;
+    setGeo(current => ({ ...current, status: "locating" }));
+
+    const result = await locateStations(400, { maximumAge: 0 });
+    if (!stillMounted() || request !== geoRequest.current) return null;
+    setGeo(current => result.position ? result : { ...current, status: result.status });
+    if (selection !== stationSelection.current) return null;
+    return result;
+  }, [captureUi]);
 
   useEffect(() => {
     if (isEdit || station || operation) return;
@@ -834,7 +850,7 @@ function FillupEditor({
   function attemptInvalidSave() {
     setSubmitAttempted(true);
     setShaking(true);
-    if (!dateConfirmed || errorFor("notes")) setMoreOpen(true);
+    if (errorFor("notes")) setMoreOpen(true);
     requestAnimationFrame(() => {
       const first = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(
         '[data-testid="fillup-form"] [aria-invalid="true"]',
@@ -1142,7 +1158,7 @@ function FillupEditor({
         shaking={shaking} totalRef={totalInput} autoFocus={!scanOpen && !isEdit} historyComplete={historyComplete} />
       {(odometerParsed.ambiguous && odometerParsed.interpretation) || (litersParsed.ambiguous && litersParsed.interpretation) || (priceParsed.ambiguous && priceParsed.interpretation)
         ? <p className="fillup-small-status"><NumericText>{[odometerParsed.interpretation, litersParsed.interpretation, priceParsed.interpretation].filter(Boolean).join(" · ")}</NumericText></p> : null}
-      <FillupMore open={moreOpen} onOpenChange={setMoreOpen} date={date} dateConfirmed={dateConfirmed} onOpenDate={openDate}
+      <FillupMore open={moreOpen} onOpenChange={setMoreOpen}
         tankDraft={tankDraft} onTankChange={setTankDraft} outcome={tankOutcome} capacity={capacity}
         capacityNote={capacityNote(capacity) ?? null} onReviewCapacity={() => { if (canLeaveDraft()) navigate("/vehicle?tab=details"); }}
         continuityBreak={continuityBreak} onContinuityChange={setContinuityBreak} notes={notes} onNotesChange={setNotes}
@@ -1170,7 +1186,7 @@ function FillupEditor({
     <StationSheet fuelType={activeVehicle.fuelType} kmPerLiter={vehicleStats.avgKmPerLiter}
       litersToBuy={Number.isFinite(litersValue) && litersValue > 0 ? litersValue : 40} prices={prices}
       open={stationSheetOpen} onClose={() => setStationSheetOpen(false)} stations={pastStations} lastPaid={lastPaidByStation}
-      nearby={geo.nearby} geoStatus={geo.status} onLocate={() => void detectStation(true)} current={station} onPick={chooseStation} />
+      nearby={geo.nearby} geoStatus={geo.status} onLocate={locateForOrdering} current={station} onPick={chooseStation} />
     <DateSheet open={dateSheetOpen} onClose={() => setDateSheetOpen(false)} value={date} maxDate={dateSheetNow} bounds={bounds}
       onChange={next => { setDate(next); setDateConfirmed(true); }} />
     <ConfirmDialog open={confirmDelete} title="למחוק את התדלוק?" body="אחרי שהמחיקה תאושר, אפשר יהיה לשחזר מיד."
@@ -1184,15 +1200,21 @@ function FillupEditor({
       }} /></Suspense> : null}
     {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
-      onApply={(scan, scanned) => {
-        setScanCompleted(scanned);
+      protectedFields={[
+        ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
+        ...(receipt.authored.includes("liters") ? ["liters" as const] : []),
+        ...(odometer.trim() ? ["odometer" as const] : []),
+      ]}
+      onApply={(scan, acceptedFields) => {
+        setScanCompleted(acceptedFields.length > 0);
         setReceipt(previous => {
           let next = previous;
-          if (scan.total !== previous.totalCost) next = typeReceiptField(next, "totalCost", scan.total);
-          if (scan.liters !== previous.liters) next = typeReceiptField(next, "liters", scan.liters);
+          if (acceptedFields.includes("total")) next = typeReceiptField(next, "totalCost", scan.total);
+          if (acceptedFields.includes("liters")) next = typeReceiptField(next, "liters", scan.liters);
           return next;
         });
-        setOdometer(scan.odometer); setScanOpen(false);
+        if (acceptedFields.includes("odometer")) setOdometer(scan.odometer);
+        setScanOpen(false);
       }} /></Suspense> : null}
   </main>;
 }

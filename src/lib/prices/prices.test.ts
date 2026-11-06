@@ -52,11 +52,52 @@ describe("regulated maximum", () => {
     expect(lookup.fromHistory).toBe(true);
   });
 
-  it("says so when it fell back to the latest known price", () => {
+  it("does not borrow a later legacy price for a transaction before the first known month", () => {
     const may = new Date(2026, 4, 15).getTime();
     const lookup = regulatedMaxPrice(config, "95", may);
+    expect(lookup.price).toBeNull();
+  });
+
+  it("labels an earlier known price carried forward into a later month", () => {
+    const september = new Date(2026, 8, 15).getTime();
+    const lookup = regulatedMaxPrice(config, "95", september);
     expect(lookup.price).toBe(7.31);
     expect(lookup.fromHistory).toBe(false);
+    expect(lookup.effectiveMonth).toBe("2026-08");
+  });
+
+  it("does not treat an advance read as evidence that next month's legacy price applied earlier", () => {
+    const advance = adaptLegacyConfig({ source: "gov.il", history: { "2026-11": 7.85 },
+      current: { pricePerLiter: 7.85, updatedAt: Date.parse("2026-10-28T12:00:00Z") } });
+    expect(regulatedMaxPrice(advance, "95", Date.parse("2026-10-31T21:59:59Z")).price).toBeNull();
+    expect(regulatedMaxPrice(advance, "95", Date.parse("2026-10-31T22:00:00Z"))).toMatchObject({
+      price: 7.85, fromHistory: true, effectiveMonth: "2026-11",
+    });
+  });
+
+  it("uses an undated current-only value no earlier than its actual observation", () => {
+    const observedAt = Date.parse("2026-11-05T08:00:00Z");
+    const observed = adaptLegacyConfig({ current: { pricePerLiter: 7.85, updatedAt: observedAt }, history: {} });
+    expect(regulatedMaxPrice(observed, "95", observedAt - 1).price).toBeNull();
+    expect(regulatedMaxPrice(observed, "95", observedAt)).toMatchObject({ price: 7.85, fromHistory: false });
+    const undated: RegulatedPriceConfig = { byFuelType: { "95": { self: { current: { pricePerLiter: 7.85 }, history: {} } } } };
+    expect(regulatedMaxPrice(undated, "95", observedAt).price).toBeNull();
+  });
+
+  it("does not use a different price's monthly record to date a current-only value", () => {
+    const observedAt = Date.parse("2026-11-05T08:00:00Z");
+    const mismatched = adaptLegacyConfig({ current: { pricePerLiter: 7.85, updatedAt: observedAt }, history: { "2026-09": 7.35 } });
+    expect(regulatedMaxPrice(mismatched, "95", Date.parse("2026-10-15T10:00:00Z")).price).toBeNull();
+    expect(regulatedMaxPrice(mismatched, "95", observedAt)).toMatchObject({ price: 7.85, effectiveMonth: "2026-11" });
+  });
+
+  it("respects a later explicit effective date even for a manually entered current price", () => {
+    const effectiveFrom = Date.parse("2026-11-04T22:00:00Z");
+    const manual: RegulatedPriceConfig = { byFuelType: { "95": { self: {
+      source: "manual", current: { pricePerLiter: 7.85, effectiveFrom }, history: { "2026-11": 7.85 },
+    } } } };
+    expect(regulatedMaxPrice(manual, "95", effectiveFrom - 1).price).toBeNull();
+    expect(regulatedMaxPrice(manual, "95", effectiveFrom)).toMatchObject({ price: 7.85, isManual: true });
   });
 
   it("keeps a fuel-type-aware entry when adapting, never overwriting it", () => {

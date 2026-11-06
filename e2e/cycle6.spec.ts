@@ -108,7 +108,7 @@ test('unreadable and corrupt photographs leave the manual path available without
   const blank=await sharp({create:{width:640,height:480,channels:4,background:'#808080'}}).png().toBuffer();
   await input.setInputFiles({name:'unreadable.png',mimeType:'image/png',buffer:blank});await expect(page.getByText(/הספרות עדיין לא ברורות מספיק/)).toBeVisible();
   await input.setInputFiles({name:'broken.jpg',mimeType:'image/jpeg',buffer:Buffer.from('not an image')});await expect(page.getByText(/התמונה לא נפתחה/)).toBeVisible();
-  await page.getByRole('button',{name:'מעבר להזנה ידנית',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('dialog',{name:'תדלוק בשני צילומים',exact:true}).getByRole('button',{name:'סגירה',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(page.getByTestId("fillup-total")).toHaveValue('');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue('');
 });
 

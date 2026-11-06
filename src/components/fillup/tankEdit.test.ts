@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { evaluateDraft, type Fillup } from "../../lib/stats";
 import type { ResolvedCapacity } from "../../lib/tank/capacity";
-import { draftFromFields, EMPTY_TANK_DRAFT, resolveTankOutcome, withEndChoice } from "../../lib/tank/draft";
+import { draftFromFields, EMPTY_TANK_DRAFT, resolveTankOutcome, withEndChoice, type TankStateDraft } from "../../lib/tank/draft";
 import { toFillEvent } from "../../lib/tank/observations";
 import type { FillupTankFields } from "../../lib/tank/types";
-import { resolveEditedTank, selectTankOriginal } from "./tankEdit";
+import { resolveEditedTank, selectTankDraft, selectTankOriginal } from "./tankEdit";
 
 const capacity: ResolvedCapacity = { liters: 50, source: "user", trusted: true, suggestion: null };
 const imported: Required<FillupTankFields> = {
@@ -18,6 +18,56 @@ function fillup(fields: Partial<Fillup> = {}): Fillup {
     pricePerLiter: 7.185, totalCost: 287.4001234567, isFullTank: false,
     fullTankSource: "legacy-assumption", ...imported, ...fields };
 }
+
+describe("restoring a pre-upgrade tank draft", () => {
+  it.each([undefined, 1])("keeps a legacy reason and exact tank evidence through a note-only save (schema %s)", tankSchemaVersion => {
+    const original = fillup({ tankSchemaVersion, refuelReason: "before-trip", notes: "הערה מקורית" });
+    for (const reason of [null, undefined]) {
+      // 1.7.2 initialized old-schema edit drafts with EMPTY_TANK_DRAFT.
+      // Serialize the missing-key variant just as persisted drafts travel.
+      const restored = JSON.parse(JSON.stringify({ ...EMPTY_TANK_DRAFT, reason })) as TankStateDraft;
+      const selected = selectTankDraft(original, restored);
+      expect(selected).toEqual({ ...EMPTY_TANK_DRAFT, reason: "before-trip" });
+      const edited = resolveEditedTank({ original, draft: selected, litersAdded: 40, capacity });
+      expect(edited.preserved).toBe(true);
+      expect({ ...original, ...edited.fields, notes: "הערה חדשה" }).toEqual({ ...original, notes: "הערה חדשה" });
+      expect(restored.reason).toBe(reason);
+      expect(original.refuelReason).toBe("before-trip");
+    }
+  });
+
+  it("keeps explicit physical edits from the old draft while restoring only its missing reason", () => {
+    const original = fillup({ tankSchemaVersion: 1, refuelReason: "before-trip" });
+    const restored = withEndChoice({ ...EMPTY_TANK_DRAFT, beforeLevel: .1 }, "partial");
+    const selected = selectTankDraft(original, restored);
+    expect(selected).toEqual({ ...restored, reason: "before-trip" });
+    const edited = resolveEditedTank({ original, draft: selected, litersAdded: 40, capacity });
+    expect(edited.preserved).toBe(false);
+    expect(edited.fields).toMatchObject({ preFillLevel: .1, preFillLevelSource: "direct-gauge",
+      postFillLevel: .9, postFillLevelSource: "derived-after-partial", refuelReason: "before-trip" });
+    expect(restored.reason).toBeNull();
+    expect(original.preFillLevelSource).toBe("imported-legacy");
+  });
+
+  it("preserves a non-null restored reason and current-schema reason removal", () => {
+    const legacy = fillup({ tankSchemaVersion: 1, refuelReason: "before-trip" });
+    const deliberate = { ...EMPTY_TANK_DRAFT, reason: "good-price" as const };
+    expect(selectTankDraft(legacy, deliberate)).toBe(deliberate);
+    expect(resolveEditedTank({ original: legacy, draft: deliberate, litersAdded: 40, capacity }).fields.refuelReason).toBe("good-price");
+    const current = fillup({ refuelReason: "before-trip" });
+    const cleared = { ...draftFromFields(current), reason: null };
+    expect(selectTankDraft(current, cleared)).toBe(cleared);
+    expect(resolveEditedTank({ original: current, draft: cleared, litersAdded: 40, capacity }).fields.refuelReason).toBeNull();
+  });
+
+  it("keeps normal opening and new-transaction drafts unchanged", () => {
+    const original = fillup({ tankSchemaVersion: 1, refuelReason: "before-trip" });
+    expect(selectTankDraft(original, null)).toEqual(draftFromFields(original));
+    expect(selectTankDraft(null, undefined)).toBe(EMPTY_TANK_DRAFT);
+    const restored = { ...EMPTY_TANK_DRAFT, beforeLevel: .2 };
+    expect(selectTankDraft(null, restored)).toBe(restored);
+  });
+});
 
 describe("editing existing tank evidence", () => {
   it("opening imported v2 gauges does not change their values, provenance, uncertainty or endpoint", () => {
@@ -55,6 +105,20 @@ describe("editing existing tank evidence", () => {
     const edited = resolveEditedTank({ original, draft: { ...draftFromFields(original), reason: "good-price" }, litersAdded: 40, capacity });
     expect(edited.fields).toEqual({ ...imported, tankSchemaVersion, refuelReason: "good-price" });
     expect(edited.isFullTank).toBe(false);
+  });
+
+  it.each([undefined, 1])("an old-schema reason survives a gauge edit and reset without adopting old measurements (schema %s)", tankSchemaVersion => {
+    const original = fillup({ tankSchemaVersion, refuelReason: "before-trip" });
+    const opening = draftFromFields(original);
+    expect(opening).toEqual({ ...EMPTY_TANK_DRAFT, reason: "before-trip" });
+    const changed = { ...opening, beforeLevel: .1 };
+    const edited = resolveEditedTank({ original, draft: changed, litersAdded: 40, capacity });
+    expect(edited.fields).toMatchObject({ refuelReason: "before-trip", preFillLevel: .1, preFillLevelSource: "direct-gauge" });
+    const reset = { ...EMPTY_TANK_DRAFT, reason: changed.reason };
+    const restored = resolveEditedTank({ original, draft: reset, litersAdded: 40, capacity });
+    expect(restored.preserved).toBe(true);
+    expect(restored.fields).toEqual({ ...imported, tankSchemaVersion, refuelReason: "before-trip" });
+    expect(original).toEqual(fillup({ tankSchemaVersion, refuelReason: "before-trip" }));
   });
 
   it("returning physical answers to the opening values after a local draft reload restores exact preservation", () => {

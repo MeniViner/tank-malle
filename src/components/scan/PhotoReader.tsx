@@ -51,8 +51,8 @@ export function PhotoReader({ kind,autoOpen=false,onRead }: { kind:DisplayKind;a
         if(token!==generation.current)return;
         if(result.status==='read'){onRead(result.values,false);return;}
       }
-      setMessage('הספרות עדיין לא ברורות מספיק. נסו צילום קרוב יותר בלי סנוור, או המשיכו ידנית.');
-    }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG או המשיכו ידנית.');}
+      setMessage('הספרות עדיין לא ברורות מספיק. נסו צילום קרוב יותר בלי סנוור, או סגרו את הצילום והשלימו בטופס.');
+    }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG, או סגרו את הצילום והשלימו בטופס.');}
     finally{URL.revokeObjectURL(url);if(token===generation.current)setBusy(false);}
   }
   const Icon=kind==='pump'?PumpIcon:GaugeIcon;

@@ -193,12 +193,12 @@ test("the FAB starts manually by default and the saved camera choice keeps the m
   await page.getByTestId("refuel-fab").click();
   const camera = page.getByRole("dialog");
   await expect(camera).toBeVisible();
-  await camera.getByRole("button", { name: "מעבר להזנה ידנית", exact: true }).click();
+  await camera.getByRole("button", { name: "סגירה", exact: true }).click();
   await expect(camera).toHaveCount(0);
   await page.getByLabel("ליטרים", { exact: true }).fill("17.5");
   await page.getByRole("button", { name: "סגירה", exact: true }).click();
   await page.getByTestId("refuel-fab").click();
-  await camera.getByRole("button", { name: "מעבר להזנה ידנית", exact: true }).click();
+  await camera.getByRole("button", { name: "סגירה", exact: true }).click();
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("17.5");
   await page.goto("/account");
   await quick.click();

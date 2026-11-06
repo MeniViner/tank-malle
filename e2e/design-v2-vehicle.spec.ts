@@ -193,12 +193,15 @@ test("document Home links, notification occurrence identity and reminder prefere
   await reminderSwitch.click();
   await expect(reminderSwitch).toHaveAttribute("aria-checked", "false");
   await expect.poll(async () => (await getDocument(`users/${scope.uid}`))?.settings).toMatchObject({ reminderNotifications: false });
+  // Complete local acknowledgement before hard navigation; deliberate crash/recovery is covered separately.
+  await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
   await page.goto("/notifications");
   await expect(documentLink(page, "mandatory", scope.vehicleId)).toHaveCount(0);
   expect((await getDocument(scope.base))?.docs).toEqual({ mandatory: { insurer: "מבטח מתוקן 42", due, cost: 1200 } });
   await page.goto("/account");
   await reminderSwitch.click();
   await expect.poll(async () => (await getDocument(`users/${scope.uid}`))?.settings).toMatchObject({ reminderNotifications: true });
+  await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
   await page.goto("/vehicle");
   await vehicleReady(page);
   await openVehicleDoc(page, "mandatory");
