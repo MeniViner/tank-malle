@@ -29,12 +29,15 @@ export function useSpotlight(stats: Stats) {
     storageUnknown: data.outboxReady && data.outboxHealth.state !== "ok",
     reminders: vehicle.reminders, mileage: vehicle.currentMileage, prices: data.prices,
     documents: vehicleDocumentSpotlights(vehicleDocumentOccurrences(data.activeVehicle, vehicle.today)),
+    ownerId: vehicle.uid, fillups: data.fillups, dismissedIds: ids,
   }), [vehicle.now, vehicle.today, data.activeVehicle, data.settings.units, stats, vehicle.ledger,
-    data.outbox, data.outboxReady, data.outboxHealth.state, vehicle.reminders, vehicle.currentMileage, data.prices, historyComplete]);
+    data.outbox, data.outboxReady, data.outboxHealth.state, vehicle.reminders, vehicle.currentMileage, data.prices, historyComplete,
+    vehicle.uid, data.fillups, ids]);
   const items = visibleSpotlight(candidates, new Set(ids));
   const dismiss = (id: string) => {
-    if (!candidates.some(item => item.id === id && !item.sticky)) return;
-    const next = [...new Set([...read(key), ...ids, id])].slice(-200);
+    const item = candidates.find(item => item.id === id && !item.sticky);
+    if (!item) return;
+    const next = [...new Set([...read(key), ...ids, ...(item.dismisses ?? []), id])].slice(-200);
     try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* Keep the dismissal for this mounted view. */ }
     setDismissed({ key, ids: next });
   };

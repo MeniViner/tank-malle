@@ -5,6 +5,10 @@ import { type RegulatedPriceConfig } from "../prices/regulated";
 import { monthKey, type Stats, type Vehicle } from "../stats";
 import { priceSpotlights } from "./priceSpotlight";
 import type { LedgerRow, MileageEvidence } from "../vehicle/derived";
+import type { Fillup } from "../stats";
+import { groupedReminderSpotlights } from "./groupedReminders";
+import { paidPriceSpotlight } from "./paidPriceInsight";
+import { sustainedConsumptionSpotlight } from "./sustainedConsumption";
 
 export interface SpotlightItem {
   id: string;
@@ -13,12 +17,14 @@ export interface SpotlightItem {
   title: string;
   body: string;
   sticky?: boolean;
+  /** Dismissing a group also dismisses these individual calendar occurrences. */
+  dismisses?: readonly string[];
   target: { kind: "route"; to: string } | { kind: "segment"; endId: string } | { kind: "price" };
 }
 
-interface ReminderInput {
+export interface ReminderInput {
   plan: MaintenancePlan;
-  due: { odometer: number | null; completed: boolean; needsMileage?: boolean };
+  due: { day?: string | null; odometer: number | null; completed: boolean; needsMileage?: boolean };
   occurrence: string;
 }
 
@@ -38,6 +44,9 @@ export interface SpotlightInput {
   historyComplete?: boolean;
   /** Stage 5 supplies typed document occurrences at their reserved priority. */
   documents?: readonly SpotlightItem[];
+  ownerId?: string | null;
+  fillups?: readonly Fillup[];
+  dismissedIds?: readonly string[];
 }
 
 export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
@@ -51,20 +60,27 @@ export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
     target: { kind: "route", to: "/settings/unsynced" },
   });
   if (!vehicle) return items;
-  items.push(...(input.documents ?? []));
+  const mileageCards: SpotlightItem[] = [];
   const mileageAge = mileage ? (Date.parse(`${today}T12:00:00Z`) - Date.parse(`${mileage.day}T12:00:00Z`)) / 86_400_000 : Infinity;
   if (mileage && !mileage.ambiguous && mileageAge >= 0 && mileageAge <= 30) {
     for (const reminder of reminders) {
       if (!reminder.plan.active || reminder.due.completed || reminder.due.needsMileage || reminder.due.odometer === null) continue;
       const remaining = reminder.due.odometer - mileage.odometer;
       if (remaining > 500) continue;
-      items.push({ id: reminder.occurrence, tone: "warn", icon: "wrench",
+      mileageCards.push({ id: reminder.occurrence, tone: "warn", icon: "wrench",
         title: remaining < 0 ? `${reminder.plan.title}: הגיע הזמן` : remaining === 0 ? `${reminder.plan.title}: עכשיו` : `${reminder.plan.title} בעוד ${int(remaining)} ק״מ`,
         body: "לפי הקילומטראז׳ האחרון שנרשם.",
         target: { kind: "route", to: `/vehicle/reminders/${encodeURIComponent(reminder.plan.id)}` },
       });
     }
   }
+  items.push(...groupedReminderSpotlights({ vehicle, today, reminders, mileageCards,
+    documents: input.documents, dismissedIds: input.dismissedIds }));
+  const paid = paidPriceSpotlight({ now, ownerId: input.ownerId ?? null, vehicle,
+    fillups: input.fillups ?? stats.fillups, prices, historyComplete: input.historyComplete });
+  const sustained = sustainedConsumptionSpotlight({ now, stats, units, historyComplete: input.historyComplete });
+  if (paid) items.push(paid);
+  if (sustained) items.push(sustained);
   const last = stats.lastSegment;
   if (input.historyComplete !== false && last && stats.segments.length >= 3 && !stats.anomalies.some(anomaly => anomaly.fillupId === last.endId)
       && stats.segments.every(segment => segment.endId === last.endId || segment.kmPerLiter < last.kmPerLiter)) {
