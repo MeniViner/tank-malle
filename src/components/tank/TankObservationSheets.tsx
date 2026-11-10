@@ -79,16 +79,16 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
     <div ref={controlRef} data-testid="tank-gauge">
       <Gauge value={level} habit={estimate.habit.canClaim || estimate.habit.overridden ? estimate.habit.typicalLevel : null}
         label="כמה דלק יש עכשיו במיכל" onChange={saving ? undefined : chooseLevel} />
-      <span className="tm-tank-gauge-reading"><TankLevel level={level} /></span>
-      {estimate.capacityLiters !== null && level !== null ? <span className="tm-tank-note">כ־<Quantity value={level * estimate.capacityLiters} digits={0} long />{estimate.capacityTrusted ? "" : " לפי נפח משוער"}</span> : null}
+      <span className="tm-tank-gauge-reading"><TankLevel level={level} />
+        {estimate.capacityLiters !== null && level !== null ? <span className="tm-tank-note"> · כ־<Quantity value={level * estimate.capacityLiters} digits={0} long />{estimate.capacityTrusted ? "" : " לפי נפח משוער"}</span> : null}</span>
     </div>
-    {children}
     <Field row label="קילומטראז׳ (לא חובה)" inputMode="numeric" suffix="ק״מ" value={odometer}
       disabled={saving} onChange={event => setOdometer(event.target.value)} placeholder="—"
       error={!odometerValid ? "הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה" : undefined} />
     {error ? <p role="alert" className="tm-tank-error">{error}</p> : null}
     <Button full data-testid="tank-save-gauge" disabled={!user || !activeVehicle || !userInteracted || level === null || !odometerValid}
       loading={saving} onClick={() => void save()}>עדכון המחוון</Button>
+    {children}
   </div>;
 }
 
