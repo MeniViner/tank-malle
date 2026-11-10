@@ -14,7 +14,15 @@ export interface MaintenancePlan extends CareBase {
   intervalMonths: number | null; intervalKm: number | null;
   basis: 'completion' | 'fixed' | 'manual'; source: 'manufacturer' | 'garage' | 'owner'; notes: string; active: boolean;
 }
-export interface VehicleExpense extends CareBase { day: string; category: keyof typeof EXPENSES; title: string; costAgorot: number | null; notes: string }
+export interface VehicleExpense extends CareBase {
+  day: string; category: keyof typeof EXPENSES; title: string; costAgorot: number | null; notes: string;
+  /**
+   * "לכלול בעלות הרכב" switched off. Optional: a missing field means included,
+   * and only `true` is ever written (see `carePayload`), so records saved
+   * before the flag existed need no migration and stay readable by older builds.
+   */
+  excluded?: boolean;
+}
 export interface OdometerReading extends CareBase { day: string; odometer: number; notes: string }
 export type CareRecord = ServiceEvent | MaintenancePlan | VehicleExpense | OdometerReading;
 export type CareData = { serviceEvents: ServiceEvent[]; maintenancePlans: MaintenancePlan[]; vehicleExpenses: VehicleExpense[]; odometerReadings: OdometerReading[] };
@@ -35,7 +43,7 @@ export function validCareRecord(collection: CareCollection, record: unknown): re
   const keys: Record<CareCollection,string[]> = {
     serviceEvents: ['id','schemaVersion','version','day','title','jobs','odometer','costAgorot','garage','notes','completedPlanIds'],
     maintenancePlans: ['id','schemaVersion','version','title','job','dueDay','dueOdometer','intervalMonths','intervalKm','basis','source','notes','active'],
-    vehicleExpenses: ['id','schemaVersion','version','day','title','category','costAgorot','notes'],
+    vehicleExpenses: ['id','schemaVersion','version','day','title','category','costAgorot','notes','excluded'],
     odometerReadings: ['id','schemaVersion','version','day','odometer','notes'],
   };
   if (!Object.hasOwn(keys,collection) || Object.keys(r).some(key=>!keys[collection].includes(key))) return false;
@@ -48,14 +56,20 @@ export function validCareRecord(collection: CareCollection, record: unknown): re
   if (!validDay(r.day)) return false;
   if (collection === 'odometerReadings') return integer(r.odometer,9999999);
   if (!text(r.title,120) || !(r.title as string).trim() || !optionalInt(r.costAgorot,100000000)) return false;
-  if (collection === 'vehicleExpenses') return Object.hasOwn(EXPENSES,String(r.category));
+  if (collection === 'vehicleExpenses') return Object.hasOwn(EXPENSES,String(r.category)) && (!Object.hasOwn(r,'excluded') || typeof r.excluded === 'boolean');
   return optionalInt(r.odometer,9999999) && text(r.garage,160) && Array.isArray(r.jobs) && r.jobs.length>0 && r.jobs.length<=8 && r.jobs.every(j => Object.hasOwn(JOBS,String(j))) &&
     Array.isArray(r.completedPlanIds) && r.completedPlanIds.length<=8 && r.completedPlanIds.every(id => text(id,64) && !!id && !id.includes('/'));
 }
 export function carePayload(collection: CareCollection, record: CareRecord): Record<string, unknown> {
   if (!validCareRecord(collection, record)) throw new Error('פרטי הרשומה אינם תקינים');
-  const { id: _id, ...payload } = record;
+  const { id: _id, ...payload } = normalizeCareRecord(collection, record);
   return payload;
+}
+/** Stored form: `excluded` is written only when true; false and missing both mean included. */
+export function normalizeCareRecord<T extends CareRecord>(collection: CareCollection, record: T): T {
+  if (collection !== 'vehicleExpenses' || !Object.hasOwn(record, 'excluded') || (record as VehicleExpense).excluded === true) return record;
+  const { excluded: _excluded, ...rest } = record as VehicleExpense;
+  return rest as T;
 }
 export function addMonths(day: string, months: number): string {
   const [y,m,d] = day.split('-').map(Number);

@@ -8,6 +8,7 @@ import { officialPriceFor, type RegulatedPriceConfig } from "../../lib/prices/re
 import { filterSegmentsByRange, isTankCapacityTrusted, monthKey, type Fillup, type Segment, type Stats, type Vehicle } from "../../lib/stats";
 import type { LedgerRow } from "../../lib/vehicle/derived";
 import { financialTotals } from "../../lib/vehicle/financial";
+import { countsTowardOwnership, isExcludedFromOwnership } from "../../lib/vehicle/ownership";
 
 export type InsightTab = "cons" | "price" | "spend" | "community";
 export type ConsumptionUnits = "kmPerLiter" | "litersPer100";
@@ -200,8 +201,14 @@ function refundRow(row: LedgerRow) {
   return row.kind === "expense" && ((row.amountAgorot ?? 0) < 0 || "category" in row.record && row.record.category === "refund");
 }
 
+/**
+ * Ownership spending: averages, chart series and the by-month table. An expense
+ * switched out of ownership is reported separately (`excludedAmount`), never summed.
+ */
 export function spendingSummary(ledger: readonly LedgerRow[], from: string, to: string) {
-  const rows = ledger.filter(row => row.financial && row.day >= from && row.day <= to);
+  const inPeriod = ledger.filter(row => row.financial && row.day >= from && row.day <= to);
+  const rows = inPeriod.filter(countsTowardOwnership);
+  const excludedRows = inPeriod.filter(isExcludedFromOwnership);
   const totals = financialTotals(rows);
   const fuel = rows.filter(row => row.kind === "fuel");
   const service = rows.filter(row => row.kind === "service");
@@ -230,7 +237,8 @@ export function spendingSummary(ledger: readonly LedgerRow[], from: string, to: 
   }
   return { rows, totals, months, amount: knownLedgerAmount(rows),
     fuelAmount: knownLedgerAmount(fuel), serviceAmount: knownLedgerAmount(service), expenseAmount: knownLedgerAmount(expense),
-    fuelCount: fuel.length, serviceCount: service.length, expenseCount: expense.length };
+    fuelCount: fuel.length, serviceCount: service.length, expenseCount: expense.length,
+    excludedAmount: knownLedgerAmount(excludedRows), excludedCount: excludedRows.length };
 }
 export type SpendingSummary = ReturnType<typeof spendingSummary>;
 

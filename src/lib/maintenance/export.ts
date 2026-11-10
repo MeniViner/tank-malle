@@ -1,5 +1,11 @@
 import { CARE_COLLECTIONS, EXPENSES, JOBS, nextDue, validCareRecord, type CareCollection, type CareData, type CareRecord, type MaintenancePlan } from './model';
 import { exportFilename } from '../exportFilename';
+import { isExcludedRecord } from '../vehicle/ownership';
+export const EXCLUDED_CSV_COLUMN = 'excluded_from_tco';
+/** Import side of the column: "yes"/"true"/"1"/"כן" mean excluded; anything else (or no column) means included. */
+export function parseExcludedCell(value: unknown): boolean {
+  return typeof value === 'string' && /^(yes|true|1|כן)$/i.test(value.trim());
+}
 export interface CareBackup {
   format:'tank-maleh-care'; version:1; currency:'ILS'; vehicle:{id:string;label:string}; exportedAt:string;
   incomplete:boolean; records:CareData;
@@ -40,9 +46,11 @@ function cell(value:unknown): string {
   return '"'+text.replaceAll('"','""')+'"';
 }
 export function careCostsCsv(data:CareData): string {
-  const rows:unknown[][]=[['סוג','תאריך','שם','קילומטראז׳','עלות בש״ח','עבודות / קטגוריה','מוסך','הערות']];
-  const ordered=[...data.serviceEvents.map(r=>['טיפול',r.day,r.title,r.odometer,r.costAgorot===null?'':r.costAgorot/100,r.jobs.map(j=>JOBS[j]).join(', '),r.garage,r.notes]),
-    ...data.vehicleExpenses.map(r=>['הוצאה',r.day,r.title,'',r.costAgorot===null?'':r.costAgorot/100*(r.category==='refund'?-1:1),EXPENSES[r.category],'',r.notes])];
+  // Column order is stable; new columns are appended. `excluded_from_tco` is "yes"
+  // for an expense switched out of ownership ("לא בעלות הרכב"), empty otherwise.
+  const rows:unknown[][]=[['סוג','תאריך','שם','קילומטראז׳','עלות בש״ח','עבודות / קטגוריה','מוסך','הערות',EXCLUDED_CSV_COLUMN]];
+  const ordered=[...data.serviceEvents.map(r=>['טיפול',r.day,r.title,r.odometer,r.costAgorot===null?'':r.costAgorot/100,r.jobs.map(j=>JOBS[j]).join(', '),r.garage,r.notes,'']),
+    ...data.vehicleExpenses.map(r=>['הוצאה',r.day,r.title,'',r.costAgorot===null?'':r.costAgorot/100*(r.category==='refund'?-1:1),EXPENSES[r.category],'',r.notes,isExcludedRecord(r)?'yes':''])];
   ordered.sort((a,b)=>String(b[1]).localeCompare(String(a[1])));
   return '\uFEFF'+[...rows,...ordered].map(row=>row.map(cell).join(',')).join('\r\n')+'\r\n';
 }
