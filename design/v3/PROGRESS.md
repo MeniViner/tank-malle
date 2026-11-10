@@ -8,7 +8,7 @@
 | 3 Facts strip, Insights, Vehicle, Account | accepted | `00e7c5e`…`b25c212` | `evidence/stage-3/` |
 | 4 Forms and sheets | accepted | `8188d59`…`9b35a13`, `9d79521`, `fbc4bf1` | `evidence/stage-4/` (QA, QA-merged, DIFF) |
 | 5 New features | accepted (EV charge records out of scope) | `49e6849`…`7b0351e`, `3021a0a`…`5104f8d` | `evidence/stage-5/` (DATA, MIGRATION, EV-AUDIT, DIFF, QA) |
-| 6 OCR v2 (flag `scanV2`, off) | implemented; accuracy below target, see ACCURACY | `3dc56f6`…`4d296a2` | `evidence/stage-6/` |
+| 6 OCR v2 (flag `scanV2`, off) | superseded by the scan engine (`docs/SCAN-ENGINE.md`, 2026-11-11) | `3dc56f6`…`4d296a2` | `evidence/stage-6/` |
 | 7 Acceptance | done | `2140048` | `evidence/stage-7/` (QA, DIFF, FIXES) |
 
 ## Final gate results (after the Stage 7 fixes)
@@ -23,6 +23,6 @@
 
 - EV charge records (kWh fill-ups, "טענתי", consumption per 100 km in kWh) don't exist in production and weren't added. For EVs, per-litre figures show "—" with a note.
 - Battery kWh and WLTP range aren't in the ministry registry; the owner enters them in the wizard.
-- OCR v2 is experimental and off by default. On held-out odometer photos it reads 40.7% exactly (current scanner 1.8%), but it proposes many wrong values, and it got 0 of 3 real pump photos. Not validated on a phone.
+- Scanning: v1 and v2 were replaced by one code-only engine (`docs/SCAN-ENGINE.md`); on the owner's 43 real photos it reads 36 and abstains on 7, never showing a wrong number. Not yet tried through a phone camera.
 - Production differs from DESIGN-V3 §6 in about 25 places; production behaviour was kept (`evidence/stage-0/checklists/README.md`, the stage DIFF files).
 - Not run: WebKit, real devices, 768px visual review.
