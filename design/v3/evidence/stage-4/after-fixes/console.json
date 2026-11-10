@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-11-10T13:06:16.463Z",
+  "totals": {
+    "errors": 0,
+    "keyWarnings": 0,
+    "screenshots": 12,
+    "captureFailures": 0
+  },
+  "byRoute": {},
+  "runs": [
+    {
+      "tag": "390-dark",
+      "shots": [
+        "sheet-tank-390-dark.png",
+        "sheet-measurement-390-dark.png",
+        "sheet-snooze-390-dark.png"
+      ],
+      "failures": [],
+      "entries": []
+    },
+    {
+      "tag": "390-light",
+      "shots": [
+        "sheet-tank-390-light.png",
+        "sheet-measurement-390-light.png",
+        "sheet-snooze-390-light.png"
+      ],
+      "failures": [],
+      "entries": []
+    },
+    {
+      "tag": "430-dark",
+      "shots": [
+        "sheet-tank-430-dark.png",
+        "sheet-measurement-430-dark.png",
+        "sheet-snooze-430-dark.png"
+      ],
+      "failures": [],
+      "entries": []
+    },
+    {
+      "tag": "430-light",
+      "shots": [
+        "sheet-tank-430-light.png",
+        "sheet-measurement-430-light.png",
+        "sheet-snooze-430-light.png"
+      ],
+      "failures": [],
+      "entries": []
+    }
+  ]
+}

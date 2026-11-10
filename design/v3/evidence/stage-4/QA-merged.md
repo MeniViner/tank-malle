@@ -82,3 +82,17 @@ Every boxed control is ≥ 3:1. The only rows below 3:1 are the pump-display row
 | O1 | open | Gallery `insights-cons` at 430 dark | One transient 400 console error, which did not reproduce on re-run (see Gallery). | none (rig / Insights); add URL logging to the gallery |
 
 I found no defects for the Home agent.
+
+## D1–D3 fixes
+
+Screenshots: `after-fixes/` (gallery `sheet-measurement`, `sheet-snooze`, `sheet-tank`, at 390 and 430, light and dark; `console.json`: 0 errors, 0 capture failures).
+
+| # | Fix | Files |
+|---|---|---|
+| D1 | The measurement sheet now uses `FactsStrip`/`Fact` with values pre-formatted by `src/lib/format.ts` (`int`, `num`, `consumption`). It has dotted leaders and mono values. The separate 13.0 hero is now a "הממוצע שלך" row (`valueTestId="consumption-average"`). The incomplete-history sentence is kept as that row's sub-line. The "המקטע הפתוח" group is one row, shown only when a baseline exists: the value is the pending fill-up count ("N תדלוק/תדלוקים", `consumption-open-count`). The sub-line holds "X ליטרים ממתינים לחישוב" (`consumption-open-liters`) and "N ק״מ מאז נקודת ההתחלה", each only when not zero, or else "נקודת ההתחלה נשמרה". The three closing explanation notes are unchanged. Every existing test id is kept (`consumption-details-sheet`, `-fillup-count`, `-segment-count`, `-full-count`, `-restart-count`, `-open-liters`, `-open-count`, `-average`). Not added: the prototype's total "מרחק שנרשם · בתוך המקטעים" row. Production's distance is the open-segment distance and now sits in the open row's sub-line, so no new derived figure is invented (HANDOFF §6 policy). Differences from before: without a baseline, the old zero rows "0.0 ל׳ / 0" no longer render (the closing note still explains the state); with a baseline and nothing pending, the row shows "0 תדלוקים · נקודת ההתחלה נשמרה". | `src/components/tank/MeasurementSheet.tsx` |
+| D2 | Snooze preset rows end with the `ChevronStart` chevron (`--ink-2`), like other navigable rows. Dates use `fullDate` (day-first, full month: "17 בנובמבר 2026"), as `fmt.date` does in the prototype. Civil days are parsed at local noon. | `src/screens/Notifications.tsx`, `src/index.css` |
+| D3 | The tank-sheet odometer label is now "קילומטראז׳" followed by a smaller `--ink-2` hint "(לא חובה)". The row uses `tm-field-row-fit`, a label column that fits its content with `nowrap`, so it stays on one line at 390 and 430 with no truncation. The accessible name is still "קילומטראז׳ (לא חובה)", so `getByLabel` in `audit-fixes`/`design-v2-home` is unchanged. | `src/components/tank/TankObservationSheets.tsx`, `src/design.css` |
+
+No test files were changed.
+
+Gates: `npx tsc -b` passed. `npm run lint` passed with 0 errors (existing warnings only). `npm test`: 113 files, 1526 passed, 12 skipped. E2E (`E2E_ISOLATED=1`): `consumption`, `tank`, `audit-fixes`, `design-v2-home`, `design-completion`, `tank-pricing-followup`, `design-v3-home`, `design-v3-forms` and `design-v3-entry` gave 68 passed; `design-v3-stage3` and `design-v3-statement` gave 6 passed; the gallery (3 screens × 390/430 × light/dark) gave 4 passed.

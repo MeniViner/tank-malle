@@ -8,6 +8,7 @@ import { Sheet } from '../components/Sheet';
 import { CivilDateField } from '../components/CivilDateField';
 import { Button } from '../components/Button';
 import { NumericText } from '../components/Fmt';
+import { fullDate } from '../lib/format';
 import { vehicleDay } from '../lib/vehicle/format';
 import { parseCivilDay } from '../lib/civilDate';
 import { snoozePresets } from '../lib/vehicle/snooze';
@@ -184,7 +185,8 @@ export function Notifications() {
         {snoozePresets(v.today).map(preset => <button key={preset.key} type="button" data-testid={'snooze-' + preset.key}
           disabled={busy || !snooze || v.notificationBase(snooze).kind === 'unavailable'}
           onClick={() => { if (snooze) { setError(''); void update(snooze, { snoozeUntilDay: preset.day }); } }}>
-          <span><b>{preset.label}</b><small><NumericText>{vehicleDay(preset.day)}</NumericText></small></span>
+          <span><b>{preset.label}</b><small><NumericText>{fullDate(new Date(preset.day + 'T12:00:00'))}</NumericText></small></span>
+          <ChevronStart size={20} aria-hidden="true" />
         </button>)}
       </div>
       <form className="vehicle-form" onSubmit={event => {

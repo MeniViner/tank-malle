@@ -82,7 +82,7 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
       <span className="tm-tank-gauge-reading"><TankLevel level={level} />
         {estimate.capacityLiters !== null && level !== null ? <span className="tm-tank-note"> · כ־<Quantity value={level * estimate.capacityLiters} digits={0} long />{estimate.capacityTrusted ? "" : " לפי נפח משוער"}</span> : null}</span>
     </div>
-    <Field row label="קילומטראז׳ (לא חובה)" inputMode="numeric" suffix="ק״מ" value={odometer}
+    <Field row className="tm-field-row-fit" label={<>קילומטראז׳ <small className="tm-field-optional">(לא חובה)</small></>} inputMode="numeric" suffix="ק״מ" value={odometer}
       disabled={saving} onChange={event => setOdometer(event.target.value)} placeholder="—"
       error={!odometerValid ? "הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה" : undefined} />
     {error ? <p role="alert" className="tm-tank-error">{error}</p> : null}

@@ -616,5 +616,6 @@
 .v3-snooze-presets > button > span { display: grid; gap: 1px; flex: 1; }
 .v3-snooze-presets b { font-size: 16px; font-weight: 500; }
 .v3-snooze-presets small { font-size: 12.5px; color: var(--ink-2); }
+.v3-snooze-presets > button > svg { flex: none; color: var(--ink-2); }
 .v3-snooze-presets > button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .v3-snooze-presets > button:disabled { opacity: .5; }
