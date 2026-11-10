@@ -15,7 +15,7 @@ import { ChevronStart, RefreshIcon, WarningIcon } from '../components/icons';
 import { FUEL_TYPE_SHORT, formatPlate, parseDecimal } from '../lib/format';
 import { LOOKUP_MESSAGES, lookupPlate } from '../lib/plateLookup';
 import { fetchVehicleSpecs, type VehicleSpecs } from '../lib/vehicleSpecs';
-import { evRefreshPatch } from '../lib/vehicle/v3Fields';
+import { evRefreshPatch, isEv, readBattery, readMotorKw } from '../lib/vehicle/v3Fields';
 import type { FuelType, Vehicle } from '../lib/types';
 import '../vehicle-page-design.css';
 
@@ -60,6 +60,11 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
   const [tankHint, setTankHint] = useState<number | null>(null);
   // Design v3: EV registry fields found by "עדכון ממשרד התחבורה"; saved with the form.
   const [evPatch, setEvPatch] = useState<Partial<Vehicle>>({});
+  // DESIGN-V3 §7.4: no tank / engine / km-per-litre fields for an EV (EV-AUDIT.md). A refresh that
+  // returns EV data hides them too; the stored fuel type, tank and declared value are left untouched.
+  const electric = isEv({ powertrain: evPatch.powertrain !== undefined ? evPatch.powertrain : vehicle.powertrain });
+  const electricBattery = readBattery(evPatch.battery !== undefined ? evPatch.battery : vehicle.battery);
+  const electricMotor = readMotorKw(evPatch.motorKw !== undefined ? evPatch.motorKw : vehicle.motorKw);
   const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNote, setRefreshNote] = useState('');
@@ -170,6 +175,13 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
         <Field label="כינוי לרכב" dir="auto" maxLength={60} placeholder="למשל, המאזדה שלי" value={nickname} onChange={event => { setNickname(event.target.value); touch('nickname'); }}/>
         <div className="tm-vehicle-field-pair"><Field label="יצרן" required dir="auto" maxLength={60} value={make} onChange={event => { setMake(event.target.value); touch('make'); }}/><Field label="דגם" dir="auto" maxLength={80} value={model} onChange={event => { setModel(event.target.value); touch('model'); }}/></div>
         <Field label="שנת ייצור" inputMode="numeric" value={year} error={yearError ? <NumericText>{yearError}</NumericText> : null} maxLength={4} onChange={event => { setYear(event.target.value.replace(/\D/g, '').slice(0, 4)); touch('year'); }}/>
+        {electric ? <div className="tm-vehicle-field-group" data-testid="vehicle-edit-ev">
+          <span className="tm-vehicle-field-label">הנעה</span>
+          <p className="tm-vehicle-note">רכב חשמלי · אין מיכל דלק, נפח מנוע או צריכה בק״מ לליטר.
+            {electricBattery?.kwh ? <> סוללה <NumRun>{electricBattery.kwh}</NumRun> kWh.</> : null}
+            {electricBattery?.wltp ? <> טווח WLTP <NumRun>{electricBattery.wltp}</NumRun> ק״מ.</> : null}
+            {electricMotor ? <> מנוע <NumRun>{electricMotor}</NumRun> kW.</> : null}</p>
+        </div> : <>
         <div className="tm-vehicle-field-group"><span className="tm-vehicle-field-label">סוג דלק</span><Segmented<FuelType> value={fuelType} ariaLabel="סוג דלק" options={(['95', '98', 'diesel', 'other'] as const).map(value => ({ value, label: FUEL_TYPE_SHORT[value] }))} onChange={value => { setFuelType(value); touch('fuelType'); }}/></div>
         {fuelType !== '95' ? <p className="tm-vehicle-warning"><WarningIcon size={20}/><NumericText>רק לבנזין 95 יש מחיר מרבי בפיקוח. אם תועד מחיר קודם לדלק הזה, נציע אותו; אחרת יש להזין את המחיר ששילמתם.</NumericText></p> : null}
         <div className="tm-vehicle-field-pair tm-vehicle-edit-numbers">
@@ -180,6 +192,7 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
           </div>
           <Field label={declaredSource === 'co2-estimate' ? 'צריכת ייחוס משוערת' : 'נתון יצרן'} inputMode="decimal" suffix="ק״מ/ל׳" value={declared} error={declaredError ? <NumericText>{declaredError}</NumericText> : null} placeholder="לא ידוע" onChange={event => { setDeclared(event.target.value); setDeclaredSource('user'); setSpecUrl(null); touch('declared'); }} hint={declaredSource === 'co2-estimate' ? 'קירוב מנתוני CO₂. אפשר להזין נתון יצרן מדויק.' : declaredSource === 'other-year' ? 'נתון משנת ייצור אחרת — כדאי לבדוק התאמה לרכב.' : undefined}/>
         </div>
+        </>}
       </fieldset>
       {error ? <p ref={errorNode} tabIndex={-1} role="alert" className="tm-vehicle-error"><NumericText>{error}</NumericText></p> : null}
       <Button type="submit" full disabled={state !== 'idle' || refreshing || !dirty.size}>{state !== 'idle' ? 'שומרים…' : 'שמירת שינויים'}</Button>

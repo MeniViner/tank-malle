@@ -26,7 +26,8 @@ import { Button } from "../components/Button";
 import { Card, Skeleton } from "../components/Card";
 import { ConfirmDialog } from "../components/Sheet";
 import { NumericText, NumRun } from "../components/Fmt";
-import { CameraIcon, ClockIcon, CloseIcon, PinIcon, TrashIcon } from "../components/icons";
+import { CameraIcon, ClockIcon, CloseIcon, DocumentIcon, PinIcon, TrashIcon } from "../components/icons";
+import { isEv } from "../lib/vehicle/v3Fields";
 import { FillupEssentials } from "../components/fillup/FillupEssentials";
 import { FillupMore } from "../components/fillup/FillupMore";
 import { FillupSaved, type PumpWriteState, type SavedFillupResult, type SavedWriteState } from "../components/fillup/FillupSaved";
@@ -1112,11 +1113,17 @@ function FillupEditor({
     onSamePrice={() => void confirmSamePrice()} onDifferentPrice={showDifferentPrice} onSavePumpPrice={() => void confirmDifferentPrice()}
     pumpWriteState={pumpWriteState} pumpError={pumpError} pumpScopeKind={pumpScopeKind} ruleStatus={priceRulesStatus} />;
 
-  return <main className="fillup-form" data-testid="fillup-form">
+  // DESIGN-V3 §7.4: an EV has no tank — no end state, gauges or capacity (EV-AUDIT.md).
+  const electric = isEv(activeVehicle);
+  return <main className="fillup-form" data-testid="fillup-form" data-powertrain={electric ? "ev" : undefined}>
     <header className="fillup-header">
       <button type="button" className="tm-icon-button" aria-label="סגירה" onClick={() => { if (canLeaveDraft()) navigate(-1); }}><CloseIcon size={20} /></button>
       <h1>{operation ? "תיקון תדלוק" : isEdit ? "עריכת תדלוק" : "תדלוק חדש"}</h1>
-      <button type="button" className="tm-icon-button" aria-label="צילום המשאבה ולוח הקילומטרים" data-testid="fillup-camera" onClick={() => setScanOpen(true)}><CameraIcon size={21} /></button>
+      <div className="fillup-header-actions">
+        {!isEdit && !operation ? <button type="button" className="tm-icon-button" data-testid="fillup-import-receipt"
+          aria-label="ייבוא קבלה מקובץ או טקסט" aria-haspopup="dialog" onClick={() => setImportOpen(true)}><DocumentIcon size={20} /></button> : null}
+        <button type="button" className="tm-icon-button" aria-label="צילום המשאבה ולוח הקילומטרים" data-testid="fillup-camera" onClick={() => setScanOpen(true)}><CameraIcon size={21} /></button>
+      </div>
     </header>
     <div className="fillup-content" data-testid="fillup-scroll">
       <div className="fillup-chips fillup-context-chips">
@@ -1155,7 +1162,7 @@ function FillupEditor({
         errors={visibleErrors} odometerError={blockMessage} priceCaption={<NumericText>{resolved.label}</NumericText>} priceValue={priceValue}
         conflict={conflict} receiptBlocked={fieldErrors.some(error => ["totalCost", "pricePerLiter", "liters"].includes(error.field))} warnings={warnings} evaluation={draftEvaluation} units={settings.units} endChoice={endChoice}
         onEndChoice={choice => setTankDraft(current => withEndChoice(current, choice))}
-        shaking={shaking} totalRef={totalInput} autoFocus={!scanOpen && !isEdit} historyComplete={historyComplete} />
+        shaking={shaking} totalRef={totalInput} autoFocus={!scanOpen && !isEdit} historyComplete={historyComplete} tankFields={!electric} />
       {(odometerParsed.ambiguous && odometerParsed.interpretation) || (litersParsed.ambiguous && litersParsed.interpretation) || (priceParsed.ambiguous && priceParsed.interpretation)
         ? <p className="fillup-small-status"><NumericText>{[odometerParsed.interpretation, litersParsed.interpretation, priceParsed.interpretation].filter(Boolean).join(" · ")}</NumericText></p> : null}
       <FillupMore open={moreOpen} onOpenChange={setMoreOpen}
@@ -1164,8 +1171,7 @@ function FillupEditor({
         continuityBreak={continuityBreak} onContinuityChange={setContinuityBreak} notes={notes} onNotesChange={setNotes}
         notesError={visibleErrors.notes} legacyEndState={tankOriginal !== null && tankState.preserved}
         storedPostedPrice={openedRecord?.postedPricePerLiter ?? null} clearStoredPosted={clearStoredPosted}
-        onClearStoredPosted={setClearStoredPosted} postedPriceError={visibleErrors.postedPricePerLiter} />
-      {!isEdit && !operation ? <button type="button" className="fillup-text-action" data-testid="fillup-import-receipt" onClick={() => setImportOpen(true)}>ייבוא קבלה מקובץ או טקסט</button> : null}
+        onClearStoredPosted={setClearStoredPosted} postedPriceError={visibleErrors.postedPricePerLiter} tankFields={!electric} />
       {isEdit && !dateWasInvalid ? <Button full variant="danger" size="sm" onClick={() => setConfirmDelete(true)} disabled={saving} data-testid="fillup-delete">
         <TrashIcon size={18} />מחיקת התדלוק
       </Button> : null}

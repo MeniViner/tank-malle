@@ -81,7 +81,8 @@
 .care-entry-category svg { flex: none; width: 18px; height: 18px; }
 .care-entry-details { display: flex; flex-direction: column; gap: 18px; }
 .care-entry-cost { display: grid; gap: 6px; }
-.care-v2-editor .tm-field-control { min-height: 52px; border: 1px solid var(--line); border-radius: var(--r-md); }
+.care-v2-editor .tm-field-control { min-height: 52px; border-width: 1px; border-style: solid; border-radius: var(--r-md); }
+.care-v2-editor .tm-field-control:not(.border-danger):not(.border-warning) { border-color: var(--line-control); }
 .care-v2-editor input[dir=ltr] { text-align: right; font-family: var(--font-mono); font-weight: 400; }
 .care-v2-editor input[type=date] { min-width: 0; width: 100%; }
 .care-v2-editor input[type=date]::-webkit-date-and-time-value { text-align: right; }
@@ -94,7 +95,7 @@
   min-height: 96px;
   resize: vertical;
   padding: 12px 14px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-control);
   border-radius: var(--r-md);
   background: var(--surface);
   color: var(--ink);

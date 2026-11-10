@@ -32,13 +32,15 @@ export interface FillupEssentialsProps {
   totalRef: Ref<HTMLInputElement>;
   autoFocus?: boolean;
   historyComplete: boolean;
+  /** False for an EV: no tank end state and no tank-based preview (DESIGN-V3 §7.4). */
+  tankFields?: boolean;
 }
 
 /** The controller owns every editable string and all canonical calculations. */
 export function FillupEssentials({ receipt, onReceiptChange, odometer, odometerValue,
   onOdometerChange, bounds, errors, odometerError, priceCaption, priceValue, conflict, receiptBlocked,
   warnings, evaluation, units, endChoice, onEndChoice, shaking, totalRef, autoFocus,
-  historyComplete,
+  historyComplete, tankFields = true,
 }: FillupEssentialsProps) {
   const authored = new Set(receipt.authored);
   const totalDerived = !authored.has("totalCost") && receipt.totalCost.trim() !== "";
@@ -93,7 +95,7 @@ export function FillupEssentials({ receipt, onReceiptChange, odometer, odometerV
         : "הסכום, הליטרים והמחיר לא מסתדרים. נשמור את מה שהקלדתם, בלי לשנות אף מספר."}</span>
     </div> : null}
 
-    <div data-testid="fillup-end-state">
+    {tankFields ? <><div data-testid="fillup-end-state">
       <Segmented<TankEndChoice | "unanswered"> value={endChoice ?? "unanswered"}
         ariaLabel="מצב המיכל בסוף התדלוק"
         options={[{ value: "full", label: "מילאתי עד הסוף" }, { value: "partial", label: "תדלוק חלקי" }]}
@@ -104,7 +106,7 @@ export function FillupEssentials({ receipt, onReceiptChange, odometer, odometerV
       {!historyComplete ? <span>ההיסטוריה לא זמינה במלואה לחישוב</span>
         : evaluation ? <DraftPreview evaluation={evaluation} units={units} />
           : <span>מלאו סכום וקילומטראז׳ ונראה מה יצא</span>}
-    </div>
+    </div></> : null}
     {warnings.map((warning, index) => <div key={`${warning.field}-${index}`} className="fillup-warning" data-testid="fillup-soft-warning">
       <WarningIcon size={18} /><span><NumericText>{warning.message}</NumericText>
         {warning.field === "odometer" ? <span> · פספסתם תדלוק? אפשר לסמן בפרטים הנוספים.</span> : null}

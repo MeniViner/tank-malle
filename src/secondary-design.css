@@ -51,7 +51,7 @@
 .tm-import-preview-money { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
 .tm-import-history-row { align-items: flex-start; flex-wrap: wrap; }
 .tm-import-history-row > .tm-secondary-row-copy { min-width: 140px; }
-.tm-feedback-input { display: block; width: 100%; min-height: 180px; resize: vertical; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); padding: 16px; color: var(--ink); font: inherit; line-height: 1.65; outline-offset: 4px; }
+.tm-feedback-input { display: block; width: 100%; min-height: 180px; resize: vertical; border: 1px solid var(--line-control); border-radius: var(--r-md); background: var(--surface); padding: 16px; color: var(--ink); font: inherit; line-height: 1.65; outline-offset: 4px; }
 .tm-feedback-input::placeholder { color: var(--ink-2); opacity: 1; }
 .tm-feedback-input:focus-visible { outline: 2px solid var(--ink); }
 .tm-feedback-counter { display: flex; justify-content: flex-end; color: var(--ink-2); font-size: 13px; }

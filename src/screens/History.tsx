@@ -165,14 +165,14 @@ function HistorySession() {
       <SearchIcon size={20} />
       <input type="search" dir="rtl" aria-label="חיפוש ביומן" data-testid="journal-search" placeholder="חיפוש תחנה, טיפול או הערה"
         value={query} onChange={event => { setQuery(event.target.value); setLimit(50); }} />
-      <PeriodPicker compact value={explicitRange ? "selected-range" : year ? "selected-year" : period}
+    </div>
+    <div className="journal-filters v3-fade-x" aria-label="סוג רשומה">
+      <PeriodPicker variant="chip" value={explicitRange ? "selected-range" : year ? "selected-year" : period}
         onChange={value => change("period", value)} label="תקופת היומן" ariaLabel="תקופת היומן"
         options={[{ value: "all", label: "כל התקופה" }, { value: "month", label: "החודש" }, { value: "year", label: "השנה" },
           { value: "3m", label: "3 חודשים" }, { value: "6m", label: "6 חודשים" }, { value: "1y", label: "12 חודשים" },
           ...(year ? [{ value: "selected-year", label: "שנת " + year }] : []),
           ...(explicitRange ? [{ value: "selected-range", label: "התקופה שנבחרה" }] : [])]} />
-    </div>
-    <div className="journal-filters" aria-label="סוג רשומה">
       {KINDS.map(([value, label]) => <button type="button" key={value} data-testid={"journal-filter-" + value}
         className={"tm-chip" + (kind === value ? " tm-chip-selected" : "")} aria-pressed={kind === value}
         onClick={() => change("kind", value)}>{label}</button>)}
@@ -191,6 +191,19 @@ function HistorySession() {
     {vehicle.incomplete || sourceError ? <button type="button" className="journal-coverage" data-testid="journal-coverage"
       onClick={() => setCoverageOpen(true)}><InfoIcon size={17} /><span>{sourceError ? "חלק מהרשומות אינו זמין לקריאה" : "הנתונים עדיין חלקיים"}</span></button> : null}
     {needsAttention ? <Link data-history-unsynced className="journal-unsynced" to="/settings/unsynced">יש שינויים שעוד לא עלו לענן · בדיקה ותיקון ←</Link> : null}
+    {rows.length ? <section className="journal-summary" aria-label="סיכום היומן המסונן" data-testid="journal-summary">
+      <div className="journal-summary-main">
+        <span className="journal-summary-label"><span>{total.unknown || vehicle.incomplete ? "סכום ידוע בתקופה" : "סך הכול בתקופה"}</span>
+          <small data-testid="ledger-range"><NumRun>{int(rows.length)}</NumRun> {rows.length === 1 ? "רשומה" : "רשומות"} · <NumRun>{int(fuelCount)}</NumRun> {fuelCount === 1 ? "תדלוק" : "תדלוקים"} · <NumericText>{rangeLabel}</NumericText></small></span>
+        <i className="journal-summary-leader" aria-hidden="true" />
+        <strong data-testid="ledger-total"><NumRun align="trailing">{financialCount > total.unknown ? vehicleMoney(total.total) : "—"}</NumRun></strong>
+      </div>
+      {total.unknown > 0 ? <p><NumRun>{int(total.unknown)}</NumRun> {total.unknown === 1 ? "עלות חסרה" : "עלויות חסרות"}</p> : null}
+      {total.excludedCount > 0 ? <p data-testid="ledger-excluded">כולל <NumRun>{vehicleMoney(total.excludedAgorot)}</NumRun> שלא בעלות הרכב · <NumRun>{int(total.excludedCount)}</NumRun> {total.excludedCount === 1 ? "הוצאה" : "הוצאות"}</p> : null}
+      {rows.length > limit ? <p>מוצגות <NumRun>{int(limit)}</NumRun> מתוך <NumRun>{int(rows.length)}</NumRun> רשומות</p> : null}
+      <button type="button" className="journal-summary-info" data-testid="journal-summary-info" aria-haspopup="dialog"
+        onClick={() => setCoverageOpen(true)}>על מה הסכום מבוסס?</button>
+    </section> : null}
     {!rows.length ? <section className="journal-empty" role={loading ? "status" : undefined}>
       <h2>{loading ? "טוענים את היומן" : filtered ? "לא נמצאו רשומות" : vehicle.incomplete ? "עדיין אין רשומות זמינות" : "אין כאן עדיין רשומות"}</h2>
       <p>{loading ? "הרשומות יופיעו בעוד רגע." : filtered ? "נסו חיפוש או סינון אחר."
@@ -228,13 +241,6 @@ function HistorySession() {
       </section>;
     })}
     {rows.length > limit ? <Button variant="line" onClick={() => setLimit(value => value + 50)}>הצגת רשומות נוספות</Button> : null}
-    {rows.length ? <section className="journal-summary" aria-label="סיכום היומן המסונן">
-      <div><span>{total.unknown || vehicle.incomplete ? "סכום ידוע בתקופה" : "סך הכול בתקופה"}</span>
-        <strong data-testid="ledger-total"><NumRun align="trailing">{financialCount > total.unknown ? vehicleMoney(total.total) : "—"}</NumRun></strong></div>
-      {total.unknown > 0 ? <p><NumRun>{int(total.unknown)}</NumRun> {total.unknown === 1 ? "עלות חסרה" : "עלויות חסרות"}</p> : null}
-      <p data-testid="ledger-range"><NumRun>{int(rows.length)}</NumRun> {rows.length === 1 ? "רשומה" : "רשומות"} · <NumRun>{int(fuelCount)}</NumRun> {fuelCount === 1 ? "תדלוק" : "תדלוקים"} · <NumericText>{rangeLabel}</NumericText></p>
-      {rows.length > limit ? <p>מוצגות <NumRun>{int(limit)}</NumRun> מתוך <NumRun>{int(rows.length)}</NumRun> רשומות</p> : null}
-    </section> : null}
     <Sheet open={addOpen} title="מה להוסיף?" onClose={() => setAddOpen(false)}>
       <div className="tm-group" data-testid="journal-add-menu">
         <GroupRow icon={<PumpIcon size={24} />} title="תדלוק" subtitle="סכום, ליטרים וקילומטראז׳" testId="journal-add-fuel"
@@ -259,6 +265,8 @@ function HistorySession() {
     <Sheet open={coverageOpen} title="על אילו נתונים הסיכום מבוסס?" onClose={() => setCoverageOpen(false)}>
       <div className="journal-coverage-details">
         <p>הסכומים מבוססים על הרשומות שעוברות את הסינון הנוכחי, כולל החזרים. עלות שלא נרשמה נשארת חסרה; אפס שנרשם נשאר אפס.</p>
+        {total.unknown > 0 ? <p data-testid="journal-info-unknown">{total.unknown === 1 ? "רשומה אחת" : <><NumRun>{int(total.unknown)}</NumRun> רשומות</>} בלי סכום — {total.unknown === 1 ? "היא לא נכללת" : "הן לא נכללות"} בסכום הידוע. אפשר לפתוח אותן ולהשלים.</p> : null}
+        <p>הוצאות שסומנו ״לא בעלות הרכב״ מופיעות ביומן ובסכום שלו, אבל לא ב״כמה הרכב עולה לך״ ולא בממוצעים.</p>
         {vehicle.incomplete ? <p>חלק מהנתונים שמורים רק במכשיר, עדיין נטענים או ממתינים לאישור. הסכום הידוע אינו בהכרח הסכום הסופי.</p> : null}
         {sourceError ? <p role="alert">חלק מהרשומות אינו זמין לקריאה. ההיסטוריה המוצגת אינה מלאה.</p> : null}
         {needsAttention ? <Link className="home-text-action" to="/settings/unsynced">בדיקת השינויים שעוד לא עלו לענן</Link> : null}

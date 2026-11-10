@@ -65,7 +65,7 @@
 .tm-vehicle-field-group{display:grid;gap:8px}
 .tm-vehicle-field-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .tm-civil-field{display:grid;gap:8px;min-width:0}
-.tm-civil-control{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:5px 7px 5px 13px;min-width:0}
+.tm-civil-control{display:flex;align-items:center;gap:8px;border:1px solid var(--line-control);border-radius:var(--r-md);background:var(--surface);padding:5px 7px 5px 13px;min-width:0}
 
 .tm-civil-control[data-invalid=true]{border-color:var(--danger-ink,var(--danger))}
 .tm-civil-control .tm-civil-input{width:100%;min-width:0;min-height:44px;padding:5px;border:0!important;box-shadow:none!important;outline:none!important;background:transparent;font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--ink);text-align:right}
@@ -88,7 +88,7 @@
 .tm-vehicle-edit .tm-vehicle-field-pair{gap:12px;align-items:start}
 .tm-vehicle-edit-tank{display:grid;gap:8px;min-width:0}
 :is(.tm-vehicle-edit,.tm-vehicle-document-form) .tm-field-control{min-height:52px;border-width:1px;border-style:solid;border-radius:var(--r-md)}
-:is(.tm-vehicle-edit,.tm-vehicle-document-form) .tm-field-control:not(.border-danger):not(.border-warning){border-color:var(--line)}
+:is(.tm-vehicle-edit,.tm-vehicle-document-form) .tm-field-control:not(.border-danger):not(.border-warning){border-color:var(--line-control)}
 :is(.tm-vehicle-edit,.tm-vehicle-document-form) .tm-field-control input{font-weight:400}
 .tm-vehicle-list{display:grid;gap:0;border-block-start:1px solid var(--line)}
 .tm-vehicle-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 12px;padding:10px 0;border-block-end:1px solid var(--hairline);min-height:66px;min-width:0;background:transparent}
@@ -110,9 +110,9 @@
 .tm-vehicle-detail-hero h2{font-family:var(--font-display);font-size:38px;line-height:1.06;overflow-wrap:anywhere}
 .tm-vehicle-detail-hero p{font-size:15px;line-height:1.65}
 .tm-vehicle-issue-chips{display:flex;flex-wrap:wrap;gap:8px}
-.tm-vehicle-issue-form textarea{width:100%;min-height:100px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:12px;color:var(--ink);font:inherit;font-size:16px;line-height:1.6;resize:vertical}
+.tm-vehicle-issue-form textarea{width:100%;min-height:100px;border:1px solid var(--line-control);border-radius:var(--r-md);background:var(--surface);padding:12px;color:var(--ink);font:inherit;font-size:16px;line-height:1.6;resize:vertical}
 .tm-vehicle-issue-form .field-label{display:grid;gap:8px;font-size:13px;font-weight:600;color:var(--muted)}
-.tm-vehicle-issue-form select{width:100%;min-height:48px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:10px;color:var(--ink);font-size:15px}
+.tm-vehicle-issue-form select{width:100%;min-height:48px;border:1px solid var(--line-control);border-radius:var(--r-md);background:var(--surface);padding:10px;color:var(--ink);font-size:15px}
 /* Protect small text when it scrolls across the fixed glow and gauge. */
 .tm-vehicle-note,.tm-vehicle-eyebrow,.tm-vehicle-field-label,
 .tm-vehicle-heading p,.tm-vehicle-row-main small,.tm-vehicle-due,.tm-vehicle-error,

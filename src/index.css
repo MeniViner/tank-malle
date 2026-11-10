@@ -16,6 +16,8 @@
   --ink-3: #6E685B;
   --muted: var(--ink-2);
   --line: #E4DFD4;
+  /* v3 stage 4: form-control boundary, WCAG 1.4.11 ≥3:1 on surface, bg and surface-2. */
+  --line-control: #8A8374;
   --lp: #FFC915;
   --il: #1F4AA8;
   /* v3 §1: the light accent is softer than the plate; the plate (--lp) is unchanged. */
@@ -82,6 +84,7 @@
   --ink-2: #A9A292;
   --ink-3: #8A8376;
   --line: #3D3932;
+  --line-control: #837C6F;
   --lp: #EFBE1A;
   --accent: var(--accent-d, #E6B417);
   --accent-soft: var(--accent-soft-d, color-mix(in srgb, #E6B417 14%, #1E1C18));
@@ -117,6 +120,7 @@
   --ink-2: #A9A292;
   --ink-3: #8A8376;
   --line: #3D3932;
+  --line-control: #837C6F;
   --lp: #EFBE1A;
   --accent: var(--accent-d, #E6B417);
   --accent-soft: var(--accent-soft-d, color-mix(in srgb, #E6B417 14%, #1E1C18));
@@ -154,6 +158,7 @@
   --color-ink-3: var(--ink-3);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-control: var(--line-control);
   --color-accent: var(--accent);
   --color-accent-contrast: var(--accent-contrast);
   --color-accent-soft: var(--accent-soft);
@@ -582,3 +587,34 @@
 .care-plan-title svg { color:var(--ink);flex:none; }
 .care-plan-title span { overflow-wrap:anywhere; }
 @media(prefers-reduced-motion:reduce) { .care-choice,.care-actions button { transition:none; } }
+
+/* v3 stage 4 — form controls: the boundary meets WCAG 1.4.11 (--line-control)
+   and a focused control shows a visible ink frame. Error/warning borders win.
+   Pump readouts and the date/time sheet keep their deliberate no-ring
+   instrument style (asserted by the fill-up e2e). */
+:is(.tm-field-control, .tm-civil-control, .journal-search, .tm-control, .wizard-catalog-search):focus-within:not([data-invalid=true], .border-danger, .border-warning) {
+  border-color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--ink);
+}
+:is(.fillup-note-field textarea, .care-entry-notes textarea, .vehicle-form textarea, .vehicle-form select, .tm-vehicle-issue-form textarea, .tm-vehicle-issue-form select, .tm-feedback-input, .tm-control-text):is(:focus, :focus-visible) {
+  border-color: var(--ink) !important;
+  box-shadow: inset 0 0 0 1px var(--ink) !important;
+}
+
+/* v3 stage 4 — v3 forms and sheets */
+.v3-toggle-row { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 8px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.v3-toggle-row > span { display: grid; gap: 2px; flex: 1; min-width: 0; font-size: 15px; font-weight: 500; color: var(--ink); }
+.v3-toggle-row small { font-size: 12.5px; font-weight: 400; color: var(--ink-2); }
+.v3-info-button { display: inline-grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: var(--r-md); color: var(--ink-2); }
+.v3-info-button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.v3-sheet-copy { display: grid; gap: 12px; font-size: 15px; line-height: 1.55; color: var(--ink); }
+.v3-sheet-copy p { margin: 0; }
+.v3-tag { display: inline-flex; align-items: center; min-height: 20px; padding: 0 7px; border: 1px solid var(--line-control); border-radius: var(--r-sm); font-size: 11.5px; font-weight: 500; line-height: 1.5; color: var(--ink-2); white-space: nowrap; }
+.v3-fade-x { -webkit-mask-image: linear-gradient(to left, transparent, #000 14px, #000 calc(100% - 14px), transparent); mask-image: linear-gradient(to left, transparent, #000 14px, #000 calc(100% - 14px), transparent); }
+.v3-snooze-presets { display: grid; margin-bottom: 18px; border-top: 1px solid var(--line); }
+.v3-snooze-presets > button { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 2px; border-bottom: 1px solid var(--line); text-align: start; color: var(--ink); }
+.v3-snooze-presets > button > span { display: grid; gap: 1px; flex: 1; }
+.v3-snooze-presets b { font-size: 16px; font-weight: 500; }
+.v3-snooze-presets small { font-size: 12.5px; color: var(--ink-2); }
+.v3-snooze-presets > button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.v3-snooze-presets > button:disabled { opacity: .5; }
