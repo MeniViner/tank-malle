@@ -15,8 +15,14 @@ import { ChevronStart, RefreshIcon, WarningIcon } from '../components/icons';
 import { FUEL_TYPE_SHORT, formatPlate, parseDecimal } from '../lib/format';
 import { LOOKUP_MESSAGES, lookupPlate } from '../lib/plateLookup';
 import { fetchVehicleSpecs, type VehicleSpecs } from '../lib/vehicleSpecs';
+import { evRefreshPatch, isEv, readBattery, readMotorKw, readPowertrain } from '../lib/vehicle/v3Fields';
 import type { FuelType, Vehicle } from '../lib/types';
 import '../vehicle-page-design.css';
+
+/** Stage 7 D7: the fuel control also offers "חשמלי"; an EV is stored as `fuelType: 'other'` + `powertrain: 'ev'` (EV-AUDIT.md). */
+type DriveChoice = FuelType | 'ev';
+const DRIVE_CHOICES: readonly DriveChoice[] = ['95', '98', 'diesel', 'other', 'ev'];
+const driveLabel = (value: DriveChoice) => value === 'ev' ? 'חשמלי' : FUEL_TYPE_SHORT[value];
 
 function VehicleEditPage({ back, children }: { back: string; children: ReactNode }) {
   const navigate = useNavigate();
@@ -57,6 +63,13 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
   const [specUrl, setSpecUrl] = useState(vehicle.specSourceUrl);
   const [registryCodes, setRegistryCodes] = useState({ tozeretCd: vehicle.tozeretCd, degemCd: vehicle.degemCd });
   const [tankHint, setTankHint] = useState<number | null>(null);
+  // Design v3: EV registry fields found by "עדכון ממשרד התחבורה"; saved with the form.
+  const [evPatch, setEvPatch] = useState<Partial<Vehicle>>({});
+  // DESIGN-V3 §7.4: no tank / engine / km-per-litre fields for an EV (EV-AUDIT.md). A refresh that
+  // returns EV data hides them too; the stored fuel type, tank and declared value are left untouched.
+  const electric = isEv({ powertrain: evPatch.powertrain !== undefined ? evPatch.powertrain : vehicle.powertrain });
+  const electricBattery = readBattery(evPatch.battery !== undefined ? evPatch.battery : vehicle.battery);
+  const electricMotor = readMotorKw(evPatch.motorKw !== undefined ? evPatch.motorKw : vehicle.motorKw);
   const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNote, setRefreshNote] = useState('');
@@ -73,10 +86,28 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
   const yearError = year.trim() && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > 2100) ? 'שנה בין 1900 ל־2100' : null;
   const tankError = tank.trim() && (!Number.isFinite(parseDecimal(tank)) || parseDecimal(tank) <= 0 || parseDecimal(tank) > 500) ? 'נפח מיכל בין 0 ל־500 ליטר (ללא אפס)' : null;
   const declaredError = declared.trim() && (!Number.isFinite(parseDecimal(declared)) || parseDecimal(declared) <= 0) ? 'הצריכה חייבת להיות מספר חיובי' : null;
+  function chooseDrive(value: DriveChoice) {
+    if (value === 'ev') {
+      setEvPatch(current => ({ ...current, powertrain: 'ev' }));
+      if (fuelType !== 'other') setFuelType('other');
+      touch('ev', 'fuelType');
+      return;
+    }
+    if (electric) setEvPatch(current => {
+      const next = { ...current };
+      // Leaving EV: a stored EV becomes a combustion car; an unsaved switch is simply undone.
+      if (readPowertrain(vehicle.powertrain) === 'ev') next.powertrain = 'ice'; else delete next.powertrain;
+      return next;
+    });
+    setFuelType(value); touch('fuelType', 'ev');
+  }
+  const driveControl = <div className="tm-vehicle-field-group"><span className="tm-vehicle-field-label">{electric ? 'הנעה' : 'סוג דלק'}</span><Segmented<DriveChoice> value={electric ? 'ev' : fuelType} ariaLabel={electric ? 'הנעה' : 'סוג דלק'} options={DRIVE_CHOICES.map(value => ({ value, label: driveLabel(value) }))} onChange={chooseDrive}/></div>;
   const valid = make.trim().length > 0 && make.length <= 60 && model.length <= 80 && nickname.length <= 60 && !yearError && !tankError && !declaredError;
   const back = activeVehicle?.id === vehicle.id ? '/vehicle' : '/settings/vehicles';
 
-  function applySpecs(specs: VehicleSpecs) {
+  function applySpecs(specs: VehicleSpecs, powertrain?: Vehicle['powertrain']) {
+    const ev = evRefreshPatch(vehicle, { powertrain: specs.powertrain ?? powertrain, motorKw: specs.motorKw, battery: specs.battery });
+    if (Object.keys(ev).length) { setEvPatch(ev); touch('ev'); }
     // A deliberately cleared field is authored input, not a missing suggestion.
     if (!dirty.has('tank') && tankSource !== 'user' && !tank.trim() && specs.trustedTankLiters) {
       setTank(String(specs.trustedTankLiters)); setTankSource('trusted'); setTankUrl(specs.tankSourceUrl ?? null); touch('tank');
@@ -99,7 +130,7 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
       const digits = plate.replace(/\D/g, '');
       if (digits.length < 5) {
         const sameIdentity = make === original.make && model === original.model && Number(year) === original.year && fuelType === original.fuelType;
-        const specs = await fetchVehicleSpecs({ make, model, year: year ? Number(year) : null, fuelType, ...(sameIdentity ? registryCodes : {}) }, controller.signal);
+        const specs = await fetchVehicleSpecs({ make, model, year: year ? Number(year) : null, fuelType, ...(sameIdentity ? { ...registryCodes, powertrain: original.powertrain ?? null } : {}) }, controller.signal);
         if (current()) setRefreshNote(applySpecs(specs));
         return;
       }
@@ -115,8 +146,8 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
       setRegistryCodes({ tozeretCd: found.tozeretCd, degemCd: found.degemCd }); touch('registryCodes');
       const registryNote = outcome.status === 'unavailable' ? LOOKUP_MESSAGES.cachedFallback : 'הפרטים ממשרד התחבורה מוצגים לבדיקה. הם יישמרו בלחיצה על שמירה.';
       setRefreshNote(registryNote);
-      const specs = await fetchVehicleSpecs({ make: found.make, model: found.model, engineCc: found.engineVolume, tozeretCd: found.tozeretCd, degemCd: found.degemCd, year: found.year, fuelType: found.fuelType }, controller.signal);
-      if (current()) setRefreshNote(`${registryNote} ${applySpecs(specs)}`);
+      const specs = await fetchVehicleSpecs({ make: found.make, model: found.model, engineCc: found.engineVolume, tozeretCd: found.tozeretCd, degemCd: found.degemCd, year: found.year, fuelType: found.fuelType, powertrain: found.powertrain }, controller.signal);
+      if (current()) setRefreshNote(`${registryNote} ${applySpecs(specs, found.powertrain)}`);
     } catch {
       if (current()) setRefreshNote(LOOKUP_MESSAGES.unavailable);
     } finally {
@@ -136,6 +167,7 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
     if (dirty.has('nickname')) patch.nickname = nickname.trim() || null;
     if (dirty.has('registryCodes')) { patch.tozeretCd = registryCodes.tozeretCd ?? null; patch.degemCd = registryCodes.degemCd ?? null; }
     if (dirty.has('tank')) { patch.tankLiters = tank.trim() ? parseDecimal(tank) : null; patch.tankLitersSource = tank.trim() ? tankSource ?? 'user' : 'user'; patch.tankSourceUrl = tank.trim() ? tankUrl ?? null : null; }
+    if (dirty.has('ev')) Object.assign(patch, evPatch);
     if (dirty.has('declared')) { patch.declaredKmPerLiter = declared.trim() ? parseDecimal(declared) : null; patch.declaredSource = declared.trim() ? declaredSource ?? 'user' : 'user'; patch.specSourceUrl = declared.trim() ? specUrl ?? null : null; }
     const isCurrent = captureScope();
     if (!isCurrent()) return;
@@ -164,7 +196,13 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
         <Field label="כינוי לרכב" dir="auto" maxLength={60} placeholder="למשל, המאזדה שלי" value={nickname} onChange={event => { setNickname(event.target.value); touch('nickname'); }}/>
         <div className="tm-vehicle-field-pair"><Field label="יצרן" required dir="auto" maxLength={60} value={make} onChange={event => { setMake(event.target.value); touch('make'); }}/><Field label="דגם" dir="auto" maxLength={80} value={model} onChange={event => { setModel(event.target.value); touch('model'); }}/></div>
         <Field label="שנת ייצור" inputMode="numeric" value={year} error={yearError ? <NumericText>{yearError}</NumericText> : null} maxLength={4} onChange={event => { setYear(event.target.value.replace(/\D/g, '').slice(0, 4)); touch('year'); }}/>
-        <div className="tm-vehicle-field-group"><span className="tm-vehicle-field-label">סוג דלק</span><Segmented<FuelType> value={fuelType} ariaLabel="סוג דלק" options={(['95', '98', 'diesel', 'other'] as const).map(value => ({ value, label: FUEL_TYPE_SHORT[value] }))} onChange={value => { setFuelType(value); touch('fuelType'); }}/></div>
+        {driveControl}
+        {electric ? <div className="tm-vehicle-field-group" data-testid="vehicle-edit-ev">
+          <p className="tm-vehicle-note">רכב חשמלי · בלי שדות של רכב בנזין או סולר.
+            {electricBattery?.kwh ? <> סוללה <NumRun>{electricBattery.kwh}</NumRun> kWh.</> : null}
+            {electricBattery?.wltp ? <> טווח WLTP <NumRun>{electricBattery.wltp}</NumRun> ק״מ.</> : null}
+            {electricMotor ? <> מנוע <NumRun>{electricMotor}</NumRun> kW.</> : null}</p>
+        </div> : <>
         {fuelType !== '95' ? <p className="tm-vehicle-warning"><WarningIcon size={20}/><NumericText>רק לבנזין 95 יש מחיר מרבי בפיקוח. אם תועד מחיר קודם לדלק הזה, נציע אותו; אחרת יש להזין את המחיר ששילמתם.</NumericText></p> : null}
         <div className="tm-vehicle-field-pair tm-vehicle-edit-numbers">
           <div className="tm-vehicle-edit-tank">
@@ -174,6 +212,7 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
           </div>
           <Field label={declaredSource === 'co2-estimate' ? 'צריכת ייחוס משוערת' : 'נתון יצרן'} inputMode="decimal" suffix="ק״מ/ל׳" value={declared} error={declaredError ? <NumericText>{declaredError}</NumericText> : null} placeholder="לא ידוע" onChange={event => { setDeclared(event.target.value); setDeclaredSource('user'); setSpecUrl(null); touch('declared'); }} hint={declaredSource === 'co2-estimate' ? 'קירוב מנתוני CO₂. אפשר להזין נתון יצרן מדויק.' : declaredSource === 'other-year' ? 'נתון משנת ייצור אחרת — כדאי לבדוק התאמה לרכב.' : undefined}/>
         </div>
+        </>}
       </fieldset>
       {error ? <p ref={errorNode} tabIndex={-1} role="alert" className="tm-vehicle-error"><NumericText>{error}</NumericText></p> : null}
       <Button type="submit" full disabled={state !== 'idle' || refreshing || !dirty.size}>{state !== 'idle' ? 'שומרים…' : 'שמירת שינויים'}</Button>

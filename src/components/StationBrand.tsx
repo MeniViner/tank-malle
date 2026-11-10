@@ -76,7 +76,7 @@ export function StationBrandMark({
     return (
       <span
         style={{ width: size, height: size }}
-        className="flex flex-none items-center justify-center overflow-hidden rounded-[8px] bg-white ring-1 ring-inset ring-black/5"
+        className="flex flex-none items-center justify-center overflow-hidden rounded-sm bg-white ring-1 ring-inset ring-black/5"
       >
         <img
           src={`/brands/${entry.slug}.svg`}
@@ -98,7 +98,7 @@ export function StationBrandMark({
         fontSize: Math.round(size * 0.34),
         ...(entry ? { background: entry.background, color: entry.color } : {}),
       }}
-      className={`flex flex-none items-center justify-center rounded-[8px] font-bold leading-none ${
+      className={`flex flex-none items-center justify-center rounded-sm font-bold leading-none ${
         entry ? "" : "bg-surface-2 text-muted"
       }`}
     >

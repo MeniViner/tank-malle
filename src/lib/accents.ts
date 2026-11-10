@@ -10,7 +10,7 @@ export interface Accent {
   contrastDark: string;
 }
 const PALETTE = [
-  ["plate", "צהוב לוחית", "#FFC915", "#E6B417"],
+  ["plate", "צהוב לוחית", "#F3C54B", "#E6B417"],
   ["mint", "מנטה", "#4FD1A5", "#46BD95"],
   ["sky", "תכלת", "#78C2F3", "#6FB2DF"],
   ["peach", "אפרסק", "#FF9F6E", "#E8906A"],

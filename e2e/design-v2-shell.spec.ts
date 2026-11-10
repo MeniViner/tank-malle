@@ -91,7 +91,7 @@ test("five navigation slots keep the visible refuel label and only the four main
     const fab = page.getByTestId("refuel-fab");
     await expect(fab).toHaveAccessibleName("תדלקתי");
     await expect(fab).toContainText("תדלקתי");
-    await expect(fab).toHaveCSS("border-radius", "22px");
+    await expect(fab).toHaveCSS("border-radius", "20px"); // v3 §1: --r-lg; the FAB stays square
     const bounds = await fab.boundingBox();
     expect(bounds!.width).toBe(72);
     expect(bounds!.height).toBe(72);

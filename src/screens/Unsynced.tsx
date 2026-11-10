@@ -278,7 +278,7 @@ export function OperationCard({
         לא ניתן לקרוא את תמונת הרשומה. העותק המקורי נשמר לייצוא; החלפת גרסת השרת אינה זמינה.
       </p> : null}
 
-      {presentation.category === 'care' && details ? <div className="rounded-xl bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="care">
+      {presentation.category === 'care' && details ? <div className="rounded-md bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="care">
         <b data-testid="outbox-summary-title"><NumericText>{typeof details.title === 'string' ? details.title : 'עדכון תחזוקת רכב'}</NumericText></b>
         {careDay ? <p data-testid="outbox-summary-day"><NumericText>{careDay}</NumericText></p> : null}
         {typeof details.costAgorot === 'number' && Number.isFinite(details.costAgorot)
@@ -286,7 +286,7 @@ export function OperationCard({
           : Object.hasOwn(details, 'costAgorot') ? <p data-testid="outbox-summary-amount">עלות לא צוינה</p> : null}
         <p className="mt-1 text-muted">הנתונים המלאים כלולים בייצוא השינויים שעוד לא עלו לענן.</p>
       </div> : null}
-      {presentation.category === 'observation' && details ? <div className="rounded-xl bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="observation">
+      {presentation.category === 'observation' && details ? <div className="rounded-md bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="observation">
         <b data-testid="outbox-summary-title">{details.kind === 'odometer' ? 'עדכון קילומטראז׳' : 'עדכון מצב המיכל'}</b>
         <p data-testid="outbox-summary-day"><NumericText>{outboxFieldText('observedAt', details.observedAt, Object.hasOwn(details, 'observedAt'))}</NumericText></p>
         {Object.hasOwn(details, 'odometer') ? <p>קילומטראז׳: {typeof details.odometer === 'number' && Number.isFinite(details.odometer)
@@ -294,7 +294,7 @@ export function OperationCard({
         {Object.hasOwn(details, 'level') ? <p>מצב המיכל: {typeof details.level === 'number' && Number.isFinite(details.level)
           ? <Percent value={details.level * 100} /> : 'לא צוין'}</p> : null}
       </div> : null}
-      {presentation.category === 'priceRule' && details ? <div className="rounded-xl bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="priceRule">
+      {presentation.category === 'priceRule' && details ? <div className="rounded-md bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="priceRule">
         <b data-testid="outbox-summary-title"><NumericText>{typeof details.stationName === 'string' && details.stationName ? details.stationName : 'כלל תמחור אישי'}</NumericText></b>
         {typeof details.label === 'string' && details.label ? <p><NumericText>{details.label}</NumericText></p> : null}
         {typeof details.fuelType === 'string' ? <p>סוג דלק: <NumericText>{({ '95': 'בנזין 95', '98': 'בנזין 98', diesel: 'סולר', other: 'אחר' } as Record<string, string>)[details.fuelType] ?? details.fuelType}</NumericText></p> : null}
@@ -303,21 +303,21 @@ export function OperationCard({
         </p> : null}
         {typeof details.fixedPricePerLiter === 'number' && Number.isFinite(details.fixedPricePerLiter) ? <p>מחיר אישי לליטר: <Num>{price(details.fixedPricePerLiter)}</Num></p> : null}
       </div> : null}
-      {presentation.category === 'vehicleDocument' && details ? <div className="rounded-xl bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="vehicleDocument">
+      {presentation.category === 'vehicleDocument' && details ? <div className="rounded-md bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="vehicleDocument">
         <b data-testid="outbox-summary-title">{presentation.title}</b>
         {Object.hasOwn(details, 'type') ? <p><NumericText>{outboxFieldText('type', details.type)}</NumericText></p> : null}
         {Object.hasOwn(details, 'insurer') ? <p><NumericText>{outboxFieldText('insurer', details.insurer)}</NumericText></p> : null}
         {Object.hasOwn(details, 'due') ? <p data-testid="outbox-summary-day">בתוקף עד <NumericText>{outboxFieldText('due', details.due)}</NumericText></p> : null}
         {Object.hasOwn(details, 'cost') ? <p data-testid="outbox-summary-amount">עלות שנתית: <NumericText>{outboxFieldText('cost', details.cost)}</NumericText></p> : null}
       </div> : null}
-      {presentation.category === 'vehicleSelection' && details ? <div className="rounded-xl bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="vehicleSelection">
+      {presentation.category === 'vehicleSelection' && details ? <div className="rounded-md bg-surface-2 p-3 text-sm" data-testid="outbox-record-summary" data-outbox-record-kind="vehicleSelection">
         <b data-testid="outbox-summary-title">{presentation.title}</b>
         <p><NumericText>{outboxFieldText('activeVehicleId', details.activeVehicleId, Object.hasOwn(details, 'activeVehicleId'))}</NumericText></p>
       </div> : null}
       {presentation.category && presentation.state !== 'unverified' && op.status === 'conflict'
         ? <CareConflictDetails mine={details} server={presentation.serverImage} /> : null}
       {shown ? (
-        <div className="flex flex-col gap-1 rounded-[12px] bg-surface-2 px-3 py-2.5 text-[14px] text-ink">
+        <div className="flex flex-col gap-1 rounded-md bg-surface-2 px-3 py-2.5 text-[14px] text-ink">
           <span>
             {Number.isFinite(shown.date) ? (
               <>

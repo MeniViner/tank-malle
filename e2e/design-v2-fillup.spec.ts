@@ -482,11 +482,15 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await expect(page.getByTestId("fillup-tank-advanced").locator("summary")).toBeFocused();
     expect(advancedVisibility).toMatchObject({ unobscured: true, hiddenByFooter: false });
     await page.keyboard.press("Tab");
-    const importVisibility = await keyboardVisibility(page, "advanced-to-import");
-    measurements.push(importVisibility);
+    // v3 stage 4: receipt import moved to the header (icon button, same accessible name),
+    // so the next stop after the advanced disclosure is the footer save action.
+    const saveVisibility = await keyboardVisibility(page, "advanced-to-save");
+    measurements.push(saveVisibility);
     await saveMeasurements();
-    await expect(page.getByTestId("fillup-import-receipt")).toBeFocused();
-    expect(importVisibility).toMatchObject({ unobscured: true, hiddenByFooter: false });
+    await expect(page.getByTestId("fillup-save")).toBeFocused();
+    expect(saveVisibility).toMatchObject({ unobscured: true });
+    await target44(page.getByTestId("fillup-import-receipt"));
+    await expect(page.getByRole("button", { name: "ייבוא קבלה מקובץ או טקסט", exact: true })).toBeVisible();
     await openFillupTankAdvanced(page);
     await capture(page, `fillup-advanced-${suffix}`, true);
     await page.getByTestId("fillup-date").click();
@@ -528,7 +532,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await expect(page.getByTestId("fillup-saved-segment")).toContainText("13.3");
     await expect(page.getByRole("heading", { name: "נשמר", exact: true })).toBeFocused();
     await expect(page.locator(".fillup-saved-number")).toHaveCSS("font-family", /Karantina/);
-    await expect(page.locator(".fillup-saved-number")).toHaveCSS("font-weight", "700");
+    await expect(page.locator(".fillup-saved-number")).toHaveCSS("font-weight", "400"); // v3 §1: Karantina 400
     measurements.push(await focusState(page, "saved-entry"));
     await capture(page, `fillup-saved-segment-${suffix}`, true);
     await page.getByTestId("fillup-saved-undo").focus();

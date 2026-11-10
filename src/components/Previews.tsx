@@ -3,6 +3,7 @@ import { Label } from "./Card";
 import { Num } from "./Num";
 import { StationBrandMark } from "./StationBrand";
 import { HeroSpark } from "./HeroSpark";
+import { shekel } from "../lib/format";
 import type { Segment } from "../lib/stats";
 
 /** Non-interactive examples use the same rows, chart and plate as the product. */
@@ -27,7 +28,7 @@ const EXAMPLE_SEGMENTS: Segment[] = [12.6, 14.8, 11.2, 13.3, 9.3].map((value, i)
 export function StatsPreview() {
   return <Preview>
     <Label>צריכה אחרונה</Label>
-    <div className="mb-3 mt-2 flex items-baseline gap-2"><Num className="font-display text-[52px] font-bold leading-none">9.3</Num><span className="text-[15px] text-muted">קמ״ל</span></div>
+    <div className="mb-3 mt-2 flex items-baseline gap-2"><Num className="font-display text-[52px] font-normal leading-none">9.3</Num><span className="text-[15px] text-muted">קמ״ל</span></div>
     <HeroSpark segments={EXAMPLE_SEGMENTS} average={12.2} />
   </Preview>;
 }
@@ -45,9 +46,9 @@ export function VehiclePreview() {
 export function SignInPreview() {
   return <div className="tm-preview mx-auto">
     <div className="tm-statpair">
-      <div className="flex min-w-0 flex-col gap-1"><Label>צריכה אחרונה</Label><Num className="self-start font-display text-[26px] font-bold">9.3</Num><span className="text-[13.5px] text-muted">קמ״ל</span></div>
+      <div className="flex min-w-0 flex-col gap-1"><Label>צריכה אחרונה</Label><Num className="self-start font-display text-[26px] font-normal">9.3</Num><span className="text-[13.5px] text-muted">קמ״ל</span></div>
       <span className="tm-statpair-divider" />
-      <div className="flex min-w-0 flex-col gap-1"><Label>הוצאה החודש</Label><Num className="self-start font-display text-[26px] font-bold">₪655</Num><span className="text-[13.5px] text-muted">2 תדלוקים</span></div>
+      <div className="flex min-w-0 flex-col gap-1"><Label>הוצאה החודש</Label><Num className="self-start font-display text-[26px] font-normal">{shekel(655)}</Num><span className="text-[13.5px] text-muted">2 תדלוקים</span></div>
     </div>
   </div>;
 }

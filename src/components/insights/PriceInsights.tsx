@@ -1,29 +1,41 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { FUEL_TYPE_SHORT, dayMonthShort, int, price } from "../../lib/format";
+import { FUEL_TYPE_SHORT, dayMonthShort, int, num, price, shekel } from "../../lib/format";
+import { EV_PRICE_PENDING } from "../../lib/vehicle/energyCopy";
+import { isEv } from "../../lib/vehicle/v3Fields";
 import type { DateRange } from "../../lib/periods";
 import type { Vehicle } from "../../lib/stats";
 import { Money, NumericText, NumRun, PricePerLiter } from "../Fmt";
+import { Fact, FactsStrip } from "../FactsStrip";
 import { InfoTip } from "../InfoTip";
-import { CHART_MARGIN, ChartLegend, InsightCard, InsightChart, InsightEmpty, InsightTable, InsightTooltip, TIME_AXIS, VALUE_AXIS } from "./InsightChart";
-import { REFERENCE_LABELS, type PriceSummary } from "./presentation";
+import { CHART_MARGIN, ChartLegend, ChartValueLabel, InsightCard, InsightChart, InsightEmpty, InsightTable, InsightTooltip, QUIET_VALUE_AXIS, TIME_AXIS } from "./InsightChart";
+import { priceExtremes, REFERENCE_LABELS, type PriceExtreme, type PriceSummary } from "./presentation";
 
-const PRICE_CHART_MARGIN = { ...CHART_MARGIN, left: 8 };
-
-/** SVG labels use the same public price formatter, with a smaller currency glyph. */
-function PriceTick({ x = 0, y = 0, payload }: { x?: number; y?: number; payload?: { value?: string | number } }) {
-  const label = price(Number(payload?.value));
-  return <text className="insights-price-axis-tick" x={x} y={y} dy=".32em" textAnchor="start" fill="var(--ink-2)" fontSize={12}
-    direction="ltr" unicodeBidi="isolate">
-    {label.split(/(₪)/).map((part, index) => <tspan key={index} fontSize={part === '₪' ? '.8em' : undefined}>{part}</tspan>)}
-  </text>;
-}
+// Room above the plot and at both ends for the endpoint values (v3 quiet chart, D6).
+const PRICE_CHART_MARGIN = { ...CHART_MARGIN, top: 26, left: 26, right: 26 };
 
 export function PriceInsights({ summary, vehicle, range, historyReady }: { summary: PriceSummary; vehicle: Vehicle | null; range: DateRange; historyReady: boolean }) {
-  const last = summary.points.filter(point => point.paid !== null).at(-1);
+  const paidPoints = summary.points.filter(point => point.paid !== null);
+  const first = paidPoints[0], last = paidPoints.at(-1);
   const referenceLabel = summary.kinds.length === 1 ? REFERENCE_LABELS[summary.kinds[0]] : "מחיר להשוואה לפי מקורו";
   const hasReference = summary.kinds.length > 0;
   const rankingMax = Math.max(...summary.stations.map(station => station.average), 1);
+  const navigate = useNavigate();
+  if (isEv(vehicle)) return <div className="insights-stack" data-testid="insights-panel-price" data-powertrain="ev">
+    {/* Stage 7 D2: a per-litre price is meaningless for an EV recorded in litres; whole-shekel totals stay valid. */}
+    <InsightCard label={<>מחיר ממוצע ששילמתם · <NumericText>{range.compactLabel}</NumericText></>}
+      title={<span data-testid="insights-paid-average"><NumRun>—</NumRun></span>}>
+      <p className="insights-note" data-testid="insights-ev-pending">{EV_PRICE_PENDING}</p>
+      {summary.fills.length ? <p className="insights-note"><NumRun>{int(summary.knownCount)}</NumRun> טעינות עם סכום ידוע · הסכומים בלשונית ההוצאות</p> : null}
+    </InsightCard>
+    {summary.mostExpensive ? <FactsStrip label="הטעינה היקרה בתקופה" testId="insights-price-facts">
+      <Fact testId="insights-price-dearest-total" label="הטעינה היקרה ביותר" value={shekel(summary.mostExpensive.totalCost)}
+        sub={<NumericText>{`${summary.mostExpensive.station?.name?.trim() || "ללא מיקום"} · ${dayMonthShort(summary.mostExpensive.date)}`}</NumericText>} />
+    </FactsStrip> : null}
+  </div>;
+  const extremes = priceExtremes(summary.points);
+  const extremeSub = (extreme: PriceExtreme) => <NumericText>{`${summary.fills.find(fill => fill.id === extreme.fillId)?.station?.name?.trim() || "ללא מיקום"} · ${dayMonthShort(extreme.date)}`}</NumericText>;
+  const openFill = (extreme: PriceExtreme) => navigate(`/fillup/${encodeURIComponent(extreme.fillId)}`);
   if (!summary.fills.length) return <div className="insights-stack" data-testid="insights-panel-price">
     <InsightEmpty action={historyReady} title={historyReady ? "אין תדלוקים מהסוג הזה בתקופה שנבחרה" : "נתוני המחירים עדיין אינם זמינים"}>
       {historyReady ? <NumericText>{`המחירים מוצגים עבור ${FUEL_TYPE_SHORT[vehicle?.fuelType ?? "95"]}.`}</NumericText> : "נחכה להשלמת היסטוריית התדלוקים."}
@@ -36,11 +48,12 @@ export function PriceInsights({ summary, vehicle, range, historyReady }: { summa
       {summary.average !== null || hasReference ? <>
         <InsightChart label="מחיר לליטר בתאריכי התדלוקים" testId="insights-price-chart" points={summary.plot.length}>
           <LineChart data={summary.plot} margin={PRICE_CHART_MARGIN} accessibilityLayer>
-            <XAxis {...TIME_AXIS} /><YAxis {...VALUE_AXIS} width={48} domain={["auto", "auto"]} tick={<PriceTick />} />
+            {/* v3 quiet chart (D6): straight segments, no value axis; the first and last paid prices are printed at their points. */}
+            <XAxis {...TIME_AXIS} /><YAxis {...QUIET_VALUE_AXIS} />
             <Tooltip content={<InsightTooltip kind="price" labels={{ paid: "מה ששילמתם", official: referenceLabel }} />} />
             {hasReference ? <Line type="linear" dataKey="official" stroke="var(--ink-2)" strokeDasharray="4 5" strokeWidth={1.5}
               connectNulls={false} dot={false} isAnimationActive={false} /> : null}
-            <Line type="monotone" dataKey="paid" stroke="var(--ink)" strokeWidth={2.5} connectNulls={false} isAnimationActive={false}
+            <Line type="linear" dataKey="paid" stroke="var(--ink)" strokeWidth={2.5} connectNulls={false} isAnimationActive={false}
               activeDot={{ r: 5, fill: "var(--ink)", stroke: "var(--surface)" }}
               dot={props => {
                 const { cx, cy, payload } = props;
@@ -48,7 +61,9 @@ export function PriceInsights({ summary, vehicle, range, historyReady }: { summa
                 const isLast = payload?.fillId === last?.fillId;
                 const delta = (payload?.paid ?? 0) - (summary.average ?? 0);
                 const color = isLast && Math.abs(delta) >= .005 ? delta > 0 ? "var(--worse)" : "var(--better)" : "var(--ink)";
-                return <circle cx={cx} cy={cy} r={isLast ? 5 : 3.5} fill={isLast ? color : "var(--surface)"} stroke={color} strokeWidth={2} />;
+                const isFirst = payload?.fillId === first?.fillId;
+                return <g><circle cx={cx} cy={cy} r={isLast ? 5 : 3.5} fill={isLast ? color : "var(--surface)"} stroke={color} strokeWidth={2} />
+                  {isFirst || isLast ? <ChartValueLabel className="insights-price-point-label" x={cx} y={cy - 11} fill={isLast ? color : undefined} strong={isLast}>{price(payload!.paid!)}</ChartValueLabel> : null}</g>;
               }} />
           </LineChart>
         </InsightChart>
@@ -77,6 +92,14 @@ export function PriceInsights({ summary, vehicle, range, historyReady }: { summa
       </div>
     </InsightCard>
 
+    {extremes.dearest ? <FactsStrip label="קצוות המחיר בתקופה" testId="insights-price-facts">
+      <Fact testId="insights-price-dearest" label="התדלוק היקר ביותר לליטר" sub={extremeSub(extremes.dearest)} value={price(extremes.dearest.paid)}
+        onClick={() => openFill(extremes.dearest!)} ariaLabel={`התדלוק היקר ביותר לליטר, ${price(extremes.dearest.paid)}, פתיחת התדלוק`} />
+      {extremes.cheapest ? <Fact testId="insights-price-cheapest" label="הכי זול ששילמתם לליטר" sub={extremeSub(extremes.cheapest)} value={price(extremes.cheapest.paid)}
+        onClick={() => openFill(extremes.cheapest!)} ariaLabel={`הכי זול ששילמתם לליטר, ${price(extremes.cheapest.paid)}, פתיחת התדלוק`} /> : null}
+      <Fact testId="insights-price-known-liters" label="ליטרים עם סכום ידוע" sub={<><NumRun>{int(extremes.knownCount)}</NumRun> תדלוקים</>}
+        value={num(extremes.knownLiters, 1)} unit="ל׳" />
+    </FactsStrip> : null}
     {summary.stations.length > 0 ? <InsightCard label="תחנות · המחירים האישיים שתועדו"
       title={summary.stations.length > 1 ? <>הכי זול ששילמתם בתקופה: <NumericText>{summary.stations[0].name}</NumericText></>
         : <>המחיר שתועד ב<NumericText>{summary.stations[0].name}</NumericText></>}>

@@ -1,0 +1,792 @@
+{
+  "url": "file:///Users/meni/dev/personal%20projects/tank-malle/.claude/worktrees/design-v3-review-97d63e/design/v3/prototype.html",
+  "width": 390,
+  "height": 844,
+  "startedAt": "2026-11-10T10:07:43.171Z",
+  "captured": [
+    {
+      "name": "home",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "home-390-light.png"
+    },
+    {
+      "name": "journal",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "journal-390-light.png"
+    },
+    {
+      "name": "insights-cons",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "insights-cons-390-light.png"
+    },
+    {
+      "name": "insights-price",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "insights-price-390-light.png"
+    },
+    {
+      "name": "insights-spend",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "insights-spend-390-light.png"
+    },
+    {
+      "name": "insights-community",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "insights-community-390-light.png"
+    },
+    {
+      "name": "vehicle",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "vehicle-390-light.png"
+    },
+    {
+      "name": "fill",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "fill-390-light.png"
+    },
+    {
+      "name": "fill-scan",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "fill-scan-390-light.png"
+    },
+    {
+      "name": "fill-receipt",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "fill-receipt-390-light.png"
+    },
+    {
+      "name": "saved",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "saved-390-light.png"
+    },
+    {
+      "name": "service",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "service-390-light.png"
+    },
+    {
+      "name": "expense",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "expense-390-light.png"
+    },
+    {
+      "name": "vehicle-edit",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "vehicle-edit-390-light.png"
+    },
+    {
+      "name": "vehicles",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "vehicles-390-light.png"
+    },
+    {
+      "name": "year",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "year-390-light.png"
+    },
+    {
+      "name": "account",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "account-390-light.png"
+    },
+    {
+      "name": "notifications",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "notifications-390-light.png"
+    },
+    {
+      "name": "import",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "import-390-light.png"
+    },
+    {
+      "name": "unsynced",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "unsynced-390-light.png"
+    },
+    {
+      "name": "feedback",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "feedback-390-light.png"
+    },
+    {
+      "name": "legal",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "legal-390-light.png"
+    },
+    {
+      "name": "admin",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "admin-390-light.png"
+    },
+    {
+      "name": "wizard",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "wizard-390-light.png"
+    },
+    {
+      "name": "onboarding",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "onboarding-390-light.png"
+    },
+    {
+      "name": "signin",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "signin-390-light.png"
+    },
+    {
+      "name": "sheet-tco",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-tco-390-light.png"
+    },
+    {
+      "name": "sheet-tank",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-tank-390-light.png"
+    },
+    {
+      "name": "sheet-measure",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-measure-390-light.png"
+    },
+    {
+      "name": "sheet-trip",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-trip-390-light.png"
+    },
+    {
+      "name": "sheet-tank-pref",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-tank-pref-390-light.png"
+    },
+    {
+      "name": "sheet-capacity",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-capacity-390-light.png"
+    },
+    {
+      "name": "sheet-price",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-price-390-light.png"
+    },
+    {
+      "name": "sheet-discount",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-discount-390-light.png"
+    },
+    {
+      "name": "sheet-segment",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-segment-390-light.png"
+    },
+    {
+      "name": "sheet-entry",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-entry-390-light.png"
+    },
+    {
+      "name": "sheet-journal-info",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-journal-info-390-light.png"
+    },
+    {
+      "name": "sheet-odo",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-odo-390-light.png"
+    },
+    {
+      "name": "sheet-station",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-station-390-light.png"
+    },
+    {
+      "name": "sheet-add-menu",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-add-menu-390-light.png"
+    },
+    {
+      "name": "sheet-car-switch",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-car-switch-390-light.png"
+    },
+    {
+      "name": "sheet-accent",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-accent-390-light.png"
+    },
+    {
+      "name": "sheet-doc-test",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-doc-test-390-light.png"
+    },
+    {
+      "name": "sheet-doc-mandatory",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-doc-mandatory-390-light.png"
+    },
+    {
+      "name": "sheet-reminder-view",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-reminder-view-390-light.png"
+    },
+    {
+      "name": "sheet-reminder-edit",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-reminder-edit-390-light.png"
+    },
+    {
+      "name": "sheet-snooze",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-snooze-390-light.png"
+    },
+    {
+      "name": "sheet-issue-view",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-issue-view-390-light.png"
+    },
+    {
+      "name": "sheet-care-transfer",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-care-transfer-390-light.png"
+    },
+    {
+      "name": "sheet-exclude-info",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-exclude-info-390-light.png"
+    },
+    {
+      "name": "sheet-biz-export",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-biz-export-390-light.png"
+    },
+    {
+      "name": "sheet-install",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-install-390-light.png"
+    },
+    {
+      "name": "sheet-share-info",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-share-info-390-light.png"
+    },
+    {
+      "name": "sheet-delete-account",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-delete-account-390-light.png"
+    },
+    {
+      "name": "sheet-restore",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-restore-390-light.png"
+    },
+    {
+      "name": "sheet-receipt",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-receipt-390-light.png"
+    },
+    {
+      "name": "sheet-scan",
+      "theme": "light",
+      "vehicle": "v1",
+      "file": "sheet-scan-390-light.png"
+    },
+    {
+      "name": "ev-home",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-home-390-light.png"
+    },
+    {
+      "name": "ev-journal",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-journal-390-light.png"
+    },
+    {
+      "name": "ev-insights-cons",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-insights-cons-390-light.png"
+    },
+    {
+      "name": "ev-insights-spend",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-insights-spend-390-light.png"
+    },
+    {
+      "name": "ev-vehicle",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-vehicle-390-light.png"
+    },
+    {
+      "name": "ev-charge",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-charge-390-light.png"
+    },
+    {
+      "name": "ev-sheet-battery",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-sheet-battery-390-light.png"
+    },
+    {
+      "name": "ev-sheet-tco",
+      "theme": "light",
+      "vehicle": "v3",
+      "file": "ev-sheet-tco-390-light.png"
+    },
+    {
+      "name": "home",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "home-390-dark.png"
+    },
+    {
+      "name": "journal",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "journal-390-dark.png"
+    },
+    {
+      "name": "insights-cons",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "insights-cons-390-dark.png"
+    },
+    {
+      "name": "insights-price",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "insights-price-390-dark.png"
+    },
+    {
+      "name": "insights-spend",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "insights-spend-390-dark.png"
+    },
+    {
+      "name": "insights-community",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "insights-community-390-dark.png"
+    },
+    {
+      "name": "vehicle",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "vehicle-390-dark.png"
+    },
+    {
+      "name": "fill",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "fill-390-dark.png"
+    },
+    {
+      "name": "fill-scan",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "fill-scan-390-dark.png"
+    },
+    {
+      "name": "fill-receipt",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "fill-receipt-390-dark.png"
+    },
+    {
+      "name": "saved",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "saved-390-dark.png"
+    },
+    {
+      "name": "service",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "service-390-dark.png"
+    },
+    {
+      "name": "expense",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "expense-390-dark.png"
+    },
+    {
+      "name": "vehicle-edit",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "vehicle-edit-390-dark.png"
+    },
+    {
+      "name": "vehicles",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "vehicles-390-dark.png"
+    },
+    {
+      "name": "year",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "year-390-dark.png"
+    },
+    {
+      "name": "account",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "account-390-dark.png"
+    },
+    {
+      "name": "notifications",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "notifications-390-dark.png"
+    },
+    {
+      "name": "import",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "import-390-dark.png"
+    },
+    {
+      "name": "unsynced",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "unsynced-390-dark.png"
+    },
+    {
+      "name": "feedback",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "feedback-390-dark.png"
+    },
+    {
+      "name": "legal",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "legal-390-dark.png"
+    },
+    {
+      "name": "admin",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "admin-390-dark.png"
+    },
+    {
+      "name": "wizard",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "wizard-390-dark.png"
+    },
+    {
+      "name": "onboarding",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "onboarding-390-dark.png"
+    },
+    {
+      "name": "signin",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "signin-390-dark.png"
+    },
+    {
+      "name": "sheet-tco",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-tco-390-dark.png"
+    },
+    {
+      "name": "sheet-tank",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-tank-390-dark.png"
+    },
+    {
+      "name": "sheet-measure",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-measure-390-dark.png"
+    },
+    {
+      "name": "sheet-trip",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-trip-390-dark.png"
+    },
+    {
+      "name": "sheet-tank-pref",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-tank-pref-390-dark.png"
+    },
+    {
+      "name": "sheet-capacity",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-capacity-390-dark.png"
+    },
+    {
+      "name": "sheet-price",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-price-390-dark.png"
+    },
+    {
+      "name": "sheet-discount",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-discount-390-dark.png"
+    },
+    {
+      "name": "sheet-segment",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-segment-390-dark.png"
+    },
+    {
+      "name": "sheet-entry",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-entry-390-dark.png"
+    },
+    {
+      "name": "sheet-journal-info",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-journal-info-390-dark.png"
+    },
+    {
+      "name": "sheet-odo",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-odo-390-dark.png"
+    },
+    {
+      "name": "sheet-station",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-station-390-dark.png"
+    },
+    {
+      "name": "sheet-add-menu",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-add-menu-390-dark.png"
+    },
+    {
+      "name": "sheet-car-switch",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-car-switch-390-dark.png"
+    },
+    {
+      "name": "sheet-accent",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-accent-390-dark.png"
+    },
+    {
+      "name": "sheet-doc-test",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-doc-test-390-dark.png"
+    },
+    {
+      "name": "sheet-doc-mandatory",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-doc-mandatory-390-dark.png"
+    },
+    {
+      "name": "sheet-reminder-view",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-reminder-view-390-dark.png"
+    },
+    {
+      "name": "sheet-reminder-edit",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-reminder-edit-390-dark.png"
+    },
+    {
+      "name": "sheet-snooze",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-snooze-390-dark.png"
+    },
+    {
+      "name": "sheet-issue-view",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-issue-view-390-dark.png"
+    },
+    {
+      "name": "sheet-care-transfer",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-care-transfer-390-dark.png"
+    },
+    {
+      "name": "sheet-exclude-info",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-exclude-info-390-dark.png"
+    },
+    {
+      "name": "sheet-biz-export",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-biz-export-390-dark.png"
+    },
+    {
+      "name": "sheet-install",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-install-390-dark.png"
+    },
+    {
+      "name": "sheet-share-info",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-share-info-390-dark.png"
+    },
+    {
+      "name": "sheet-delete-account",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-delete-account-390-dark.png"
+    },
+    {
+      "name": "sheet-restore",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-restore-390-dark.png"
+    },
+    {
+      "name": "sheet-receipt",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-receipt-390-dark.png"
+    },
+    {
+      "name": "sheet-scan",
+      "theme": "dark",
+      "vehicle": "v1",
+      "file": "sheet-scan-390-dark.png"
+    },
+    {
+      "name": "ev-home",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-home-390-dark.png"
+    },
+    {
+      "name": "ev-journal",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-journal-390-dark.png"
+    },
+    {
+      "name": "ev-insights-cons",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-insights-cons-390-dark.png"
+    },
+    {
+      "name": "ev-insights-spend",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-insights-spend-390-dark.png"
+    },
+    {
+      "name": "ev-vehicle",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-vehicle-390-dark.png"
+    },
+    {
+      "name": "ev-charge",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-charge-390-dark.png"
+    },
+    {
+      "name": "ev-sheet-battery",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-sheet-battery-390-dark.png"
+    },
+    {
+      "name": "ev-sheet-tco",
+      "theme": "dark",
+      "vehicle": "v3",
+      "file": "ev-sheet-tco-390-dark.png"
+    }
+  ],
+  "failed": [],
+  "consoleErrors": [],
+  "requestFailures": [],
+  "finishedAt": "2026-11-10T10:08:48.006Z"
+}

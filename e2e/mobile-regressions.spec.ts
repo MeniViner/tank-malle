@@ -135,7 +135,7 @@ test("home labels measured consumption intervals and their average in both theme
   await expect(chart.getByRole("img")).toHaveAccessibleName("4 באוק׳: 10.0 קמ״ל; 10 באוק׳: 15.0 קמ״ל");
   await expect(chart.locator("button[data-testid^=consumption-point-]")).toHaveCount(2);
   await expect(chart.getByRole("img")).toBeVisible();
-  await expect(chart.locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 12\.5/)).toBeVisible();
+  await expect(chart.locator("figcaption").getByText(/הרגיל שלך 12\.5/)).toBeVisible();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme });
     await testInfo.attach(`home-consumption-${colorScheme}`, { body: await hero.screenshot(), contentType: "image/png" });

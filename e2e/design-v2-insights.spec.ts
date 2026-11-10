@@ -52,7 +52,7 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("segment-distance")).toContainText("600");
   await expect(page.getByTestId("segment-liters")).toContainText("45.0");
-  await expect(page.getByTestId("segment-cost")).toContainText("₪328");
+  await expect(page.getByTestId("segment-cost")).toContainText("328\u202F₪");
   await page.keyboard.press("Escape");
   await expect(points.first()).toBeFocused();
   const pointer = await points.last().evaluate(element => {
@@ -73,7 +73,7 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await best.click();
   await expect(page.getByTestId("segment-distance")).toContainText("480");
   await expect(page.getByTestId("segment-liters")).toContainText("30.0");
-  await expect(page.getByTestId("segment-cost")).toContainText("₪240");
+  await expect(page.getByTestId("segment-cost")).toContainText("240\u202F₪");
   await page.keyboard.press("Escape");
   await expect(best).toBeFocused();
   const table = page.getByTestId("insights-consumption-table");
@@ -82,47 +82,49 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await tableEntry.click();
   await expect(page.getByTestId("segment-distance")).toContainText("400");
   await expect(page.getByTestId("segment-liters")).toContainText("40.0");
-  await expect(page.getByTestId("segment-cost")).toContainText("₪288");
+  await expect(page.getByTestId("segment-cost")).toContainText("288\u202F₪");
   await page.keyboard.press("Escape");
   await expect(tableEntry).toBeFocused();
   await selectInsight(page, "price");
-  const priceTicks = page.getByTestId("insights-price-chart").locator(".insights-price-axis-tick");
+  // Stage 7 D6: the v3 quiet chart has no value axis; the first and last paid prices are printed at their points with the same format.
+  const priceTicks = page.getByTestId("insights-price-chart").locator(".insights-price-point-label");
   await expect(priceTicks.first()).toBeVisible();
   const tickGeometry = await priceTicks.evaluateAll(ticks => ticks.map(tick => {
     const pieces = Array.from(tick.querySelectorAll("tspan"));
     const symbol = pieces.find(piece => piece.textContent === "₪")!;
     const digits = pieces.find(piece => /\d/.test(piece.textContent ?? ""))!;
     return { label: tick.textContent, smaller: parseFloat(getComputedStyle(symbol).fontSize) < parseFloat(getComputedStyle(digits).fontSize),
-      left: symbol.getBoundingClientRect().right <= digits.getBoundingClientRect().left + .5 };
+      // v3 §5: the symbol trails the digits ("7.35 ₪").
+      right: symbol.getBoundingClientRect().left >= digits.getBoundingClientRect().right - .5 };
   }));
   for (const tick of tickGeometry) {
-    expect(tick.label).toMatch(/^₪[\d,]+\.\d{2}$/);
-    expect(tick).toMatchObject({ smaller: true, left: true });
+    expect(tick.label).toMatch(/^[\d,]+\.\d{2}\u202F₪$/);
+    expect(tick).toMatchObject({ smaller: true, right: true });
   }
 
-  await expect(page.getByTestId("insights-paid-average")).toContainText("₪7.36");
-  await expect(page.getByTestId("insights-price-difference")).toContainText("₪0.41");
+  await expect(page.getByTestId("insights-paid-average")).toContainText("7.36\u202F₪");
+  await expect(page.getByTestId("insights-price-difference")).toContainText("0.41\u202F₪");
   await expect(page.getByTestId("insights-price-difference")).toContainText("פחות");
   const ranks = page.getByTestId("insights-station-ranking").locator("li");
   await expect(ranks).toHaveCount(3);
   await expect(ranks.first()).toHaveAttribute("data-station-key", "id:journal-paz");
-  await expect(ranks.first()).toContainText("₪7.20");
-  await expect(ranks.nth(1)).toContainText("₪7.33");
-  await expect(ranks.last()).toContainText("₪7.54");
-  await expect(page.getByTestId("insights-price-spread")).toContainText("₪0.34");
-  await expect(page.getByTestId("insights-price-spread")).toContainText("₪17");
+  await expect(ranks.first()).toContainText("7.20\u202F₪");
+  await expect(ranks.nth(1)).toContainText("7.33\u202F₪");
+  await expect(ranks.last()).toContainText("7.54\u202F₪");
+  await expect(page.getByTestId("insights-price-spread")).toContainText("0.34\u202F₪");
+  await expect(page.getByTestId("insights-price-spread")).toContainText("17\u202F₪");
   await selectInsight(page, "spend");
-  await expect(page.getByTestId("running-total")).toHaveText("₪1,567");
+  await expect(page.getByTestId("running-total")).toHaveText("1,567\u202F₪");
   await expect(page.getByTestId("insights-spend-coverage")).toContainText("1 רשומה ללא עלות מלאה");
   await expect(page.getByTestId("insights-fuel-cost-per-km")).toContainText("62 אג׳");
   await page.getByTestId("insights-spend-table").locator("summary").click();
   const previous = page.getByTestId("insights-spend-table").locator(`tr[data-month="${scope.firstMonth}"]`);
   const recent = page.getByTestId("insights-spend-table").locator(`tr[data-month="${scope.lastMonth}"]`);
-  await expect(previous.locator("td")).toHaveText(["₪628", "₪123", "₪0", "₪0", "₪751"]);
-  await expect(recent.locator("td")).toHaveText(["₪808", "₪0", "₪19", "−₪11", "₪816"]);
+  await expect(previous.locator("td")).toHaveText(["628\u202F₪", "123\u202F₪", "0\u202F₪", "0\u202F₪", "751\u202F₪"]);
+  await expect(recent.locator("td")).toHaveText(["808\u202F₪", "0\u202F₪", "19\u202F₪", "−11\u202F₪", "816\u202F₪"]);
   await page.getByTestId("insights-journal-expense").click();
   await expect(page.getByTestId("journal-filter-expense")).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByTestId("ledger-total")).toHaveText("₪8");
+  await expect(page.getByTestId("ledger-total")).toHaveText("8\u202F₪");
   await expect(page.locator(".ledger-row")).toHaveCount(2);
 
   // The month of the first closing fill still includes the earlier opening
@@ -144,11 +146,11 @@ test("a missing fuel amount stays unknown in cost per km and charts; a different
   const original = (await getDocument(missingPath))!;
   await setDocument(missingPath, { ...original, date: new Date(Number(original.date)), createdAt: new Date(Number(original.createdAt)), totalCost: null, pricePerLiter: null });
   await page.goto("/stats?tab=spend&period=all");
-  await expect(page.getByTestId("running-total")).toHaveText("₪1,287");
+  await expect(page.getByTestId("running-total")).toHaveText("1,287\u202F₪");
   await expect(page.getByTestId("insights-fuel-cost-per-km")).toContainText("—");
   await expect(page.getByTestId("insights-spend-coverage")).toContainText("2 רשומות ללא עלות מלאה");
   await selectInsight(page, "price");
-  await expect(page.getByTestId("insights-paid-average")).toContainText("₪7.46");
+  await expect(page.getByTestId("insights-paid-average")).toContainText("7.46\u202F₪");
   await page.getByTestId("insights-price-table").locator("summary").click();
   await expect(page.getByTestId("insights-price-table").locator('tr[data-fillup-id="journal-last"] td').first()).toHaveText("—");
   const vehicle = (await getDocument(scope.base))!;
@@ -156,7 +158,7 @@ test("a missing fuel amount stays unknown in cost per km and charts; a different
   const otherPath = `${scope.base}/fillups/journal-best`, other = (await getDocument(otherPath))!;
   await setDocument(otherPath, { ...other, date: new Date(Number(other.date)), createdAt: new Date(Number(other.createdAt)), fuelType: "98", pricePerLiter: 7.11, totalCost: 213.3 });
   await page.reload();
-  await expect(page.getByTestId("insights-paid-average")).toContainText("₪7.11");
+  await expect(page.getByTestId("insights-paid-average")).toContainText("7.11\u202F₪");
   await expect(page.getByTestId("insights-price-difference")).toHaveCount(0);
   await expect(page.getByTestId("insights-panel-price")).toContainText("אין מחיר להשוואה מתועד לסוג הדלק");
   await expect(page.getByTestId("insights-station-ranking").locator("li")).toHaveCount(1);
@@ -213,8 +215,7 @@ test("malformed and denied fill-up history cannot publish a partial benchmark or
   await expect(page.getByTestId("insights-panel-cons")).toContainText("צריכה בתדלוקים הזמינים");
   await expect(page.getByTestId("insights-open-segment")).toHaveCount(0);
   await selectInsight(page, "spend");
-  const detail = await openInsightFuelDetail(page);
-  await expect(detail.locator(".insights-kpi").filter({ hasText: "מתחילת השנה" }).locator("strong")).toHaveText("—");
+  await expect(page.getByTestId("insights-spend-ytd")).toHaveText("—"); // v3: facts strip (was a KPI tile in the fuel detail)
   expect(await getDocument(benchmarkPath)).toBeNull();
   expect(await getDocument(malformedPath)).toEqual(malformed);
   await captureJournal(page, "insights-malformed-history-light-plate");
@@ -239,8 +240,7 @@ test("malformed and denied fill-up history cannot publish a partial benchmark or
     await selectInsight(isolated, "price");
     await expect(isolated.getByTestId("insights-panel-price")).toContainText("נתוני המחירים עדיין אינם זמינים");
     await selectInsight(isolated, "spend");
-    const unavailable = await openInsightFuelDetail(isolated);
-    await expect(unavailable.locator(".insights-kpi").filter({ hasText: "מתחילת השנה" }).locator("strong")).toHaveText("—");
+    await expect(isolated.getByTestId("insights-spend-ytd")).toHaveText("—"); // v3: facts strip
     await captureJournal(isolated, "insights-denied-history-light-plate");
     expect(await getDocument(benchmarkPath)).toBeNull();
     expect(await getDocument(malformedPath)).toEqual(malformed);
@@ -292,8 +292,7 @@ test("cached history withholds comparison and annual totals until a fresh server
     await setDocument(lastPath, { ...last, date: new Date(Number(last.date)), createdAt: new Date(Number(last.createdAt)), liters: 20, totalCost: 140 });
     await selectInsight(page, "spend");
     await selectInsightRange(page, "מתחילת השנה");
-    const detail = await openInsightFuelDetail(page);
-    await expect(detail.locator(".insights-kpi").filter({ hasText: "מתחילת השנה" }).locator("strong")).toHaveText("—");
+    await expect(page.getByTestId("insights-spend-ytd")).toHaveText("—"); // v3: facts strip
     expect(await getDocument(benchmarkPath)).toEqual(published);
   } finally { await context.setOffline(false); }
   await expect(page.getByTestId("insights-source-status")).toHaveCount(0, { timeout: 20_000 });
@@ -317,7 +316,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
         return { fontFamily: computed.fontFamily, fontWeight: computed.fontWeight, fontSize: computed.fontSize, direction: computed.direction, isolation: computed.unicodeBidi };
       });
       expect(style.fontFamily, id).toContain("Karantina");
-      expect(style.fontWeight, id).toBe("700");
+      expect(style.fontWeight, id).toBe("400"); // v3 §1: Karantina 400
       typography.push({ id, ...style });
     };
     await expect(page.getByTestId("insights-consumption-average")).toContainText("11.9");
@@ -334,7 +333,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await capture("insights-basis");
     await page.keyboard.press("Escape");
     await selectInsight(page, "price");
-    await expect(page.getByTestId("insights-paid-average")).toContainText("₪7.36");
+    await expect(page.getByTestId("insights-paid-average")).toContainText("7.36\u202F₪");
     await displayNumber("insights-paid-average");
     const priceDots = page.getByTestId("insights-price-chart").locator(".recharts-line-dots circle");
     await expect(priceDots).toHaveCount(scope.fills.length);
@@ -364,7 +363,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await page.getByTestId("insights-price-table").locator("summary").click();
     await capture("insights-price-table");
     await selectInsight(page, "spend");
-    await expect(page.getByTestId("running-total")).toContainText("₪1,567");
+    await expect(page.getByTestId("running-total")).toContainText("1,567\u202F₪");
     await displayNumber("running-total");
     await displayNumber("insights-fuel-cost-per-km");
     await capture("insights-spend", true);

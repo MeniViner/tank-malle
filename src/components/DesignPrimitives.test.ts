@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { ConsumptionValue, Money, NumRun, Percent, PricePerLiter, SignedMoney, SignedPercent } from "./Fmt";
+import { ConsumptionValue, Money, NumericText, NumRun, Percent, PricePerLiter, SignedMoney, SignedPercent } from "./Fmt";
 import { Gauge, PumpDisplayRow } from "./DesignPrimitives";
 import { SpotlightCard } from "./SpotlightCard";
 import { Segmented } from "./Segmented";
@@ -13,10 +13,11 @@ describe("Plate number and input contracts", () => {
     const money = renderToStaticMarkup(createElement(Money, { value: 216.775, block: true }));
     expect(money).toContain('dir="ltr" data-number-align="leading"');
     expect(money).toContain("tm-number-block");
-    expect(text(money)).toBe("₪217");
-    expect(money).toContain('<span class="tm-unit-symbol">₪</span>');
+    expect(text(money)).toBe("217\u202F₪");
+    // v3 §5: digits, then the narrow no-break space, then ₪ — in DOM order, marked trailing.
+    expect(money).toContain('<span class="tm-number-value">217</span><span class="tm-number-spacing" data-unit-position="trailing"> </span><span class="tm-unit-symbol" data-unit-position="trailing">₪</span>');
     const price = renderToStaticMarkup(createElement(PricePerLiter, { value: 7.356 }));
-    expect(text(price)).toBe("₪7.36 לליטר");
+    expect(text(price)).toBe("7.36\u202F₪ לליטר");
     expect(price).toContain("לליטר");
     const consumption = renderToStaticMarkup(createElement(ConsumptionValue, { kmPerLiter: 12, units: "litersPer100", className: "font-display" }));
     expect(consumption).toContain("8.3</bdi>");
@@ -26,7 +27,7 @@ describe("Plate number and input contracts", () => {
 
   it("preserves semantic percent and signed-currency order while styling unit symbols separately", () => {
     const signedMoney = renderToStaticMarkup(createElement(SignedMoney, { value: -25.2 }));
-    expect(text(signedMoney)).toBe("−₪25");
+    expect(text(signedMoney)).toBe("−25\u202F₪");
     const percentage = renderToStaticMarkup(createElement(SignedPercent, { value: -7.25, digits: 2 }));
     expect(text(percentage)).toBe("−7.25%");
     expect(percentage).toContain('class="tm-symbol-number"');
@@ -35,9 +36,24 @@ describe("Plate number and input contracts", () => {
     expect(text(zero)).toBe("0%");
     const separate = renderToStaticMarkup(createElement(NumRun, null, 25, "%"));
     expect(text(separate)).toBe("25%");
-    for (const original of ["19%", "+19%", "−₪25", "+₪25", "₪-0.25", "₪ 216.775000", "19₪"]) {
+    expect(signedMoney).toContain('<span class="tm-number-sign">−</span><span class="tm-number-value">25</span>');
+    for (const original of ["19%", "+19%", "−₪25", "+₪25", "₪-0.25", "₪ 216.775000", "19₪", "777 ₪", "−12 ₪", "7.35 ₪"]) {
       expect(text(renderToStaticMarkup(createElement(NumRun, null, original)))).toBe(original);
     }
+  });
+
+  it("isolates a Latin model name that mixes letters and digits as one LTR run (D1)", () => {
+    const i20 = renderToStaticMarkup(createElement(NumericText, null, "יונדאי i20 · 2019"));
+    expect(i20).toBe('יונדאי <bdi dir="ltr" class="tm-latin-run">i20</bdi> · <bdi dir="ltr" data-number-align="leading" class="num tm-number ">2019</bdi>');
+    expect(text(i20)).toBe("יונדאי i20 · 2019");
+    const atto = renderToStaticMarkup(createElement(NumericText, null, "BYD ATTO 3"));
+    expect(atto).toBe('<bdi dir="ltr" class="tm-latin-run">BYD ATTO 3</bdi>');
+    const inspire = renderToStaticMarkup(createElement(NumericText, null, "יונדאי i20 Inspire"));
+    expect(inspire).toBe('יונדאי <bdi dir="ltr" class="tm-latin-run">i20 Inspire</bdi>');
+    // Latin without digits stays plain text; pure numbers keep their NumRun isolation.
+    expect(renderToStaticMarkup(createElement(NumericText, null, "טויוטה Corolla"))).toBe("טויוטה Corolla");
+    const pure = renderToStaticMarkup(createElement(NumericText, null, "12,000 ק״מ · 7.35 ₪"));
+    expect(pure).toBe('<bdi dir="ltr" data-number-align="leading" class="num tm-number ">12,000</bdi> ק״מ · <bdi dir="ltr" data-number-align="leading" class="num tm-number "><span class="tm-symbol-number"><span class="tm-number-value">7.35</span><span class="tm-number-spacing" data-unit-position="trailing"> </span><span class="tm-unit-symbol" data-unit-position="trailing">₪</span></span></bdi>');
   });
 
   it("does not format or round an editable pump value", () => {

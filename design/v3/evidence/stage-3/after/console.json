@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-11-10T12:17:02.293Z",
+  "totals": {
+    "errors": 0,
+    "keyWarnings": 0,
+    "screenshots": 28,
+    "captureFailures": 0
+  },
+  "byRoute": {},
+  "runs": [
+    {
+      "tag": "390-dark",
+      "shots": [
+        "insights-cons-390-dark.png",
+        "insights-price-390-dark.png",
+        "insights-spend-390-dark.png",
+        "insights-community-390-dark.png",
+        "vehicle-390-dark.png",
+        "vehicle-costs-390-dark.png",
+        "vehicle-details-390-dark.png",
+        "year-390-dark.png",
+        "account-390-dark.png",
+        "sheet-account-identity-390-dark.png",
+        "sheet-statement-390-dark.png",
+        "notifications-390-dark.png",
+        "unsynced-390-dark.png",
+        "import-390-dark.png"
+      ],
+      "failures": [],
+      "entries": []
+    },
+    {
+      "tag": "390-light",
+      "shots": [
+        "insights-cons-390-light.png",
+        "insights-price-390-light.png",
+        "insights-spend-390-light.png",
+        "insights-community-390-light.png",
+        "vehicle-390-light.png",
+        "vehicle-costs-390-light.png",
+        "vehicle-details-390-light.png",
+        "year-390-light.png",
+        "account-390-light.png",
+        "sheet-account-identity-390-light.png",
+        "sheet-statement-390-light.png",
+        "notifications-390-light.png",
+        "unsynced-390-light.png",
+        "import-390-light.png"
+      ],
+      "failures": [],
+      "entries": []
+    }
+  ]
+}

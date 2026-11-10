@@ -1,0 +1,58 @@
+{
+  "tag": "430-light",
+  "shots": [
+    "onboarding-430-light.png",
+    "signin-430-light.png",
+    "home-430-light.png",
+    "home-viewport-430-light.png",
+    "journal-430-light.png",
+    "insights-cons-430-light.png",
+    "insights-price-430-light.png",
+    "insights-spend-430-light.png",
+    "insights-community-430-light.png",
+    "vehicle-430-light.png",
+    "vehicle-costs-430-light.png",
+    "vehicle-details-430-light.png",
+    "vehicle-prefs-430-light.png",
+    "vehicle-edit-430-light.png",
+    "year-430-light.png",
+    "sheet-tank-430-light.png",
+    "sheet-trip-430-light.png",
+    "sheet-measurement-430-light.png",
+    "sheet-tco-430-light.png",
+    "sheet-car-switch-430-light.png",
+    "fillup-empty-430-light.png",
+    "fillup-filled-430-light.png",
+    "fillup-more-430-light.png",
+    "sheet-station-430-light.png",
+    "reminder-detail-430-light.png",
+    "issue-detail-430-light.png",
+    "sheet-reminder-new-430-light.png",
+    "sheet-issue-new-430-light.png",
+    "sheet-service-430-light.png",
+    "sheet-expense-430-light.png",
+    "sheet-doc-test-430-light.png",
+    "account-430-light.png",
+    "notifications-430-light.png",
+    "unsynced-430-light.png",
+    "import-430-light.png",
+    "vehicles-430-light.png",
+    "wizard-430-light.png",
+    "wizard-manual-430-light.png"
+  ],
+  "failures": [],
+  "entries": [
+    {
+      "route": "signin",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 409 (Conflict)",
+      "keyWarning": false
+    },
+    {
+      "route": "vehicle-prefs",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+      "keyWarning": false
+    }
+  ]
+}

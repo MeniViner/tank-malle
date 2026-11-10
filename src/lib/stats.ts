@@ -137,6 +137,14 @@ export interface Vehicle {
    * chose, not a manufacturer figure.
    */
   tankPrefs?: TankPreferences | null;
+  /** Design v3: business monthly statement details. Read with `readBiz`. */
+  biz?: import('./vehicle/v3Fields').VehicleBiz | null;
+  /** Design v3: from the registry or the user. Absent = not known to be electric (see `isEv`). */
+  powertrain?: import('./vehicle/v3Fields').Powertrain | null;
+  /** Design v3: EV battery capacity and WLTP range, when known. */
+  battery?: import('./vehicle/v3Fields').VehicleBattery | null;
+  /** Design v3: motor power in kW (registry horsepower converted). */
+  motorKw?: number | null;
 }
 
 /**

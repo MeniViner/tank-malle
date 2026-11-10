@@ -1,0 +1,333 @@
+{
+  "tag": "390-light",
+  "results": [
+    {
+      "step": "route /",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /fillup/new",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /history",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /stats?tab=cons",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /stats?tab=price",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /stats?tab=spend",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /stats?tab=community",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle?tab=costs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle?tab=details",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle?tab=prefs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle/edit/v3-fuel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle/reminders/g-brakes",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicle/issues/g-issue",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /account",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /notifications",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /settings/unsynced",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /settings/import",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /settings/vehicles",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "route /vehicles/new",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "excluded: TCO unchanged",
+      "ok": true,
+      "detail": "TCO card identical before/after (הרכב עולה לך 824 ₪ בחודש כ־ 9,886 ₪ בשנה · 0.95 ₪ לק״מ דלק 2…)"
+    },
+    {
+      "step": "excluded: journal tag",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "excluded: insights spend row",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "excluded: vehicle running costs",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "excluded: care costs CSV column",
+      "ok": true,
+      "detail": "tank-maleh-care-costs-2026-11-10_15-55-48-500_UTC+0200.csv header=וריה\",\"מוסך\",\"הערות\",\"excluded_from_tco\""
+    },
+    {
+      "step": "statement: vehicle → CSV + print HTML",
+      "ok": true,
+      "detail": "tank-maleh-statement-7248078-2026-11-2026-11-10_15-55-49-447_UTC+0200.csv"
+    },
+    {
+      "step": "statement: account entry",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "year screen",
+      "ok": true,
+      "detail": "7,453\n \n₪"
+    },
+    {
+      "step": "reminder .ics export",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "account restore preview (cancel)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "account delete two-step cancel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "wizard manual catalogue",
+      "ok": true,
+      "detail": "picked טויוטה / 4-VAR 3דלתות / 1999"
+    },
+    {
+      "step": "wizard EV plate lookup",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "EV: switch via car switcher",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "EV: Home has no tank/fuel wording",
+      "ok": false,
+      "detail": "{\"words\":[\"ליטר«ן פרטי המקטע האחרון 17.7 ק״מ לליטר בדיוק כמו הרגיל שלך »\",\"ל׳«א › 5 נוב׳ עמ עמדת טעינה 31.0 ל׳ · מלא · הנחה ישנה · »\",\"ק״מ לליטר«האחרון פרטי המקטע האחרון 17.7 ק״מ לליטר בדיוק כמו הרגיל»\"],\"tankHero\":0} [fail-EV: Home has no tank/fuel wording-390-light.png]"
+    },
+    {
+      "step": "EV: fill form has no tank fields",
+      "ok": false,
+      "detail": "[\"ליטר«נוב׳, 15:56 בחירת תחנה סכום ₪ ליטרים ל׳ מחיר לליטר ₪ הז»\",\"ל׳«5:56 בחירת תחנה סכום ₪ ליטרים ל׳ מחיר לליטר ₪ הזינו את »\"] [fail-EV: fill form has no tank fields-390-light.png]"
+    },
+    {
+      "step": "EV: insights cons has no tank/fuel wording",
+      "ok": false,
+      "detail": "[\"ליטר«ם אחרונים אתה נוסע 18.3 ק״מ לליטר 21 באוק׳ 5 בנוב׳ 17.»\",\"ק״מ לליטר«חודשים אחרונים אתה נוסע 18.3 ק״מ לליטר 21 באוק׳ 5 בנוב»\"] [fail-EV: insights cons has no tank/fuel wording-390-light.png]"
+    },
+    {
+      "step": "EV: insights price has no tank/fuel wording",
+      "ok": false,
+      "detail": "[\"ליטר« 6 חודשים אחרונים 1.90 ₪ לליטר 1 באוק׳ 21 באוק׳ 5 ב»\",\"ל׳«ם עם סכום ידוע 3 תדלוקים 93.0 ל׳ תחנות · המחירים האישי»\"] [fail-EV: insights price has no tank/fuel wording-390-light.png]"
+    },
+    {
+      "step": "EV: insights spend has no tank/fuel wording",
+      "ok": false,
+      "detail": "[\"ליטר«שנה רכישות דלק · 2026 177 ₪ ליטרים שנרכשו כל רכישות ה»\",\"ל׳«ת הדלק בתקופה, גם חלקיות 93.0 ל׳ הכול לק״מ כל ההוצאות ב»\"] [fail-EV: insights spend has no tank/fuel wording-390-light.png]"
+    },
+    {
+      "step": "EV: vehicle overview/details/edit",
+      "ok": false,
+      "detail": "[\"vehicle:מיכל«צאות בחודש הגדרות הרכב העדפות מיכל ורכבים נוספים ＋ טיפו»\",\"edit:מיכל«ת ייצור הנעה רכב חשמלי · אין מיכל דלק, נפח מנוע או צרי»\",\"edit:ליטר« דלק, נפח מנוע או צריכה בק״מ לליטר. סוללה 60.48 kWh. טו»\",\"edit:נפח מנוע«עה רכב חשמלי · אין מיכל דלק, נפח מנוע או צריכה בק״מ לל»\",\"edit:ק״מ לליטר« מיכל דלק, נפח מנוע או צריכה בק״מ לליטר. סוללה 60.48 kW»\"] [fail-EV: vehicle overview/details/edit-390-light.png]"
+    },
+    {
+      "step": "EV: switch back to fuel car",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "step": "offline fill + expense → confirmed",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "visited": [
+    "/",
+    "/fillup/new",
+    "/history",
+    "/stats?tab=cons",
+    "/stats?tab=price",
+    "/stats?tab=spend",
+    "/stats?tab=community",
+    "/vehicle",
+    "/vehicle?tab=costs",
+    "/vehicle?tab=details",
+    "/vehicle?tab=prefs",
+    "/vehicle/edit/v3-fuel",
+    "/vehicle/reminders/g-brakes",
+    "/vehicle/issues/g-issue",
+    "/account",
+    "/notifications",
+    "/settings/unsynced",
+    "/settings/import",
+    "/settings/vehicles",
+    "/vehicles/new",
+    "/",
+    "/history",
+    "/stats?tab=spend",
+    "/vehicle?tab=costs",
+    "/account",
+    "/vehicle",
+    "/account",
+    "/vehicle?tab=costs",
+    "/vehicle/reminders/g-brakes",
+    "/account",
+    "/account",
+    "/vehicles/new",
+    "/vehicles/new",
+    "/",
+    "/",
+    "/fillup/new",
+    "/stats?tab=cons",
+    "/stats?tab=price",
+    "/stats?tab=spend",
+    "/vehicle",
+    "/vehicle?tab=details",
+    "/vehicle/edit/qa7-ev",
+    "/",
+    "/"
+  ],
+  "console": {
+    "errors": 0,
+    "keyWarnings": 0,
+    "entries": [
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      },
+      {
+        "route": "offline fill + expense → confirmed",
+        "type": "error",
+        "text": "Failed to load resource: net::ERR_INTERNET_DISCONNECTED",
+        "keyWarning": false
+      }
+    ]
+  }
+}

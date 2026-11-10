@@ -17,6 +17,8 @@ import { useBenchmark } from "../hooks/useBenchmark";
 import { int, monthYear, vehicleLabel, vehicleShort } from "../lib/format";
 import { inRange, rangeDates } from "../lib/periods";
 import { computeStats } from "../lib/stats";
+import { energyCopy } from "../lib/vehicle/energyCopy";
+import { isEv } from "../lib/vehicle/v3Fields";
 import "../insights-design.css";
 
 /** Scope changes discard local selections before another account or vehicle renders. */
@@ -79,13 +81,13 @@ function InsightsSession() {
           onClick={() => selectTab(tab.value)}>{tab.label}</button>)}</nav>
       <div className="insights-period-summary" data-testid="insights-period-summary">
         {section === "community" ? <span>ההשוואה מבוססת על כל ההיסטוריה</span> : <>
-          <span><NumRun>{int(selectedFillups)}</NumRun> תדלוקים · <NumRun>{int(consumption.segments.length)}</NumRun> מקטעים</span>
+          <span><NumRun>{int(selectedFillups)}</NumRun> {energyCopy(isEv(data.activeVehicle)).fills} · <NumRun>{int(consumption.segments.length)}</NumRun> מקטעים</span>
           <span><NumericText>{rangeDates(selected.range).replace("מהתדלוק הראשון", "מהרשומה הראשונה")}</NumericText></span>
         </>}
       </div>
       {!historyReady && section !== "community" ? <p className="insights-source-status" data-testid="insights-source-status" role="status">{historyLabel} · מוצגים הנתונים הזמינים</p> : null}
       {data.loadingFillups && (section === "cons" || section === "price") ? <div className="insights-stack" aria-label="טוענים תובנות" role="status">
-        <Skeleton className="h-[280px] rounded-[20px]" /><Skeleton className="h-[180px] rounded-[20px]" />
+        <Skeleton className="h-[280px] rounded-lg" /><Skeleton className="h-[180px] rounded-lg" />
       </div> : <>
         {section === "cons" ? <ConsumptionInsights stats={stats} summary={consumption} vehicle={data.activeVehicle} units={units}
           range={selected.range} historyReady={historyReady} onSelect={selectSegment} /> : null}

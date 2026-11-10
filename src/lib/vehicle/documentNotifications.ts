@@ -37,10 +37,21 @@ export function vehicleDocumentOccurrences(vehicle: { id: string; docs?: unknown
   return result.sort((a, b) => a.daysLeft - b.daysLeft || VEHICLE_DOC_KEYS.indexOf(a.key) - VEHICLE_DOC_KEYS.indexOf(b.key));
 }
 
+/** Spotlight names read as a sentence on one line: "הטסט בעוד 22 ימים" (v3 §2.3). */
+const SPOTLIGHT_NAMES: Record<VehicleDocKey, string> = { test: 'הטסט', mandatory: 'ביטוח חובה', coverage: 'ביטוח רכב' };
+
+/** One-line spotlight title; the notification list keeps the full `title`. */
+export function vehicleDocumentSpotlightTitle(item: Pick<VehicleDocumentOccurrence, 'key' | 'daysLeft'>): string {
+  const { daysLeft } = item;
+  const suffix = daysLeft < 0 ? 'פג תוקף' : daysLeft === 0 ? 'בתוקף עד היום'
+    : daysLeft === 1 ? 'בתוקף עד מחר' : `בעוד ${int(daysLeft)} ימים`;
+  return `${SPOTLIGHT_NAMES[item.key]} ${suffix}`;
+}
+
 export function vehicleDocumentSpotlights(occurrences: readonly VehicleDocumentOccurrence[]): SpotlightItem[] {
   return occurrences.map(item => ({
     id: item.occurrence, tone: item.urgent ? 'danger' : 'warn', icon: item.key === 'test' ? 'doc' : 'shield',
-    title: item.title, body: item.detail, sticky: item.urgent,
+    title: vehicleDocumentSpotlightTitle(item), body: item.detail, sticky: item.urgent,
     target: { kind: 'route', to: item.to },
   }));
 }

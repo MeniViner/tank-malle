@@ -35,29 +35,29 @@ export async function tcoFixture(page: Page, mode: 'complete' | 'one' | 'empty' 
 export async function completeTcoFlow(page: Page) {
   const scope = await tcoFixture(page);
   const card = page.getByTestId('tco-card');
-  await expect(card.locator('.tm-tco-value')).toHaveText('₪810');
+  await expect(card.locator('.tm-tco-value')).toHaveText('810\u202F₪');
   await expect(card.getByTestId('tco-missing')).toHaveCount(0);
-  await expect(card).toContainText('₪9,720');
-  await expect(page.getByTestId('home-fuel-month')).toContainText('₪240');
-  await expect(page.getByTestId('home-fuel-month')).toContainText('בד״כ ₪360');
+  await expect(card).toContainText('9,720\u202F₪');
+  await expect(page.getByTestId('home-fuel-month')).toContainText('240\u202F₪');
+  await expect(page.getByTestId('home-fuel-month')).toContainText('בד״כ 360\u202F₪');
   await card.click();
   const sheet = page.getByTestId('tco-sheet');
-  await expect(sheet.locator('.tm-tco-value')).toHaveText('₪810');
+  await expect(sheet.locator('.tm-tco-value')).toHaveText('810\u202F₪');
   const sharingAction = sheet.getByRole('button', { name: 'הגדרות שיתוף עלות', exact: true });
   const target = await sharingAction.boundingBox(); expect(target?.height).toBeGreaterThanOrEqual(44); expect(target?.width).toBeGreaterThanOrEqual(44);
-  await expect(page.getByTestId('tco-value-other')).toHaveText('₪50');
-  await expect(page.getByTestId('tco-value-mandatory')).toHaveText('₪100');
-  await expect(page.getByTestId('tco-value-test')).toHaveText('₪100');
+  await expect(page.getByTestId('tco-value-other')).toHaveText('50\u202F₪');
+  await expect(page.getByTestId('tco-value-mandatory')).toHaveText('100\u202F₪');
+  await expect(page.getByTestId('tco-value-test')).toHaveText('100\u202F₪');
   await page.getByRole('radio', { name: 'בשנה', exact: true }).click();
-  await expect(sheet.locator('.tm-tco-value')).toHaveText('₪9,720');
-  await expect(page.getByTestId('tco-value-test')).toHaveText('₪1,200');
+  await expect(sheet.locator('.tm-tco-value')).toHaveText('9,720\u202F₪');
+  await expect(page.getByTestId('tco-value-test')).toHaveText('1,200\u202F₪');
   await page.getByRole('radio', { name: 'בחודש', exact: true }).click();
   await page.keyboard.press('Escape');
-  await expect(card).toBeFocused();
+  await expect(card.getByRole('button', { name: 'כמה הרכב עולה לך', exact: true })).toBeFocused();
   await page.goto('/stats?tab=spend');
   const compact = page.getByTestId('tco-card');
   await expect(compact).toHaveAttribute('data-compact', 'true');
-  await expect(compact.locator('.tm-tco-value')).toHaveText('₪810');
+  await expect(compact.locator('.tm-tco-value')).toHaveText('810\u202F₪');
   await expect(compact.locator('.tm-tco-legend')).toHaveCount(0);
   expect(await listDocuments(`${scope.base}/vehicleExpenses`)).toHaveLength(3);
 }
@@ -67,7 +67,7 @@ export async function missingTcoFlow(page: Page) {
   const card = page.getByTestId('tco-card');
   await expect(card).toContainText('הרכב עולה לך, לפחות');
   await expect(card.getByTestId('tco-missing')).toHaveText('חסר 2 פריטים');
-  await expect(card.locator('.tm-tco-value')).toHaveText('₪240');
+  await expect(card.locator('.tm-tco-value')).toHaveText('240\u202F₪');
   await card.click();
   await page.getByTestId('tco-part-mandatory').click();
   const editor = page.getByRole('dialog', { name: 'ביטוח חובה', exact: true });
@@ -77,7 +77,7 @@ export async function missingTcoFlow(page: Page) {
   await expect(editor).toHaveCount(0);
   await expect.poll(async () => (await getDocument(scope.base))?.docs).toMatchObject({ mandatory: { cost: 1200 }, coverage: { type: 'none' } });
   await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
-  await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('₪340');
+  await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('340\u202F₪');
   await expect(page.getByTestId('tco-part-mandatory')).not.toContainText('לא הוזן');
   await expect(page.getByTestId('tco-part-mandatory')).toBeFocused();
   await page.keyboard.press('Escape');
@@ -87,7 +87,7 @@ export async function missingTcoFlow(page: Page) {
 
 export async function preciseTestCostFlow(page: Page) {
   const scope = await tcoFixture(page);
-  await expect(page.getByTestId('tco-card').locator('.tm-tco-value')).toHaveText('₪810');
+  await expect(page.getByTestId('tco-card').locator('.tm-tco-value')).toHaveText('810\u202F₪');
   await page.getByTestId('tco-card').click();
   await page.getByTestId('tco-part-test').click();
   const editor = page.getByRole('dialog', { name: 'טסט שנתי', exact: true });
@@ -96,12 +96,12 @@ export async function preciseTestCostFlow(page: Page) {
   await editor.getByTestId('vehicle-doc-save').click();
   await expect.poll(async () => (await getDocument(scope.base))?.docs).toMatchObject({ test: { cost: 2400.123456, future: { retained: true } }, mandatory: { cost: 1200 }, coverage: { cost: 600 } });
   await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
-  await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('₪910');
+  await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('910\u202F₪');
   await page.getByRole('radio', { name: 'בשנה', exact: true }).click();
-  await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('₪10,920');
+  await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('10,920\u202F₪');
   await page.keyboard.press('Escape');
   await page.reload();
-  await expect(page.getByTestId('tco-card').locator('.tm-tco-value')).toHaveText('₪910');
+  await expect(page.getByTestId('tco-card').locator('.tm-tco-value')).toHaveText('910\u202F₪');
   expect((await getDocument(scope.base))?.docs).toMatchObject({ test: { cost: 2400.123456, future: { retained: true } } });
   expect(await listDocuments(`${scope.base}/vehicleExpenses`)).toHaveLength(3);
 }
@@ -125,7 +125,7 @@ export async function responsiveTcoFlow(page: Page) {
     for (const width of [320, 390, 820, 1440]) {
       await page.setViewportSize({ width, height: 844 });
       const card = page.getByTestId('tco-card');
-      await expect(card.locator('.tm-tco-value')).toHaveText('₪810');
+      await expect(card.locator('.tm-tco-value')).toHaveText('810\u202F₪');
       expect(await card.locator('.tm-tco-value').evaluate(element => getComputedStyle(element).fontFamily)).toContain('Karantina');
       await expect(card.getByTestId('tco-bar').locator('i')).toHaveCount(6);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

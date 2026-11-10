@@ -18,14 +18,21 @@ export interface GaugeProps {
   onChange?: (level: number) => void;
   label?: string;
   className?: string;
+  /** v3 Home: text drawn above the habit line ("כאן בד״כ מתדלקים"). Decorative; say it in the description too. */
+  habitLabel?: string;
+  /** v3 Home: darker ticks between the habit line and the current level (what you'll burn before you usually refuel). */
+  showUse?: boolean;
+  /** Placed between the E and F ends (v3 Home: "במיכל כ־67% · …"). Stays readable by assistive technology. */
+  caption?: ReactNode;
 }
 
 /** Twenty visual ticks share one full-size slider and the existing gauge keyboard contract. */
-export function Gauge({ value, habit, low = false, onChange, label = "כמות הדלק במיכל", className = "" }: GaugeProps) {
+export function Gauge({ value, habit, low = false, onChange, label = "כמות הדלק במיכל", className = "", habitLabel, showUse = false, caption }: GaugeProps) {
   const id = useId();
   const level = value != null && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : null;
   const marker = habit != null && Number.isFinite(habit) ? Math.min(1, Math.max(0, habit)) : null;
   const filled = level === null ? 0 : Math.round(level * 20);
+  const habitTick = marker === null ? null : Math.round(marker * 20);
   const valueText = level === null ? "עדיין לא סומן" : percentPlain(level * 100);
   return <div className={`tm-gauge${onChange ? " tm-gauge-editable" : ""}${low ? " tm-gauge-low" : ""} ${className}`}>
     <div className="tm-gauge-control" role={onChange ? undefined : level === null ? "img" : "meter"}
@@ -34,8 +41,11 @@ export function Gauge({ value, habit, low = false, onChange, label = "כמות �
       aria-valuemax={onChange || level === null ? undefined : 100} aria-valuenow={onChange || level === null ? undefined : level * 100}
       aria-valuetext={onChange || level === null ? undefined : valueText}>
       <div className="tm-gauge-ticks" aria-hidden="true">
-        {Array.from({ length: 20 }, (_, index) => <span key={index} className={index < filled ? "tm-gauge-tick tm-gauge-tick-filled" : "tm-gauge-tick"} />)}
-        {marker !== null ? <span className="tm-gauge-habit" style={{ left: `${marker * 100}%` }} /> : null}
+        {Array.from({ length: 20 }, (_, index) => <span key={index} className={index >= filled ? "tm-gauge-tick"
+          : showUse && !low && habitTick !== null && index >= habitTick ? "tm-gauge-tick tm-gauge-tick-filled tm-gauge-tick-use" : "tm-gauge-tick tm-gauge-tick-filled"} />)}
+        {marker !== null ? <span className={`tm-gauge-habit${habitLabel ? " tm-gauge-habit-labelled" : ""}`} style={{ left: `${marker * 100}%` }}>
+          {habitLabel ? <em>{habitLabel}</em> : null}
+        </span> : null}
       </div>
       {onChange ? <>
         <label htmlFor={id} className="sr-only">{label}</label>
@@ -59,7 +69,8 @@ export function Gauge({ value, habit, low = false, onChange, label = "כמות �
           }} />
       </> : null}
     </div>
-    <div className="tm-gauge-ends" aria-hidden="true"><span>E</span><span>F</span></div>
+    {caption !== undefined ? <div className="tm-gauge-ends tm-gauge-ends-captioned"><span aria-hidden="true">E</span>{caption}<span aria-hidden="true">F</span></div>
+      : <div className="tm-gauge-ends" aria-hidden="true"><span>E</span><span>F</span></div>}
   </div>;
 }
 

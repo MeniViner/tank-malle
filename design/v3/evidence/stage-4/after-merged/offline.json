@@ -1,0 +1,5 @@
+{
+  "fuelPending": 1,
+  "expensePending": 1,
+  "after": "outbox 0, both rows without pending state, server has 2 fillups + 1 expense"
+}

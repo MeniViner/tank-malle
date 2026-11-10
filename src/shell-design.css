@@ -8,7 +8,7 @@
   max-width: 430px;
   height: calc(90px + max(0px, env(safe-area-inset-bottom, 0px) - 24px));
   padding: 6px 8px max(24px, env(safe-area-inset-bottom, 0px));
-  border-top: 1.5px solid var(--ink);
+  border-top: 1px solid var(--line);
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   align-items: end;
@@ -36,14 +36,14 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border-radius: 15px;
+  border-radius: var(--r-sm);
   transition: background .18s, transform .18s;
 }
 .tm-tab-link[aria-current="page"] { color: var(--ink); }
 .tm-tab-link[aria-current="page"] .tm-tab-icon-pill {
-  background: var(--accent);
-  color: #111;
-  box-shadow: inset 0 0 0 1.5px #111;
+  background: color-mix(in srgb, var(--accent) 38%, transparent);
+  color: var(--ink);
+  box-shadow: none;
 }
 .tm-tab-link:active .tm-tab-icon-pill { transform: scale(.92); }
 .tm-refuel-fab {
@@ -54,7 +54,7 @@
   height: 72px;
   min-height: 72px;
   border: 2px solid #111;
-  border-radius: 22px;
+  border-radius: var(--r-lg);
   background: var(--accent);
   color: #111;
   display: grid;
@@ -62,11 +62,11 @@
   align-content: center;
   padding: 0;
   font: 700 12px/1 var(--font-sans);
-  box-shadow: 0 5px 0 #111;
+  box-shadow: 0 3px 0 #111;
   transition: transform .08s, box-shadow .08s;
 }
 .tm-refuel-fab svg { margin-bottom: 3px; }
-.tm-refuel-fab:active { transform: translateY(4px); box-shadow: 0 1px 0 #111; }
+.tm-refuel-fab:active { transform: translateY(3px); box-shadow: 0 0 0 #111; }
 .tm-refuel-fab:disabled { opacity: .45; cursor: default; }
 .tm-home-header {
   display: flex;
@@ -108,16 +108,21 @@
   padding: 0;
 }
 .tm-header-bell { border: 0; background: transparent; }
-.tm-header-account, .tm-screen-back { border: 1.5px solid var(--ink); background: var(--surface); }
-.tm-header-account { overflow: hidden; }
+.tm-header-account, .tm-screen-back { border: 1px solid var(--line); background: var(--surface); }
+.tm-header-account { border-color: transparent; }
+.tm-header-account > img, .tm-header-account > .tm-avatar-initial { position: relative; }
+.tm-avatar-initial { font-family: var(--font-display); font-weight: 400; line-height: 1; }
+.tm-header-ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); overflow: visible; pointer-events: none; transform: rotate(117deg); transform-origin: 50% 50%; }
+.tm-header-ring circle { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
+.tm-header-account:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .tm-header-unread { position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--worse); border: 2px solid var(--bg); }
 .tm-screen-header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 10px; min-height: 68px; padding: 10px 20px 12px; }
 .tm-screen-header-spacer { width: 44px; height: 44px; flex: none; }
 .tm-screen-title-wrap { min-width: 0; flex: 1; text-align: center; }
-.tm-screen-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 34px/1 var(--font-display); color: var(--ink); }
+.tm-screen-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 34px/1 var(--font-display); color: var(--ink); }
 .tm-screen-trailing { display: flex; align-items: center; justify-content: flex-end; min-width: 44px; max-width: 34%; flex: none; }
 .tm-car-switch { display: flex; flex-direction: column; gap: 16px; }
-.tm-car-choices { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1.5px solid var(--ink); }
+.tm-car-choices { display: grid; grid-template-columns: minmax(0, 1fr); border-top: 1px solid var(--line); }
 .tm-car-choice { display: flex; width: 100%; min-height: 66px; align-items: center; gap: 12px; border: 0; border-bottom: 1px solid var(--line); background: transparent; padding: 10px 0; color: var(--ink); text-align: right; }
 .tm-car-choice:disabled { opacity: .65; }
 .tm-car-choice-copy { flex: 1; min-width: 0; display: grid; gap: 1px; }

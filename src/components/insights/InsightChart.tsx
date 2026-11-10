@@ -1,5 +1,5 @@
 /* oxlint-disable react/only-export-components -- Shared chart settings belong with their accessible presentation. */
-import { useId, type ReactElement, type ReactNode } from "react";
+import { cloneElement, useId, type ReactElement, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { ResponsiveContainer } from "recharts";
 import { int, num, price } from "../../lib/format";
@@ -26,6 +26,23 @@ export const VALUE_AXIS = {
   orientation: "right" as const, tickLine: false, axisLine: false,
   tick: { fill: "var(--ink-2)", fontSize: 12, direction: "ltr", unicodeBidi: "isolate" }, width: 36,
 };
+
+/**
+ * v3 quiet line charts (Stage 7 D6, as on Home and in the prototype): the value
+ * axis keeps scaling the plot but draws nothing; values are printed at the
+ * points that matter instead.
+ */
+export const QUIET_VALUE_AXIS = { hide: true, domain: ["auto", "auto"] as ["auto", "auto"] };
+
+/** A value printed on the plot (an endpoint or the average). Decorative: the same values are in the tooltip, point names and table. */
+export function ChartValueLabel({ x, y, children, anchor = "middle", fill = "var(--ink-2)", strong = false, className = "insights-chart-value" }: {
+  x: number; y: number; children: string; anchor?: "start" | "middle" | "end"; fill?: string; strong?: boolean; className?: string;
+}) {
+  return <text className={className} x={x} y={y} textAnchor={anchor} fill={fill} fontSize={12} fontWeight={strong ? 600 : 500}
+    direction="ltr" unicodeBidi="isolate" aria-hidden="true" pointerEvents="none">
+    {children.split(/(₪)/).map((part, index) => <tspan key={index} fontSize={part === "₪" ? ".8em" : undefined}>{part}</tspan>)}
+  </text>;
+}
 
 export function InsightCard({ label, title, children, className = "", testId }: {
   label?: ReactNode; title: ReactNode; children?: ReactNode; className?: string; testId?: string;
@@ -55,11 +72,22 @@ export function InsightChart({ children, label, testId, points = 0, chronologica
     <div className={`insights-chart-scroll${wide ? " insights-chart-wide" : ""}`} dir="rtl"
       tabIndex={wide ? 0 : undefined} role={wide ? "region" : undefined} aria-label={wide ? `${label}, אפשר לגלול לכל התקופה` : undefined}>
       <div className="insights-chart-canvas" dir="ltr" style={minimumWidth !== null ? { minWidth: `${minimumWidth}px` } : undefined}>
-        <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>
+        <ResponsiveContainer width="100%" height="100%">{namedChart(children, label)}</ResponsiveContainer>
       </div>
     </div>
     <figcaption id={description} className="sr-only">{label}. {chronological ? "תחילת התקופה מימין. " : ""}הנתונים המלאים מופיעים גם בטבלה שמתחת לגרף.</figcaption>
   </figure>;
+}
+
+/**
+ * Stage 7 D8: Recharts' accessibility layer makes the chart surface a focusable
+ * `role="application"` (arrow keys move the tooltip). Give that stop a Hebrew
+ * name; a chart without the layer is not focusable and stays unnamed (the figure names it).
+ */
+function namedChart(chart: ReactElement, label: string) {
+  const props = chart.props as { accessibilityLayer?: boolean };
+  if (props.accessibilityLayer === false) return chart;
+  return cloneElement(chart as ReactElement<Record<string, unknown>>, { "aria-label": `${label}, אפשר לעבור בין הערכים בחיצים` });
 }
 
 export function ChartLegend({ color = "var(--ink)", dashed = false, block = false, outlined = false, children }: {

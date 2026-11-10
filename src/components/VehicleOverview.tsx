@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useVehicleData } from '../context/VehicleDataContext';
-import { FUEL_TYPE_SHORT, int } from '../lib/format';
+import { FUEL_TYPE_SHORT, int, num } from '../lib/format';
+import { isEv, readBattery, readMotorKw } from '../lib/vehicle/v3Fields';
 import { vehicleDay } from '../lib/vehicle/format';
 import { Odometer, PlateXL } from './DesignPrimitives';
 import { NumericText, NumRun } from './Fmt';
@@ -11,8 +12,12 @@ export function VehicleOverview() {
   const { currentMileage, edit } = useVehicleData();
   if (!activeVehicle) return null;
   const update = () => edit({ collection: 'odometerReadings', odometerIntent: 'current' });
-  const meta = [activeVehicle.year, FUEL_TYPE_SHORT[activeVehicle.fuelType],
-    activeVehicle.tankLiters ? `מיכל ${activeVehicle.tankLiters} ל׳${activeVehicle.tankLitersSource === 'estimate' ? ' · הערכה' : ''}` : null].filter(Boolean).join(' · ');
+  // An EV has no tank or engine: show the battery, range and motor instead (v3 §7.4).
+  const battery = readBattery(activeVehicle.battery), motorKw = readMotorKw(activeVehicle.motorKw);
+  const meta = (isEv(activeVehicle)
+    ? [activeVehicle.year, 'חשמלי', battery?.kwh ? `סוללה ${num(battery.kwh, 1)} kWh` : null, battery?.wltp ? `טווח ${int(battery.wltp)} ק״מ` : null, motorKw ? `${int(motorKw)} kW` : null]
+    : [activeVehicle.year, FUEL_TYPE_SHORT[activeVehicle.fuelType],
+      activeVehicle.tankLiters ? `מיכל ${activeVehicle.tankLiters} ל׳${activeVehicle.tankLitersSource === 'estimate' ? ' · הערכה' : ''}` : null]).filter(Boolean).join(' · ');
   return <section className="tm-vehicle-overview" aria-label="הרכב שלי">
     <div className="tm-vehicle-topline"><span className="tm-vehicle-eyebrow"><NumericText>{activeVehicle.nickname || 'הרכב שלי'}</NumericText></span><Link className="tm-vehicle-chip" to="/settings/vehicles">ניהול רכבים</Link></div>
     <PlateXL value={activeVehicle.plateNumber ?? ''}/>

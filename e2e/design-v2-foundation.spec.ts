@@ -12,7 +12,7 @@ import { startCareEditor } from "./helpers/care";
 const evidenceStage = process.env.DESIGN_V2_STAGE;
 const evidence = resolve(evidenceStage ? `design/v2/evidence/stage-${evidenceStage}` : "test-results/design-v2");
 const palette = [
-  ["plate", "צהוב לוחית", "#ffc915", "#e6b417"],
+  ["plate", "צהוב לוחית", "#f3c54b", "#e6b417"], // v3 §1: softer light accent; the plate (--lp) stays #ffc915
   ["mint", "מנטה", "#4fd1a5", "#46bd95"],
   ["sky", "תכלת", "#78c2f3", "#6fb2df"],
   ["peach", "אפרסק", "#ff9f6e", "#e8906a"],
@@ -54,7 +54,8 @@ async function appearance(page: Page, uid: string, theme: "light" | "dark", acce
 async function fonts(page: Page) {
   const result = await page.evaluate(async () => {
     const requests = [
-      ['700 64px "Karantina"', "אבג123"],
+      ['400 64px "Karantina"', "אבג123"], // v3 §1: display weight 400
+      ['400 22px "IBM Plex Mono"', "123456"], // v3 §3: facts-strip values
       ['400 16px "IBM Plex Sans Hebrew"', "אבג123"],
       ['600 30px "IBM Plex Mono"', "123456"],
     ];
@@ -172,21 +173,21 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
       for (const ink of ["ink", "ink-2"]) expect(contrast(values[ink], values[surface])).toBeGreaterThanOrEqual(4.5);
     }
     for (const [name, route, variant, corner, glow, heading] of [
-      ["home", "/", "home", "right", "0.55", "מצב הרכב"],
-      ["history", "/history", "journal", "left", "0.4", "יומן"],
+      ["home", "/", "home", "right", "0.3", "מצב הרכב"],
+      ["history", "/history", "journal", "left", "0.22", "יומן"],
       ["settings", "/settings", "account", "right", "0.16", "חשבון"],
-      ["atmosphere-insights", "/stats", "insights", "right", "0.4", "תובנות"],
-      ["atmosphere-vehicle", "/settings/vehicles", "vehicle", "left", "0.75", "הרכבים שלי"],
-      ["atmosphere-vehicle-tab", "/vehicle", "vehicle", "left", "0.75", "מבחן עיצוב"],
-      ["atmosphere-fillup", "/fillup/new", "entry", "left", "0.35", "תדלוק חדש"],
-      ["atmosphere-fillup-missing", "/fillup/missing-foundation", "entry", "left", "0.35", "עריכת תדלוק"],
+      ["atmosphere-insights", "/stats", "insights", "right", "0.22", "תובנות"],
+      ["atmosphere-vehicle", "/settings/vehicles", "vehicle", "left", "0.4", "הרכבים שלי"],
+      ["atmosphere-vehicle-tab", "/vehicle", "vehicle", "left", "0.4", "מבחן עיצוב"],
+      ["atmosphere-fillup", "/fillup/new", "entry", "left", "0.2", "תדלוק חדש"],
+      ["atmosphere-fillup-missing", "/fillup/missing-foundation", "entry", "left", "0.2", "עריכת תדלוק"],
       ["atmosphere-legal", "/legal/terms", "legal", "left", "0.1", "תנאי שימוש"],
       ["atmosphere-import", "/settings/import", "account", "right", "0.16", "ייבוא נתונים"],
       ["atmosphere-unsynced", "/settings/unsynced", "account", "right", "0.16", "סנכרון"],
       ["atmosphere-profile", "/settings/profile", "account", "right", "0.16", "חשבון"],
       ["atmosphere-feedback", "/feedback", "account", "right", "0.16", "משוב"],
       ["atmosphere-notifications", "/notifications", "account", "right", "0.16", "התראות"],
-      ["atmosphere-wizard", "/vehicles/new", "vehicle", "left", "0.75", "מה מספר הרכב?"],
+      ["atmosphere-wizard", "/vehicles/new", "vehicle", "left", "0.4", "מה מספר הרכב?"],
     ]) {
       await page.goto(route);
       await expect(page.getByRole("heading", { level: 1, name: heading, exact: true })).toBeVisible();
@@ -245,20 +246,21 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await signOut(page);
     await page.goto("/");
     await expect(page.getByRole("button", { name: "התחברות עם Google", exact: true })).toBeVisible();
-    await atmosphere(page, "home", "right", "0.55");
+    await atmosphere(page, "home", "right", "0.3");
     await capture(page, `atmosphere-signin-${theme}-${accent}`);
     await page.evaluate(() => localStorage.removeItem("tm.onboarded"));
     await page.reload();
-    for (let slide = 1; slide <= 3; slide++) {
+    // Design v3 §7.3: four slides.
+    for (let slide = 1; slide <= 4; slide++) {
       await expect(page.getByRole("button", { name: "דלג", exact: true })).toBeVisible();
       await expect(page.getByTestId("onboarding-slide")).toHaveAttribute("data-slide", String(slide));
       const counter = page.getByRole("progressbar", { name: "היכרות עם טנק מלא" });
       await expect(counter).toHaveAttribute("aria-valuenow", String(slide));
-      await expect(counter).toHaveAttribute("aria-valuemax", "3");
+      await expect(counter).toHaveAttribute("aria-valuemax", "4");
       await expect(page.getByTestId("onboarding-art")).toBeVisible();
-      await atmosphere(page, "home", "right", "0.55");
+      await atmosphere(page, "home", "right", "0.3");
       await capture(page, `atmosphere-onboarding-${slide}-${theme}-${accent}`);
-      if (slide < 3) await page.getByRole("button", { name: "הבא", exact: true }).click();
+      if (slide < 4) await page.getByRole("button", { name: "הבא", exact: true }).click();
     }
   });
 }
@@ -315,7 +317,7 @@ test("legacy and custom accent data normalize before React and after reload; sys
     // Pause only the application module so the inline, pre-paint bootstrap is observable.
     await page.route("**/src/main.tsx", route => route.abort());
     await page.goto("/", { waitUntil: "domcontentloaded" });
-    expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--accent-l").toLowerCase())).toBe("#ffc915");
+    expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--accent-l").toLowerCase())).toBe("#f3c54b");
     expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--accent-d").toLowerCase())).toBe("#e6b417");
     await page.unroute("**/src/main.tsx");
     await page.reload();
@@ -324,7 +326,7 @@ test("legacy and custom accent data normalize before React and after reload; sys
       await page.emulateMedia({ colorScheme });
       await expect(page.locator("html")).not.toHaveAttribute("data-theme");
       await expect.poll(async () => (await tokens(page)).bg).toBe(colorScheme === "light" ? "#f9f7f2" : "#1e1c18");
-      expect((await tokens(page)).accent).toBe(colorScheme === "light" ? "#ffc915" : "#e6b417");
+      expect((await tokens(page)).accent).toBe(colorScheme === "light" ? "#f3c54b" : "#e6b417");
     }
   }
 });

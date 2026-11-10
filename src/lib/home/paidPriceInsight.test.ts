@@ -21,9 +21,9 @@ function insight(patch: Partial<PaidPriceInsightInput> = {}) {
 describe("paid price insight", () => {
   it("uses actual amount / litres rather than a stale editable per-litre suggestion", () => {
     const item = insight()!;
-    expect(item.title).toContain("₪9");
-    expect(item.body).toContain("₪7.55");
-    expect(item.body).toContain("₪7.85");
+    expect(item.title).toContain("9\u202F₪");
+    expect(item.body).toContain("7.55\u202F₪");
+    expect(item.body).toContain("7.85\u202F₪");
     expect(item.body).toContain("בשירות עצמי מחוץ לאילת ביום התדלוק");
     expect(item.target.kind).toBe("route");
     const query = new URL(item.target.kind === "route" ? item.target.to : "", "https://example.test").searchParams;
@@ -32,8 +32,8 @@ describe("paid price insight", () => {
 
   it("compares a fill before an intramonth increase with the earlier effective price", () => {
     const before = { ...fillup, date: Date.parse("2026-11-04T10:00:00Z"), totalCost: 211.5 };
-    expect(insight({ fillups: [before] })?.body).toContain("₪7.35");
-    expect(insight({ fillups: [before] })?.title).toContain("₪9");
+    expect(insight({ fillups: [before] })?.body).toContain("7.35\u202F₪");
+    expect(insight({ fillups: [before] })?.title).toContain("9\u202F₪");
     expect(insight({ fillups: [{ ...before, totalCost: 226.5 }] })).toBeNull();
   });
 

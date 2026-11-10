@@ -1,0 +1,227 @@
+/* ===== "אוורירי" variant: same structure, lighter weight, one radius scale, softer accent ===== */
+:root{--r-lg:20px;--r-md:14px;--r-sm:10px}
+/* type: Karantina regular instead of bold, slightly smaller display sizes */
+.disp,.h1,.top .ttl,.card h4,.month b,.day b,.entry .amt,.sheet-h h3,.group-h,.title-row h4,.duo .v,.kpis b,.rem .due,.find h3,.spot-card .st b,.tco-num .disp,.cmp b,.preview b{font-weight:400!important}
+.cons .big{font-size:108px}
+.h1{font-size:54px}
+.next .when{font-size:56px}
+.tco-num .disp{font-size:60px}
+.hero-n{font-size:168px}
+.lbl{font-weight:500;letter-spacing:.01em}
+.entry .t b,.row .grow b,.disclosure,.rem b{font-weight:500}
+/* rhythm: more air */
+.pad{gap:34px;padding-top:56px}
+/* home rhythm: each block = label → number → support, separated by one even gap; consumption number + chart read as one block */
+.home-cons{display:grid;gap:14px}
+.spot{margin-bottom:0}
+.lbl{font-size:13px}
+.cons .lbl,.tco .lbl,.next .lbl{margin-bottom:2px}
+.cons-row{margin-top:-4px}
+.duo.trio{padding:2px 0}
+.duo.trio>button{gap:4px;padding:18px 0 16px}
+.duo.trio .v{font-size:34px;line-height:1}
+.duo.trio small{font-size:12px;line-height:1.3}
+.duo.trio .vu{font-size:12px;font-weight:500}
+.next .more{margin-top:2px;font-size:12.5px}
+.card,.tco{padding:20px;gap:12px}
+.next{padding:22px 20px 20px;gap:14px}
+.spot-card{min-height:88px;padding:14px 16px}
+.row{min-height:60px}
+.entry{min-height:70px}
+.duo>button{padding:16px 0}
+/* lines: hairlines instead of ink rules; ink only on the primary action and the plate */
+.card,.tco,.spot-card,.rem .ri,.row .ri,.avatar,.ib,.chip,.seg,.inp,.swatch i,.keys button,.gbtn,.level .ticks i.f,.empty,.badge.t{border-color:var(--ln)!important;box-shadow:none}
+.card,.tco,.spot-card{border-width:1px;box-shadow:0 1px 0 rgba(21,19,15,.04),0 8px 24px -18px rgba(21,19,15,.25)}
+.group,.duo,.month,.tabs{border-color:var(--ln)!important}
+.group{border-top-width:1px}.duo{border-top-width:1px;border-bottom-width:1px}.duo>button+button{border-right:1px solid var(--ln)}
+.month{border-bottom-width:1px}
+.tabs{border-top-width:1px}
+.seg button.on{background:var(--tx);color:var(--bg)}
+.ph.dark .card,.ph.dark .tco,.ph.dark .spot-card{box-shadow:none}
+/* one radius scale */
+.card,.tco,.next,.pump,.empty,.spot-card,.slide-art,.viewfinder{border-radius:var(--r-lg)!important}
+.btn,.inp,.seg,.gbtn,.keys button,.spot-card .si,.ask,.ask button,.swatch{border-radius:var(--r-md)!important}
+.badge,.row .ri,.rem .ri,.odo i,.lcd,.tab .ico{border-radius:var(--r-sm)!important}
+.ticks i{border-radius:3px}
+.sheet{border-radius:var(--r-lg) var(--r-lg) 0 0}
+/* buttons: lighter press, no slab shadow */
+.btn{border-width:1.5px;box-shadow:0 2px 0 rgba(17,17,17,.55);min-height:54px;font-weight:600}
+.btn:active{transform:translateY(2px);box-shadow:none}
+.btn.ink,.btn.line,.btn.danger{box-shadow:none}
+.btn.line{border-color:var(--ln)!important;background:var(--sf)}
+.cta{box-shadow:0 2px 0 rgba(17,17,17,.55)}
+/* FAB: the square stays (it is the one thing everyone liked) */
+.fab{box-shadow:0 3px 0 #111;border-width:2px}
+.fab:active{transform:translateY(3px);box-shadow:0 0 0 #111}
+/* tabs: tinted pill instead of a solid one */
+.tab.on .ico{background:color-mix(in srgb,var(--plate) 38%,transparent);box-shadow:none;color:var(--tx)}
+/* softer accent surfaces */
+.bgfx{--go:.35}
+.bgfx .wash{height:200px}
+.spark .band{fill:color-mix(in srgb,var(--plate) 32%,transparent)}
+.spot-card::before{opacity:.06}
+.ph .yellow{background:color-mix(in srgb,var(--plate) 82%,#fff)}
+.ph.dark .yellow{background:color-mix(in srgb,var(--plate) 80%,#000)}
+.yellow .ask{border-color:rgba(17,17,17,.25)}
+.miniplate,.plate-xl{border-color:#2A2520}
+.odo i:last-child{background:var(--plate)}
+.stamp i{background:#111}
+/* pump display: a touch lighter */
+.pump{padding:6px 20px}
+.prow input{font-weight:500;font-size:32px}
+.odo i{font-weight:500}
+/* dots & misc */
+.spot-dots i.on{background:var(--tx2)}
+
+/* ---- density pass ---- */
+.spot-card{min-height:58px;padding:8px 10px 8px 6px;grid-template-columns:36px 1fr auto;gap:10px}
+.spot-card .si{width:36px;height:36px;border-radius:var(--r-sm)!important}
+.spot-card .si svg{width:18px;height:18px}
+.spot-card .st b{font-size:21px}
+.spot{margin-bottom:-10px}
+.next .when{font-size:56px}
+.next p{display:none}
+.cons{gap:4px}
+.spark-cap{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx3);margin-top:6px}
+.spark .dot.last{stroke-width:2}
+.tco-row{gap:10px;padding:14px 16px}
+.tco-line{display:flex;align-items:center;gap:10px;font-weight:500;font-size:15px}
+.tco-line>span:first-child{flex:1}
+.tco-amt .disp{font-size:34px;line-height:1}
+.tco-amt .tco-unit{font-size:13px;padding:0}
+.tco-row .tco-bar{height:8px}
+.tco-foot{display:flex;justify-content:space-between;font-size:12.5px;color:var(--tx2)}
+.tco-foot b{color:var(--tx);font-weight:600}
+.bgfx .dial{top:40px;opacity:.06}
+.ph.dark .bgfx .dial{opacity:.09}
+.bg-home .dial{top:120px}
+.bgfx{--go:.3}
+.pad{gap:26px}
+
+/* quieter dial, lower */
+.bgfx{--do:.06}
+.bgfx .dial{top:-120px}
+
+/* electric */
+.places{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.place{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:10px;align-items:center;text-align:right;min-height:56px;padding:8px 12px;border:1px solid var(--ln);border-radius:var(--r-md);background:var(--sf);color:inherit}
+.place b{font-weight:600;font-size:14.5px}
+.place small{grid-column:2;font-size:12px;color:var(--tx2)}
+.place .pdot{grid-row:1/3;width:12px;height:12px;border-radius:4px}
+.place.on{border-color:var(--tx);box-shadow:inset 0 0 0 1px var(--tx)}
+.soc{display:grid;gap:8px}
+.soc-h{display:flex;justify-content:space-between;align-items:baseline}
+.soc-h b{font:400 30px/1 var(--display)}
+.soc .ticks i{height:26px;cursor:pointer;background:var(--sf2);box-shadow:inset 0 0 0 1px var(--ln)}
+.soc .ticks i.f{background:var(--plate);box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.soc .gk{color:var(--tx2)}
+.placebar{display:flex;gap:3px;height:12px;border-radius:6px;overflow:hidden}
+.placebar i{display:block;min-width:4px}
+
+/* ===== v3: calmer Home ===== */
+/* 1. one hero: cost is the largest number, consumption second, next refuel third */
+.tco-num .disp{font-size:64px}
+.home .cons .big{font-size:56px}
+.home .next .when{font-size:44px}
+/* 2. two container languages only: open (trio, consumption) and card (spotlight, cost, next). The dark slab goes; the FAB is the only ink block */
+.home .next{background:var(--sf);color:var(--tx);border:1px solid var(--ln);box-shadow:0 1px 0 rgba(21,19,15,.04),0 8px 24px -18px rgba(21,19,15,.25);padding:20px 20px 18px;gap:14px}
+.home .next .lbl{color:var(--tx2)}
+.home .next .when span{color:var(--tx)}
+.home .next p{color:var(--tx2)}
+.home .next .more{color:var(--tx2)}
+.home .ticks i{background:var(--sf2);box-shadow:inset 0 0 0 1px var(--ln);height:20px}
+.home .ticks i.f{background:var(--plate);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--plate) 60%,#111)}
+.home .ticks i.f.use{background:color-mix(in srgb,var(--plate) 55%,var(--tx));box-shadow:none}
+.home .ticks i.low{background:var(--worse)}
+.home .ticks .hab{background:var(--tx);top:-5px;bottom:-5px}
+.home .gk{color:var(--tx3)}
+.home .gk span:nth-child(2){color:var(--tx2)}
+.ph.dark .home .next{box-shadow:none}
+/* 3. greeting line under the car name */
+.home-top{display:grid;gap:6px}
+.home .status{margin:0;font-size:15px;color:var(--tx)}
+/* 4. trio: facts separated by air, not rules; small icon over each label */
+.home .duo.trio>button+button{border-right:0;padding-right:0}
+.home .duo.trio>button{padding:16px 0 14px;justify-items:start;gap:3px}
+.home .duo.trio>button svg{width:18px;height:18px;color:var(--tx2);margin-bottom:4px}
+.home .duo.trio .v{font-size:32px}
+/* 5. the comparison reads as text, not as a sticker */
+.home .pill.worse,.home .pill.better,.home .pill.neutral{background:transparent;padding:0;font-weight:500;font-size:14px;border-radius:0}
+.home .pill.worse{color:var(--worse)}.home .pill.better{color:var(--better)}.home .pill.neutral{color:var(--tx2)}
+/* 6. quieter chart */
+.home .spark .val{font-size:12px}
+.home .spark-cap{display:flex;justify-content:space-between;font-size:12px;color:var(--tx3);margin-top:2px}
+.home .spark-cap b{font-weight:600;color:var(--tx2)}
+.home .home-cons{gap:10px}
+/* 9. end of page: a few recent rows and a way into the journal */
+.home .recent{display:grid}
+.home .recent-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.home .linkbtn{border:0;background:none;padding:0;font-size:14px;font-weight:600;color:var(--tx);min-height:0}
+.home .recent .entry{min-height:62px}
+.home .recent .entry:last-child{border-bottom:0}
+/* 10. the dial is atmosphere, not an object */
+.bgfx{--do:.04}.bgfx .dial{top:-170px}
+
+/* v3.1 */
+/* avatar: ring in the chosen accent, open at the top-left like a small gauge arc */
+.avatar{border-color:transparent!important;background:var(--sf)}
+.avatar .ring{position:absolute;inset:-1px;width:calc(100% + 2px);height:calc(100% + 2px);fill:none;stroke:var(--plate);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:112 132;transform:rotate(117deg);transform-origin:50% 50%}
+.ph.dark .avatar .ring{stroke:var(--plate)}
+/* facts: a receipt strip instead of a three-column KPI grid */
+.facts{display:grid;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
+.facts>button,.facts>div{display:flex;align-items:center;gap:10px;min-height:58px;padding:9px 0;border:0;background:none;text-align:right;color:inherit;width:100%}
+.facts>*+*{border-top:1px dashed var(--ln)}
+.facts .fl{display:grid;gap:1px;font-size:15px;font-weight:500;flex:none;max-width:60%}
+.facts .fl small{font-size:12px;font-weight:400;color:var(--tx2)}
+.facts .ld{flex:1;height:0;border-top:1.5px dotted color-mix(in srgb,var(--tx3) 55%,transparent);margin-top:2px}
+.facts .fv{display:flex;align-items:baseline;gap:5px;flex:none;direction:rtl}
+.facts .fv .n{font:400 22px/1 var(--mono);letter-spacing:-.01em}
+.facts .fv u{text-decoration:none;font:400 12px var(--body);color:var(--tx2)}
+.facts>button:active{opacity:.6}
+/* gauge: the habit line carries its own label */
+.home .ticks{margin-top:18px}
+.home .ticks .hab.lbl em{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap;font:500 11px var(--body);font-style:normal;color:var(--tx2);direction:rtl}
+.home .ticks .hab.lbl em::after{content:"";position:absolute;top:100%;left:50%;width:1px;height:3px;background:var(--tx2)}
+
+/* v3.2 */
+/* cost categories: one hue each, readable on both themes */
+.ph{--c-fuel:var(--plate);--c-service:#15130F;--c-ins1:#2E5C8A;--c-ins2:#86ACCF;--c-test:#8C6A3F;--c-other:#B9B2A4}
+.ph.dark{--c-service:#D9D2C3;--c-ins1:#6E9ED4;--c-ins2:#A9C6E4;--c-test:#B99263;--c-other:#6F685D}
+.tco-legend{display:flex;flex-wrap:wrap;gap:6px 14px}
+.tco-per{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;margin-inline-start:2px;border:1px solid var(--ln);border-radius:99px;font-size:13px;color:var(--tx2);cursor:pointer}
+.tco-per svg{width:13px;height:13px}
+/* journal filter row: chips fade out at the edges instead of being cut */
+.scrollx{-webkit-mask-image:linear-gradient(to left,transparent,#000 14px,#000 calc(100% - 14px),transparent);mask-image:linear-gradient(to left,transparent,#000 14px,#000 calc(100% - 14px),transparent)}
+
+/* ===== parity pass: tables, histogram, year rows, update banner ===== */
+.tbl{border-top:1px solid var(--ln);padding-top:10px}
+.tbl summary{font-weight:600;font-size:14px;cursor:pointer;color:var(--tx)}
+.tbl table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+.tbl th{font-weight:500;color:var(--tx2);font-size:12px;text-align:right;padding:4px 2px;border-bottom:1px solid var(--ln)}
+.tbl td{padding:8px 2px;border-bottom:1px dashed var(--ln);text-align:right;vertical-align:top}
+.tbl td.n,.tbl th.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl tbody tr{cursor:pointer}
+.tbl .flag{color:var(--worse)}
+.hist{display:flex;align-items:flex-end;gap:6px;height:110px;padding:8px 0 0}
+.hist .hb{flex:1;display:grid;justify-items:center;align-content:end;gap:4px;position:relative}
+.hist .hb i{display:block;width:100%;background:var(--c-other);border-radius:6px 6px 2px 2px}
+.hist .hb.me i{background:var(--plate);box-shadow:inset 0 0 0 1.5px var(--tx)}
+.hist .hb small{font-size:11px;color:var(--tx3)}
+.hist .hb b{position:absolute;top:-16px;font-size:11px;font-weight:600}
+.yearrow{display:grid;grid-template-columns:auto 1fr auto 16px;align-items:center;gap:10px;min-height:44px;padding:0;border:0;background:none;color:inherit;text-align:right}
+.yearrow>i{display:block;height:8px;background:var(--sf2);border-radius:4px;overflow:hidden}
+.yearrow>i b{display:block;height:100%;background:var(--plate)}
+.yearrow>span{font-size:14px}
+.update{position:absolute;left:16px;right:16px;top:14px;z-index:30;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--sf);border:1px solid var(--ln);box-shadow:0 8px 24px -12px rgba(21,19,15,.35);font-size:14px}
+.update .grow{display:grid;gap:1px}.update small{color:var(--tx2);font-size:12px}
+.steps i.err{background:var(--worse)}
+.amt.better{color:var(--better)}
+.entry .flag{color:var(--worse);font-weight:600}
+.chip.n{font-variant-numeric:tabular-nums}
+.recent-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.linkbtn{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--tx);cursor:pointer;min-height:0;text-decoration:underline dotted}
+.warnbox button.linkbtn{color:inherit}
+details.note summary{cursor:pointer;font-weight:600;color:var(--tx2)}
+details.note p{margin:6px 0 0}
+.facts .fv .n.muted{color:var(--tx2)}
+input.chip[type=date]{font:inherit;color:var(--tx);background:var(--sf)}

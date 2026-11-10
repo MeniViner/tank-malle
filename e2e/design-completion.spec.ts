@@ -19,6 +19,9 @@ test('entry previews, editable plate and registry confirmation remain usable at 
   await page.getByTestId('onboarding-next').click();
   await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','3');
   await page.getByTestId('onboarding-next').click();
+  // Design v3 §7.3: a fourth slide (nothing falls through).
+  await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','4');
+  await page.getByTestId('onboarding-next').click();
   await expect(page.getByTestId('signin-consent')).not.toBeChecked();
   await signIn(page, ALICE);
   let registryRequests = 0;
@@ -54,10 +57,10 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
         await expect(page.locator('main')).toBeVisible();
         // Assert populated surfaces, so a narrow loading skeleton cannot pass.
         if (path === '/') await expect(page.getByTestId('consumption-chart')).toBeVisible();
-        if (path === '/history') await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
+        if (path === '/history') await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('560\u202F₪');
         if (path === '/stats') {
           await page.getByTestId('insights-tab-spend').click();
-          await expect(page.getByTestId('running-total')).toContainText('₪560');
+          await expect(page.getByTestId('running-total')).toContainText('560\u202F₪');
         }
         if (path === '/fillup/new') await expect(page.getByLabel('מחיר לליטר', {exact:true})).toHaveValue('7.77');
         if (path === '/settings') await expect(page.getByTestId('account-discount')).toBeVisible();
@@ -66,7 +69,7 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
     }
   }
   await page.goto('/history');
-  await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
+  await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('560\u202F₪');
   await page.goto('/');
   await expect(page.getByTestId('consumption-chart').getByRole('img')).toHaveAccessibleName(/12.5 קמ״ל/);
   await page.getByTestId("tank-hero").click();

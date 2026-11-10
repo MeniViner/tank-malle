@@ -48,7 +48,7 @@ export function UpdatePrompt() {
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[100px] z-[80] flex justify-center px-4 pb-safe">
-      <div className="tm-toast-in pointer-events-auto flex w-full max-w-[390px] items-center gap-3 rounded-[20px] border border-line bg-surface p-3 shadow-raised">
+      <div className="tm-toast-in pointer-events-auto flex w-full max-w-[390px] items-center gap-3 rounded-lg border border-line bg-surface p-3 shadow-raised">
         <span className="flex size-9 flex-none items-center justify-center rounded-tile bg-accent-soft text-ink">
           <RefreshIcon size={18} />
         </span>

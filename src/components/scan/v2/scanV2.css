@@ -1,0 +1,66 @@
+/* Scan v2 verification screen. Uses the app's tokens only. */
+.scan-verify { display: flex; flex-direction: column; gap: 14px; }
+.scan-verify-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 12px; align-items: start; }
+.scan-verify-crop {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: #101719;
+  image-rendering: auto;
+}
+.scan-verify-fields { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.scan-verify-field { display: flex; flex-direction: column; gap: 4px; }
+.scan-verify-field > label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.scan-verify-digits {
+  display: inline-flex;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+  direction: ltr;
+  justify-content: flex-end;
+}
+.scan-verify-digits > span { min-width: .9ch; padding: 0 2px; text-align: center; border-radius: 6px; }
+.scan-verify-digits > span.is-dot { min-width: .4ch; padding: 0; }
+.scan-verify-digits > span.is-weakest {
+  color: var(--warning-ink);
+  background: var(--warning-soft);
+  outline: 2px solid var(--warning);
+  outline-offset: -1px;
+}
+.scan-verify-input {
+  min-height: 44px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--muted);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+.scan-verify-input[aria-invalid='true'] { border-color: var(--danger); }
+.scan-verify-input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.scan-verify-hint { font-size: 12px; color: var(--muted); min-height: 1em; }
+.scan-verify-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.scan-verify-options button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--muted);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+}
+.scan-verify-options button[aria-pressed='true'] { background: var(--accent); color: var(--accent-contrast); border-color: transparent; }
+.scan-verify-options button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.scan-verify-checks { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.scan-verify-checks li { display: flex; align-items: center; gap: 6px; }
+.scan-verify-checks li.is-ok { color: var(--ink); }
+.scan-verify-checks li.is-failed { color: var(--danger-ink); }
+.scan-verify-warning { padding: 10px 12px; border-radius: 12px; background: var(--warning-soft); color: var(--warning-ink); font-size: 13px; }
+.scan-verify-actions { display: flex; flex-direction: column; gap: 8px; }

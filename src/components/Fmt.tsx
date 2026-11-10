@@ -25,27 +25,54 @@ export function NumRun({ children, className = "", block = false, align = "leadi
   }, []);
   const content = parts.map((child, index) => {
     if (typeof child !== "string") return child;
-    const numeric = child.match(/^([+−-]?)(₪?)(\s*)([+−-]?)([\d,\u200e\u200f.]+)([%₪]?)$/);
-    if (!numeric || !(numeric[2] || numeric[6])) return child;
-    const [, leadingSign, currency, spacing, priceSign, digits, suffix] = numeric;
-    if (leadingSign && priceSign || currency && suffix) return child;
-    // DOM/reading order stays exactly as authored; CSS places the unit on the
-    // left without changing copied text, accessible names, signs or precision.
+    // Accepts the v3 formatter output ("777\u202F₪", "−12\u202F₪", "25%") and
+    // legacy authored prefix strings ("₪25") without changing a single character.
+    const numeric = child.match(/^([+−-]?)(₪?)(\s*)([+−-]?)([\d,\u200e\u200f.]+)([\u202F\u00A0 ]?)([%₪]?)$/);
+    if (!numeric || !(numeric[2] || numeric[7])) return child;
+    const [, leadingSign, currency, spacing, priceSign, digits, gap, suffix] = numeric;
+    if (leadingSign && priceSign || currency && suffix || gap && !suffix) return child;
+    // DOM/reading order stays exactly as authored. A trailing ₪ (v3 §5) stays
+    // after the digits; CSS keeps % and a legacy leading ₪ on the left without
+    // changing copied text, accessible names, signs or precision.
+    const trailing = suffix === "₪" ? "trailing" : undefined;
     return <span key={index} className="tm-symbol-number">
       {leadingSign ? <span className="tm-number-sign">{leadingSign}</span> : null}
       {currency ? <span className="tm-unit-symbol">{currency}</span> : null}
       {spacing ? <span className="tm-number-spacing">{spacing}</span> : null}
       <span className="tm-number-value">{priceSign}{digits}</span>
-      {suffix ? <span className="tm-unit-symbol">{suffix}</span> : null}
+      {gap ? <span className="tm-number-spacing" data-unit-position={trailing}>{gap}</span> : null}
+      {suffix ? <span className="tm-unit-symbol" data-unit-position={trailing}>{suffix}</span> : null}
     </span>;
   });
   return <bdi dir="ltr" data-number-align={align}
     className={`num tm-number${block ? " tm-number-block" : ""} ${className}`}>{content}</bdi>;
 }
 
+/**
+ * A Latin phrase that mixes letters and digits ("i20", "BYD ATTO 3", "ID.4")
+ * is one LTR word. Isolating only its digits would push them to the far end
+ * of the RTL line ("20i", "3 BYD ATTO"), so the whole phrase is isolated once.
+ */
+const LATIN_PHRASE = /(?<![\p{L}\p{N}.,])[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*(?: [A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)*(?![\p{L}\p{N}])/gu;
+const isLatinAlnum = (phrase: string) => /[A-Za-z]/.test(phrase) && /\d/.test(phrase);
+
 /** Mixed labels keep numeric fragments isolated; this never formats their values. */
 export function NumericText({ children }: { children: string }) {
-  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*[+−-]?)?\d(?:[\d,.:/]*\d)?[%₪]?)/gu)
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  for (const match of children.matchAll(LATIN_PHRASE)) {
+    if (!isLatinAlnum(match[0])) continue;
+    if (match.index > cursor) parts.push(<NumericFragments key={cursor}>{children.slice(cursor, match.index)}</NumericFragments>);
+    parts.push(<bdi key={match.index} dir="ltr" className="tm-latin-run">{match[0]}</bdi>);
+    cursor = match.index + match[0].length;
+  }
+  if (!parts.length) return <NumericFragments>{children}</NumericFragments>;
+  if (cursor < children.length) parts.push(<NumericFragments key={cursor}>{children.slice(cursor)}</NumericFragments>);
+  return <>{parts}</>;
+}
+
+function NumericFragments({ children }: { children: string }) {
+  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*[+−-]?)?\d(?:[\d,.:/]*\d)?(?:%|[\u202F\u00A0 ]?₪)?)/gu)
     .map((part, index) => index % 2 ? <NumRun key={index}>{part}</NumRun>
       : !/[₪%]/.test(part) ? part : <Fragment key={index}>{part.split(/([₪%])/).map((text, symbolIndex) => text === "₪" || text === "%"
         ? <span key={symbolIndex} className="tm-unit-symbol">{text}</span> : text)}</Fragment>)}</>;

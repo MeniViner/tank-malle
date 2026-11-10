@@ -175,7 +175,7 @@ export function DateTimePicker({
               commitTypedDate((event.target as HTMLInputElement).value);
             }
           }}
-          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none"
+          className="num min-h-[44px] w-full rounded-sm bg-transparent text-[16px] font-semibold text-ink outline-none"
         />
       </EntryRow>
 
@@ -216,7 +216,7 @@ export function DateTimePicker({
               commitTypedTime((event.target as HTMLInputElement).value);
             }
           }}
-          className="num min-h-[44px] w-full rounded-md bg-transparent text-[16px] font-semibold text-ink outline-none"
+          className="num min-h-[44px] w-full rounded-sm bg-transparent text-[16px] font-semibold text-ink outline-none"
         />
       </EntryRow>
 
@@ -249,7 +249,7 @@ function EntryRow({
   children: React.ReactNode;
 }) {
   return (
-    <div data-datetime-field={label} className="flex min-h-[56px] items-center gap-3 rounded-[14px] border border-line bg-surface px-3.5">
+    <div data-datetime-field={label} className="flex min-h-[56px] items-center gap-3 rounded-md border border-line bg-surface px-3.5">
       <span className="w-[46px] flex-none text-[13px] font-semibold text-muted">
         {label}
       </span>

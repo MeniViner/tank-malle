@@ -138,7 +138,7 @@ describe("Home spotlight priorities and private dismissals", () => {
 
   it("keeps a price change fuel-specific, month-matched and separate from guessed capacity", () => {
     const change = deriveSpotlight(input()).find(item => item.id.startsWith("price:"));
-    expect(change?.body).toContain("₪50");
+    expect(change?.body).toContain("50\u202F₪");
     expect(deriveSpotlight(input({ vehicle: { ...vehicle, tankLitersSource: "estimate" } })).find(item => item.id.startsWith("price:"))?.body).not.toContain("מיכל");
     expect(deriveSpotlight(input({ vehicle: { ...vehicle, fuelType: "diesel" } })).some(item => item.id.startsWith("price:"))).toBe(false);
     expect(deriveSpotlight(input({ prices: { byFuelType: { "95": { self: { history: { "2026-11": 8 }, source: "scheduled", current: { pricePerLiter: 8, effectiveFrom: now } } } } } })).some(item => item.id.startsWith("price:"))).toBe(false);
@@ -159,5 +159,25 @@ describe("Home spotlight priorities and private dismissals", () => {
     expect(readSpotlightDismissals('["old",7,null,"new"]')).toEqual(["old", "new"]);
     const items = deriveSpotlight(input({ vehicle: null, storageUnknown: true }));
     expect(items).toHaveLength(1); expect(items[0].sticky).toBe(true); expect(items[0].title).not.toContain("0");
+  });
+
+  it("places the v3 planned-trip card after rejected writes and reminders, before price and month items", () => {
+    const trip = { planId: "trip-1", day: "2026-11-05", distanceKm: 380, rangeToReserveKm: 120 };
+    const items = deriveSpotlight(input({ trip, outbox: [{ status: "failed" }], reminders: [{ plan: { ...plan, dueDay: "2026-11-04", dueOdometer: null },
+      due: { day: "2026-11-04", odometer: null, completed: false }, occurrence: "reminder:oil:2026-11-04" }] }));
+    const ids = items.map(item => item.id);
+    expect(ids[0]).toBe("writes-attention");
+    expect(ids.indexOf("trip:trip-1:2026-11-05")).toBeGreaterThan(ids.indexOf("reminder:oil:2026-11-04"));
+    expect(ids.indexOf("trip:trip-1:2026-11-05")).toBeLessThan(ids.findIndex(id => id.startsWith("price") || id.startsWith("official")) >>> 0);
+    // Without a forecast pull there is no trip card at all.
+    expect(deriveSpotlight(input()).some(item => item.id.startsWith("trip:"))).toBe(false);
+  });
+
+  it("date reminder and document spotlight titles read on one line", () => {
+    const single = deriveSpotlight(input({ documents: vehicleDocumentSpotlights(vehicleDocumentOccurrences({ id: "car", docs: { test: { due: "2026-11-25" } } }, "2026-11-03")) }));
+    expect(single.find(item => item.id.startsWith("doc:test"))?.title).toBe("הטסט בעוד 22 ימים");
+    const reminder = deriveSpotlight(input({ reminders: [{ plan: { ...plan, dueDay: "2026-11-20", dueOdometer: null },
+      due: { day: "2026-11-20", odometer: null, completed: false }, occurrence: "reminder:oil:2026-11-20" }] }));
+    expect(reminder.find(item => item.id === "reminder:oil:2026-11-20")?.title).toBe("שמן ומסננים בעוד 17 ימים");
   });
 });

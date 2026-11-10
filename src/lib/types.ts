@@ -82,4 +82,9 @@ export interface PlateLookupResult {
   /** Registry codes, used to join the WLTP spec register exactly. */
   tozeretCd?: number | null;
   degemCd?: number | null;
+  /**
+   * Design v3: from the registry's fuel label. "ev" for a battery-electric car
+   * (fuelType stays "other"), "phev" for a plug-in; null/absent = not stated.
+   */
+  powertrain?: import('./vehicle/v3Fields').Powertrain | null;
 }

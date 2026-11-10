@@ -1,5 +1,6 @@
 import { lookupDeclared } from "./declaredCatalog";
-import { manufacturerTank } from "./manufacturerSpecs";
+import { manufacturerBattery, manufacturerTank } from "./manufacturerSpecs";
+import { horsepowerToKw, powertrainFromRegistry, type Powertrain, type VehicleBattery } from "./vehicle/v3Fields";
 import type { FuelType } from "./types";
 
 /**
@@ -84,6 +85,13 @@ export interface VehicleSpecs {
   trustedTankLiters?: number | null;
   sourceUrl?: string | null;
   tankSourceUrl?: string | null;
+  /** Design v3 (EV from plate). From the WLTP row's fuel/drive labels, else the caller's hint. */
+  powertrain?: Powertrain | null;
+  /** Motor power in kW, from the WLTP row's `koah_sus`. Reported for every powertrain. */
+  motorKw?: number | null;
+  /** EV battery from the sourced supplement only — the registers carry no kWh/range. */
+  battery?: VehicleBattery | null;
+  batterySourceUrl?: string | null;
 }
 
 const EMPTY: VehicleSpecs = {
@@ -194,12 +202,19 @@ export async function fetchVehicleSpecs(
     degemCd?: number | null;
     year?: number | null;
     fuelType?: FuelType;
+    /** From the plate lookup, when the registry already said "electric". */
+    powertrain?: Powertrain | null;
   },
   signal?: AbortSignal,
 ): Promise<VehicleSpecs> {
   const { tozeretCd, degemCd, year, fuelType = "95" } = params;
-  const trustedTank = manufacturerTank(params.make, params.model, year, fuelType);
-  const fallback: VehicleSpecs = { ...EMPTY, trustedTankLiters: trustedTank?.liters ?? null, tankSourceUrl: trustedTank?.url ?? null };
+  const hinted = params.powertrain ?? null;
+  const trustedTank = hinted === "ev" ? null : manufacturerTank(params.make, params.model, year, fuelType);
+  const evFields = (powertrain: Powertrain | null, motorKw: number | null): Pick<VehicleSpecs, "powertrain" | "motorKw" | "battery" | "batterySourceUrl"> => {
+    const battery = powertrain === "ev" ? manufacturerBattery(params.make, params.model, year) : null;
+    return { powertrain, motorKw, battery: battery ? { kwh: battery.kwh, wltp: battery.wltp } : null, batterySourceUrl: battery?.url ?? null };
+  };
+  const fallback: VehicleSpecs = { ...EMPTY, trustedTankLiters: trustedTank?.liters ?? null, tankSourceUrl: trustedTank?.url ?? null, ...evFields(hinted, null) };
   if ((!tozeretCd || !degemCd) && (!params.model || !year)) return fallback;
 
   const attempts: { filters: Record<string, string>; source: DeclaredSource }[] = [];
@@ -249,8 +264,11 @@ export async function fetchVehicleSpecs(
       const bodyType = typeof row.merkav === "string" ? row.merkav.trim() || null : null;
       const rowYear = toNumber(row.shnat_yitzur);
 
-      const certified = await lookupDeclared(row, signal);
-      const declaredKmPerLiter = certified?.kmPerLiter ?? declaredFromCo2(co2, fuelType);
+      const powertrain = powertrainFromRegistry(row.delek_nm, row.technologiat_hanaa_nm) ?? hinted;
+      const electric = powertrain === "ev";
+      const certified = electric ? null : await lookupDeclared(row, signal);
+      // km/L and a litre tank are meaningless for a battery-electric car.
+      const declaredKmPerLiter = electric ? null : certified?.kmPerLiter ?? declaredFromCo2(co2, fuelType);
       // A looser-year hit is an estimate even when the row is otherwise exact.
       const matchedExactYear =
         attempt.source === "exact-year" || (year !== null && rowYear === year);
@@ -265,9 +283,11 @@ export async function fetchVehicleSpecs(
             ? "exact-year"
             : "other-year",
         matchedYear: rowYear ?? (matchedExactYear ? (year ?? null) : null),
-        suggestedTankLiters: estimateTank(bodyType, engineCc),
+        suggestedTankLiters: electric ? null : estimateTank(bodyType, engineCc),
+        ...(electric ? { trustedTankLiters: null, tankSourceUrl: null } : {}),
         bodyType,
-        engineCc,
+        engineCc: electric ? null : engineCc,
+        ...evFields(powertrain, horsepowerToKw(row.koah_sus)),
         co2WltpGramsPerKm: co2,
         consumptionIsOfficial: Boolean(certified) && matchedExactYear,
       };

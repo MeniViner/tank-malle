@@ -49,7 +49,7 @@
 .care-entry-sheet .care-entry-heading h3 {
   margin: 0;
   color: var(--ink);
-  font: 700 54px/1.05 var(--font-display);
+  font: 400 54px/1.05 var(--font-display);
   letter-spacing: normal;
   text-align: right;
   text-wrap: pretty;
@@ -62,7 +62,7 @@
   gap: 9px;
   padding: 12px;
   border: 1px solid var(--ink);
-  border-radius: 18px;
+  border-radius: var(--r-lg);
   background: var(--surface);
   color: var(--ink);
   font-size: 16px;
@@ -81,7 +81,8 @@
 .care-entry-category svg { flex: none; width: 18px; height: 18px; }
 .care-entry-details { display: flex; flex-direction: column; gap: 18px; }
 .care-entry-cost { display: grid; gap: 6px; }
-.care-v2-editor .tm-field-control { min-height: 52px; border: 1.5px solid var(--ink); border-radius: 12px; }
+.care-v2-editor .tm-field-control { min-height: 52px; border-width: 1px; border-style: solid; border-radius: var(--r-md); }
+.care-v2-editor .tm-field-control:not(.border-danger):not(.border-warning) { border-color: var(--line-control); }
 .care-v2-editor input[dir=ltr] { text-align: right; font-family: var(--font-mono); font-weight: 400; }
 .care-v2-editor input[type=date] { min-width: 0; width: 100%; }
 .care-v2-editor input[type=date]::-webkit-date-and-time-value { text-align: right; }
@@ -94,8 +95,8 @@
   min-height: 96px;
   resize: vertical;
   padding: 12px 14px;
-  border: 1.5px solid var(--ink);
-  border-radius: 12px;
+  border: 1px solid var(--line-control);
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--ink);
   font: 400 17px/1.5 var(--font-sans);
@@ -134,7 +135,7 @@
   outline: 2px solid var(--ink);
   outline-offset: 3px;
 }
-.care-odometer-sheet .care-step-heading h3 { font: 700 34px/1.05 var(--font-display); }
+.care-odometer-sheet .care-step-heading h3 { font: 400 34px/1.05 var(--font-display); }
 .care-odometer-sheet .care-editor-footer { background: var(--bg); }
 .care-odometer-details { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .care-odometer-details > .tm-field-row { padding-inline: 0; }

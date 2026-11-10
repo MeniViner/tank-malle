@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateTco, type TcoInput } from './tco';
+import { calculateTco, tcoLegendParts, type TcoInput, type TcoPart } from './tco';
 import { EMPTY_CARE, type ServiceEvent, type VehicleExpense } from './maintenance/model';
 import { buildLedger } from './vehicle/derived';
 import { EMPTY_EXTRA } from './vehicle/model';
@@ -22,6 +22,13 @@ const input = (patch: Partial<TcoInput> = {}): TcoInput => ({
 const part = (result: ReturnType<typeof calculateTco>, id: string) => result.parts.find(item => item.id === id)!;
 
 describe('true cost of ownership', () => {
+  it('labels the energy part "חשמל" for an EV without changing any value (Stage 7 D2)', () => {
+    const fuel = calculateTco(input()), ev = calculateTco(input({ ev: true }));
+    expect(part(fuel, 'fuel').label).toBe('דלק');
+    expect(part(ev, 'fuel').label).toBe('חשמל');
+    expect({ ...ev, parts: ev.parts.map(item => ({ ...item, label: '' })), missing: [] })
+      .toEqual({ ...fuel, parts: fuel.parts.map(item => ({ ...item, label: '' })), missing: [] });
+  });
   it('combines one recorded calendar month with amortised annual documents', () => {
     const result = calculateTco(input({ ledger: rows([fill('fuel')], [expense('parking', 500)], [service(3000)]) }));
     expect(result.window).toBe(1);
@@ -136,5 +143,15 @@ describe('true cost of ownership', () => {
   });
   it('requires a real civil date', () => {
     expect(() => calculateTco(input({ today: '2026-02-31' }))).toThrow(TypeError);
+  });
+});
+
+describe('v3 TCO legend order', () => {
+  const part = (id: TcoPart['id'], knownValue: number): TcoPart => ({ id, label: id, value: knownValue, knownValue });
+  it('lists every non-zero part, largest first, ties in engine order', () => {
+    const parts = [part('fuel', 295), part('service', 175), part('mandatory', 98), part('coverage', 80), part('test', 118), part('other', 0)];
+    expect(tcoLegendParts({ parts }).map(row => row.id)).toEqual(['fuel', 'service', 'test', 'mandatory', 'coverage']);
+    expect(tcoLegendParts({ parts: [part('other', 10), part('fuel', 10)] }).map(row => row.id)).toEqual(['other', 'fuel']);
+    expect(tcoLegendParts({ parts: [part('fuel', 0)] })).toEqual([]);
   });
 });

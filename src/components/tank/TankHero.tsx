@@ -7,9 +7,9 @@ import { TankHabitLevel, TankLevel, TankPassage, TankSource } from "./TankPresen
 import type { TankHeroProps } from "./types";
 import "../../tank-design.css";
 
-export type { TankHeroProps, TankSheetEntry } from "./types";
+export type { TankHeroEstimate, TankHeroProps, TankSheetEntry } from "./types";
 
-/** A view of the one Home estimate, never another hook or a second forecast. */
+/** A view of the one Home estimate, never another hook or a second forecast. v3: a light card (§2.7). */
 export function TankHero({ estimate, loading = false, onOpen }: TankHeroProps) {
   const labelId = useId();
   const headlineId = useId();
@@ -32,14 +32,16 @@ export function TankHero({ estimate, loading = false, onOpen }: TankHeroProps) {
       {known ? <TankPassage passage={estimate.expectedRefuel} headline /> : "כמה דלק יש עכשיו?"}
     </span>
     {known ? <div className="tm-tank-hero-level">
-      <Gauge value={level} habit={qualifiedHabit ? estimate.habit.typicalLevel : null} low={low} />
-      <span id={`${descriptionId}-level`} className="tm-tank-gauge-caption">
-        <span data-testid="current-tank-level"><TankLevel level={level} /></span>
-        {estimate.rangeToReserveKm !== null && estimate.rangeToReserveKm > 0
-          ? <> · כ־<Distance value={estimate.rangeToReserveKm} /> עד לרזרבה</> : null}
-      </span>
+      <Gauge value={level} habit={qualifiedHabit ? estimate.habit.typicalLevel : null} low={low} showUse
+        habitLabel={!qualifiedHabit ? undefined : estimate.habit.overridden ? "כאן לפי ההעדפה שלך" : "כאן בד״כ מתדלקים"}
+        caption={<span id={`${descriptionId}-level`} className="tm-tank-gauge-caption">
+          במיכל <span data-testid="current-tank-level"><TankLevel level={level} /></span>
+          {estimate.rangeToReserveKm !== null && estimate.rangeToReserveKm > 0
+            ? <> · כ־<Distance value={estimate.rangeToReserveKm} /> עד לרזרבה</> : null}
+        </span>} />
     </div> : <span id={`${descriptionId}-level`} data-testid="current-tank-level" className="sr-only">כמות הדלק לא ידועה</span>}
-    <span id={`${descriptionId}-habit`} className="tm-tank-hero-note">
+    {/* v3: the labelled habit line says this on the gauge; the sentence stays for assistive technology. */}
+    <span id={`${descriptionId}-habit`} className={known && qualifiedHabit ? "sr-only" : "tm-tank-hero-note"}>
       {!known ? "הקישו כדי לסמן את מחוון הדלק."
         : estimate.habit.overridden ? <>לפי ההעדפה שלך, תדלוק סביב <Percent value={estimate.habit.typicalLevel * 100} />.</>
           : estimate.habit.canClaim ? <>בדרך כלל אתה מתדלק כשנשארים <TankHabitLevel habit={estimate.habit} />.</>

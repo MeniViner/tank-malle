@@ -90,7 +90,7 @@ export function Settings() {
     <main className="flex flex-1 flex-col gap-5 pb-[104px] pt-safe">
       <NotificationPreferences open={notificationPreferencesOpen} onClose={()=>setNotificationPreferencesOpen(false)}/>
       <header className="px-5 pb-1 pt-5">
-        <h1 className="font-display text-[30px] font-bold leading-[1.15] text-ink">הגדרות</h1>
+        <h1 className="font-display text-[30px] font-normal leading-[1.15] text-ink">הגדרות</h1>
       </header>
       <div className="flex flex-col gap-6 px-5">
         <ListCard>
@@ -224,7 +224,7 @@ export function Settings() {
                   setAccent(option.id);
                   void updateSettings({ accentColor: option.id, customAccent: null });
                 }}
-                className="flex flex-col items-center gap-2 rounded-[16px] border-2 border-transparent p-2 transition-transform duration-200 active:scale-[0.96] aria-pressed:border-ink aria-pressed:bg-surface-2"
+                className="flex flex-col items-center gap-2 rounded-md border-2 border-transparent p-2 transition-transform duration-200 active:scale-[0.96] aria-pressed:border-ink aria-pressed:bg-surface-2"
               >
                 <span
                   className="flex size-[52px] items-center justify-center rounded-full border-2 transition-[border-color] duration-200"
@@ -297,7 +297,7 @@ function ShareSection() {
           <p className="text-[14px] leading-relaxed text-ink/85">
             {buildSharePayload().text}
           </p>
-          <div className="flex items-center gap-2 rounded-[14px] border border-line bg-bg px-3.5 py-3">
+          <div className="flex items-center gap-2 rounded-md border border-line bg-bg px-3.5 py-3">
             <span dir="ltr" className="num min-w-0 flex-1 truncate text-[14px] text-ink">
               {APP_SHARE_URL}
             </span>

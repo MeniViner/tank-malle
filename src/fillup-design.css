@@ -1,8 +1,10 @@
 /* Design v2: controlled receipt form and the locally accepted save reveal. */
 .fillup-form { min-height: 100dvh; padding-top: max(12px, env(safe-area-inset-top)); color: var(--ink); }
-.fillup-header { display: grid; grid-template-columns: 44px minmax(0,1fr) 44px; align-items: center; gap: 8px; margin: 0 20px 16px; }
-.fillup-header h1 { margin: 0; text-align: center; font: 700 40px/1 var(--font-display); }
-.fillup-header .tm-icon-button { border: 1.5px solid var(--ink); border-radius: 50%; background: var(--surface); }
+.fillup-header { display: grid; grid-template-columns: 96px minmax(0,1fr) 96px; align-items: center; gap: 8px; margin: 0 20px 16px; }
+.fillup-header > .tm-icon-button { justify-self: start; }
+.fillup-header-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.fillup-header h1 { margin: 0; text-align: center; font: 400 40px/1 var(--font-display); }
+.fillup-header .tm-icon-button { border: 1px solid var(--line); border-radius: 50%; background: var(--surface); }
 .fillup-content { display: grid; gap: 16px; min-width: 0; padding: 0 20px calc(112px + env(safe-area-inset-bottom)); }
 .fillup-content :is(button, input, textarea, select, summary) { scroll-margin-block: 20px calc(150px + env(safe-area-inset-bottom)); }
 .fillup-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
@@ -17,14 +19,14 @@
 .fillup-essentials .tm-pump-value input::placeholder { opacity: 1; }
 .fillup-live-preview { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; min-height: 34px; color: var(--ink-2); font-size: 14px; line-height: 1.5; text-shadow: var(--tm-atmosphere-text-shadow); }
 .fillup-live-preview > .tm-number-with-unit { color: var(--ink); font-weight: 600; }
-.fillup-live-preview > .tm-number-with-unit > .tm-number { font: 700 30px/1 var(--font-display); }
-.fillup-warning { display: flex; align-items: start; gap: 9px; padding: 12px 14px; border: 1px solid var(--warning); border-radius: 14px; background: var(--warning-soft); color: var(--warning-ink); font-size: 14px; line-height: 1.5; }
+.fillup-live-preview > .tm-number-with-unit > .tm-number { font: 400 30px/1 var(--font-display); }
+.fillup-warning { display: flex; align-items: start; gap: 9px; padding: 12px 14px; border: 1px solid var(--warning); border-radius: var(--r-md); background: var(--warning-soft); color: var(--warning-ink); font-size: 14px; line-height: 1.5; }
 .fillup-warning > svg { flex: none; margin-top: 2px; }
 .fillup-warning small { display: block; margin-top: 4px; font-size: 12.5px; }
 .fillup-concurrent-warning { flex-direction: column; }
 .fillup-small-status { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink-2); text-shadow: var(--tm-atmosphere-text-shadow); }
 .fillup-more { display: grid; gap: 0; }
-.fillup-disclosure { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 58px; padding: 8px 0; border: 0; border-top: 1.5px solid var(--line); border-bottom: 1.5px solid var(--line); background: transparent; color: var(--ink); font-size: 15px; font-weight: 600; text-align: right; cursor: pointer; }
+.fillup-disclosure { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 58px; padding: 8px 0; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 15px; font-weight: 500; text-align: right; cursor: pointer; }
 .fillup-disclosure small { display: block; padding-top: 2px; color: var(--ink-2); font-size: 12.5px; font-weight: 400; text-shadow: var(--tm-atmosphere-text-shadow); }
 .fillup-disclosure > svg { flex: none; transition: transform 160ms; }
 .fillup-chevron-open { transform: rotate(180deg); }
@@ -39,10 +41,10 @@
 .fillup-reasons legend { margin-bottom: 8px; font-size: 14px; font-weight: 600; }
 .fillup-chips .tm-chip[aria-pressed="true"] { background: var(--accent); color: #111; border-color: #111; }
 .fillup-continuity-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); }
-.fillup-continuity-row b { display: block; font-size: 14.5px; font-weight: 600; }
+.fillup-continuity-row b { display: block; font-size: 14.5px; font-weight: 500; }
 .fillup-continuity-row small { display: block; margin-top: 3px; color: var(--ink-2); font-size: 12.5px; text-shadow: var(--tm-atmosphere-text-shadow); }
 .fillup-note-field { display: grid; gap: 8px; font-size: 14px; font-weight: 600; }
-.fillup-note-field textarea { min-height: 86px; width: 100%; resize: vertical; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); font: 400 15px/1.5 var(--font-sans); }
+.fillup-note-field textarea { min-height: 86px; width: 100%; resize: vertical; padding: 12px 14px; border: 1px solid var(--line-control); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: 400 15px/1.5 var(--font-sans); }
 .fillup-note-field textarea::placeholder { color: var(--ink-2); opacity: 1; }
 
 .fillup-error { color: var(--danger-ink); font-size: 13.5px; font-weight: 600; line-height: 1.5; }
@@ -55,43 +57,43 @@
 .fillup-reconciliation .tm-chip { font-size: 12.5px; }
 .fillup-text-action { justify-self: start; min-height: 44px; padding: 6px 0; color: var(--ink); background: transparent; border: 0; font-size: 13.5px; font-weight: 600; text-align: right; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
 .fillup-danger-action { color: var(--danger-ink); }
-.fillup-draft-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
+.fillup-draft-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border-radius: var(--r-md); background: var(--surface-2); font-size: 12.5px; color: var(--ink-2); }
 .fillup-draft-status button { flex: none; min-height: 44px; padding: 4px; color: var(--danger-ink); font-weight: 600; }
 .fillup-bottom-bar { position: fixed; inset-inline: 0; bottom: 0; z-index: 25; display: grid; gap: 6px; width: 100%; max-width: 430px; margin-inline: auto; padding: 20px 20px max(22px, env(safe-area-inset-bottom)); background: linear-gradient(to top, var(--bg) 75%, transparent); }
 .fillup-sheet-copy { margin: 0 0 14px; color: var(--ink-2); font-size: 15px; line-height: 1.6; }
 .fillup-station-sort { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-bottom: 8px; color: var(--ink-2); font-size: 14px; }
-.fillup-station-sort select { min-height: 44px; max-width: 100%; padding: 6px 12px; border: 1.5px solid var(--ink); border-radius: 99px; background: var(--surface); color: var(--ink); font-weight: 600; }
+.fillup-station-sort select { min-height: 44px; max-width: 100%; padding: 6px 12px; border: 1px solid var(--line-control); border-radius: 99px; background: var(--surface); color: var(--ink); font-weight: 600; }
 :is(.fillup-disclosure,.fillup-text-action,.fillup-gauge-caption button,.fillup-draft-status button,.fillup-tank-advanced summary,.fillup-station-sort select):focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
 
 .fillup-saved { --ink: #111; min-height: 100dvh; width: 100%; background: var(--accent); color: #111; padding-top: max(12px, env(safe-area-inset-top)); }
 .fillup-saved-content { display: grid; align-content: start; gap: 16px; padding: 0 20px calc(154px + env(safe-area-inset-bottom)); }
 .fillup-saved-header { display: flex; align-items: center; justify-content: space-between; min-height: 44px; }
-.fillup-saved-header .tm-icon-button { border: 1.5px solid #111; border-radius: 50%; background: transparent; color: #111; }
+.fillup-saved-header .tm-icon-button { border: 1px solid rgb(17 17 17 / .25); border-radius: 50%; background: transparent; color: #111; }
 .fillup-saved-stamp { margin: 0; outline: none; display: inline-flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
 .fillup-saved-stamp > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: #111; color: var(--accent); }
 .fillup-saved-write-state { margin-top: -12px; min-height: 18px; font-size: 12px; font-weight: 600; }
 .fillup-saved-write-state:empty { display: none; }
 .fillup-saved-write-state button { min-height: 44px; padding: 0; text-align: right; text-decoration: underline; }
 .fillup-saved-hero { min-width: 0; display: grid; gap: 6px; }
-.fillup-saved-number.tm-number { width: 100%; font: 700 196px/.88 var(--font-display); letter-spacing: -.015em; text-align: right; }
-.fillup-saved-liters.tm-number { width: 100%; font: 700 150px/.9 var(--font-display); text-align: right; }
+.fillup-saved-number.tm-number { width: 100%; font: 400 196px/.88 var(--font-display); letter-spacing: -.015em; text-align: right; }
+.fillup-saved-liters.tm-number { width: 100%; font: 400 150px/.9 var(--font-display); text-align: right; }
 .fillup-saved-unit { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.35; }
 .fillup-saved-hero > p:not(.fillup-saved-unit) { margin: 0; font-size: 15px; line-height: 1.5; }
-.fillup-saved-comparisons { margin: 0; display: grid; border-top: 2px solid #111; }
+.fillup-saved-comparisons { margin: 0; display: grid; border-top: 1px solid rgb(17 17 17 / .25); }
 .fillup-saved-comparisons > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgb(17 17 17 / 35%); }
 .fillup-saved-comparisons dt { font-size: 15px; }
-.fillup-saved-comparisons dd { margin: 0; text-align: left; font: 700 26px/1.1 var(--font-display); }
+.fillup-saved-comparisons dd { margin: 0; text-align: left; font: 400 26px/1.1 var(--font-display); }
 .fillup-saved-comparisons dd .unit { font: 500 13px/1.4 var(--font-sans); }
 .fillup-saved-note { margin: -8px 0 0; font-size: 12.5px; }
-.fillup-pump-question { display: grid; gap: 10px; min-width: 0; border: 2px solid #111; border-radius: 18px; padding: 14px 16px; background: #FFFDF4; color: #111; }
+.fillup-pump-question { display: grid; gap: 10px; min-width: 0; border: 1px solid rgb(17 17 17 / .25); border-radius: var(--r-lg); padding: 14px 16px; background: #FFFDF4; color: #111; }
 .fillup-pump-question p { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.5; }
 .fillup-pump-question small { color: #514932; font-size: 12.5px; line-height: 1.5; }
 .fillup-pump-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.fillup-pump-question button { min-height: 44px; min-width: 44px; padding: 8px 12px; border: 1.5px solid #111; border-radius: 12px; background: #fff; color: #111; font-size: 14px; font-weight: 600; cursor: pointer; }
+.fillup-pump-question button { min-height: 44px; min-width: 44px; padding: 8px 12px; border: 1px solid rgb(17 17 17 / .25); border-radius: var(--r-md); background: #fff; color: #111; font-size: 14px; font-weight: 600; cursor: pointer; }
 .fillup-pump-question button:disabled { opacity: .8; cursor: default; }
 .fillup-pump-question .fillup-pump-yes { background: #111; color: var(--accent); }
 .fillup-pump-answer { display: flex; align-items: stretch; gap: 8px; min-width: 0; }
-.fillup-pump-price-field { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; padding: 6px 10px; border: 1.5px solid #111; border-radius: 12px; background: #fff; }
+.fillup-pump-price-field { display: flex; flex: 1; align-items: center; gap: 6px; min-width: 0; padding: 6px 10px; border: 1px solid rgb(17 17 17 / .25); border-radius: var(--r-md); background: #fff; }
 
 .fillup-pump-price-field input { width: 100%; min-width: 0; min-height: 44px; color: #111; background: transparent; border: 0; font: 500 22px/1.2 var(--font-mono); text-align: right; }
 .fillup-pump-price-field > span { flex: none; font-size: 12px; }
@@ -119,3 +121,9 @@
 }
 .fillup-previous-price { display: grid; gap: 4px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 14px; }
 .fillup-previous-price small { color: var(--ink-2); font-size: 12.5px; line-height: 1.5; }
+
+/* v3 stage 4 — airy fill-up: hairline chips, lighter labels, receipt import in the header. */
+.fillup-context-chips > .tm-chip { border-color: var(--line); background: var(--surface); font-weight: 600; }
+.fillup-field-heading, .fillup-reasons legend { font-weight: 500; }
+.fillup-continuity-row b { font-weight: 500; }
+@media (max-width: 360px) { .fillup-header { grid-template-columns: 92px minmax(0,1fr) 92px; } }

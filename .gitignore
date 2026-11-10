@@ -58,3 +58,7 @@ playwright-report/
 
 # Isolated local integration demonstration; no real credentials.
 !.env.unified-preview
+
+# design v3 evidence: only the 390px reference shots are committed; 430/768 stay local
+design/v3/evidence/**/*-430-*.png
+design/v3/evidence/**/*-768-*.png

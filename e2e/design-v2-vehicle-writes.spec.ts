@@ -115,7 +115,7 @@ test("untouched exact insurance cost, an authored zero, and an authored clear re
   const docs = { test: { due: vehicleDayOffset(60) }, mandatory: { insurer: "מקור 42", due: vehicleDayOffset(120), cost: 287.4001234567,
     future: { marker: "  keep exact  ", amount: 1.23456789 } }, future: { version: "next" } };
   const scope = await vehicleFixture(page, docs);
-  await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("₪287");
+  await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("287\u202F₪");
   await openVehicleDoc(page, "mandatory");
   await expect(page.getByTestId("vehicle-doc-cost")).toHaveValue("287.4001234567");
   await page.locator("#vehicle-doc-due").fill(displayDay(vehicleDayOffset(121)));
@@ -126,13 +126,13 @@ test("untouched exact insurance cost, an authored zero, and an authored clear re
   await page.getByTestId("vehicle-doc-cost").fill("0");
   const zero = { ...changedDue, mandatory: { ...changedDue.mandatory, cost: 0 } };
   await documentSaved(page, scope, zero);
-  await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("₪0");
+  await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("0\u202F₪");
   await openVehicleDoc(page, "mandatory");
   await expect(page.getByTestId("vehicle-doc-cost")).toHaveValue("0");
   await page.getByTestId("vehicle-doc-cost").fill("");
   const cleared = { ...zero, mandatory: { ...zero.mandatory, cost: null } };
   await documentSaved(page, scope, cleared);
-  await expect(page.getByTestId("vehicle-doc-mandatory")).not.toContainText("₪0");
+  await expect(page.getByTestId("vehicle-doc-mandatory")).not.toContainText("0\u202F₪");
   expect(await journalRawFields(scope.base)).toEqual({ ...scope.original, ...rawDocs(cleared) });
   await assertNoDocumentExpenses(scope);
 });
@@ -215,8 +215,8 @@ test("same-child concurrency retains the exact reviewed raw conflict across relo
     await expect(card.getByTestId("outbox-summary-title")).toHaveText("ביטוח חובה");
     await expect(card.getByTestId("outbox-conflict-insurer").getByTestId("outbox-value-mine")).toContainText("בחירת הנהג 42");
     await expect(card.getByTestId("outbox-conflict-insurer").getByTestId("outbox-value-server")).toContainText("החברה בשרת 99");
-    await expect(card.getByTestId("outbox-conflict-cost").getByTestId("outbox-value-mine")).toContainText("₪1,235");
-    await expect(card.getByTestId("outbox-conflict-cost").getByTestId("outbox-value-server")).toContainText("₪399");
+    await expect(card.getByTestId("outbox-conflict-cost").getByTestId("outbox-value-mine")).toContainText("1,235\u202F₪");
+    await expect(card.getByTestId("outbox-conflict-cost").getByTestId("outbox-value-server")).toContainText("399\u202F₪");
     const recovered = (await journalOperations(page, scope.uid)).find(operation => operation.opId === submitted.opId)!;
     expect(recovered.payload).toEqual(submitted.payload);
     expect(recovered.beforeImage).toEqual(submitted.beforeImage);

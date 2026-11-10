@@ -1,6 +1,7 @@
 import { validDay } from './maintenance/model';
 import { isVehicleDocMap, VEHICLE_DOC_COST_MAX, type VehicleDocKey } from './vehicle/documents';
 import type { LedgerRow } from './vehicle/derived';
+import { countsTowardOwnership, isExcludedFromOwnership } from './vehicle/ownership';
 
 export type TcoPartId = 'fuel' | 'service' | 'mandatory' | 'coverage' | 'test' | 'other';
 export interface TcoPart {
@@ -23,6 +24,12 @@ export interface TcoResult {
   complete: boolean;
   lowerBound: boolean;
   fuelThisMonth: number | null;
+  /**
+   * Expenses switched out of ownership ("לא בעלות הרכב") inside the same window,
+   * as a monthly average of their known amounts, and how many there were.
+   * Informational only: never part of `month`, `year`, `perKm` or any shared figure.
+   */
+  excluded: { monthly: number; count: number };
 }
 export interface TcoInput {
   ledger: readonly LedgerRow[];
@@ -30,6 +37,8 @@ export interface TcoInput {
   today: string;
   kmPerDay: number | null;
   incomplete?: boolean;
+  /** EV: the energy part is labelled "חשמל" (DESIGN-V3 §4 "fuel / electric"); values are unchanged. */
+  ev?: boolean;
 }
 
 const monthIndex = (day: string) => Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1;
@@ -41,7 +50,8 @@ function documentCost(docs: unknown, key: VehicleDocKey): number | null {
 function category(row: LedgerRow): string | null {
   return row.kind === 'expense' && 'category' in row.record ? row.record.category : null;
 }
-function amount(row: LedgerRow): number | null {
+/** Known shekel amount of one ledger row, or null when its cost is unknown. */
+export function ledgerAmount(row: LedgerRow): number | null {
   if (row.kind === 'fuel' && 'totalCost' in row.record) {
     const cost = row.record.totalCost;
     return row.record.totalCostUnknown || !Number.isFinite(cost) || cost < 0 ? null : cost;
@@ -50,9 +60,11 @@ function amount(row: LedgerRow): number | null {
 }
 
 /** Read-only ownership estimate. No date clock, rounding, writes, or SDK dependencies. */
-export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false }: TcoInput): TcoResult {
+export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false, ev = false }: TcoInput): TcoResult {
   if (!validDay(today)) throw new TypeError('TCO requires a valid civil day');
-  const history = ledger.filter(row => validDay(row.day) && row.day <= today);
+  const dated = ledger.filter(row => validDay(row.day) && row.day <= today);
+  // The window, every part and the shared monthly figure are ownership-only.
+  const history = dated.filter(countsTowardOwnership);
   const first = history.reduce((day, row) => row.day < day ? row.day : day, today);
   const window = Math.min(12, Math.max(1, monthIndex(today) - monthIndex(first) + 1));
   const start = monthIndex(today) - window + 1;
@@ -73,7 +85,7 @@ export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false
     let known = 0;
     let unknown = incomplete;
     for (const row of selected) {
-      const value = amount(row);
+      const value = ledgerAmount(row);
       if (value === null) { unknown = true; if (category(row) === 'refund') unknownRefund = true; }
       else { known += value; knownRecords++; }
     }
@@ -82,7 +94,7 @@ export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false
   const fixed = (id: 'mandatory' | 'coverage' | 'test', label: string, annual: number | null): TcoPart =>
     ({ id, label, value: annual === null ? null : annual / 12, knownValue: annual === null ? 0 : annual / 12, docKey: id });
   const parts = [
-    variable('fuel', 'דלק', row => row.kind === 'fuel'),
+    variable('fuel', ev ? 'חשמל' : 'דלק', row => row.kind === 'fuel'),
     variable('service', 'טיפולים ותיקונים', row => row.kind === 'service'),
     fixed('mandatory', 'ביטוח חובה', mandatory),
     fixed('coverage', coverageType === 'comprehensive' ? 'ביטוח מקיף' : coverageType === 'third' ? 'ביטוח צד ג׳' : 'ביטוח רכב', coverage),
@@ -95,9 +107,19 @@ export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false
   const hasKnownCost = knownRecords > 0 || mandatory !== null || test !== null || (insured && coverage !== null);
   const month = hasKnownCost ? parts.reduce((sum, part) => sum + part.knownValue, 0) : null;
   const currentFuel = rows.filter(row => row.kind === 'fuel' && row.day.slice(0, 7) === today.slice(0, 7));
-  const fuelThisMonth = incomplete || !history.some(row => row.kind === 'fuel') || currentFuel.some(row => amount(row) === null) ? null
-    : currentFuel.reduce((sum, row) => sum + amount(row)!, 0);
-  return { parts, month, year: month === null ? null : month * 12, missing, window, windowStart,
+  const fuelThisMonth = incomplete || !history.some(row => row.kind === 'fuel') || currentFuel.some(row => ledgerAmount(row) === null) ? null
+    : currentFuel.reduce((sum, row) => sum + ledgerAmount(row)!, 0);
+  const excludedRows = dated.filter(row => row.day >= windowStart && isExcludedFromOwnership(row));
+  const excluded = { monthly: excludedRows.reduce((sum, row) => sum + (ledgerAmount(row) ?? 0), 0) / window, count: excludedRows.length };
+  return { parts, month, year: month === null ? null : month * 12, missing, window, windowStart, excluded,
     perKm: month !== null && kmPerDay !== null && Number.isFinite(kmPerDay) && kmPerDay > 0 ? month / (kmPerDay * 30.4) : null,
     complete: !missing.length && history.some(row => row.kind === 'fuel'), lowerBound: !incomplete && !unknownRefund, fuelThisMonth };
+}
+
+/** Legend and bar order (Design v3 §4): every non-zero part, largest first; ties keep the engine order. */
+export function tcoLegendParts(tco: Pick<TcoResult, 'parts'>): TcoPart[] {
+  return tco.parts.map((part, index) => ({ part, index }))
+    .filter(({ part }) => part.knownValue > 0)
+    .sort((a, b) => b.part.knownValue - a.part.knownValue || a.index - b.index)
+    .map(({ part }) => part);
 }

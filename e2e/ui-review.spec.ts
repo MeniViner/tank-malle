@@ -78,7 +78,9 @@ test('period lists select full rows, return focus and keep standalone money alig
   expect(await all.evaluate(e=>getComputedStyle(e).borderWidth)).toBe('0px');
   await page.keyboard.press('Escape');await expect(period).toBeFocused();
   await period.click();await dialog.getByRole('button',{name:'החודש',exact:true}).click();await expect(page).toHaveURL(/period=month/);
-  const search=page.getByRole('searchbox',{name:'חיפוש ביומן'});expect((await search.boundingBox())!.x).toBeGreaterThan((await period.boundingBox())!.x);
+  // v3 stage 4: the period is the first (rightmost, RTL) chip of the filter row under the search field.
+  const search=page.getByRole('searchbox',{name:'חיפוש ביומן'});const periodBox=(await period.boundingBox())!;expect(periodBox.y).toBeGreaterThan((await search.boundingBox())!.y);
+  for(const chip of await page.getByLabel('סוג רשומה',{exact:true}).getByRole('button').all())expect(periodBox.x+periodBox.width).toBeGreaterThanOrEqual((await chip.boundingBox())!.x+(await chip.boundingBox())!.width-.5);
   for(const strong of await page.locator('.v-statpair strong').all())expect(await strong.evaluate(e=>getComputedStyle(e).textAlign)).toBe('right');
   await page.screenshot({path:info.outputPath('ledger-review.png')});
   await page.goto('/stats');await page.getByRole('button',{name:'6 חודשים אחרונים',exact:true}).click();
@@ -89,8 +91,9 @@ test('period lists select full rows, return focus and keep standalone money alig
   const chart=page.getByTestId('insights-odometer-chart');
   await expect(chart.locator('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value').first()).toHaveText('0');
   await expect(chart).toHaveAccessibleName('קילומטראז׳ מצטבר, כולל הפסקות רציפות');
-  const leading=page.locator('.insights-kpi strong');expect(await leading.count()).toBeGreaterThan(0);
-  for(const strong of await leading.all())expect(await strong.evaluate(e=>getComputedStyle(e).textAlign)).toBe('right');
+  // v3 §3: the KPI tiles became a facts strip; every value sits at the inline end (physical left in RTL), after the label.
+  const leading=page.getByTestId('insights-spend-facts').locator('.fact');expect(await leading.count()).toBeGreaterThan(0);
+  for(const row of await leading.all()){const [label,value]=await Promise.all([row.locator('.fl').boundingBox(),row.locator('.fv').boundingBox()]);expect(value!.x+value!.width).toBeLessThanOrEqual(label!.x+1);}
   await expect(page.getByTestId('insights-period-summary')).toContainText('4 תדלוקים · 3 מקטעים');
 });
 
@@ -108,7 +111,8 @@ test('care is compact, has no duplicate mileage action and preserves several job
   await dialog.getByRole('button',{name:'המשך לפרטי הטיפול'}).click();await dialog.getByLabel('עלות כוללת',{exact:true}).fill('850');
   const notes=dialog.getByTestId('care-notes');await notes.fill('לבדוק לחץ אוויר');await notes.focus();
   expect(await notes.evaluate(e=>getComputedStyle(e).direction)).toBe('rtl');expect(await notes.evaluate(e=>getComputedStyle(e).textAlign)).toBe('right');
-  expect(await notes.evaluate(e=>{const style=getComputedStyle(e);return {outline:style.outlineStyle,shadow:style.boxShadow};})).toEqual({outline:'none',shadow:'none'});
+  // v3 stage 4: a focused text area shows a 1px inset ink frame (visible focus, WCAG 2.4.7) instead of nothing.
+  expect(await notes.evaluate(e=>{const style=getComputedStyle(e);return {outline:style.outlineStyle,shadow:style.boxShadow};})).toEqual({outline:'none',shadow:'rgb(21, 19, 15) 0px 0px 0px 1px inset'});
   await dialog.getByRole('button',{name:'סגירה',exact:true}).click();await page.getByRole('button',{name:'הוספת טיפול',exact:true}).click();
   await expect(dialog.getByLabel('עלות כוללת',{exact:true})).toHaveValue('850');await expect(dialog.getByRole('heading',{name:'צמיגים · בלמים',exact:true})).toBeVisible();
 });
@@ -119,8 +123,8 @@ test('every setting uses the same compact accessible switch and quick entry pers
     const target=await sw.boundingBox();expect(target!.width).toBeCloseTo(52,3);expect(target!.height).toBeCloseTo(44,3);
     const track=await sw.locator('.tm-switch-track').boundingBox();expect(track!.width).toBeCloseTo(52,3);expect(track!.height).toBeCloseTo(32,3);
   }};
-  await checkSwitches(page.getByRole('switch'),5);
-  for(const label of ['טסט, ביטוח וטיפולים','שינוי במחיר הדלק','שיתוף סיכום דלק להשוואה','שיתוף סיכום עלות הרכב'])await expect(page.getByRole('switch',{name:label,exact:true})).toBeVisible();
+  await checkSwitches(page.getByRole('switch'),6); // v3 stage 6: + the scanV2 switch
+  for(const label of ['טסט, ביטוח וטיפולים','שינוי במחיר הדלק','שיתוף סיכום דלק להשוואה','שיתוף סיכום עלות הרכב','זיהוי ספרות משופר (ניסיוני)'])await expect(page.getByRole('switch',{name:label,exact:true})).toBeVisible();
   const quick=page.getByRole('switch',{name:'כפתור תדלקתי פותח מצלמה',exact:true});await quick.click();await expect(quick).toBeChecked();
   await expect(async()=>expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({quickEntry:true})).toPass();await page.reload();await expect(quick).toBeChecked();
   await page.goto('/vehicle?tab=prefs');await checkSwitches(page.getByRole('switch'),1);await expect(page.getByRole('switch',{name:'התאמה אישית אוטומטית',exact:true})).toBeVisible();

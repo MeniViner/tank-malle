@@ -40,21 +40,22 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
   await signedInWithData(page, { fillups: RECORDS });
 
   await page.goto("/");
-  await expect(page.getByTestId("consumption-chart").locator("figcaption")).toContainText("הטווח הרגיל שלך", { timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption")).toContainText("הרגיל שלך", { timeout: 25_000 });
 
-  /* --- money: the currency symbol leads the digits --- */
-  const money = await islandText(page, /₪/);
-  expect(money).toMatch(/^₪\s*[\d,]/);
-  expect(money).not.toMatch(/[\d,]\s*₪$/);
+  /* --- money (v3 §5): digits, a narrow no-break space, then the symbol --- */
+  // innerText puts a line break between the inline-flex items (digits / gap / symbol); they render on one line.
+  const money = (await islandText(page, /₪/)).replace(/\n/g, "");
+  expect(money).toMatch(/^[\d,]+(?:\.\d+)?\u202F₪$/);
+  expect(money).not.toMatch(/^₪/);
   const geometry = await page.locator('bdi[dir="ltr"], span[dir="ltr"]').filter({ hasText: /₪/ }).first().evaluate(island => {
     const symbol = island.querySelector(".tm-unit-symbol")!, digits = island.querySelector(".tm-number-value")!;
-    return { left: symbol.getBoundingClientRect().right <= digits.getBoundingClientRect().left + .5,
+    return { right: symbol.getBoundingClientRect().left >= digits.getBoundingClientRect().right - .5,
       smaller: parseFloat(getComputedStyle(symbol).fontSize) < parseFloat(getComputedStyle(digits).fontSize) };
   });
-  expect(geometry).toEqual({ left: true, smaller: true });
+  expect(geometry).toEqual({ right: true, smaller: true });
 });
 
-test("a signed money delta puts the sign before the currency symbol", async ({ page }) => {
+test("a signed money delta puts the sign before the number", async ({ page }) => {
   await signedInWithData(page, {
     fillups: RECORDS,
     vehicle: { make: "מאזדה", model: "3", priceAdjustment: -0.05 },
@@ -63,11 +64,11 @@ test("a signed money delta puts the sign before the currency symbol", async ({ p
 
   // The vehicle price-adjustment row renders a signed shekel amount.
   const signed = page.locator('bdi[dir="ltr"], span[dir="ltr"]').filter({
-    hasText: /^[+−]₪/,
+    hasText: /^[+−]\d[\d,.]*\s₪$/,
   });
   if (await signed.count()) {
     const text = (await signed.first().innerText()).replace(/\s+/g, "");
-    expect(text).toMatch(/^[+−]₪\d/);
+    expect(text).toMatch(/^[+−]\d[\d,.]*₪$/);
     // A hyphen would read as a list dash next to Hebrew; U+2212 is used.
     expect(text.startsWith("-")).toBe(false);
   }
@@ -95,7 +96,7 @@ test("quantities keep the Hebrew unit outside the LTR island", async ({ page }) 
   expect(checked).toBeGreaterThan(0);
 });
 
-test("price per litre reads ₪8.25 followed by the Hebrew unit", async ({ page }) => {
+test("price per litre reads 8.25 ₪ followed by the Hebrew unit", async ({ page }) => {
   await signedInWithData(page, { fillups: RECORDS });
   await page.goto("/fillup/new");
 

@@ -8,11 +8,14 @@ import { vehicleDay } from "../lib/vehicle/format";
 import { ConsumptionValue, Distance, Money, NumericText, NumRun, Percent, Quantity, SignedMoney } from "./Fmt";
 import { ChevronStart, WarningIcon } from "./icons";
 import { CareGlyph } from "./maintenance/CareGlyph";
+import { EXCLUDED_LABEL } from "../lib/vehicle/ownership";
 import { StationBrandMark } from "./StationBrand";
 import "../journal-entry.css";
 
-export function JournalEntryRow({ row, units, kmPerLiter, pending = false, attention = false, flagged = false, to, onOpen }: {
+export function JournalEntryRow({ row, units, kmPerLiter, ev = false, pending = false, attention = false, flagged = false, to, onOpen }: {
   row: LedgerRow; units: "kmPerLiter" | "litersPer100"; kmPerLiter?: number;
+  /** EV (Stage 7 D2): a charge row names the record instead of showing litres or km/L. */
+  ev?: boolean;
   pending?: boolean; attention?: boolean; flagged?: boolean; to?: string; onOpen?: () => void;
 }) {
   const date = new Date(`${row.day}T12:00:00`);
@@ -41,7 +44,7 @@ export function JournalEntryRow({ row, units, kmPerLiter, pending = false, atten
       </span>}
     <span className="tm-journal-main">
       <strong className="tm-journal-title"><NumericText>{row.title}</NumericText></strong>
-      <span className="tm-journal-meta">{fuel ? <FuelMeta fillup={fuel} value={kmPerLiter} units={units} /> : <>
+      <span className="tm-journal-meta">{fuel ? ev ? <>טעינה · {fillupEndLabel(fuel)}</> : <FuelMeta fillup={fuel} value={kmPerLiter} units={units} /> : <>
         {row.kind === "service" ? "טיפול" : row.kind === "issue" ? "תקלה" : refund ? "החזר" : "הוצאה"}
         {row.odometer !== null ? <> · <Distance value={row.odometer} /></> : null}
         {row.at === null ? " · יום בלבד" : null}
@@ -49,6 +52,7 @@ export function JournalEntryRow({ row, units, kmPerLiter, pending = false, atten
       {fuel?.continuityBreakBefore ? <span className="tm-journal-state">אחרי תדלוקים שלא נרשמו</span> : null}
       {state ? <span className="tm-journal-state">{state}</span> : null}
       {flagged ? <span className="tm-journal-state tm-journal-flag"><WarningIcon size={13} />כדאי לבדוק</span> : null}
+      {row.excluded ? <span className="tm-journal-state tm-journal-excluded" data-testid="journal-excluded-tag">{EXCLUDED_LABEL}</span> : null}
     </span>
     <span className={`tm-journal-money${refund ? " tm-journal-refund" : ""}`}>
       {row.financial ? row.amountAgorot === null ? <NumRun align="trailing">—</NumRun>

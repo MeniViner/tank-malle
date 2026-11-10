@@ -1,4 +1,5 @@
 import type { FuelType, PlateLookupResult } from "./types";
+import { powertrainFromRegistry } from "./vehicle/v3Fields";
 
 /**
  * Tier 1 of vehicle lookup: the Israeli Ministry of Transport open data
@@ -157,6 +158,7 @@ export function parseRow(row: Row, dataset: Dataset, plate: string): PlateLookup
     })();
 
   const fuelLabel = str(row, "sug_delek_nm", "sug_delek");
+  const powertrain = powertrainFromRegistry(fuelLabel);
 
   // The registry's trim level is often longer than the model itself
   // ("RAV 4 HYBRID" + "E-XPERIENCE"), which overflows the header pill. Keep it
@@ -172,7 +174,9 @@ export function parseRow(row: Row, dataset: Dataset, plate: string): PlateLookup
     model: model || undefined,
     year,
     fuelType: mapFuelType(fuelLabel),
-    engineVolume,
+    // A battery-electric car has no engine displacement; never carry one over.
+    engineVolume: powertrain === "ev" ? null : engineVolume,
+    ...(powertrain ? { powertrain } : {}),
     category: [dataset.label, fuelLabel].filter(Boolean).join(" · "),
     tozeretCd: int(row, "tozeret_cd"),
     degemCd: int(row, "degem_cd"),

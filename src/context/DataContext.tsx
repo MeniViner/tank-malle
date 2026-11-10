@@ -2,7 +2,8 @@ import { backupPath, type BackupEntry } from "../lib/vehicle/backup";
 import { writeWithLocalAcceptance } from "../lib/localWriteAcceptance";
 import { receiptDocumentId } from "../lib/import/receiptText";
 import { subscribeResilient } from "../lib/subscribeResilient";
-import { carePayloadMatches, conditionalCareWrite } from "../lib/maintenance/persistence";
+import { carePayloadMatches, careReplacementPatch, conditionalCareWrite } from "../lib/maintenance/persistence";
+import { readBattery, readBiz, readMotorKw, readPowertrain } from "../lib/vehicle/v3Fields";
 import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS, vehiclePayload as carePayload, type VehicleCollection as CareCollection, type VehicleRecord as CareRecord } from "../lib/vehicle/model";
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrices, refreshPublicPrices } from "../lib/prices/browserFetch";
@@ -70,7 +71,7 @@ import {
 } from "firebase/firestore";
 import { reauthenticateWithPopup } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
-import { accountDataDeletionSteps, clearAccountLocalStorage, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
+import { accountDataDeletionSteps, clearAccountLocalData, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
 import { withdrawBenchmark } from "../lib/benchmarks";
 import { withdrawVehicleCost } from "../lib/costBenchmarks";
 import { pruneOldCaches, readCache, writeCache } from "../lib/cache";
@@ -184,6 +185,8 @@ interface DataContextValue {
   vehicles: Vehicle[];
   activeVehicles: Vehicle[];
   activeVehicle: Vehicle | null;
+  /** The active vehicle came from the live vehicle listener, not only the display cache. */
+  activeVehicleVerified: boolean;
   fillups: Fillup[];
   prices: RegulatedPriceConfig | null;
   updateAdminPrices: (payload: OutboxPayload) => Promise<void>;
@@ -1179,6 +1182,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             tozeretCd: toNumberOrNull(data.tozeretCd),
             degemCd: toNumberOrNull(data.degemCd),
             tankPrefs: readTankPreferences(data.tankPrefs),
+            // Design v3 fields: present only when stored, so older vehicles keep their exact shape.
+            ...(Object.hasOwn(data, 'biz') ? { biz: readBiz(data.biz) } : {}),
+            ...(Object.hasOwn(data, 'powertrain') ? { powertrain: readPowertrain(data.powertrain) } : {}),
+            ...(Object.hasOwn(data, 'battery') ? { battery: readBattery(data.battery) } : {}),
+            ...(Object.hasOwn(data, 'motorKw') ? { motorKw: readMotorKw(data.motorKw) } : {}),
           } satisfies Vehicle;
         });
         list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
@@ -1206,6 +1214,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       activeVehicles.find((v) => v.id === settings.activeVehicleId) ?? activeVehicles[0]
     );
   }, [activeVehicles, settings.activeVehicleId]);
+  // The cached catalog carries no raw identities; only a listener snapshot does.
+  // Spec enrichment needs that raw before-image, so it waits for this.
+  const activeVehicleVerified = !!activeVehicle && vehicleSnapshot?.scope === accountScope && vehicleSnapshot.identities.has(activeVehicle.id);
 
   /* ---------- fill-ups for the active vehicle ---------- */
 
@@ -2533,11 +2544,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const stillCurrent = captureMutationScope();
     assertMutationScope(stillCurrent);
     const payload = carePayload(name, record);
+    const beforeImage = previous ? carePayload(name, previous) : null;
     const path = userPath("vehicles", vehicleId, name, record.id);
     return submit({ kind: "maintenance.save", path, vehicleId, payload, opType: previous ? "update" : "set",
-      beforeImage: previous ? carePayload(name, previous) : null }, () => {
+      beforeImage }, () => {
       assertMutationScope(stillCurrent);
-      return previous ? updateDoc(refFor(path), payload) : setDoc(refFor(path), payload);
+      return previous ? updateDoc(refFor(path), careReplacementPatch(payload, beforeImage)) : setDoc(refFor(path), payload);
     }, (_op, data) => carePayloadMatches(payload, data), stillCurrent);
   }, [uid, activeVehicle?.id, captureMutationScope, submit, userPath, refFor]);
 
@@ -2872,7 +2884,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         outboxRef.current?.close();
         await terminate(db);
         await clearIndexedDbPersistence(db);
-        clearAccountLocalStorage(uid);
+        await clearAccountLocalData(uid);
       },
       identity: () => user.delete(),
     });
@@ -2921,6 +2933,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles,
       activeVehicles,
       activeVehicle,
+      activeVehicleVerified,
       fillups: scopedFillups,
       prices,
       updateAdminPrices,
@@ -2994,6 +3007,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles,
       activeVehicles,
       activeVehicle,
+      activeVehicleVerified,
       scopedFillups,
       prices,
       updateAdminPrices,

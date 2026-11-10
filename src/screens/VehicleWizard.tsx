@@ -14,8 +14,8 @@ import { ConfirmStep } from "../components/vehicle-wizard/ConfirmStep";
 import { ExtrasStep } from "../components/vehicle-wizard/ExtrasStep";
 import { WizardCreationStatus, WizardRecovery, type VehicleReceiptState } from "../components/vehicle-wizard/WizardRecovery";
 import {
-  EMPTY_WIZARD_DRAFT, buildWizardVehicle, clearWizardSuggestions, emptyWizardNumbers,
-  suggestWizardNumbers, typeWizardNumber, validateWizardDetails, wizardIdentity,
+  EMPTY_WIZARD_DRAFT, buildWizardVehicle, clearWizardBatterySuggestions, clearWizardSuggestions, emptyWizardBattery, emptyWizardNumbers,
+  suggestWizardBattery, suggestWizardNumbers, typeWizardNumber, validateWizardConfirm, wizardIdentity, wizardIsEv,
   type WizardDraft, type WizardErrors, type WizardStep,
 } from "../components/vehicle-wizard/wizardState";
 import "../vehicle-wizard-design.css";
@@ -37,6 +37,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   const [draft, setDraft] = useState<WizardDraft>(EMPTY_WIZARD_DRAFT);
   const [editing, setEditing] = useState(false);
   const [numbers, setNumbers] = useState(emptyWizardNumbers);
+  const [battery, setBattery] = useState(emptyWizardBattery);
   const [nickname, setNickname] = useState("");
   const [looking, setLooking] = useState(false);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -72,7 +73,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
       ?? root.current?.querySelector<HTMLElement>('[data-testid="wizard-correct"]'))?.focus();
   }, [validationAttempt]);
 
-  const dirty = !creation && (step !== "plate" || !!plate || !!nickname || numbers.tank.authored || numbers.declared.authored);
+  const dirty = !creation && (step !== "plate" || !!plate || !!nickname || numbers.tank.authored || numbers.declared.authored
+    || battery.kwh.authored || battery.wltp.authored);
   useAppUpdateBlocker(dirty || saving);
   const canExit = !firstRun || vehicles.length > 0;
   const retained = outbox.filter(operation => operation.uid === uid && operation.kind === "vehicle.add");
@@ -89,7 +91,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     specsRequest.current = null;
     setLooking(false);
     setLoadingSpecs(false);
-    if (clearSuggestions) { setSpecs(null); setNumbers(clearWizardSuggestions); }
+    if (clearSuggestions) { setSpecs(null); setNumbers(clearWizardSuggestions); setBattery(clearWizardBatterySuggestions); }
     return generation.current;
   }
 
@@ -106,11 +108,13 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     setLoadingSpecs(true);
     void fetchVehicleSpecs({ make: candidate.make, model: candidate.model, year: candidate.year ? Number(candidate.year) : null,
       fuelType: candidate.fuelType, engineCc: candidate.engineCc, tozeretCd: candidate.tozeretCd, degemCd: candidate.degemCd,
+      powertrain: candidate.powertrain ?? null,
     }, request.controller.signal).then(found => {
       if (!current()) return;
       request.status = "complete";
       setSpecs(found);
       setNumbers(value => suggestWizardNumbers(value, found));
+      setBattery(value => suggestWizardBattery(value, found));
     }).catch(() => {
       if (!current()) return;
       request.status = "failed";
@@ -157,7 +161,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         make: result.make ?? "", model: result.model ?? "", year: result.year ? String(result.year) : "",
         fuelType: result.fuelType ?? "95", plateNumber: result.plateNumber,
         category: result.category, fromRegistry: true, tozeretCd: result.tozeretCd ?? null,
-        degemCd: result.degemCd ?? null, engineCc: result.engineVolume ?? null,
+        degemCd: result.degemCd ?? null, engineCc: result.engineVolume ?? null, powertrain: result.powertrain ?? null,
       };
       setDraft(next); setEditing(false); setErrors({}); setStep("confirm");
       startSpecs(next, nextGeneration, accountCurrent);
@@ -178,13 +182,16 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     if (wizardIdentity(next) !== wizardIdentity(draft) || patch.fromRegistry === false && draft.fromRegistry) {
       cancelRequests(true);
       setLookupNotice(null);
-      setDraft({ ...next, fromRegistry: false, tozeretCd: null, degemCd: null, engineCc: null, category: undefined });
+      // The drivetrain is the owner's choice on the fuel control; correcting the
+      // make or model of an electric car keeps it electric.
+      const powertrain = "powertrain" in patch ? patch.powertrain ?? null : next.fuelType === draft.fuelType ? draft.powertrain ?? null : null;
+      setDraft({ ...next, fromRegistry: false, tozeretCd: null, degemCd: null, engineCc: null, category: undefined, powertrain });
     } else setDraft(next);
     setErrors({}); setEditing(true);
   }
 
   function nextStep() {
-    const nextErrors = validateWizardDetails(draft);
+    const nextErrors = validateWizardConfirm(draft, specs, battery);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length) { setValidationAttempt(value => value + 1); return; }
     setStep("extras");
@@ -236,11 +243,11 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
 
   async function save() {
     if (saveLock.current || creationRef.current) return;
-    const result = buildWizardVehicle(draft, numbers, nickname, specs);
+    const result = buildWizardVehicle(draft, numbers, nickname, specs, battery);
     if (!result.ok) {
       setErrors(result.errors);
       setValidationAttempt(value => value + 1);
-      if (result.errors.make || result.errors.model || result.errors.year) setStep("confirm");
+      if (result.errors.make || result.errors.model || result.errors.year || result.errors.batteryKwh || result.errors.batteryWltp) setStep("confirm");
       return;
     }
     const localCurrent = captureScope();
@@ -312,8 +319,10 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           {step === "plate" ? <PlateStep plate={plate} onPlateChange={changePlate} looking={looking} error={lookupError}
             canRetry={canRetryLookup} onLookup={() => void runLookup()} onManual={goManual}/>
             : step === "confirm" ? <ConfirmStep draft={draft} review={draft.fromRegistry && !editing} notice={lookupNotice} errors={errors}
+              specs={specs} loadingSpecs={loadingSpecs} battery={battery}
+              onBatteryChange={(key, value) => { setBattery(current => ({ ...current, [key]: typeWizardNumber(value) })); setErrors(current => ({ ...current, [key === "kwh" ? "batteryKwh" : "batteryWltp"]: undefined })); }}
               onChange={changeIdentity} onCorrect={() => setEditing(true)} onNext={nextStep}/>
-              : <ExtrasStep draft={draft} numbers={numbers} nickname={nickname} specs={specs} loadingSpecs={loadingSpecs}
+              : <ExtrasStep draft={draft} ev={wizardIsEv(draft, specs)} numbers={numbers} nickname={nickname} specs={specs} loadingSpecs={loadingSpecs}
                 saving={saving} errors={errors} onTankChange={value => { setNumbers(current => ({ ...current, tank: typeWizardNumber(value) })); setErrors(current => ({ ...current, tank: undefined })); }}
                 onDeclaredChange={value => { setNumbers(current => ({ ...current, declared: typeWizardNumber(value) })); setErrors(current => ({ ...current, declared: undefined })); }}
                 onNicknameChange={value => { setNickname(value); setErrors(current => ({ ...current, nickname: undefined })); }} onSave={() => void save()}/>}

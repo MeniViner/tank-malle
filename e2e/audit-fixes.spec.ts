@@ -240,6 +240,9 @@ test("F09/F12: unknown stays unknown and a draft survives navigation and reload"
   await page.getByLabel(/^קילומטראז׳/).fill("124000");
   await page.getByLabel("ליטרים", { exact: true }).fill("35.5");
   await page.getByRole("button", { name: "סגירה", exact: true }).click();
+  // Closing is a history back to the previous document; let it land before the
+  // next navigation, or the two navigations race and one is aborted.
+  await expect(page).not.toHaveURL(/\/fillup\/new/);
   await page.goto("/fillup/new");
   await expect(page.getByLabel("ליטרים", { exact: true })).toHaveValue("35.5");
   await page.reload();

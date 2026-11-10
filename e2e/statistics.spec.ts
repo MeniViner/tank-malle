@@ -48,8 +48,8 @@ test("the four sections are navigable", async ({ page }) => {
   }
 
   await selectInsight(page, "spend");
-  await openInsightFuelDetail(page);
-  await expect(page.getByText(/ממוצע שבועי/)).toBeVisible();
+  // v3 §3: the averages are a top-level facts strip (no longer inside the fuel detail disclosure).
+  await expect(page.getByTestId("insights-spend-facts").getByText("ממוצע שבועי", { exact: true })).toBeVisible();
 
   await selectInsight(page, "cons");
   await expect(page.getByTestId("insights-measured-km")).toContainText("מקטעים סגורים");
@@ -107,14 +107,14 @@ test("weekly, monthly and year-to-date spending are all available", async ({ pag
   await openInsightFuelDetail(page);
 
   await expect(page.getByTestId("insights-source-status")).toHaveCount(0, { timeout: 20_000 });
-  const details = page.getByTestId("insights-fuel-detail");
+  // v3 §3: the averages moved from the fuel detail's KPI tiles to the spending facts strip.
+  const details = page.getByTestId("insights-spend-facts");
   await expect(details.getByText("ממוצע שבועי", { exact: true })).toBeVisible({ timeout: 20_000 });
   await expect(details.getByText("ממוצע חודשי", { exact: true })).toBeVisible();
   // Reported regardless of the selected range.
   await expect(details.getByText("מתחילת השנה", { exact: true })).toBeVisible();
-  for (const label of ["ממוצע שבועי", "ממוצע חודשי", "מתחילת השנה"]) {
-    const kpi = details.locator(".insights-kpi").filter({ has: page.getByText(label, { exact: true }) });
-    await expect(kpi.locator("strong")).toHaveText(/^₪[\d,]+$/);
+  for (const id of ["insights-spend-week-avg", "insights-spend-month-avg", "insights-spend-ytd"]) {
+    await expect(page.getByTestId(id)).toHaveText(/^[\d,]+\s₪$/);
   }
 });
 

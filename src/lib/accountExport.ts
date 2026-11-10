@@ -52,6 +52,7 @@ export function accountTotals(data: AccountExport, today = localDay()) {
     const costs=data.vehicleCare?.[vehicle.id] ? careCosts(data.vehicleCare[vehicle.id],data.rows.filter(row=>row.vehicle?.id===vehicle.id).map(row=>row.fillup),'1900-01-01',today,false) : null;
     const covered=data.vehicleCare?.[vehicle.id]?periodSummary(buildLedger(data.rows.filter(row=>row.vehicle?.id===vehicle.id).map(row=>row.fillup),data.observations.filter(o=>o.vehicleId===vehicle.id),data.vehicleCare[vehicle.id],EMPTY_EXTRA),mileageEvidence(data.rows.filter(row=>row.vehicle?.id===vehicle.id).map(row=>row.fillup),data.observations.filter(o=>o.vehicleId===vehicle.id),data.vehicleCare[vehicle.id]),'1900-01-01',today):null;
     return { unknownFuelCosts:total.unknownFuelCosts+data.rows.filter(row=>row.vehicle?.id===vehicle.id&&row.fillup.totalCostUnknown).length,distanceUnknown:total.distanceUnknown+(covered?.distance===null?1:0), fuelCost:total.fuelCost+stats.records.totalCost, unknownCosts:total.unknownCosts+(costs?.unknown??0), fillupCount: total.fillupCount + stats.records.fillupCount, totalLiters: total.totalLiters + stats.records.totalLiters,
-      totalCost: total.totalCost + (costs?costs.total/100:stats.records.totalCost), totalKm: total.totalKm + (covered?covered.distance??0:stats.records.totalKm) };
-  }, { unknownFuelCosts:0,distanceUnknown:0, fuelCost:0, unknownCosts:0, fillupCount: 0, totalLiters: 0, totalCost: 0, totalKm: 0 });
+      totalCost: total.totalCost + (costs?costs.total/100:stats.records.totalCost), totalKm: total.totalKm + (covered?covered.distance??0:stats.records.totalKm),
+      excludedAgorot: total.excludedAgorot + (costs?.excludedAgorot ?? 0), excludedCount: total.excludedCount + (costs?.excludedCount ?? 0) };
+  }, { unknownFuelCosts:0,distanceUnknown:0, fuelCost:0, unknownCosts:0, fillupCount: 0, totalLiters: 0, totalCost: 0, totalKm: 0, excludedAgorot: 0, excludedCount: 0 });
 }

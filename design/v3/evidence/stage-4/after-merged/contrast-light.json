@@ -1,0 +1,175 @@
+[
+  {
+    "label": "fillup",
+    "id": "fillup-total",
+    "border": "none"
+  },
+  {
+    "label": "fillup",
+    "id": "fillup-liters",
+    "cls": "tm-pump-row ",
+    "width": "1px",
+    "border": "rgb(52, 48, 42)",
+    "bg": "rgb(21, 19, 15)",
+    "ratio": 1.42
+  },
+  {
+    "label": "fillup",
+    "id": "fillup-price",
+    "cls": "tm-pump-row tm-pump-row-small ",
+    "width": "1px",
+    "border": "rgb(52, 48, 42)",
+    "bg": "rgb(21, 19, 15)",
+    "ratio": 1.42
+  },
+  {
+    "label": "fillup",
+    "id": "fillup-odometer",
+    "cls": "tm-pump-row ",
+    "width": "1px",
+    "border": "rgb(52, 48, 42)",
+    "bg": "rgb(21, 19, 15)",
+    "ratio": 1.42
+  },
+  {
+    "label": "fillup",
+    "id": "INPUT",
+    "border": "none"
+  },
+  {
+    "label": "fillup",
+    "id": "fillup-notes",
+    "cls": "",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "station-sheet",
+    "id": "fillup-total",
+    "border": "none"
+  },
+  {
+    "label": "station-sheet",
+    "id": "fillup-liters",
+    "cls": "tm-pump-row ",
+    "width": "1px",
+    "border": "rgb(52, 48, 42)",
+    "bg": "rgb(21, 19, 15)",
+    "ratio": 1.42
+  },
+  {
+    "label": "station-sheet",
+    "id": "fillup-price",
+    "cls": "tm-pump-row tm-pump-row-small ",
+    "width": "1px",
+    "border": "rgb(52, 48, 42)",
+    "bg": "rgb(21, 19, 15)",
+    "ratio": 1.42
+  },
+  {
+    "label": "station-sheet",
+    "id": "fillup-odometer",
+    "cls": "tm-pump-row ",
+    "width": "1px",
+    "border": "rgb(52, 48, 42)",
+    "bg": "rgb(21, 19, 15)",
+    "ratio": 1.42
+  },
+  {
+    "label": "station-sheet",
+    "id": "INPUT",
+    "border": "none"
+  },
+  {
+    "label": "station-sheet",
+    "id": "fillup-notes",
+    "cls": "",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "station-sheet",
+    "id": "חיפוש תחנה",
+    "cls": "flex min-h-[48px] items-center gap-2 tm-control rounded-md b",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "station-sheet",
+    "id": "מיון תחנות",
+    "cls": "",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "journal",
+    "id": "journal-search",
+    "cls": "journal-search",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "expense-form",
+    "id": "journal-search",
+    "cls": "journal-search",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "expense-form",
+    "id": "care-cost",
+    "cls": "tm-field-control flex items-center gap-2.5 rounded-md border",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "expense-form",
+    "id": "care-day",
+    "cls": "tm-civil-control",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "expense-form",
+    "id": "תאריך ביצוע — בחירה מלוח השנה",
+    "cls": "tm-civil-control",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "expense-form",
+    "id": "care-notes",
+    "cls": "",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  },
+  {
+    "label": "expense-form",
+    "id": "care-title",
+    "cls": "tm-field-control flex items-center gap-2.5 rounded-md border",
+    "width": "1px",
+    "border": "rgb(138, 131, 116)",
+    "bg": "rgb(249, 247, 242)",
+    "ratio": 3.52
+  }
+]
