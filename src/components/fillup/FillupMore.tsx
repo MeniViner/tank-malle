@@ -27,13 +27,15 @@ export interface FillupMoreProps {
   clearStoredPosted: boolean;
   onClearStoredPosted: (clear: boolean) => void;
   postedPriceError?: string;
+  /** False for an EV: no fuel gauge, after-state or tank capacity (DESIGN-V3 §7.4). */
+  tankFields?: boolean;
 }
 
 /** Optional readings remain controlled; disclosure state never changes their provenance. */
 export function FillupMore({ open, onOpenChange, tankDraft,
   onTankChange, outcome, capacity, capacityNote, onReviewCapacity, continuityBreak,
   onContinuityChange, notes, onNotesChange, notesError, legacyEndState,
-  storedPostedPrice, clearStoredPosted, onClearStoredPosted, postedPriceError,
+  storedPostedPrice, clearStoredPosted, onClearStoredPosted, postedPriceError, tankFields = true,
 }: FillupMoreProps) {
   const [editingAfter, setEditingAfter] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -59,11 +61,11 @@ export function FillupMore({ open, onOpenChange, tankDraft,
   return <section className="fillup-more" data-testid="fillup-more">
     <button type="button" className="fillup-disclosure" aria-expanded={open} aria-controls="fillup-more-content"
       data-testid="fillup-more-toggle" onClick={() => onOpenChange(!open)}>
-      <span>עוד פרטים<small>מחוון דלק, רצף תדלוקים, הערה</small></span>
+      <span>עוד פרטים<small>{tankFields ? "מחוון דלק, רצף תדלוקים, הערה" : "רצף רישומים, הערה"}</small></span>
       <ChevronDown size={20} className={open ? "fillup-chevron-open" : ""} />
     </button>
     {open ? <div id="fillup-more-content" className="fillup-more-content">
-      <div className="fillup-gauge-field">
+      {tankFields ? <div className="fillup-gauge-field">
         <div className="fillup-field-heading">
           <span>כמה היה במיכל לפני התדלוק? <small>(לא חובה)</small></span>
           <button type="button" className="tm-icon-button" aria-label="על עדכון מצב המיכל" onClick={() => setInfoOpen(true)}><InfoIcon size={18} /></button>
@@ -74,7 +76,7 @@ export function FillupMore({ open, onOpenChange, tankDraft,
             : <span><Percent value={outcome.displayBeforeLevel * 100} />{beforeCaption}</span>}
           {tankDraft.beforeLevel !== null ? <button type="button" onClick={() => patch({ beforeLevel: null })}>ניקוי הסימון</button> : null}
         </div>
-      </div>
+      </div> : null}
       <div className="fillup-continuity-row">
         <span><b>פספסתי תדלוקים לפני זה</b><small>נתחיל מדידה חדשה מכאן, וההיסטוריה נשארת</small></span>
         <Toggle checked={continuityBreak} onChange={onContinuityChange} ariaLabel="פספסתי תדלוקים לפני זה" />
@@ -93,7 +95,7 @@ export function FillupMore({ open, onOpenChange, tankDraft,
         {clearStoredPosted ? <small>האישור יוסר בשמירה. המחיר ששילמתם לא ישתנה.</small> : null}
         {postedPriceError ? <span className="fillup-error" role="alert"><NumericText>{postedPriceError}</NumericText></span> : null}
       </div> : null}
-      <details className="fillup-tank-advanced" data-testid="fillup-tank-advanced">
+      {tankFields ? <details className="fillup-tank-advanced" data-testid="fillup-tank-advanced">
         <summary>מצב המיכל אחרי התדלוק <ChevronDown size={18} /></summary>
         <div className="fillup-tank-advanced-body">
           {legacyEndState ? <p className="fillup-small-status">מצב המיכל מהרשומה הקיימת יישאר כמו שנשמר, עד שתבחרו אחרת.</p> : null}
@@ -135,7 +137,7 @@ export function FillupMore({ open, onOpenChange, tankDraft,
             : capacityNote ? <button type="button" className="fillup-text-action" onClick={onReviewCapacity}><NumericText>{capacityNote}</NumericText> · לאישור או תיקון</button> : null}
           {hasReadings ? <button type="button" className="fillup-text-action" onClick={resetReadings}>ניקוי המדים</button> : null}
         </div>
-      </details>
+      </details> : null}
     </div> : null}
     <Sheet open={infoOpen} onClose={() => setInfoOpen(false)} title="מצב המיכל">
       <p className="fillup-sheet-copy">הסימון הוא הערכה לפי המחוון ברכב. אפשר לשמור תדלוק גם בלעדיו ולעדכן בהמשך.</p>
