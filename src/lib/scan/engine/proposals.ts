@@ -15,12 +15,16 @@ export type LineProposal = {
   contrast: number;
 };
 
-export type ProposalOptions = { minSize?: number; maxSize?: number; radius?: number; offset?: number; maxLines?: number };
-const DEFAULTS: Required<ProposalOptions> = { minSize: 11, maxSize: 52, radius: 14, offset: 14, maxLines: 600 };
+export type ProposalOptions = { minSize?: number; maxSize?: number; radius?: number; offset?: number; maxLines?: number; join?: boolean };
+const DEFAULTS: Required<ProposalOptions> = { minSize: 11, maxSize: 52, radius: 14, offset: 14, maxLines: 600, join: true };
 
 function levelLines(g: Gray, level: number, polarity: Polarity, table: Uint32Array, o: Required<ProposalOptions>): LineProposal[] {
   const mask = localInk(g, o.radius, o.offset, polarity, table);
-  const all = blobs(mask, g.width, g.height, 8, o.maxSize * o.maxSize * 4);
+  // Segment displays leave hairline gaps between the strokes of one digit; close them so a digit is one blob.
+  // (Neighbouring digits that this glues together are apart again one pyramid level down.)
+  const w = g.width, h = g.height, wide = new Uint8Array(w * h);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) if (mask[y * w + x]) { const p = y * w + x; wide[p] = wide[p - 1] = wide[p + 1] = wide[p - w] = wide[p + w] = 1; }
+  const all = [...blobs(mask, w, h, 8, o.maxSize * o.maxSize * 4), ...(o.join ? blobs(wide, w, h, 8, o.maxSize * o.maxSize * 4) : [])];
   // A digit is taller than wide and not a speck or a long rule.
   const marks = all.filter(b => b.major >= o.minSize && b.major <= o.maxSize && b.minor >= 1.5 && b.minor <= b.major * .95);
   const cell = o.maxSize * 2, grid = new Map<number, number[]>(), cols = Math.ceil(g.width / cell) + 1;
