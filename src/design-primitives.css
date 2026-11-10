@@ -264,9 +264,26 @@ button.tm-odometer { cursor: pointer; }
 .tm-sparkline-dot-swatch.tm-sparkline-worse { background: var(--worse); }
 .tm-sparkline-dot-swatch.tm-sparkline-better { background: var(--better); }
 
+/* Design v3 §3 facts strip (shared: Home, Insights, Vehicle, Account, year screen, statement).
+   Markup: .facts > button|div > .fl(+small) + .ld + .fv(.n + u). */
+.facts { display: grid; min-width: 0; border-block: 1px solid var(--line); }
+.facts > .fact { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 58px; padding: 9px 0; border: 0; background: none; color: var(--ink); text-align: right; font: inherit; }
+.facts > * + * { border-top: 1px dashed var(--line); }
+.facts > button.fact { cursor: pointer; }
+.facts > button.fact:active { opacity: .6; }
+.facts > button.fact:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-sm); }
+.facts .fl { display: grid; gap: 1px; flex: none; max-width: 60%; min-width: 0; font: 500 15px/1.35 var(--font-sans); color: var(--ink); }
+.facts .fl > small { font: 400 12px/1.35 var(--font-sans); color: var(--ink-2); overflow-wrap: anywhere; }
+.facts .ld { flex: 1; min-width: 12px; height: 0; margin-top: 2px; border-top: 1.5px dotted color-mix(in srgb, var(--ink-3) 55%, transparent); }
+.facts .fv { display: flex; align-items: baseline; gap: 5px; flex: none; direction: rtl; }
+.facts .fv > .tm-number.n { font: 400 22px/1 var(--font-mono); letter-spacing: -.01em; color: var(--ink); }
+.facts .fv > .tm-number.n.muted { color: var(--ink-2); }
+.facts .fv > u { text-decoration: none; font: 400 12px/1.2 var(--font-sans); color: var(--ink-2); }
+
 @media (prefers-reduced-motion: reduce) {
   .tm-button, .tm-switch.tm-plate-switch, .tm-switch.tm-plate-switch .tm-switch-track, .tm-switch.tm-plate-switch .tm-switch-thumb { transition: none; }
   .tm-button-primary:active:not(:disabled) { transform: none; }
   .tm-sheet-panel.tm-sheet-in, .tm-confirm-panel.tm-pop, .tm-toast.tm-toast-in, .tm-modal-scrim.tm-fade-in { animation: none; }
   .tm-button .animate-spin { animation: none; }
+  .facts > button.fact:active { opacity: 1; }
 }
