@@ -142,8 +142,10 @@ export function chooseOdometer(words: Word[], context: ScanContext = {}): Odomet
       const text = word.digits.slice(s, s + n).replace(/^0+(?=\d)/, ''); if (text.length < 4) continue;
       const value = Number(text), part = word.cells.slice(s, s + n);
       let confidence = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit * c.options[0].p), 0) / n) * (ODOMETER_LENGTH[text.length] ?? .4) * (n === word.digits.length ? 1 : .8) * word.fit * (word.refined ? 1 : .85);
+      // The journal's last reading helps choose between rows, but it may be stale (a car
+      // recorded long ago), so a reading far ahead of it is only mildly doubted; one behind it more so.
       const last = context.lastOdometer;
-      if (last != null && last > 0) confidence *= value >= last && value <= last + 5000 ? 1 : value >= last && value <= last + 30000 ? .5 : .1;
+      if (last != null && last > 0) confidence *= value >= last && value <= last + 5000 ? 1 : value >= last ? .75 : .4;
       const prev = best.get(text);
       if (!prev || confidence > prev.confidence) best.set(text, { text, value, confidence, word });
     }

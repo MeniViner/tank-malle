@@ -23,7 +23,7 @@ export function half(g: Gray): Gray {
   return { width, height, data: out };
 }
 
-export function pyramid(g: Gray, minSide = 80, maxLevels = 6): Gray[] {
+export function pyramid(g: Gray, minSide = 24, maxLevels = 7): Gray[] {
   const levels = [g];
   while (levels.length < maxLevels && Math.min(levels.at(-1)!.width, levels.at(-1)!.height) >= 2 * minSide) levels.push(half(levels.at(-1)!));
   return levels;

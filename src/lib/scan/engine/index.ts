@@ -14,7 +14,7 @@ export type DisplayResult = { status: 'read'; values: DisplayReading; confidence
  * Below these the engine's best guess is wrong more often than right on the
  * owner's photo set (scripts/scan-real); above them it was never wrong there.
  */
-export const ACCEPT = { odometer: .5, pump: .2 } as const;
+export const ACCEPT = { odometer: .45, pump: .2 } as const;
 /** Largest picture the engine is given, in pixels. */
 export const MAX_PIXELS = 16_000_000;
 
