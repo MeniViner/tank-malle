@@ -4,10 +4,11 @@
  *
  * All optional; a vehicle stored before they existed reads as "no business
  * details" and "not known to be electric" — exactly the old behaviour. Every
- * reader goes through these functions: the Firestore rules validate the fields
- * on ordinary vehicle writes, but a combined document+field patch is validated
- * by the document branch only (expression budget), so the client re-validates.
- * Mirrors `vehicleBizOrNull` / `validVehicleV3` in firestore.rules.
+ * reader still goes through these functions (defence in depth). The Firestore
+ * rules validate the fields on every vehicle write that touches one of them,
+ * including a patch that also changes `docs` (a write that would exceed the
+ * expression budget is refused, never accepted unvalidated).
+ * Mirrors `validVehicleV3` in firestore.rules.
  */
 
 export interface VehicleBiz {

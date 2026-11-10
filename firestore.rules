@@ -371,62 +371,57 @@ service cloud.firestore {
     function vehicleDocumentCoverage(value) {
       return value in [null, 'comprehensive', 'third', 'none'];
     }
-    function validVehicleDocumentLeaves(before, after, insurance, coverage) {
-      let changed = after.diff(before is map ? before : {}).affectedKeys();
-      // Validate changed known leaves once. Unchanged malformed values are
-      // retained by exact presence/type/value comparison, without a fallback
-      // that re-evaluates the valid leaves of a maximum-size legacy vehicle.
-      return (!changed.hasAny(['due']) || vehicleDocumentDay(after.get('due', null)))
-        && (!changed.hasAny(['cost']) || vehicleDocumentCost(after.get('cost', null)))
-        && (!insurance || !changed.hasAny(['insurer']) || stringOrNull(after.get('insurer', null), 160))
-        && (!coverage || !changed.hasAny(['type']) || vehicleDocumentCoverage(after.get('type', null)));
-    }
     function validVehicleDocumentRow(before, after, insurance, coverage) {
-      return after == null || (after is map && validVehicleDocumentLeaves(before, after, insurance, coverage));
+      let changed = after == null ? [] : after.diff(before is map ? before : {}).affectedKeys();
+      // A row is null or a map. Validate changed known leaves once. Unchanged
+      // malformed values are retained by exact presence/type/value comparison,
+      // without a fallback that re-evaluates the valid leaves of a
+      // maximum-size legacy vehicle. Membership tests (`in`) on the
+      // changed-key set are the cheapest form under the expression budget.
+      return after == null || (after is map
+        && (!('due' in changed) || vehicleDocumentDay(after.get('due', null)))
+        && (!('cost' in changed) || vehicleDocumentCost(after.get('cost', null)))
+        && (!insurance || !('insurer' in changed) || stringOrNull(after.get('insurer', null), 160))
+        && (!coverage || !('type' in changed) || vehicleDocumentCoverage(after.get('type', null))));
     }
     function validVehicleDocumentMap(before, after) {
       let previous = before is map ? before : {};
       let changed = after.diff(previous).affectedKeys();
-      return (!changed.hasAny(['test']) || validVehicleDocumentRow(previous.get('test', null), after.get('test', null), false, false))
-        && (!changed.hasAny(['mandatory']) || validVehicleDocumentRow(previous.get('mandatory', null), after.get('mandatory', null), true, false))
-        && (!changed.hasAny(['coverage']) || validVehicleDocumentRow(previous.get('coverage', null), after.get('coverage', null), true, true));
+      return (!('test' in changed) || validVehicleDocumentRow(previous.get('test', null), after.get('test', null), false, false))
+        && (!('mandatory' in changed) || validVehicleDocumentRow(previous.get('mandatory', null), after.get('mandatory', null), true, false))
+        && (!('coverage' in changed) || validVehicleDocumentRow(previous.get('coverage', null), after.get('coverage', null), true, true));
     }
     function validVehicleWrite(before, after) {
-      let changed = after.diff(before).affectedKeys().hasAny(['docs']);
+      let keys = after.diff(before).affectedKeys();
       let next = after.get('docs', null);
       // When docs do not change, retain the original irreversible deletion
       // latch. Changing docs requires two writable images, which also implies
       // that latch and avoids evaluating it a second time.
       // Keep the common vehicle and document checks in one call frame: the
       // optional test-cost leaf must also fit the 1,000-expression limit.
-      // Design v3 fields (biz, EV) are validated only on non-document writes,
-      // and only when one of them is written: the document branch has no
-      // expression budget left. Clients write documents as a separate patch,
-      // and every reader of these fields re-validates them (src/lib/vehicle/v3Fields.ts).
-      return validVehicle(after) && (!changed ? (
-        (!after.diff(before).affectedKeys().hasAny(['biz', 'powertrain', 'battery', 'motorKw']) || validVehicleV3(after))
-        && (!before.get('deletionPending', false) || after.get('deletionPending', false) == true)
-      ) : (
-        before.get('deletionPending', false) == false
-        && after.get('deletionPending', false) == false
-        && (next == null || (next is map && validVehicleDocumentMap(before.get('docs', null), next)))
-      ));
+      // Design v3 fields (biz, EV) are a separate conjunct that applies to
+      // every branch, including a patch that also changes docs. They are
+      // validated only when one of them is written, so existing vehicles pay
+      // nothing for them. The affected-key set is computed once (let).
+      return validVehicle(after)
+        && (!keys.hasAny(['biz', 'powertrain', 'battery', 'motorKw']) || validVehicleV3(after))
+        && (!keys.hasAny(['docs']) ? (
+          !before.get('deletionPending', false) || after.get('deletionPending', false) == true
+        ) : (
+          before.get('deletionPending', false) == false
+          && after.get('deletionPending', false) == false
+          && (next == null || (next is map && validVehicleDocumentMap(before.get('docs', null), next)))
+        ));
     }
 
     // Pass each optional value once, as validFillup already does. Repeating
     // document lookups makes a fully populated vehicle plus docs exceed the
     // 1,000-expression budget. The emulator regression cases prove that a
     // numeric type plus both finite bounds rejects NaN and either infinity;
-    // retain both bounds here instead of nesting the shared NaN predicate.
-    function vehiclePositiveOrNull(value) {
-      return value == null || (value is number && value > 0 && value < 9999999999);
-    }
-    function vehicleNonnegativeOrNull(value) {
-      return value == null || (value is number && value >= 0 && value < 9999999999);
-    }
-    function vehicleYearOrNull(value) {
-      return value == null || (value is number && value >= 1900 && value <= 2100);
-    }
+    // retain both bounds instead of nesting the shared NaN predicate.
+    // Scalar optional values are bound once with `let` and checked inline in
+    // validVehicle: every call frame saved is budget for the Design v3
+    // fields, which are validated beside the document branch.
     function vehicleDiscountOrNull(value) {
       return value == null || (value is map
         && value.keys().hasOnly(['kind', 'value'])
@@ -434,64 +429,55 @@ service cloud.firestore {
         && value.value is number && value.value >= 0
         && value.value <= (value.kind == 'percent' ? 100 : 20));
     }
-    function vehicleTankPrefsOrNull(value) {
-      return value == null || validTankPrefs(value);
-    }
-    function vehicleLevelOrNull(value) {
-      return value == null || (value is number && value >= 0 && value <= 1);
-    }
-    function vehicleEpochOrNull(value) {
-      return value == null || (value is number && value > 0 && value < 4102444800000);
-    }
-    // Design v3: optional business-statement metadata. Plain owner text and a
-    // business-use share; never read by anyone but the owner.
-    function vehicleBizOrNull(value) {
-      return value == null || (value is map
-        && value.keys().hasOnly(['company', 'driver', 'usagePct'])
-        && stringOrNull(value.get('company', null), 120)
-        && stringOrNull(value.get('driver', null), 80)
-        && vehicleBoundedOrNull(value.get('usagePct', null), 0, 100));
-    }
-    // Design v3: EV registry fields. Absent/null = unknown (treated as a
-    // combustion car, exactly as before the fields existed).
-    function vehicleBatteryOrNull(value) {
-      return value == null || (value is map
-        && value.keys().hasOnly(['kwh', 'wltp'])
-        && vehicleBoundedOrNull(value.get('kwh', null), 0.1, 500)
-        && vehicleBoundedOrNull(value.get('wltp', null), 1, 2000));
-    }
-    function vehicleBoundedOrNull(value, low, high) {
-      return value == null || (value is number && value >= low && value <= high);
-    }
-    function vehicleReserve(value) {
-      return value is number && value >= 0.05 && value <= 0.9;
-    }
     function validVehicle(data) {
+      let tank = data.get('tankLiters', null);
+      let declared = data.get('declaredKmPerLiter', null);
+      let manual = data.get('manualPricePerLiter', null);
+      let year = data.get('year', null);
+      let tozeret = data.get('tozeretCd', null);
+      let degem = data.get('degemCd', null);
+      let prefs = data.get('tankPrefs', null);
       return data.make is string && data.make.size() > 0 && data.make.size() <= 60
         && data.model is string && data.model.size() <= 80
         && data.fuelType in ['95', '98', 'diesel', 'other']
         && data.archived is bool && data.get('deletionPending', false) is bool
-        && isNumber(data.priceAdjustment)
+        && data.priceAdjustment is number && data.priceAdjustment > -9999999999 && data.priceAdjustment < 9999999999
         && vehicleDiscountOrNull(data.get('priceDiscount', null))
-        && vehiclePositiveOrNull(data.get('tankLiters', null))
+        && (tank == null || (tank is number && tank > 0 && tank < 9999999999))
         && data.get('tankLitersSource', null) in [null, 'user', 'trusted', 'estimate', 'legacy']
-        && vehiclePositiveOrNull(data.get('declaredKmPerLiter', null))
+        && (declared == null || (declared is number && declared > 0 && declared < 9999999999))
         && data.get('declaredSource', null) in [null, 'user', 'exact-year', 'other-year', 'co2-estimate']
-        && vehicleNonnegativeOrNull(data.get('manualPricePerLiter', null))
-        && vehicleYearOrNull(data.get('year', null))
-        && numberOrNull(data.get('tozeretCd', null))
-        && numberOrNull(data.get('degemCd', null))
+        && (manual == null || (manual is number && manual >= 0 && manual < 9999999999))
+        && (year == null || (year is number && year >= 1900 && year <= 2100))
+        && (tozeret == null || (tozeret is number && tozeret > -9999999999 && tozeret < 9999999999))
+        && (degem == null || (degem is number && degem > -9999999999 && degem < 9999999999))
         && stringOrNull(data.get('plateNumber', null), 12)
         && stringOrNull(data.get('nickname', null), 60)
-        && vehicleTankPrefsOrNull(data.get('tankPrefs', null));
+        && (prefs == null || validTankPrefs(prefs));
     }
     // Design v3 vehicle fields, checked only when one of them is written (see
     // validVehicleWrite) so existing vehicles pay no expression budget for them.
+    //  - biz: optional business-statement metadata (owner text, business-use
+    //    share 0-100); never read by anyone but the owner.
+    //  - powertrain / battery / motorKw: EV registry fields. Absent/null =
+    //    unknown (treated as a combustion car, exactly as before).
+    // Written inline in one frame: a patch that also changes docs evaluates
+    // this beside the document branch, inside the 1,000-expression budget.
     function validVehicleV3(data) {
-      return vehicleBizOrNull(data.get('biz', null))
+      let biz = data.get('biz', null);
+      let battery = data.get('battery', null);
+      let motor = data.get('motorKw', null);
+      return (biz == null || (biz is map
+          && biz.keys().hasOnly(['company', 'driver', 'usagePct'])
+          && (biz.get('company', null) == null || (biz.company is string && biz.company.size() <= 120))
+          && (biz.get('driver', null) == null || (biz.driver is string && biz.driver.size() <= 80))
+          && (biz.get('usagePct', null) == null || (biz.usagePct is number && biz.usagePct >= 0 && biz.usagePct <= 100))))
         && data.get('powertrain', null) in [null, 'ice', 'phev', 'ev']
-        && vehicleBatteryOrNull(data.get('battery', null))
-        && vehicleBoundedOrNull(data.get('motorKw', null), 1, 2000);
+        && (battery == null || (battery is map
+          && battery.keys().hasOnly(['kwh', 'wltp'])
+          && (battery.get('kwh', null) == null || (battery.kwh is number && battery.kwh >= 0.1 && battery.kwh <= 500))
+          && (battery.get('wltp', null) == null || (battery.wltp is number && battery.wltp >= 1 && battery.wltp <= 2000))))
+        && (motor == null || (motor is number && motor >= 1 && motor <= 2000));
     }
     /**
      * Tank preferences.
@@ -502,15 +488,19 @@ service cloud.firestore {
      * permanently.
      */
     function validTankPrefs(prefs) {
+      let override = prefs.get('refuelLevelOverride', null);
+      let usual = prefs.get('usualRefuelLevel', null);
+      let reset = prefs.get('habitResetAt', null);
+      // Bounds written inline (no helper frames) to fit the expression budget.
       return prefs.keys().hasOnly([
              'reserveFraction', 'refuelLevelOverride', 'usualFillStyle',
              'usualRefuelLevel', 'habitResetAt'
            ])
-        && vehicleReserve(prefs.reserveFraction)
-        && vehicleLevelOrNull(prefs.get('refuelLevelOverride', null))
+        && prefs.reserveFraction is number && prefs.reserveFraction >= 0.05 && prefs.reserveFraction <= 0.9
+        && (override == null || (override is number && override >= 0 && override <= 1))
         && prefs.get('usualFillStyle', null) in [null, 'full', 'partial', 'unknown']
-        && vehicleLevelOrNull(prefs.get('usualRefuelLevel', null))
-        && vehicleEpochOrNull(prefs.get('habitResetAt', null));
+        && (usual == null || (usual is number && usual >= 0 && usual <= 1))
+        && (reset == null || (reset is number && reset > 0 && reset < 4102444800000));
     }
 
     // An anonymous economy summary. Deliberately narrow: anything that could
