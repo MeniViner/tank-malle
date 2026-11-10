@@ -14,11 +14,11 @@ const exportedInput = (op: OutboxOperation) => JSON.stringify(JSON.parse(exportO
 
 describe('read-only outbox presentation', () => {
   it('does not turn an invalid negative annual cost into a positive displayed amount', () => {
-    expect(outboxFieldText('cost', -25)).toBe('−₪25 · עלות שלילית לא תקינה');
-    expect(outboxFieldText('cost', -.1)).toBe('₪0 · עלות שלילית לא תקינה');
+    expect(outboxFieldText('cost', -25)).toBe('−25\u202F₪ · עלות שלילית לא תקינה');
+    expect(outboxFieldText('cost', -.1)).toBe('0\u202F₪ · עלות שלילית לא תקינה');
     expect(outboxFieldText('cost', NaN)).toBe('עלות לא תקינה');
-    expect(outboxFieldText('cost', 0)).toBe('₪0');
-    expect(outboxFieldText('cost', 123.456789)).toBe('₪123');
+    expect(outboxFieldText('cost', 0)).toBe('0\u202F₪');
+    expect(outboxFieldText('cost', 123.456789)).toBe('123\u202F₪');
   });
   it('decodes care payload/base/server without changing retry or export bytes', () => {
     const mine = { title: 'שלי', day: '2026-09-01', costAgorot: 12345, version: 1, jobs: ['oil'] };
@@ -51,7 +51,7 @@ describe('read-only outbox presentation', () => {
     const view = presentOutboxOperation(op);
     expect(view.payload).toBeNull(); expect(view.beforeImage).toEqual(before);
     expect(outboxFieldText('costAgorot', view.beforeImage!.costAgorot)).toBe('לא הוזן');
-    expect(outboxFieldText('costAgorot', view.serverImage!.costAgorot)).toBe('₪0');
+    expect(outboxFieldText('costAgorot', view.serverImage!.costAgorot)).toBe('0\u202F₪');
     expect(op.payload).toBeNull();
   });
 
@@ -105,7 +105,7 @@ describe('read-only outbox presentation', () => {
       serverImage: encodeRawDocument({ ...mine, discountPerLiter: 0.123456788 }) });
     const view = presentOutboxOperation(op);
     expect(view.category).toBe('priceRule'); expect(view.payload).toEqual(mine);
-    expect(outboxFieldText('discountPerLiter', view.payload!.discountPerLiter)).toBe('₪0.12');
+    expect(outboxFieldText('discountPerLiter', view.payload!.discountPerLiter)).toBe('0.12\u202F₪');
     expect(outboxDifferences(view.payload, view.serverImage!)[0].beyondDisplayPrecision).toBe(true);
     expect(decodeRawDocument(op.payload!)).toEqual(mine);
   });
@@ -113,8 +113,8 @@ describe('read-only outbox presentation', () => {
   it('identifies monetary differences hidden by required display rounding without showing extra decimals', () => {
     const [difference] = outboxDifferences({ costAgorot: 12345 }, { costAgorot: 12346 });
     expect(difference.beyondDisplayPrecision).toBe(true);
-    expect(outboxFieldText('costAgorot', difference.mine)).toBe('₪123');
-    expect(outboxFieldText('costAgorot', difference.server)).toBe('₪123');
+    expect(outboxFieldText('costAgorot', difference.mine)).toBe('123\u202F₪');
+    expect(outboxFieldText('costAgorot', difference.server)).toBe('123\u202F₪');
     expect(outboxDifferences({ costAgorot: 12345 }, { costAgorot: 15000 })[0].beyondDisplayPrecision).toBe(false);
   });
 

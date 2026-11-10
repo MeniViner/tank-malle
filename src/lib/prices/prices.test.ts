@@ -409,7 +409,7 @@ describe("price display", () => {
       regulated: adaptLegacyConfig(LEGACY),
       now: NOW,
     });
-    expect(priceDisplay(ceiling).text).toBe("עד ₪7.31");
+    expect(priceDisplay(ceiling).text).toBe("עד 7.31\u202F₪");
     expect(ceiling.price).toBe(7.31);
   });
 
@@ -420,7 +420,7 @@ describe("price display", () => {
       aggregates: [aggregate()],
       now: NOW,
     });
-    expect(priceDisplay(observed).text).toBe("₪7.18 לליטר");
+    expect(priceDisplay(observed).text).toBe("7.18\u202F₪ לליטר");
     expect(observed.price).toBe(7.18);
   });
 

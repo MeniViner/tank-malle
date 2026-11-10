@@ -354,7 +354,7 @@ describe('new-family fail-closed presentation', () => {
     const conflict = (await outbox.get(operation.opId))!, bytes = JSON.stringify(conflict);
     const view = presentOutboxOperation(conflict);
     expect(view.category).toBe('vehicleDocument'); expect(view.title).toBe('ביטוח חובה'); expect(view.canOverwrite).toBe(true);
-    expect(outboxFieldText('cost', view.payload!.cost)).toBe('₪123');
+    expect(outboxFieldText('cost', view.payload!.cost)).toBe('123\u202F₪');
     expect(outboxDifferences(view.payload, view.serverImage!).find(diff => diff.key === 'cost')?.beyondDisplayPrecision).toBe(true);
     expect(JSON.stringify(conflict)).toBe(bytes);
   });

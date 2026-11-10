@@ -48,12 +48,12 @@ test("Journal filters and search share exact totals with their month groups, inc
   const scope = await journalFixture(page);
   const summary = page.getByRole("region", { name: "סיכום היומן המסונן", exact: true });
   await expect(page.locator(".ledger-row")).toHaveCount(13);
-  await expect(page.getByTestId("ledger-total")).toHaveText("₪1,567");
+  await expect(page.getByTestId("ledger-total")).toHaveText("1,567\u202F₪");
   await expect(summary).toContainText("1 עלות חסרה");
-  await expect(page.getByTestId(`journal-month-${scope.firstMonth}`).locator("header")).toContainText("₪751");
-  await expect(page.getByTestId(`journal-month-${scope.lastMonth}`).locator("header")).toContainText("₪816");
+  await expect(page.getByTestId(`journal-month-${scope.firstMonth}`).locator("header")).toContainText("751\u202F₪");
+  await expect(page.getByTestId(`journal-month-${scope.lastMonth}`).locator("header")).toContainText("816\u202F₪");
 
-  for (const [kind, rows, total] of [["fuel", 6, "₪1,436"], ["service", 3, "₪123"], ["expense", 2, "₪8"], ["odometer", 2, "—"]] as const) {
+  for (const [kind, rows, total] of [["fuel", 6, "1,436\u202F₪"], ["service", 3, "123\u202F₪"], ["expense", 2, "8\u202F₪"], ["odometer", 2, "—"]] as const) {
     await page.getByTestId(`journal-filter-${kind}`).click();
     await expect(page.locator(".ledger-row")).toHaveCount(rows);
     await expect(page.getByTestId("ledger-total")).toHaveText(total);
@@ -65,10 +65,10 @@ test("Journal filters and search share exact totals with their month groups, inc
   await page.getByTestId("journal-filter-service").click();
   await expect(page.getByTestId("journal-entry-serviceEvents/journal-unknown")).toContainText("כדאי לבדוק");
   await expect(page.getByTestId("journal-entry-serviceEvents/journal-unknown")).toContainText("—");
-  await expect(page.getByTestId("journal-entry-serviceEvents/journal-zero")).toContainText("₪0");
+  await expect(page.getByTestId("journal-entry-serviceEvents/journal-zero")).toContainText("0\u202F₪");
   await page.getByTestId("journal-search").fill("שמן ובלמים");
   await expect(page.locator(".ledger-row")).toHaveCount(1);
-  await expect(page.getByTestId("ledger-total")).toHaveText("₪123");
+  await expect(page.getByTestId("ledger-total")).toHaveText("123\u202F₪");
   await expect(page.getByTestId(`journal-month-${scope.lastMonth}`)).toHaveCount(0);
   await page.getByTestId("journal-search").fill("לא קיים 784");
   await expect(page.getByRole("heading", { name: "לא נמצאו רשומות", exact: true })).toBeVisible();
@@ -91,7 +91,7 @@ test("a Home fuel row opens its scoped Journal receipt before editing; direct ed
   expect(url.searchParams.get("vehicle")).toBe(scope.vehicleId);
   expect(url.searchParams.get("entry")).toBe("fillups/journal-last");
   await expect(page.getByTestId("journal-entry-sheet")).toHaveAttribute("data-entry-key", "fillups/journal-last");
-  await expect(page.getByTestId("journal-entry-price")).toContainText("₪7.00");
+  await expect(page.getByTestId("journal-entry-price")).toContainText("7.00\u202F₪");
   await expect(page.getByTestId("entry-odometer")).toContainText("101,840");
   await page.getByTestId("journal-entry-edit").click();
   await expect(page).toHaveURL(/\/fillup\/journal-last$/);
@@ -149,7 +149,7 @@ test("Journal Add records one multi-job invoice, keeps its draft across steps an
   expect((await listDocuments(`${scope.base}/odometerReadings`))[0].data).toMatchObject({ odometer: 102100, notes: "עדכון ללא תדלוק" });
   expect(await listDocuments(`${scope.base}/fillups`)).toHaveLength(6);
   await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
-  await expect(page.getByTestId("ledger-total")).toHaveText("₪2,286");
+  await expect(page.getByTestId("ledger-total")).toHaveText("2,286\u202F₪");
 });
 
 for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "mint"] as const) {
@@ -158,7 +158,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     const scope = await journalFixture(page);
     await homeAppearance(page, scope.uid, theme, accent);
     await page.goto("/history");
-    await expect(page.getByTestId("ledger-total")).toHaveText("₪1,567");
+    await expect(page.getByTestId("ledger-total")).toHaveText("1,567\u202F₪");
     await expect(page.getByTestId("journal-coverage")).toHaveCount(0);
     await atmosphere(page, "journal");
     const capture = (name: string, full = false) => captureJournal(page, `${name}-${theme}-${accent}`, full);
@@ -221,7 +221,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     });
     expect(headingStyle.family).toContain("Karantina");
     expect(parseFloat(headingStyle.size)).toBeGreaterThanOrEqual(48);
-    expect(headingStyle.weight).toBe("700");
+    expect(headingStyle.weight).toBe("400"); // v3 §1: Karantina 400
     measurements.push({ id: "care-entry-panel", ...panel }, { id: "care-entry-heading", ...headingStyle });
     await capture("care-service-choose");
     for (const choice of await page.getByTestId("care-entry").locator(".care-choice").all()) await target44(choice);

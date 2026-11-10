@@ -229,11 +229,11 @@ test("a recovered encoded care conflict exposes exact competing fields and malfo
     const card = page.locator(`[data-outbox-op="${submitted.opId}"]`);
     await expect(card).toHaveAttribute("data-outbox-images", "decoded");
     await expect(card.getByTestId("outbox-summary-title")).toHaveText("חשבונית מדויקת 88");
-    await expect(card.getByTestId("outbox-summary-amount")).toHaveText("₪123");
+    await expect(card.getByTestId("outbox-summary-amount")).toHaveText("123\u202F₪");
     await expect(card.getByTestId("outbox-conflict-title").getByTestId("outbox-value-mine")).toContainText("חשבונית מדויקת 88");
     await expect(card.getByTestId("outbox-conflict-title").getByTestId("outbox-value-server")).toContainText("החשבונית בשרת 99");
-    await expect(card.getByTestId("outbox-conflict-costAgorot").getByTestId("outbox-value-mine")).toContainText("₪123");
-    await expect(card.getByTestId("outbox-conflict-costAgorot").getByTestId("outbox-value-server")).toContainText("₪247");
+    await expect(card.getByTestId("outbox-conflict-costAgorot").getByTestId("outbox-value-mine")).toContainText("123\u202F₪");
+    await expect(card.getByTestId("outbox-conflict-costAgorot").getByTestId("outbox-value-server")).toContainText("247\u202F₪");
     const recovered = (await journalOperations(page, scope.uid)).find(op => op.opId === submitted.opId)!;
     expect(recovered.beforeImage).toEqual(submitted.beforeImage);
     expect(decodeRawDocument(recovered.serverImage!)).toMatchObject({ costAgorot: 24680, title: "החשבונית בשרת 99" });

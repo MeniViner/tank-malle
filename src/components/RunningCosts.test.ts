@@ -36,7 +36,7 @@ describe('vehicle running-cost display boundaries', () => {
     const care = { ...EMPTY_CARE, serviceEvents: [{ ...service, costAgorot: 50049 }] };
     const before = JSON.stringify({ care, fuel });
     const markup = render(care);
-    expect(value(markup, 'running-total')).toBe('₪800');
+    expect(value(markup, 'running-total')).toBe('800\u202F₪');
     expect(value(markup, 'running-cost-per-km')).toBe('200');
     expect(value(markup, 'running-fuel-per-km')).toBe('75');
     expect(markup.match(/אג׳ לק״מ/g)).toHaveLength(2);

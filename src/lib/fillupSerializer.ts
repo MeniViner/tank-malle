@@ -16,7 +16,7 @@
 
 import type { Fillup, StationRef } from "./stats";
 import type { OutboxPayload } from "./outbox";
-import { shekel } from "./format";
+import { price as priceText, shekel } from "./format";
 
 export const SERVER_TIMESTAMP = "__serverTimestamp__";
 
@@ -350,7 +350,7 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
   } else if (price > FILLUP_LIMITS.pricePerLiterMax) {
     errors.push({
       field: "pricePerLiter",
-      message: `המחיר לליטר חייב להיות עד ₪${FILLUP_LIMITS.pricePerLiterMax}`,
+      message: `המחיר לליטר חייב להיות עד ${priceText(FILLUP_LIMITS.pricePerLiterMax)}`,
     });
   }
 
@@ -360,7 +360,7 @@ export function validateFillupPayload(payload: OutboxPayload): FieldError[] {
   } else if (total > FILLUP_LIMITS.totalCostMax) {
     errors.push({
       field: "totalCost",
-      message: `הסכום חייב להיות עד ₪${fmt(FILLUP_LIMITS.totalCostMax)}`,
+      message: `הסכום חייב להיות עד ${shekel(FILLUP_LIMITS.totalCostMax)}`,
     });
   } else if (
     total !== 0 &&

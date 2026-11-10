@@ -131,7 +131,7 @@ test("Home sparkline uses the last six canonical intervals, correct usual band a
   await expect(segment).toBeVisible();
   await expect(page.getByTestId("segment-distance")).toContainText("315");
   await expect(page.getByTestId("segment-liters")).toContainText("30.0");
-  await expect(page.getByTestId("segment-cost")).toContainText("₪226");
+  await expect(page.getByTestId("segment-cost")).toContainText("226\u202F₪");
   await expect(page.getByTestId("segment-closing-fillup")).toContainText("דלק תחנה 95");
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("consumption-point-home-7")).toBeFocused();
@@ -170,7 +170,7 @@ test("a missing partial cost never becomes a complete segment or monthly fuel to
   // still prevents a complete historical average, without hiding a known month.
   const partial = scope.fillups.find(fillup => fillup.id === "cost-partial")!;
   const currentMonthUnknown = monthKeyInBrowserTimeZone(new Date(partial.date)) === monthKeyInBrowserTimeZone(new Date(scope.now));
-  await expect(page.getByTestId("home-fuel-month")).toContainText(currentMonthUnknown ? "—" : "₪175");
+  await expect(page.getByTestId("home-fuel-month")).toContainText(currentMonthUnknown ? "—" : "175\u202F₪");
   await expect(page.getByTestId("home-fuel-month")).toContainText("אין ממוצע מלא");
   const path = `${scope.base}/fillups/cost-partial`;
   expect((await getDocument(path))?.totalCost).toBeNull();
@@ -178,11 +178,11 @@ test("a missing partial cost never becomes a complete segment or monthly fuel to
   // opening full tank remains outside the segment's counted cost.
   await setDocument(path, { ...await getDocument(path), totalCost: 0, pricePerLiter: 0 });
   await page.getByTestId("consumption-point-cost-close").click();
-  await expect(page.getByTestId("segment-cost")).toContainText("₪175");
+  await expect(page.getByTestId("segment-cost")).toContainText("175\u202F₪");
   await expect(page.getByTestId("segment-cost-unknown")).toHaveCount(0);
   const basePath = `${scope.base}/fillups/cost-base`;
   await setDocument(basePath, { ...await getDocument(basePath), totalCost: null, pricePerLiter: null });
-  await expect(page.getByTestId("segment-cost")).toContainText("₪175");
+  await expect(page.getByTestId("segment-cost")).toContainText("175\u202F₪");
   expect((await getDocument(basePath))?.totalCost).toBeNull();
 });
 
@@ -202,7 +202,7 @@ test("the three recent records and Journal share refund, unknown cost and quiet 
     await size44(row);
     text.set(id, await row.innerText());
   }
-  await expect(recent.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+₪11");
+  await expect(recent.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+11\u202F₪");
   await expect(recent.getByTestId("journal-entry-serviceEvents/mixed-service")).toContainText("—");
   await expect(recent.getByTestId("journal-entry-observations/mixed-odometer")).toContainText("172,600");
   await expect(recent.getByTestId("journal-entry-observations/mixed-odometer")).not.toContainText("₪");
@@ -265,7 +265,7 @@ test("new and partial-only vehicles show truthful empty states and never invent 
   await homeFixture(page, { kind: "no-fillups" });
   await expect(page.getByText("מתחילים מהתדלוק הבא", { exact: true })).toBeVisible();
   await expect(page.getByTestId("consumption-chart")).toHaveCount(0);
-  await expect(page.getByText(/₪0\b/)).toHaveCount(0);
+  await expect(page.getByText(/(?<![\d,.])0\s₪/)).toHaveCount(0);
   await expect(page.getByTestId("home-km-day")).toContainText("—");
   await expect(page.getByTestId("home-fuel-month")).toContainText("—");
   await homeFixture(page, { kind: "one-full" });
@@ -301,10 +301,10 @@ test("Home price sheets stay fuel-specific and distinguish manual prices from re
         [fuelType]: { self: { current, history: { [monthKeyInBrowserTimeZone(new Date(scope.now))]: 8.16 }, source: "manual" } },
       },
     });
-    await expect(price).toContainText("₪8.16");
+    await expect(price).toContainText("8.16\u202F₪");
     await price.click();
     await expect(sheet).toContainText("הוזן ידנית");
-    await expect(sheet).toContainText("₪8.16");
+    await expect(sheet).toContainText("8.16\u202F₪");
     await expect(sheet).not.toContainText("מחיר מרבי");
     expect((await getDocument(scope.base))?.fuelType).toBe(fuelType);
     await page.keyboard.press("Escape");
@@ -318,7 +318,7 @@ test("Home price sheets stay fuel-specific and distinguish manual prices from re
         [fuelType]: { self: { current, history: { [monthKeyInBrowserTimeZone(new Date(scope.now))]: 8.16 }, source: "import" } },
       },
     });
-    await expect(price).toContainText("₪8.16");
+    await expect(price).toContainText("8.16\u202F₪");
     await expect(price).not.toContainText("מחיר מרבי");
     await price.click();
     await expect(sheet).not.toContainText("מפוקח");
@@ -466,7 +466,7 @@ test("the monthly spotlight uses actual previous-month spending and appears only
   await page.clock.setFixedTime(firstWeek);
   await page.reload();
   await expect(cardOf(page, "month")).toHaveCount(1);
-  await expect(cardOf(page, "month")).toContainText("₪560");
+  await expect(cardOf(page, "month")).toContainText("560\u202F₪");
   await cardOf(page, "month").getByRole("button").first().click();
   await expect(page).toHaveURL(/\/stats/);
   await page.clock.setFixedTime(new Date(today.getFullYear(), today.getMonth(), 8, 12));
@@ -567,7 +567,7 @@ for (const [theme, accent] of [["light", "plate"], ["light", "mint"], ["dark", "
     await page.getByTestId("recent-fillups-timeline").scrollIntoViewIfNeeded();
     await expect(page.getByTestId("recent-fillups-timeline").getByTestId("journal-entry-observations/mixed-odometer")).toBeVisible();
     await expect(page.getByTestId("recent-fillups-timeline").getByTestId("journal-entry-serviceEvents/mixed-service")).toBeVisible();
-    await expect(page.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+₪11");
+    await expect(page.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+11\u202F₪");
     await capture(page, `home-recent-mixed-${suffix}`);
     await page.goto("/history");
     await expect(page.getByTestId("journal-entry-serviceEvents/mixed-service")).toContainText("—");

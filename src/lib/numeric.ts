@@ -120,7 +120,7 @@ export function parseNumberInput(raw: string, kind: NumericFieldKind = "decimal"
     }
     if (kind === "money" && threeDigits) {
       // ₪1,234 is far more common than a three-decimal shekel amount.
-      return finish(`${sign}${whole}${fraction}`, true, `נקרא כ־${whole}${fraction} ₪`);
+      return finish(`${sign}${whole}${fraction}`, true, `נקרא כ־${whole}${fraction}\u202F₪`);
     }
     // Litres and prices: a comma is a decimal comma. "38,250" is 38.25 L,
     // "7,190" is ₪7.19 — a three-decimal pump figure, not thousands of litres.

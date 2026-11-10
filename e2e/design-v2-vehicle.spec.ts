@@ -103,7 +103,7 @@ test("three permanent document rows validate real civil dates and coverage none 
   const insurance = { insurer: "הראל", due: "2028-02-29", cost: 1234.56789 };
   await documentSaved(page, scope, { mandatory: insurance });
   await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("29/02/2028");
-  await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("₪1,235");
+  await expect(page.getByTestId("vehicle-doc-mandatory")).toContainText("1,235\u202F₪");
 
   const coverage = await openVehicleDoc(page, "coverage");
   await coverage.getByRole("radio", { name: "מקיף", exact: true }).click();
@@ -353,11 +353,15 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
           styles.push({ id: `${key}-${id}`, sample: await vehicleStyle(page.getByTestId(id)) });
           const field = await page.getByTestId(id).evaluate(element => {
             const control = element.closest(".tm-field-control")!, style = getComputedStyle(control), input = getComputedStyle(element);
-            return { height: control.getBoundingClientRect().height, border: style.borderTopColor,
+            const probe = document.createElement("i"); probe.style.color = "var(--line)"; document.body.append(probe);
+            const line = getComputedStyle(probe).color; probe.remove();
+            return { height: control.getBoundingClientRect().height, border: style.borderTopColor, line, borderWidth: style.borderTopWidth,
               foreground: input.color, weight: Number(input.fontWeight), radius: style.borderRadius };
           });
           expect(field.height).toBeCloseTo(52, 1);
-          expect(field.border).toBe(field.foreground);
+          // v3 §1: inputs use the 1px --line hairline (v2 used an ink rule).
+          expect(field.border).toBe(field.line);
+          expect(field.borderWidth).toBe("1px");
           expect(field.weight).toBe(400);
           geometry.push({ id: `${key}-${id}`, ...field });
         }

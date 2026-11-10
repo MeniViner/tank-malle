@@ -3,7 +3,10 @@
 - Read-only shekel amounts display as whole shekels, rounded to the nearest
   shekel: totals, costs, differences in totals, spend charts, tooltips,
   notifications, scan results, history, profile and admin views.
-- **Exception: per-litre fuel prices always show two decimals** (₪7.35, not ₪7),
+- Order (Design v3 §5): the number, a narrow no-break space (U+202F), then the
+  symbol: `777 ₪`, signed `−12 ₪` / `+5 ₪`. The formatters produce this; never
+  build the string by hand or put ₪ in front of the number.
+- **Exception: per-litre fuel prices always show two decimals** (`7.35 ₪`, not `7 ₪`),
   including official/list prices, average price paid, per-litre discounts and
   the price chart. Rounding a fuel price to the shekel makes it meaningless.
 - Use `shekel`/`shekelSigned` (totals) or `price` (per litre) from

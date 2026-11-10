@@ -72,12 +72,21 @@ const currencyNumber = new Intl.NumberFormat("he-IL", {
   maximumFractionDigits: CURRENCY_DISPLAY_FRACTION_DIGITS,
 });
 
-/** 216.77 → "₪217". Display only: never use this to calculate or persist money. */
+/**
+ * Design v3 §5: the number, then a narrow no-break space (U+202F), then ₪.
+ * The same string is used inside LTR numeric islands, so the symbol always
+ * trails the digits and can never wrap away from them.
+ */
+export const CURRENCY_SEPARATOR = "\u202F";
+export const CURRENCY_SYMBOL = "₪";
+const withCurrency = (digits: string) => `${digits}${CURRENCY_SEPARATOR}${CURRENCY_SYMBOL}`;
+
+/** 216.77 → "217 ₪" (U+202F). Display only: never use this to calculate or persist money. */
 export function shekel(value: number): string {
-  return Number.isFinite(value) ? `₪${currencyNumber.format(Math.abs(value))}` : "—";
+  return Number.isFinite(value) ? withCurrency(currencyNumber.format(Math.abs(value))) : "—";
 }
 
-/** Signed whole-shekel delta. Rounded zero has no misleading positive/negative sign. */
+/** Signed whole-shekel delta, sign before the number ("−2 ₪"). Rounded zero has no misleading sign. */
 export function shekelSigned(value: number): string {
   if (!Number.isFinite(value)) return "—";
   const sign = Math.round(Math.abs(value)) === 0 ? "" : value < 0 ? "\u2212" : "+";
@@ -89,9 +98,9 @@ const unitPriceNumber = new Intl.NumberFormat("he-IL", {
   maximumFractionDigits: 2,
 });
 
-/** 7.35 → "₪7.35". A per-litre price is meaningless rounded to the shekel. */
+/** 7.35 → "7.35 ₪" (U+202F). A per-litre price is meaningless rounded to the shekel. */
 export function price(value: number): string {
-  return Number.isFinite(value) ? `₪${unitPriceNumber.format(value)}` : "—";
+  return Number.isFinite(value) ? withCurrency(unitPriceNumber.format(value)) : "—";
 }
 
 /**

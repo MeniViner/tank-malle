@@ -138,7 +138,7 @@ describe("Home spotlight priorities and private dismissals", () => {
 
   it("keeps a price change fuel-specific, month-matched and separate from guessed capacity", () => {
     const change = deriveSpotlight(input()).find(item => item.id.startsWith("price:"));
-    expect(change?.body).toContain("₪50");
+    expect(change?.body).toContain("50\u202F₪");
     expect(deriveSpotlight(input({ vehicle: { ...vehicle, tankLitersSource: "estimate" } })).find(item => item.id.startsWith("price:"))?.body).not.toContain("מיכל");
     expect(deriveSpotlight(input({ vehicle: { ...vehicle, fuelType: "diesel" } })).some(item => item.id.startsWith("price:"))).toBe(false);
     expect(deriveSpotlight(input({ prices: { byFuelType: { "95": { self: { history: { "2026-11": 8 }, source: "scheduled", current: { pricePerLiter: 8, effectiveFrom: now } } } } } })).some(item => item.id.startsWith("price:"))).toBe(false);

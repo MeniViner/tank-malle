@@ -41,8 +41,8 @@ describe('raw operation recovery presentation', () => {
     expect(markup).toContain('בספטמבר');
     expect(markup).toContain('data-testid="outbox-conflict-costAgorot"');
     expect(markup).toContain('חשבונית בשרת');
-    expect(numberRuns(markup)).toContain('₪123');
-    expect(numberRuns(markup)).toContain('₪346');
+    expect(numberRuns(markup)).toContain('123\u202F₪');
+    expect(numberRuns(markup)).toContain('346\u202F₪');
     expect(markup).not.toContain('__tankMalehRawDocument');
     expect(overwrite(markup)).not.toContain('disabled');
     expect(exportedInput(op)).toBe(original);
@@ -52,7 +52,7 @@ describe('raw operation recovery presentation', () => {
     const markup = render(operation({ payload: care, serverImage: { ...care, costAgorot: 15000 } }));
     expect(markup).toContain('data-outbox-images="plain"');
     expect(markup).toContain('חשבונית מקורית');
-    expect(numberRuns(markup)).toContain('₪150');
+    expect(numberRuns(markup)).toContain('150\u202F₪');
     expect(overwrite(markup)).not.toContain('disabled');
   });
 
@@ -86,8 +86,8 @@ describe('raw operation recovery presentation', () => {
     const markup = render(operation({ serverImage: encodeRawDocument({ ...care, costAgorot: 12346 }) }));
     expect(markup).toContain('data-testid="outbox-display-precision"');
     expect(markup).toContain('הערכים שונים מעבר לדיוק התצוגה');
-    expect(numberRuns(markup)).not.toContain('₪123.45');
-    expect(numberRuns(markup)).not.toContain('₪123.46');
+    expect(numberRuns(markup)).not.toContain('123.45\u202F₪');
+    expect(numberRuns(markup)).not.toContain('123.46\u202F₪');
   });
 
   it('shows private rule scope and per-litre precision without treating it as a fill-up', () => {
@@ -96,7 +96,7 @@ describe('raw operation recovery presentation', () => {
       serverImage: encodeRawDocument({ ...mine, discountPerLiter: 0.123456788 }) }));
     expect(markup).toContain('data-outbox-record-kind="priceRule"');
     expect(markup).toContain('תחנה פרטית');
-    expect(numberRuns(markup)).toContain('₪0.12');
+    expect(numberRuns(markup)).toContain('0.12\u202F₪');
     expect(markup).toContain('data-testid="outbox-conflict-discountPerLiter"');
     expect(markup).toContain('data-testid="outbox-display-precision"');
     expect(markup).not.toContain('0.123456789');

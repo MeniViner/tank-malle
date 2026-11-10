@@ -178,7 +178,7 @@ test('editing and deleting a service recalculates costs and the linked deadline'
   await page.getByTestId('tab-vehicle').click();await expect(page.getByText('111,000 ק״מ',{exact:true})).toBeVisible();
   await openCareHistory(page);await openCareRecord(page,'delete');await page.getByRole('alertdialog').getByRole('button',{name:'מחיקת הרשומה',exact:true}).click();await expect(async()=>expect(await getDocument(`${base}/serviceEvents/service`)).toBeNull()).toPass();
   await page.getByTestId('tab-vehicle').click();await expect(page.getByText('100,000 ק״מ',{exact:true})).toBeVisible();
-  await openCareCosts(page);await expect(page.getByTestId('running-total')).toContainText('₪0');
+  await openCareCosts(page);await expect(page.getByTestId('running-total')).toContainText('0\u202F₪');
 });
 
 test('unavailable journal storage leaves input in the editor and sends no care record',async({page})=>{

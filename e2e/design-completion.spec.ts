@@ -54,10 +54,10 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
         await expect(page.locator('main')).toBeVisible();
         // Assert populated surfaces, so a narrow loading skeleton cannot pass.
         if (path === '/') await expect(page.getByTestId('consumption-chart')).toBeVisible();
-        if (path === '/history') await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
+        if (path === '/history') await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('560\u202F₪');
         if (path === '/stats') {
           await page.getByTestId('insights-tab-spend').click();
-          await expect(page.getByTestId('running-total')).toContainText('₪560');
+          await expect(page.getByTestId('running-total')).toContainText('560\u202F₪');
         }
         if (path === '/fillup/new') await expect(page.getByLabel('מחיר לליטר', {exact:true})).toHaveValue('7.77');
         if (path === '/settings') await expect(page.getByTestId('account-discount')).toBeVisible();
@@ -66,7 +66,7 @@ test('imported layout, real values and logo assets fit phone, tablet and desktop
     }
   }
   await page.goto('/history');
-  await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('₪560');
+  await expect(page.getByRole('region', {name:'סיכום היומן המסונן'})).toContainText('560\u202F₪');
   await page.goto('/');
   await expect(page.getByTestId('consumption-chart').getByRole('img')).toHaveAccessibleName(/12.5 קמ״ל/);
   await page.getByTestId("tank-hero").click();

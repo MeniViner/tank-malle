@@ -33,17 +33,29 @@ describe("RTL-safe numeric formatting", () => {
     expect(percentPlain(72)).toBe("72%");
   });
 
-  it("puts the currency symbol in front of the amount", () => {
-    expect(shekel(216.77)).toBe("₪217")
-    expect(shekel(11680.89)).toBe("₪11,681");
-    expect(shekel(216)).toBe("₪216");
-    expect(price(8.25)).toBe("₪8.25");
+  it("puts the currency symbol after the amount, joined by a narrow no-break space (v3 §5)", () => {
+    expect(shekel(216.77)).toBe("217\u202F₪");
+    expect(shekel(11680.89)).toBe("11,681\u202F₪");
+    expect(shekel(216)).toBe("216\u202F₪");
+    expect(price(8.25)).toBe("8.25\u202F₪");
   });
 
-  it("puts the sign in front of the currency symbol", () => {
-    expect(shekelSigned(-1.5)).toBe("−₪2");
-    expect(shekelSigned(1.2)).toBe("+₪1");
-    expect(shekelSigned(0)).toBe("₪0");
+  it("emits the exact code points: digits, U+202F, U+20AA", () => {
+    const codePoints = (value: string) => [...value].map((char) => char.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0"));
+    expect(codePoints(shekel(777))).toEqual(["0037", "0037", "0037", "202F", "20AA"]);
+    expect(codePoints(price(7.35))).toEqual(["0037", "002E", "0033", "0035", "202F", "20AA"]);
+    expect(codePoints(shekelSigned(-12))).toEqual(["2212", "0031", "0032", "202F", "20AA"]);
+    expect(codePoints(shekelSigned(5))).toEqual(["002B", "0035", "202F", "20AA"]);
+    // No regular, no-break or bidi-control characters sneak in.
+    for (const value of [shekel(1234), price(7.35), shekelSigned(-1234)]) {
+      expect(value).not.toMatch(/[ \u00A0\u200E\u200F\u061C]/);
+    }
+  });
+
+  it("puts the sign before the number, never before the symbol", () => {
+    expect(shekelSigned(-1.5)).toBe("−2\u202F₪");
+    expect(shekelSigned(1.2)).toBe("+1\u202F₪");
+    expect(shekelSigned(0)).toBe("0\u202F₪");
   });
 
   it("uses a true minus sign, not a hyphen, so it cannot read as a list dash", () => {
@@ -57,19 +69,19 @@ describe("RTL-safe numeric formatting", () => {
   });
 
   it("applies the whole-shekel policy to totals and stored agorot, not per-litre prices", () => {
-    expect(shekel(233.1)).toBe("₪233");
-    expect(price(7.35)).toBe("₪7.35");
-    expect(price(7.5)).toBe("₪7.50");
-    expect(vehicleMoney(23310)).toBe("₪233");
-    expect(vehicleMoney(-155)).toBe("−₪2");
+    expect(shekel(233.1)).toBe("233\u202F₪");
+    expect(price(7.35)).toBe("7.35\u202F₪");
+    expect(price(7.5)).toBe("7.50\u202F₪");
+    expect(vehicleMoney(23310)).toBe("233\u202F₪");
+    expect(vehicleMoney(-155)).toBe("−2\u202F₪");
     expect(vehicleMoney(null)).toBe("לא ידוע");
   });
 
   it("does not show a positive or negative sign on rounded zero", () => {
-    expect(shekelSigned(-0.05)).toBe("₪0");
-    expect(shekelSigned(0.2)).toBe("₪0");
-    expect(vehicleMoney(-49)).toBe("₪0");
-    expect(vehicleMoney(-50)).toBe("−₪1");
+    expect(shekelSigned(-0.05)).toBe("0\u202F₪");
+    expect(shekelSigned(0.2)).toBe("0\u202F₪");
+    expect(vehicleMoney(-49)).toBe("0\u202F₪");
+    expect(vehicleMoney(-50)).toBe("−1\u202F₪");
   });
 
   it("keeps unknown/non-finite monetary values out of displayed amounts", () => {
