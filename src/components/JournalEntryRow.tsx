@@ -8,6 +8,7 @@ import { vehicleDay } from "../lib/vehicle/format";
 import { ConsumptionValue, Distance, Money, NumericText, NumRun, Percent, Quantity, SignedMoney } from "./Fmt";
 import { ChevronStart, WarningIcon } from "./icons";
 import { CareGlyph } from "./maintenance/CareGlyph";
+import { EXCLUDED_LABEL } from "../lib/vehicle/ownership";
 import { StationBrandMark } from "./StationBrand";
 import "../journal-entry.css";
 
@@ -49,6 +50,7 @@ export function JournalEntryRow({ row, units, kmPerLiter, pending = false, atten
       {fuel?.continuityBreakBefore ? <span className="tm-journal-state">אחרי תדלוקים שלא נרשמו</span> : null}
       {state ? <span className="tm-journal-state">{state}</span> : null}
       {flagged ? <span className="tm-journal-state tm-journal-flag"><WarningIcon size={13} />כדאי לבדוק</span> : null}
+      {row.excluded ? <span className="tm-journal-state tm-journal-excluded" data-testid="journal-excluded-tag">{EXCLUDED_LABEL}</span> : null}
     </span>
     <span className={`tm-journal-money${refund ? " tm-journal-refund" : ""}`}>
       {row.financial ? row.amountAgorot === null ? <NumRun align="trailing">—</NumRun>

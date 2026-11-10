@@ -4,20 +4,25 @@ import { CalendarIcon, CheckIcon, ChevronDown } from './icons';
 import { NumericText } from './Fmt';
 
 /** One quiet trigger, with full-width choices like the supplied design. */
-export function PeriodPicker<T extends string>({ value, options, onChange, label = 'טווח תאריכים', ariaLabel, compact = false }: {
+export function PeriodPicker<T extends string>({ value, options, onChange, label = 'טווח תאריכים', ariaLabel, compact = false, variant }: {
   value: T;
   options: readonly { value: T; label: string }[];
   onChange: (value: T) => void;
   label?: string;
   ariaLabel?: string;
   compact?: boolean;
+  /** v3 "period chip": the first chip of a filter row, showing the chosen period. */
+  variant?: 'chip';
 }) {
   const [open, setOpen] = useState(false);
   const selectionId = useId();
   const selectionLabel = options.find(option => option.value === value)?.label ?? "";
+  const chip = variant === 'chip';
+  const describe = (compact || chip) && selectionLabel ? selectionId : undefined;
   return <>
-    <button type="button" className={"period-trigger" + (compact ? " period-trigger-compact" : "")} aria-label={ariaLabel ?? (compact ? label : undefined)}
-      aria-describedby={compact && selectionLabel ? selectionId : undefined}
+    <button type="button" className={"period-trigger" + (compact ? " period-trigger-compact" : "") + (chip ? " tm-chip period-trigger-chip" : "")}
+      aria-label={ariaLabel ?? (compact ? label : undefined)}
+      aria-describedby={describe} data-period={value}
       aria-haspopup="dialog" aria-expanded={open} onClick={event => { event.currentTarget.focus(); setOpen(true); }}>
       <CalendarIcon size={16}/><span id={selectionId} className={compact ? "sr-only" : undefined}><NumericText>{selectionLabel}</NumericText></span>{compact ? null : <ChevronDown size={14}/>}
     </button>

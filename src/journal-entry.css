@@ -24,3 +24,6 @@
   text-shadow: var(--tm-atmosphere-text-shadow);
 }
 .v-ledger-month .v-group:has(> .tm-journal-row) { border-radius: 0; background: transparent; }
+/* v3 §7.1: an expense left out of ownership keeps its row and amount, with a quiet tag. */
+.tm-journal-excluded { justify-self: start; width: fit-content; padding: 0 7px; border: 1px solid var(--line-control); border-radius: var(--r-sm); font-size: 11.5px; font-weight: 500; }
+.tm-journal-title { font-weight: 500; }
