@@ -1,6 +1,7 @@
 import { validDay } from './maintenance/model';
 import { isVehicleDocMap, VEHICLE_DOC_COST_MAX, type VehicleDocKey } from './vehicle/documents';
 import type { LedgerRow } from './vehicle/derived';
+import { countsTowardOwnership, isExcludedFromOwnership } from './vehicle/ownership';
 
 export type TcoPartId = 'fuel' | 'service' | 'mandatory' | 'coverage' | 'test' | 'other';
 export interface TcoPart {
@@ -23,6 +24,12 @@ export interface TcoResult {
   complete: boolean;
   lowerBound: boolean;
   fuelThisMonth: number | null;
+  /**
+   * Expenses switched out of ownership ("לא בעלות הרכב") inside the same window,
+   * as a monthly average of their known amounts, and how many there were.
+   * Informational only: never part of `month`, `year`, `perKm` or any shared figure.
+   */
+  excluded: { monthly: number; count: number };
 }
 export interface TcoInput {
   ledger: readonly LedgerRow[];
@@ -52,7 +59,9 @@ function amount(row: LedgerRow): number | null {
 /** Read-only ownership estimate. No date clock, rounding, writes, or SDK dependencies. */
 export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false }: TcoInput): TcoResult {
   if (!validDay(today)) throw new TypeError('TCO requires a valid civil day');
-  const history = ledger.filter(row => validDay(row.day) && row.day <= today);
+  const dated = ledger.filter(row => validDay(row.day) && row.day <= today);
+  // The window, every part and the shared monthly figure are ownership-only.
+  const history = dated.filter(countsTowardOwnership);
   const first = history.reduce((day, row) => row.day < day ? row.day : day, today);
   const window = Math.min(12, Math.max(1, monthIndex(today) - monthIndex(first) + 1));
   const start = monthIndex(today) - window + 1;
@@ -97,7 +106,9 @@ export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false
   const currentFuel = rows.filter(row => row.kind === 'fuel' && row.day.slice(0, 7) === today.slice(0, 7));
   const fuelThisMonth = incomplete || !history.some(row => row.kind === 'fuel') || currentFuel.some(row => amount(row) === null) ? null
     : currentFuel.reduce((sum, row) => sum + amount(row)!, 0);
-  return { parts, month, year: month === null ? null : month * 12, missing, window, windowStart,
+  const excludedRows = dated.filter(row => row.day >= windowStart && isExcludedFromOwnership(row));
+  const excluded = { monthly: excludedRows.reduce((sum, row) => sum + (amount(row) ?? 0), 0) / window, count: excludedRows.length };
+  return { parts, month, year: month === null ? null : month * 12, missing, window, windowStart, excluded,
     perKm: month !== null && kmPerDay !== null && Number.isFinite(kmPerDay) && kmPerDay > 0 ? month / (kmPerDay * 30.4) : null,
     complete: !missing.length && history.some(row => row.kind === 'fuel'), lowerBound: !incomplete && !unknownRefund, fuelThisMonth };
 }

@@ -528,7 +528,7 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await expect(page.getByTestId("fillup-saved-segment")).toContainText("13.3");
     await expect(page.getByRole("heading", { name: "נשמר", exact: true })).toBeFocused();
     await expect(page.locator(".fillup-saved-number")).toHaveCSS("font-family", /Karantina/);
-    await expect(page.locator(".fillup-saved-number")).toHaveCSS("font-weight", "700");
+    await expect(page.locator(".fillup-saved-number")).toHaveCSS("font-weight", "400"); // v3 §1: Karantina 400
     measurements.push(await focusState(page, "saved-entry"));
     await capture(page, `fillup-saved-segment-${suffix}`, true);
     await page.getByTestId("fillup-saved-undo").focus();

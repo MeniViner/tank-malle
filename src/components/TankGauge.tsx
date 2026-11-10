@@ -140,7 +140,7 @@ export function TankGauge({
         /* Only this element opts out of browser panning, so a drag on the gauge
            cannot scroll the page while a swipe anywhere else still can. */
         style={interactive ? { touchAction: "none" } : undefined}
-        className={`relative h-[168px] w-[76px] flex-none overflow-hidden rounded-[18px] border-2 bg-surface-2 outline-none transition-[border-color,box-shadow] duration-200 ${
+        className={`relative h-[168px] w-[76px] flex-none overflow-hidden rounded-lg border-2 bg-surface-2 outline-none transition-[border-color,box-shadow] duration-200 ${
           interactive
             ? "cursor-ns-resize border-line focus-visible:border-accent focus-visible:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent)_22%,transparent)]"
             : "border-line"

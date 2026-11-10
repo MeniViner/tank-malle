@@ -49,7 +49,7 @@ export function Field({
       </label>
 
       <div
-        className={row ? `tm-field-input ${error ? "text-danger" : ""}` : `tm-field-control flex items-center gap-2.5 rounded-[10px] border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 ${
+        className={row ? `tm-field-input ${error ? "text-danger" : ""}` : `tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] duration-200 ${
           big ? "min-h-[58px]" : "min-h-[50px]"
         } ${
           error
@@ -97,7 +97,7 @@ export function SoftWarningBanner({
   detail?: ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-2.5 rounded-[14px] bg-warning-soft px-3.5 py-3 text-warning-ink">
+    <div className="flex items-start gap-2.5 rounded-md bg-warning-soft px-3.5 py-3 text-warning-ink">
       <WarningIcon size={17} className="mt-px flex-none" />
       <div className="flex flex-col gap-1">
         <span className="text-[14px] font-bold">{message}</span>
@@ -110,7 +110,7 @@ export function SoftWarningBanner({
 /** Neutral inline note (the "המחיר הרשמי יתעדכן…" strip on Home). */
 export function InfoStrip({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-[14px] bg-surface-2 px-3.5 py-2.5">
+    <div className="flex items-center gap-2.5 rounded-md bg-surface-2 px-3.5 py-2.5">
       {icon ? <span className="flex-none text-muted">{icon}</span> : null}
       <span className="text-[13px] text-ink/80">{children}</span>
     </div>

@@ -197,7 +197,7 @@ function EditState({
   return (
     <main className="flex min-h-dvh flex-1 flex-col gap-3 px-5 pt-safe" data-edit-state={kind}>
       <header className="flex items-center justify-between py-3">
-        <h1 className="font-display text-[40px] font-bold text-ink">עריכת תדלוק</h1>
+        <h1 className="font-display text-[40px] font-normal text-ink">עריכת תדלוק</h1>
         {onBack ? (
           <button
             type="button"
@@ -1200,6 +1200,7 @@ function FillupEditor({
       }} /></Suspense> : null}
     {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
+      context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),

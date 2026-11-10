@@ -121,7 +121,7 @@ export function AccountMore({ children }: { children?: ReactNode }) {
     <Sheet open={manualOpen} onClose={() => setManualOpen(false)} title="שיתוף האפליקציה">
       <div className="flex flex-col gap-4">
         <p className="text-[15px] text-ink">{buildSharePayload().text}</p>
-        <div className="flex items-center gap-2 rounded-[14px] border border-line bg-surface p-2">
+        <div className="flex items-center gap-2 rounded-md border border-line bg-surface p-2">
           <input ref={linkInput} readOnly dir="ltr" value={APP_SHARE_URL} aria-label="קישור לשיתוף"
             onFocus={event => event.currentTarget.select()}
             className="min-h-11 min-w-0 flex-1 bg-transparent px-2 text-left text-[14px] text-ink" />

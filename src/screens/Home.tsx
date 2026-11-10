@@ -141,5 +141,5 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
 }
 
 function HomeSkeleton() {
-  return <div className="home-skeleton"><Skeleton className="h-[228px] rounded-[24px]" /><Skeleton className="h-[310px] rounded-[18px]" /><Skeleton className="h-[100px] rounded-[12px]" /></div>;
+  return <div className="home-skeleton"><Skeleton className="h-[228px] rounded-lg" /><Skeleton className="h-[310px] rounded-lg" /><Skeleton className="h-[100px] rounded-md" /></div>;
 }

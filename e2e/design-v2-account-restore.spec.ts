@@ -55,5 +55,5 @@ test("Escape closes a pending offline restore preview, keeps focus in backup and
   await page.keyboard.press("Escape");
   await page.reload();
   await page.getByTestId("account-identity").click();
-  await expect(page.getByTestId("account-summary")).toContainText("₪25");
+  await expect(page.getByTestId("account-summary")).toContainText("25\u202F₪");
 });

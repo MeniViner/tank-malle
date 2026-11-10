@@ -18,6 +18,7 @@ import { db } from "./firebase";
 import type { FuelType, Vehicle } from "./types";
 import type { Stats } from "./stats";
 import { benchmarkDocId, modelKey, MIN_PEERS, BENCHMARK_SEPARATOR as ID_SEPARATOR } from "./benchmarkIdentity";
+import { isEv } from "./vehicle/v3Fields";
 export { benchmarkDocId, modelKey, MIN_PEERS } from "./benchmarkIdentity";
 
 /**
@@ -126,6 +127,9 @@ export async function publishBenchmark(
   stats: Stats,
 ): Promise<void> {
   if (stats.avgKmPerLiter === null || stats.segments.length < 2) return;
+  // Design v3: km per litre is meaningless for a battery-electric car; never
+  // publish it into the litre-based community pool.
+  if (isEv(vehicle)) return;
 
   const payload: BenchmarkDoc = {
     vehicleId: vehicle.id,
@@ -187,11 +191,12 @@ export async function fetchComparison(
         label: `נהגי ${vehicle.make} ${vehicle.model}`.trim(),
         constraint: where("modelKey", "==", key),
       },
-      {
-        basis: "fuelType",
+      // The fuel-type pool is litre-based; an EV is compared with its own model only.
+      ...(isEv(vehicle) ? [] : [{
+        basis: "fuelType" as const,
         label: vehicle.fuelType === "diesel" ? "רכבי סולר" : "רכבי בנזין",
         constraint: where("fuelType", "==", vehicle.fuelType),
-      },
+      }]),
     ];
 
   let shortfall = 0;

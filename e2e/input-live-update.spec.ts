@@ -89,7 +89,7 @@ for (const key of ['mandatory', 'test'] as const) {
     const originalDocs = (await getDocument(scope.base))?.docs;
     const sameDocument = await page.evaluateHandle(() => document);
     const card = page.getByTestId('tco-card');
-    await expect(card.locator('.tm-tco-value')).toHaveText('₪810');
+    await expect(card.locator('.tm-tco-value')).toHaveText('810\u202F₪');
     await card.click();
     await page.getByTestId(`tco-part-${key}`).click();
     const editor = page.getByRole('dialog', { name: DOC_TITLES[key], exact: true });
@@ -115,18 +115,18 @@ for (const key of ['mandatory', 'test'] as const) {
       // This is intentionally before the server request is allowed to commit.
       expect((await getDocument(scope.base))?.docs).toEqual(originalDocs);
       expect(await outboxCount(page, scope.uid)).toBeGreaterThan(0);
-      await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('₪910');
-      await expect(page.getByTestId(`tco-value-${key}`)).toHaveText('₪200');
+      await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('910\u202F₪');
+      await expect(page.getByTestId(`tco-value-${key}`)).toHaveText('200\u202F₪');
       await page.keyboard.press('Escape');
-      await expect(card.locator('.tm-tco-value')).toHaveText('₪910');
+      await expect(card.locator('.tm-tco-value')).toHaveText('910\u202F₪');
       await page.getByTestId('tab-vehicle').click();
       const row = page.getByTestId(`vehicle-doc-${key}`);
-      await expect(row).toContainText('₪2,400');
+      await expect(row).toContainText('2,400\u202F₪');
       await expect(row).toContainText('30/06/2027');
       expect((await getDocument(scope.base))?.docs).toEqual(originalDocs);
       await page.getByTestId('tab-home').click();
       await card.click();
-      await expect(page.getByTestId(`tco-value-${key}`)).toHaveText('₪200');
+      await expect(page.getByTestId(`tco-value-${key}`)).toHaveText('200\u202F₪');
 
       gate.release();
       await expect.poll(async () => (await getDocument(scope.base))?.docs).toMatchObject({
@@ -136,11 +136,11 @@ for (const key of ['mandatory', 'test'] as const) {
       // Check after React has painted the retired overlay, not only in the
       // interval between the journal's disk deletion and its UI notification.
       await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-      await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('₪910');
-      await expect(page.getByTestId(`tco-value-${key}`)).toHaveText('₪200');
+      await expect(page.getByTestId('tco-sheet').locator('.tm-tco-value')).toHaveText('910\u202F₪');
+      await expect(page.getByTestId(`tco-value-${key}`)).toHaveText('200\u202F₪');
       await page.keyboard.press('Escape');
       await page.getByTestId('tab-vehicle').click();
-      await expect(row).toContainText('₪2,400');
+      await expect(row).toContainText('2,400\u202F₪');
       await expect(row).toContainText('30/06/2027');
       expect(await sameDocument.evaluate(node => node === document)).toBe(true);
       expect(await listDocuments(`${scope.base}/vehicleExpenses`)).toHaveLength(3);

@@ -1,6 +1,7 @@
 import type { Stats, Vehicle } from "./stats";
 import type { LedgerRow } from './vehicle/derived';
 import { financialTotals } from './vehicle/financial';
+import { ownershipRows } from './vehicle/ownership';
 import { localDay } from './maintenance/model';
 
 /**
@@ -108,13 +109,15 @@ export function summaryChanged(
 export function summariseLedger(rows: LedgerRow[], now = Date.now()): LedgerSummary {
   const counts: LedgerSummary['counts'] = { fuel: 0, service: 0, expense: 0, odometer: 0, tank: 0, issue: 0 };
   for (const row of rows) counts[row.kind]++;
-  const totals = financialTotals(rows);
+  // Published money is ownership-only; an excluded expense is still counted as a record.
+  const owned = ownershipRows(rows);
+  const totals = financialTotals(owned);
   const today = localDay(new Date(now));
   const current = new Date(`${today.slice(0, 7)}-01T12:00:00`);
   const months = Array.from({ length: 6 }, (_, index) => {
     const date = new Date(current.getFullYear(), current.getMonth() - 5 + index, 1, 12);
     const month = localDay(date).slice(0, 7);
-    const total = financialTotals(rows.filter(row => row.day.startsWith(month) && row.day <= today));
+    const total = financialTotals(owned.filter(row => row.day.startsWith(month) && row.day <= today));
     return { month, totalAgorot: total.total, unknownCosts: total.unknown };
   });
   return { counts, totalAgorot: totals.total, unknownCosts: totals.unknown, months };

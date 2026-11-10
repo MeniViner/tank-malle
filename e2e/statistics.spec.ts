@@ -114,7 +114,7 @@ test("weekly, monthly and year-to-date spending are all available", async ({ pag
   await expect(details.getByText("מתחילת השנה", { exact: true })).toBeVisible();
   for (const label of ["ממוצע שבועי", "ממוצע חודשי", "מתחילת השנה"]) {
     const kpi = details.locator(".insights-kpi").filter({ has: page.getByText(label, { exact: true }) });
-    await expect(kpi.locator("strong")).toHaveText(/^₪[\d,]+$/);
+    await expect(kpi.locator("strong")).toHaveText(/^[\d,]+\s₪$/);
   }
 });
 

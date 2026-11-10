@@ -26,7 +26,7 @@ test("the paid-price comparison opens the exact receipt and keeps owner and vehi
   });
   await page.goto("/");
   const paid = card(page, "paid");
-  await expect(paid).toContainText("שילמת כ-₪20 פחות בתדלוק האחרון");
+  await expect(paid).toContainText("שילמת כ-20\u202F₪ פחות בתדלוק האחרון");
   await expect(paid).toContainText("המחיר המרבי לבנזין 95 בשירות עצמי מחוץ לאילת ביום התדלוק");
   await paid.locator(".tm-spotlight-open").click();
   await expect(page.getByTestId("journal-entry-sheet")).toHaveAttribute("data-entry-key", `fillups/${fillup.id}`);

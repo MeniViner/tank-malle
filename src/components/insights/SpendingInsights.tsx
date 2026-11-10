@@ -55,14 +55,14 @@ export function SpendingInsights({ stats, consumption, range, from, to, historyR
               domain={[(minimum: number) => Math.min(0, minimum), (maximum: number) => Math.max(0, maximum)]} />
             <Tooltip content={<InsightTooltip kind="money" labels={SPEND_LABELS} />} />
             <ReferenceLine y={0} stroke="var(--ink-2)" strokeWidth={1} />
-            <Bar dataKey="fuel" stackId="spending" fill="var(--accent)" stroke="var(--ink)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
-            <Bar dataKey="service" stackId="spending" fill="var(--ink-2)" maxBarSize={36} isAnimationActive={false} />
-            <Bar dataKey="other" stackId="spending" fill="var(--surface-2)" stroke="var(--ink)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
+            <Bar dataKey="fuel" stackId="spending" fill="var(--cat-fuel)" stroke="var(--ink)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
+            <Bar dataKey="service" stackId="spending" fill="var(--cat-service)" maxBarSize={36} isAnimationActive={false} />
+            <Bar dataKey="other" stackId="spending" fill="var(--cat-other)" stroke="var(--ink)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
             <Bar dataKey="refunds" stackId="spending" fill={`url(#${patternId})`} stroke="var(--ink-2)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
           </BarChart>
         </InsightChart>
-        <div className="insights-legend"><ChartLegend block color="var(--accent)">דלק</ChartLegend><ChartLegend block color="var(--ink-2)">טיפולים</ChartLegend>
-          <ChartLegend block outlined color="var(--surface-2)">הוצאות</ChartLegend>
+        <div className="insights-legend"><ChartLegend block color="var(--cat-fuel)">דלק</ChartLegend><ChartLegend block color="var(--cat-service)">טיפולים</ChartLegend>
+          <ChartLegend block outlined color="var(--cat-other)">הוצאות</ChartLegend>
           {summary.totals.refunds > 0 ? <ChartLegend block outlined color="var(--surface)">החזרים מתחת לאפס</ChartLegend> : null}</div>
         <InsightTable testId="insights-spend-table" caption={`הוצאות הרכב לפי חודש, ${range.label}`}>
           <thead><tr><th scope="col">חודש</th><th scope="col">דלק</th><th scope="col">טיפולים</th><th scope="col">אחרות</th><th scope="col">החזרים</th><th scope="col">נטו</th></tr></thead>
@@ -144,7 +144,7 @@ function FuelPurchaseDetail({ stats, range, now, historyReady }: { stats: Stats;
         <BarChart data={buckets} margin={CHART_MARGIN} accessibilityLayer><XAxis {...TIME_AXIS} />
           <YAxis {...VALUE_AXIS} width={42} allowDecimals={false} tickFormatter={value => int(Number(value))} />
           <Tooltip content={<InsightTooltip kind="money" labels={{ cost: "רכישות דלק" }} />} />
-          <Bar dataKey="cost" fill="var(--accent)" stroke="var(--ink)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
+          <Bar dataKey="cost" fill="var(--cat-fuel)" stroke="var(--ink)" strokeWidth={.65} maxBarSize={36} isAnimationActive={false} />
         </BarChart>
       </InsightChart>
       <InsightTable testId="insights-fuel-grouped-table" caption={`רכישות דלק בקיבוץ ${GROUPING_LABELS[grouping]}`}>

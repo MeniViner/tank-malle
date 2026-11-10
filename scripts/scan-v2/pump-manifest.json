@@ -1,0 +1,18 @@
+{
+ "format": "tank-malle-scan-v2-pump-manifest-v1",
+ "note": "The three Israeli pump photographs with every digit of amount and volume certain, from PR #19's frozen set pump-photos-2026-11-01 (Wikimedia Commons; licences and transcriptions there). cropBox [x0, y0, x1, y1] is a hand-drawn stand-in for the viewfinder guide box, drawn by the stage-6 agent from downscaled views BEFORE either pipeline read these photos with this code. Images are not in the repository.",
+ "sessions": [
+  { "id": "il-paz-2019", "file": "commons-pumps/cycle4/il-paz-2019.jpg", "sha256": "b6e394ffa8b581b8a23271e09a8f6f51b120166cd47121bd76862f8ab7edbce4",
+    "source": "https://commons.wikimedia.org/wiki/File:20190421_163852_April_2019_in_Israel.jpg", "licence": "CC0 1.0", "author": "Rakoon",
+    "expected": { "total": "150.00", "liters": "23.734" }, "displayedPrice": "6.32", "cropBox": [348, 532, 488, 660],
+    "notes": "Unlit grey LCD in daylight; amount decimal point faint; price in a separate window below (inside the box)." },
+  { "id": "il-sonol-jordan-valley-2011", "file": "commons-pumps/cycle4/il-sonol-jordan-valley-2011.jpg", "sha256": "52c29939824e626b0f6ee8db3504ca83cb0d4b45dc1a0166fa06959388c831fb",
+    "source": "https://commons.wikimedia.org/wiki/File:Gas_station._Jordan_Valley,_West_Bank_033_-_Aug_2011.jpg", "licence": "CC BY 3.0", "author": "Guillaume Paumier",
+    "expected": { "total": "320.08", "liters": "44.332" }, "displayedPrice": "07.22", "cropBox": [1840, 470, 2290, 750],
+    "notes": "Sharp seven-segment LCD; box covers the main display only (grade price windows are below it)." },
+  { "id": "il-sonol-2016", "file": "commons-pumps/cycle4/il-sonol-2016.jpg", "sha256": "aa57bb856e251dc24f8bea4fc9aeeb19f33029fc374813489a6ff602b1814979",
+    "source": "https://commons.wikimedia.org/wiki/File:20160731_112358_July_2016_in_Israel.jpg", "licence": "CC0 1.0", "author": "Rakoon",
+    "expected": { "total": "163.06", "liters": "26.514" }, "displayedPrice": "6.15", "cropBox": [1795, 1600, 1910, 1665],
+    "notes": "Left pump; display about 110 x 55 px; the amount shows no decimal point (16306)." }
+ ]
+}

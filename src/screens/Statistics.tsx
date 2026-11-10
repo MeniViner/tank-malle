@@ -85,7 +85,7 @@ function InsightsSession() {
       </div>
       {!historyReady && section !== "community" ? <p className="insights-source-status" data-testid="insights-source-status" role="status">{historyLabel} · מוצגים הנתונים הזמינים</p> : null}
       {data.loadingFillups && (section === "cons" || section === "price") ? <div className="insights-stack" aria-label="טוענים תובנות" role="status">
-        <Skeleton className="h-[280px] rounded-[20px]" /><Skeleton className="h-[180px] rounded-[20px]" />
+        <Skeleton className="h-[280px] rounded-lg" /><Skeleton className="h-[180px] rounded-lg" />
       </div> : <>
         {section === "cons" ? <ConsumptionInsights stats={stats} summary={consumption} vehicle={data.activeVehicle} units={units}
           range={selected.range} historyReady={historyReady} onSelect={selectSegment} /> : null}

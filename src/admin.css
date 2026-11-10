@@ -78,6 +78,6 @@
 .vehicle-year-row > .v-row { padding:0;min-height:32px; }
 .vehicle-year-row > small { display:block;font-size:12px;color:var(--muted);margin-top:6px; }
 .vehicle-year-bar { display:flex;gap:2px;height:5px;border-radius:99px;overflow:clip;margin-top:6px; }
-.vehicle-year-bar > span:nth-child(1) { background:var(--accent); }
-.vehicle-year-bar > span:nth-child(2) { background:var(--muted); }
-.vehicle-year-bar > span:nth-child(3) { background:var(--line); }
+.vehicle-year-bar > span:nth-child(1) { background:var(--cat-fuel); }
+.vehicle-year-bar > span:nth-child(2) { background:var(--cat-service); }
+.vehicle-year-bar > span:nth-child(3) { background:var(--cat-other); }

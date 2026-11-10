@@ -1,6 +1,7 @@
 import { parseDecimal } from "../../lib/format";
 import type { FuelType, Vehicle } from "../../lib/types";
 import type { VehicleSpecs } from "../../lib/vehicleSpecs";
+import { evFieldsForCreation, type Powertrain } from "../../lib/vehicle/v3Fields";
 
 export type WizardStep = "plate" | "confirm" | "extras";
 export interface WizardDraft {
@@ -14,6 +15,8 @@ export interface WizardDraft {
   tozeretCd?: number | null;
   degemCd?: number | null;
   engineCc?: number | null;
+  /** Design v3: from the plate registry ("ev" for a battery-electric car). */
+  powertrain?: Powertrain | null;
 }
 export const EMPTY_WIZARD_DRAFT: WizardDraft = {
   make: "", model: "", year: "", fuelType: "95", plateNumber: "",
@@ -74,7 +77,9 @@ export function buildWizardVehicle(draft: WizardDraft, numbers: WizardNumbers, n
   if (nickname.trim().length > 60) errors.nickname = "הכינוי ארוך מדי";
   if (Object.keys(errors).length) return { ok: false, errors };
 
-  const estimate = !numbers.tank.authored && positive(specs?.suggestedTankLiters) ? specs.suggestedTankLiters : null;
+  const ev = evFieldsForCreation({ powertrain: specs?.powertrain ?? draft.powertrain, motorKw: specs?.motorKw, battery: specs?.battery });
+  // A battery-electric car has no fuel tank: never store a body-type litre estimate for it.
+  const estimate = ev.powertrain !== "ev" && !numbers.tank.authored && positive(specs?.suggestedTankLiters) ? specs.suggestedTankLiters : null;
   const exactDeclared = declaredTyped && specs?.declaredSource === "exact-year"
     && numbers.declared.value === String(specs.declaredKmPerLiter);
   // The existing enrichment policy preserves user-owned nulls after creation
@@ -90,5 +95,6 @@ export function buildWizardVehicle(draft: WizardDraft, numbers: WizardNumbers, n
     specSourceUrl: !declaredTyped && numbers.declared.authored ? null : specs?.sourceUrl ?? null,
     priceAdjustment: 0, manualPricePerLiter: null, nickname: nickname.trim() || null, archived: false,
     tozeretCd: draft.tozeretCd ?? null, degemCd: draft.degemCd ?? null,
+    ...ev,
   } };
 }

@@ -41,8 +41,8 @@ for (const width of [320, 360, 393]) {
     expect(requests).toHaveLength(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await page.getByRole('button', {name:'משיכת מחיר מהדפדפן'}).click();
-    await expect(page.getByText('₪8.27', {exact:false}).first()).toBeVisible();
-    const currentPrice = await page.getByText('₪8.27', {exact:false}).first().boundingBox();
+    await expect(page.getByText('8.27\u202F₪', {exact:false}).first()).toBeVisible();
+    const currentPrice = await page.getByText('8.27\u202F₪', {exact:false}).first().boundingBox();
     expect(currentPrice).not.toBeNull();
     // The source uses an inline price column rather than a separate hero.
     expect(currentPrice!.x).toBeGreaterThanOrEqual(0);

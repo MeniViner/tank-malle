@@ -14,3 +14,20 @@ export function manufacturerTank(make?: string, model?: string, year?: number | 
   const entry = MANUFACTURER_SPECS.find(s => s.make.test(make.trim()) && s.model.test(model.trim()) && year >= s.from && year <= s.to);
   return entry ? { liters: entry.tank, url: entry.url } : null;
 }
+
+/**
+ * EV battery supplement (design v3). Neither data.gov.il register carries
+ * battery capacity or WLTP range — the WLTP register has `koah_sus` (motor
+ * power) and `dg_metach_solela` (battery VOLTAGE, not kWh). So, like the tank
+ * table above, this is a small versioned list of manufacturer-published
+ * figures, each with its source. Never extrapolate to another generation.
+ * Empty until sourced entries are added; the lookup then simply returns null
+ * and the user enters the figures (or leaves them unknown).
+ */
+export interface BatterySpec { make: RegExp; model: RegExp; from: number; to: number; kwh: number | null; wltp: number | null; url: string }
+export const EV_BATTERY_SPECS: readonly BatterySpec[] = [];
+export function manufacturerBattery(make?: string, model?: string, year?: number | null, table: readonly BatterySpec[] = EV_BATTERY_SPECS) {
+  if (!make || !model || !year) return null;
+  const entry = table.find(s => s.make.test(make.trim()) && s.model.test(model.trim()) && year >= s.from && year <= s.to);
+  return entry && (entry.kwh || entry.wltp) ? { kwh: entry.kwh, wltp: entry.wltp, url: entry.url } : null;
+}

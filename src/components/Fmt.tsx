@@ -25,18 +25,23 @@ export function NumRun({ children, className = "", block = false, align = "leadi
   }, []);
   const content = parts.map((child, index) => {
     if (typeof child !== "string") return child;
-    const numeric = child.match(/^([+−-]?)(₪?)(\s*)([+−-]?)([\d,\u200e\u200f.]+)([%₪]?)$/);
-    if (!numeric || !(numeric[2] || numeric[6])) return child;
-    const [, leadingSign, currency, spacing, priceSign, digits, suffix] = numeric;
-    if (leadingSign && priceSign || currency && suffix) return child;
-    // DOM/reading order stays exactly as authored; CSS places the unit on the
-    // left without changing copied text, accessible names, signs or precision.
+    // Accepts the v3 formatter output ("777\u202F₪", "−12\u202F₪", "25%") and
+    // legacy authored prefix strings ("₪25") without changing a single character.
+    const numeric = child.match(/^([+−-]?)(₪?)(\s*)([+−-]?)([\d,\u200e\u200f.]+)([\u202F\u00A0 ]?)([%₪]?)$/);
+    if (!numeric || !(numeric[2] || numeric[7])) return child;
+    const [, leadingSign, currency, spacing, priceSign, digits, gap, suffix] = numeric;
+    if (leadingSign && priceSign || currency && suffix || gap && !suffix) return child;
+    // DOM/reading order stays exactly as authored. A trailing ₪ (v3 §5) stays
+    // after the digits; CSS keeps % and a legacy leading ₪ on the left without
+    // changing copied text, accessible names, signs or precision.
+    const trailing = suffix === "₪" ? "trailing" : undefined;
     return <span key={index} className="tm-symbol-number">
       {leadingSign ? <span className="tm-number-sign">{leadingSign}</span> : null}
       {currency ? <span className="tm-unit-symbol">{currency}</span> : null}
       {spacing ? <span className="tm-number-spacing">{spacing}</span> : null}
       <span className="tm-number-value">{priceSign}{digits}</span>
-      {suffix ? <span className="tm-unit-symbol">{suffix}</span> : null}
+      {gap ? <span className="tm-number-spacing" data-unit-position={trailing}>{gap}</span> : null}
+      {suffix ? <span className="tm-unit-symbol" data-unit-position={trailing}>{suffix}</span> : null}
     </span>;
   });
   return <bdi dir="ltr" data-number-align={align}
@@ -45,7 +50,7 @@ export function NumRun({ children, className = "", block = false, align = "leadi
 
 /** Mixed labels keep numeric fragments isolated; this never formats their values. */
 export function NumericText({ children }: { children: string }) {
-  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*[+−-]?)?\d(?:[\d,.:/]*\d)?[%₪]?)/gu)
+  return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*[+−-]?)?\d(?:[\d,.:/]*\d)?(?:%|[\u202F\u00A0 ]?₪)?)/gu)
     .map((part, index) => index % 2 ? <NumRun key={index}>{part}</NumRun>
       : !/[₪%]/.test(part) ? part : <Fragment key={index}>{part.split(/([₪%])/).map((text, symbolIndex) => text === "₪" || text === "%"
         ? <span key={symbolIndex} className="tm-unit-symbol">{text}</span> : text)}</Fragment>)}</>;
