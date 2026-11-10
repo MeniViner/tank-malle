@@ -10,7 +10,8 @@ import { num } from "../../lib/format";
 import { ChoiceList } from "../ChoiceList";
 import { GroupRow } from "../DesignPrimitives";
 import { NumRun } from "../Fmt";
-import { ArchiveIcon, CloudOffIcon, DownloadIcon, UploadIcon } from "../icons";
+import { ArchiveIcon, CloudOffIcon, DocumentIcon, DownloadIcon, UploadIcon } from "../icons";
+import { BusinessStatementSheet } from "../business/BusinessStatementSheet";
 import { LegacyCareTransfer } from "../LegacyCareTransfer";
 import { Sheet } from "../Sheet";
 import { UnifiedTransfer } from "../UnifiedTransfer";
@@ -30,7 +31,7 @@ export function AccountData({ onImported }: { onImported: () => void }) {
   const exportingRef = useRef(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
-  const [sheet, setSheet] = useState<"export" | "backup" | null>(null);
+  const [sheet, setSheet] = useState<"export" | "backup" | "business" | null>(null);
   const [scopeOpen, setScopeOpen] = useState(false);
   const [exportScope, setExportScope] = useState<"account" | "active">("account");
   const healthUnknown = outboxHealth.state !== "ok";
@@ -83,6 +84,8 @@ export function AccountData({ onImported }: { onImported: () => void }) {
     <h2 id="account-data-heading" className="account-section-title">הנתונים שלי</h2>
     <div className="tm-group">
       <GroupRow testId="account-export" icon={<DownloadIcon />} title="ייצוא ל-Excel" onClick={() => setSheet("export")} />
+      {activeVehicle ? <GroupRow testId="account-business-statement" icon={<DocumentIcon />} title="דוח חודשי לעסק"
+        subtitle="PDF או CSV של חודש אחד, להגשה כהוצאה · הרכב הפעיל" onClick={() => setSheet("business")} /> : null}
       <GroupRow testId="account-backup" icon={<ArchiveIcon />} title="גיבוי" subtitle="שמירת עותק של כל הנתונים" onClick={() => setSheet("backup")} />
       <GroupRow testId="account-import" icon={<UploadIcon />} title="ייבוא נתונים" onClick={() => navigate("/settings/import")} />
       {needsAttention ? <GroupRow testId="account-unsynced" icon={<CloudOffIcon />} title="שינויים שעוד לא עלו לענן"
@@ -116,5 +119,6 @@ export function AccountData({ onImported }: { onImported: () => void }) {
         <div className="tm-group"><LegacyCareTransfer key={activeVehicle?.id ?? "none"} /></div>
       </div>
     </Sheet>
+    <BusinessStatementSheet open={sheet === "business"} onClose={() => setSheet(null)} />
   </section>;
 }
