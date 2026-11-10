@@ -48,7 +48,7 @@
 .vehicle-wizard .text-muted { color: var(--ink-2); text-shadow: var(--tm-atmosphere-text-shadow); }
 .wizard-fuels { display: grid; gap: 6px; min-width: 0; margin: 0; padding: 0; border: 0; }
 .wizard-fuels legend { margin-bottom: 6px; color: var(--ink-2); font-size: 13.5px; font-weight: 600; text-shadow: var(--tm-atmosphere-text-shadow); }
-.wizard-fuels > div { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.wizard-fuels > div { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 4px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
 .wizard-fuels label { position: relative; display: grid; min-width: 0; min-height: 44px; cursor: pointer; }
 .wizard-fuels input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
 .wizard-fuels label > span { display: grid; place-items: center; min-height: 44px; padding: 6px; border-radius: var(--r-md); font-size: 16px; font-weight: 600; color: var(--ink); }
@@ -92,3 +92,9 @@
   .wizard-header { padding-top: max(12px, env(safe-area-inset-top, 0px)); gap: 12px; padding-bottom: 14px; }
   .wizard-footer { padding-bottom: max(16px, env(safe-area-inset-bottom, 0px)); }
 }
+/* v3 §7.4: EV rows on the confirm step (motor from the registry, battery typed by the owner). */
+.wizard-ev { display: grid; gap: 12px; }
+.wizard-ev-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.wizard-ev-note { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; text-shadow: var(--tm-atmosphere-text-shadow); }
+.wizard-ev-loading { display: inline-flex; align-items: center; gap: 6px; }
+@media (max-width: 350px) { .wizard-ev-fields { grid-template-columns: minmax(0, 1fr); } .wizard-fuels label > span { padding-inline: 2px; font-size: 15px; } }

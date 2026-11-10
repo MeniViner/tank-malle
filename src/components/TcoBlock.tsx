@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from 'react';
+import { useId, useRef, useState, type Ref } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useVehicleData } from '../context/VehicleDataContext';
@@ -32,7 +32,8 @@ function Amount({ value, className = '' }: { value: number | null; className?: s
   return value === null ? <NumRun block className={style}>—</NumRun> : <Money block value={value} className={style} />;
 }
 
-type Period = 'month' | 'year';
+export type TcoPeriod = 'month' | 'year';
+type Period = TcoPeriod;
 const PERIOD_WORD: Record<Period, string> = { month: 'בחודש', year: 'בשנה' };
 
 export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: boolean }) {
@@ -40,8 +41,22 @@ export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: b
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<Period>('month');
   const trigger = useRef<HTMLButtonElement>(null);
-  const summaryId = useId();
   if (!data.activeVehicle || !data.fillups.length) return null;
+  return <>
+    <TcoCard tco={tco} compact={compact} period={period} onPeriod={setPeriod} open={open} onOpen={() => setOpen(true)} triggerRef={trigger} />
+    {open ? <TcoSheet tco={tco} initialPeriod={period} onClose={() => setOpen(false)} returnFocus={() => trigger.current} /> : null}
+  </>;
+}
+
+/**
+ * The TCO card itself, without data access: Home feeds it the engine's result,
+ * onboarding feeds it static demo data inside an inert, aria-hidden artwork.
+ */
+export function TcoCard({ tco, compact = false, period, onPeriod, open = false, onOpen, triggerRef }: {
+  tco: TcoResult; compact?: boolean; period: Period; onPeriod: (period: Period) => void;
+  open?: boolean; onOpen: () => void; triggerRef?: Ref<HTMLButtonElement>;
+}) {
+  const summaryId = useId();
   const parts = tcoLegendParts(tco);
   const total = parts.reduce((sum, part) => sum + part.knownValue, 0);
   const label = tco.complete ? 'הרכב עולה לך' : tco.lowerBound && tco.month !== null ? 'הרכב עולה לך, לפחות' : 'עלות הרכב לפי הרישומים';
@@ -52,30 +67,27 @@ export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: b
   const other = yearly ? tco.month : tco.year;
   const next: Period = yearly ? 'month' : 'year';
   // The card is a container: one stretched button opens the sheet, the period chip is its own control.
-  return <>
-    <div className="tm-tco" data-testid="tco-card" data-compact={compact} data-period={period}>
-      <button ref={trigger} type="button" className="tm-tco-open" aria-label="כמה הרכב עולה לך" aria-describedby={summaryId}
-        aria-haspopup="dialog" aria-expanded={open} onClick={event => { event.currentTarget.focus(); setOpen(true); }} />
-      <span className="tm-tco-top"><span className="home-label">{label}</span>
-        {tco.missing.length ? <span className="tm-tco-missing" data-testid="tco-missing"><NumericText>{missing}</NumericText></span> : null}
+  return <div className="tm-tco" data-testid="tco-card" data-compact={compact} data-period={period}>
+    <button ref={triggerRef} type="button" className="tm-tco-open" aria-label="כמה הרכב עולה לך" aria-describedby={summaryId}
+      aria-haspopup="dialog" aria-expanded={open} onClick={event => { event.currentTarget.focus(); onOpen(); }} />
+    <span className="tm-tco-top"><span className="home-label">{label}</span>
+      {tco.missing.length ? <span className="tm-tco-missing" data-testid="tco-missing"><NumericText>{missing}</NumericText></span> : null}
+    </span>
+    <span id={summaryId} className="tm-tco-summary">
+      <span className="tm-tco-number"><Amount value={shown} className="tm-tco-value" />
+        <button type="button" className="tm-tco-per" data-testid="tco-period" aria-label={`${PERIOD_WORD[period]}, החלפה לתצוגה ${PERIOD_WORD[next]}`}
+          onClick={() => onPeriod(next)}><span>{PERIOD_WORD[period]}<SwapIcon size={13} /></span></button>
       </span>
-      <span id={summaryId} className="tm-tco-summary">
-        <span className="tm-tco-number"><Amount value={shown} className="tm-tco-value" />
-          <button type="button" className="tm-tco-per" data-testid="tco-period" aria-label={`${PERIOD_WORD[period]}, החלפה לתצוגה ${PERIOD_WORD[next]}`}
-            onClick={() => setPeriod(next)}><span>{PERIOD_WORD[period]}<SwapIcon size={13} /></span></button>
-        </span>
-        <span className="tm-tco-sub" data-testid="tco-sub">{other === null ? 'ממתינים לעלות מתועדת' : <>כ־<Money value={other} /> {PERIOD_WORD[next]}</>}
-          {tco.perKm !== null ? <> · <NumRun>{price(tco.perKm)}</NumRun> לק״מ</> : null}</span>
-      </span>
-      <span className="tm-tco-bar" data-testid="tco-bar" aria-hidden="true">
-        {parts.map(part => <i key={part.id} data-tco-part={part.id} style={{ flexGrow: total ? part.knownValue / total : 0, background: COLORS[part.id] }} />)}
-      </span>
-      {!compact ? <span className="tm-tco-legend" data-testid="tco-legend">{parts.map(part => <span key={part.id} data-tco-legend={part.id}>
-        <i style={{ background: COLORS[part.id] }} aria-hidden="true" />{part.label}<strong><Money value={part.knownValue * multiplier} /></strong>
-      </span>)}</span> : null}
-    </div>
-    {open ? <TcoSheet tco={tco} initialPeriod={period} onClose={() => setOpen(false)} returnFocus={() => trigger.current} /> : null}
-  </>;
+      <span className="tm-tco-sub" data-testid="tco-sub">{other === null ? 'ממתינים לעלות מתועדת' : <>כ־<Money value={other} /> {PERIOD_WORD[next]}</>}
+        {tco.perKm !== null ? <> · <NumRun>{price(tco.perKm)}</NumRun> לק״מ</> : null}</span>
+    </span>
+    <span className="tm-tco-bar" data-testid="tco-bar" aria-hidden="true">
+      {parts.map(part => <i key={part.id} data-tco-part={part.id} style={{ flexGrow: total ? part.knownValue / total : 0, background: COLORS[part.id] }} />)}
+    </span>
+    {!compact ? <span className="tm-tco-legend" data-testid="tco-legend">{parts.map(part => <span key={part.id} data-tco-legend={part.id}>
+      <i style={{ background: COLORS[part.id] }} aria-hidden="true" />{part.label}<strong><Money value={part.knownValue * multiplier} /></strong>
+    </span>)}</span> : null}
+  </div>;
 }
 
 function TcoSheet({ tco, initialPeriod, onClose, returnFocus }: { tco: TcoResult; initialPeriod: Period; onClose: () => void; returnFocus: () => HTMLElement | null }) {

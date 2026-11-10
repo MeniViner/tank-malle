@@ -1,21 +1,26 @@
 import { useId, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Area, AreaChart, Bar, BarChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
 import { useVehicleData } from "../../context/VehicleDataContext";
 import { useTankEstimate } from "../../hooks/useTankEstimate";
 import { useTco } from "../../hooks/useTco";
 import { TcoBlock } from "../TcoBlock";
 import { int, num } from "../../lib/format";
+import { EXCLUDED_LABEL } from "../../lib/vehicle/ownership";
 import { bucketSpend, GROUPING_LABELS, inRange, summariseSpend, type DateRange } from "../../lib/periods";
 import type { Stats } from "../../lib/stats";
 import { periodSummary } from "../../lib/vehicle/derived";
-import { vehicleDay } from "../../lib/vehicle/format";
-import { NumericText, NumRun, Quantity } from "../Fmt";
+import { vehicleDay, vehicleMoney } from "../../lib/vehicle/format";
+import { NumericText, NumRun } from "../Fmt";
+import { Fact, FactsStrip } from "../FactsStrip";
 import { InfoTip } from "../InfoTip";
 import { ChevronStart } from "../icons";
 import { Segmented } from "../Segmented";
 import { CHART_MARGIN, ChartLegend, InsightCard, InsightChart, InsightTable, InsightTooltip, LedgerAmount, TIME_AXIS, VALUE_AXIS } from "./InsightChart";
 import { journalRangeLink, knownFillCost, odometerPoints, spendingSummary, type ConsumptionSummary } from "./presentation";
+
+/** Whole-shekel text for a facts row from exact agorot (null stays unknown). */
+const ledgerText = (agorot: number | null) => agorot === null ? null : vehicleMoney(agorot);
 
 const SPEND_LABELS = { fuel: "דלק", service: "טיפולים", other: "הוצאות אחרות", refunds: "החזרים" };
 
@@ -28,6 +33,14 @@ export function SpendingInsights({ stats, consumption, range, from, to, historyR
   const summary = useMemo(() => spendingSummary(vehicle.ledger, from, to), [vehicle.ledger, from, to]);
   const ownership = useMemo(() => periodSummary(vehicle.ledger, vehicle.mileage, from, to, vehicle.incomplete), [vehicle.ledger, vehicle.mileage, from, to, vehicle.incomplete]);
   const patternId = useId().replace(/:/g, "");
+  const known = useMemo(() => stats.fillups.filter(knownFillCost), [stats.fillups]);
+  const selected = stats.fillups.filter(fill => inRange(fill.date, range));
+  const averagesComplete = historyReady && selected.every(knownFillCost);
+  const spend = useMemo(() => summariseSpend(known, range, vehicle.now), [known, range, vehicle.now]);
+  const yearStart = +new Date(new Date(vehicle.now).getFullYear(), 0, 1);
+  const yearComplete = historyReady && stats.fillups.filter(fill => fill.date >= yearStart && fill.date <= vehicle.now).every(knownFillCost);
+  const agorot = (shekels: number | null) => shekels === null ? null : Math.round(shekels * 100);
+  const navigate = useNavigate();
   const amount = !summary.rows.length && vehicle.incomplete ? null : summary.amount;
   const fuelCost = vehicle.incomplete ? null : consumption.costPerKm;
   const links = [
@@ -92,51 +105,52 @@ export function SpendingInsights({ stats, consumption, range, from, to, historyR
         <span className="insights-link-value"><LedgerAmount value={vehicle.incomplete && !link.count ? null : link.amount} /><ChevronStart size={18} /></span>
       </Link>)}
     </nav>
+    {summary.excludedCount > 0 ? <FactsStrip label="הוצאות מחוץ לבעלות הרכב" testId="insights-excluded">
+      <Fact label={EXCLUDED_LABEL} sub={<><NumRun>{int(summary.excludedCount)}</NumRun> {summary.excludedCount === 1 ? "רשומה" : "רשומות"} ביומן בלבד · לא בסה״כ, בממוצעים ובעלות לק״מ</>}
+        value={ledgerText(summary.excludedAmount)} muted onClick={() => navigate(journalRangeLink("expense", from, to))}
+        ariaLabel={`${EXCLUDED_LABEL}, ${ledgerText(summary.excludedAmount) ?? "סכום לא ידוע"}, מעבר ליומן`} valueTestId="insights-excluded-amount" />
+    </FactsStrip> : null}
 
-    <details className="insights-details" data-testid="insights-ownership-detail"><summary>עלויות הרכב והמרחק המתועד</summary>
-      <div className="insights-details-body"><div className="insights-kpis insights-kpis-compact">
-        <div className="insights-kpi"><span>הכול לק״מ</span><strong><NumRun>{ownership.costPerKm === null ? "—" : int(ownership.costPerKm * 100)}</NumRun> <small>אג׳</small></strong></div>
-        <div className="insights-kpi"><span>רכישות דלק לק״מ</span><strong><NumRun>{ownership.fuelPerKm === null ? "—" : int(ownership.fuelPerKm * 100)}</NumRun> <small>אג׳</small></strong></div>
-      </div>
-      <p className="insights-note">{ownership.distance === null ? "אין טווח קילומטראז׳ מספיק ועקבי לחישוב עלות לק״מ."
-        : <>לפי <NumRun>{int(ownership.distance)}</NumRun> ק״מ שתועדו בין <NumericText>{vehicleDay(ownership.fromDay!)}</NumericText> ל־<NumericText>{vehicleDay(ownership.toDay!)}</NumericText>.</>}
-        {ownership.incomplete ? " חלק מהרשומות עדיין אינן זמינות או מאושרות." : ""}
-        {ownership.boundaryUnknown ? " סדר הרשומות בגבול התקופה אינו ידוע." : ""}
-        {ownership.mileageInconsistent ? " קריאות הקילומטראז׳ אינן עקביות." : ""}
-        {ownership.continuityMissing ? " יש הפסקת רציפות בטווח." : ""}
-        {ownership.unknown ? " יש עלויות חסרות." : ""}</p>
-      <p className="insights-note">היחסים כוללים רק הוצאות בתוך טווח המרחק המתועד, ללא ירידת ערך. רכישות דלק וצריכת דלק שנמדדה הן שני נתונים שונים.</p>
-      </div>
-    </details>
-    <FuelPurchaseDetail stats={stats} range={range} now={vehicle.now} historyReady={historyReady} />
+    <FactsStrip label="ממוצעים ועלות לק״מ" testId="insights-spend-facts">
+      <Fact label="ממוצע חודשי" sub="רכישות דלק · לפי הזמן שעבר בתקופה" valueTestId="insights-spend-month-avg"
+        value={ledgerText(averagesComplete && spend.perMonth !== null ? agorot(spend.perMonth) : null)} />
+      <Fact label="ממוצע שבועי" sub="רכישות דלק, כולל שבועות בלי תדלוק" valueTestId="insights-spend-week-avg"
+        value={ledgerText(averagesComplete && spend.perWeek !== null ? agorot(spend.perWeek) : null)} />
+      <Fact label="מתחילת השנה" sub={<>רכישות דלק · <NumRun>{new Date(vehicle.now).getFullYear()}</NumRun></>} valueTestId="insights-spend-ytd"
+        value={ledgerText(yearComplete ? agorot(spend.yearToDate) : null)} />
+      <Fact label="ליטרים שנרכשו" sub="כל רכישות הדלק בתקופה, גם חלקיות" valueTestId="insights-spend-liters"
+        value={!historyReady && !selected.length ? null : num(selected.reduce((sum, fill) => sum + fill.liters, 0), 1)} unit="ל׳" />
+      <Fact label="הכול לק״מ" sub="כל ההוצאות בטווח הקילומטראז׳ המתועד, בלי ירידת ערך" valueTestId="insights-ownership-per-km"
+        value={ownership.costPerKm === null ? null : int(ownership.costPerKm * 100)} unit="אג׳" />
+      <Fact label="רכישות דלק לק״מ" sub="כל מה ששילמתם בתדלוקים, באותו טווח" valueTestId="insights-fuel-purchase-per-km"
+        value={ownership.fuelPerKm === null ? null : int(ownership.fuelPerKm * 100)} unit="אג׳" />
+    </FactsStrip>
+    {!historyReady ? <p className="insights-note" role="status">הממוצעים והסכום מתחילת השנה יופיעו אחרי השלמת ההיסטוריה.</p> : null}
+    <div className="insights-basis"><span>ממוצעים לפי משך התקופה</span><InfoTip label="בסיס ממוצעי ההוצאות">
+      <span>הממוצע השבועי והחודשי מחושבים לפי הזמן שעבר בתקופה, כולל ימים ללא תדלוק. סכום חסר משאיר את הממוצע לא ידוע.</span>
+    </InfoTip></div>
+    <p className="insights-note" data-testid="insights-ownership-note">{ownership.distance === null ? "אין טווח קילומטראז׳ מספיק ועקבי לחישוב עלות לק״מ."
+      : <>העלות לק״מ לפי <NumRun>{int(ownership.distance)}</NumRun> ק״מ שתועדו בין <NumericText>{vehicleDay(ownership.fromDay!)}</NumericText> ל־<NumericText>{vehicleDay(ownership.toDay!)}</NumericText>.</>}
+      {ownership.incomplete ? " חלק מהרשומות עדיין אינן זמינות או מאושרות." : ""}
+      {ownership.boundaryUnknown ? " סדר הרשומות בגבול התקופה אינו ידוע." : ""}
+      {ownership.mileageInconsistent ? " קריאות הקילומטראז׳ אינן עקביות." : ""}
+      {ownership.continuityMissing ? " יש הפסקת רציפות בטווח." : ""}
+      {ownership.unknown ? " יש עלויות חסרות." : ""}
+      {" "}היחסים כוללים רק הוצאות בתוך טווח המרחק המתועד, ללא ירידת ערך. רכישות דלק וצריכת דלק שנמדדה הן שני נתונים שונים.</p>
+    <FuelPurchaseDetail stats={stats} range={range} />
   </div>;
 }
 
-function FuelPurchaseDetail({ stats, range, now, historyReady }: { stats: Stats; range: DateRange; now: number; historyReady: boolean }) {
+function FuelPurchaseDetail({ stats, range }: { stats: Stats; range: DateRange }) {
   const [open, setOpen] = useState(false);
   const [grouping, setGrouping] = useState<"week" | "month" | "year">("month");
   const gradientId = useId().replace(/:/g, "");
   const known = useMemo(() => stats.fillups.filter(knownFillCost), [stats.fillups]);
-  const selected = stats.fillups.filter(fill => inRange(fill.date, range));
-  const complete = historyReady && selected.every(knownFillCost);
-  const spend = useMemo(() => summariseSpend(known, range, now), [known, range, now]);
   const buckets = useMemo(() => bucketSpend(known, range, grouping), [known, range, grouping]);
   const odometer = useMemo(() => odometerPoints(stats, range), [stats, range]);
-  const yearStart = +new Date(new Date(now).getFullYear(), 0, 1);
-  const yearComplete = historyReady && stats.fillups.filter(fill => fill.date >= yearStart && fill.date <= now).every(knownFillCost);
   return <details className="insights-details" data-testid="insights-fuel-detail" onToggle={event => setOpen(event.currentTarget.open)}><summary>פירוט רכישות דלק וקילומטראז׳</summary>
     {open ? <div className="insights-details-body">
       <p className="insights-note">כל רכישות הדלק בתקופה, גם בתדלוקים חלקיים ולפני התחלת מדידה. הסכומים והגרף כוללים עלויות ידועות בלבד.</p>
-      {!historyReady ? <p className="insights-note" role="status">הממוצעים והסכום מתחילת השנה יופיעו אחרי השלמת ההיסטוריה.</p> : null}
-      <div className="insights-kpis insights-kpis-compact">
-        <div className="insights-kpi"><span>ליטרים שנרכשו</span><strong>{!historyReady && !selected.length ? <NumRun>—</NumRun> : <Quantity value={selected.reduce((sum, fill) => sum + fill.liters, 0)} digits={1} />}</strong></div>
-        <div className="insights-kpi"><span>ממוצע שבועי</span><strong><LedgerAmount value={complete && spend.perWeek !== null ? Math.round(spend.perWeek * 100) : null} /></strong></div>
-        <div className="insights-kpi"><span>ממוצע חודשי</span><strong><LedgerAmount value={complete && spend.perMonth !== null ? Math.round(spend.perMonth * 100) : null} /></strong></div>
-        <div className="insights-kpi"><span>מתחילת השנה</span><strong><LedgerAmount value={yearComplete ? Math.round(spend.yearToDate * 100) : null} /></strong></div>
-      </div>
-      <div className="insights-basis"><span>ממוצעים לפי משך התקופה</span><InfoTip label="בסיס ממוצעי ההוצאות">
-        <span>הממוצע השבועי והחודשי מחושבים לפי הזמן שעבר בתקופה, כולל ימים ללא תדלוק. סכום חסר משאיר את הממוצע לא ידוע.</span>
-      </InfoTip></div>
       <Segmented value={grouping} options={(["week", "month", "year"] as const).map(value => ({ value, label: GROUPING_LABELS[value] }))}
         onChange={setGrouping} ariaLabel="קיבוץ" size="sm" />
       <h3 className="insights-detail-title">הוצאה · {GROUPING_LABELS[grouping]}</h3>

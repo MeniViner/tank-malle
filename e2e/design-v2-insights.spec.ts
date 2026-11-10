@@ -214,8 +214,7 @@ test("malformed and denied fill-up history cannot publish a partial benchmark or
   await expect(page.getByTestId("insights-panel-cons")).toContainText("צריכה בתדלוקים הזמינים");
   await expect(page.getByTestId("insights-open-segment")).toHaveCount(0);
   await selectInsight(page, "spend");
-  const detail = await openInsightFuelDetail(page);
-  await expect(detail.locator(".insights-kpi").filter({ hasText: "מתחילת השנה" }).locator("strong")).toHaveText("—");
+  await expect(page.getByTestId("insights-spend-ytd")).toHaveText("—"); // v3: facts strip (was a KPI tile in the fuel detail)
   expect(await getDocument(benchmarkPath)).toBeNull();
   expect(await getDocument(malformedPath)).toEqual(malformed);
   await captureJournal(page, "insights-malformed-history-light-plate");
@@ -240,8 +239,7 @@ test("malformed and denied fill-up history cannot publish a partial benchmark or
     await selectInsight(isolated, "price");
     await expect(isolated.getByTestId("insights-panel-price")).toContainText("נתוני המחירים עדיין אינם זמינים");
     await selectInsight(isolated, "spend");
-    const unavailable = await openInsightFuelDetail(isolated);
-    await expect(unavailable.locator(".insights-kpi").filter({ hasText: "מתחילת השנה" }).locator("strong")).toHaveText("—");
+    await expect(isolated.getByTestId("insights-spend-ytd")).toHaveText("—"); // v3: facts strip
     await captureJournal(isolated, "insights-denied-history-light-plate");
     expect(await getDocument(benchmarkPath)).toBeNull();
     expect(await getDocument(malformedPath)).toEqual(malformed);
@@ -293,8 +291,7 @@ test("cached history withholds comparison and annual totals until a fresh server
     await setDocument(lastPath, { ...last, date: new Date(Number(last.date)), createdAt: new Date(Number(last.createdAt)), liters: 20, totalCost: 140 });
     await selectInsight(page, "spend");
     await selectInsightRange(page, "מתחילת השנה");
-    const detail = await openInsightFuelDetail(page);
-    await expect(detail.locator(".insights-kpi").filter({ hasText: "מתחילת השנה" }).locator("strong")).toHaveText("—");
+    await expect(page.getByTestId("insights-spend-ytd")).toHaveText("—"); // v3: facts strip
     expect(await getDocument(benchmarkPath)).toEqual(published);
   } finally { await context.setOffline(false); }
   await expect(page.getByTestId("insights-source-status")).toHaveCount(0, { timeout: 20_000 });

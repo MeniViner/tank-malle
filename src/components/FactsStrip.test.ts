@@ -60,4 +60,16 @@ describe("FactsStrip (Design v3 §3)", () => {
     expect(css).toMatch(/\.facts > \.fact \{[^}]*min-height: 58px/);
     expect(css).toMatch(/\.facts > button\.fact:focus-visible \{ outline: 2px solid/);
   });
+
+  it("stage 3 options: value test id, data attributes, minor rows and text values", () => {
+    const markup = render(createElement(FactsStrip, null,
+      createElement(Fact, { label: "המקטע הטוב", value: "14.7", onClick: () => undefined, testId: "best", data: { "data-segment-end-id": "f1" } }),
+      createElement(Fact, { label: "טיפולים", value: shekel(500), variant: "minor", valueTestId: "svc" }),
+      createElement(Fact, { label: "שיטת התחברות", value: "חשבון Google", valueKind: "text" })));
+    expect(markup).toContain('data-testid="best" data-segment-end-id="f1"');
+    expect(markup).toContain('<div class="fact minor">');
+    expect(markup).toMatch(/<span class="fv" data-testid="svc"><bdi/);
+    // Words are not wrapped in an LTR numeric island.
+    expect(markup).toContain('<span class="fv"><span class="t">חשבון Google</span></span>');
+  });
 });

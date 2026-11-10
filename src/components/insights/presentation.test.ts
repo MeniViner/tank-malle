@@ -5,7 +5,7 @@ import type { RegulatedPriceConfig } from "../../lib/prices/regulated";
 import { computeStats, type Fillup, type Vehicle } from "../../lib/stats";
 import { buildLedger } from "../../lib/vehicle/derived";
 import { EMPTY_EXTRA } from "../../lib/vehicle/model";
-import { consumptionNumber, consumptionPoints, consumptionRangeLabel, consumptionSummary, insightRange, insightTab, journalRangeLink, knownLedgerAmount, odometerPoints, priceSummary, spendingSummary } from "./presentation";
+import { consumptionNumber, consumptionPoints, consumptionRangeLabel, consumptionSummary, insightRange, insightTab, journalRangeLink, knownLedgerAmount, odometerPoints, priceExtremes, priceSummary, spendingSummary } from "./presentation";
 
 const at = (day: string) => +new Date(`${day}T12:00:00`);
 const now = at("2026-11-03");
@@ -163,6 +163,26 @@ describe("Insights prices use actual selected receipts and historical source evi
     expect(summary.spread).toBeCloseTo(.22, 10);
     expect(summary.tankSpread).toBeCloseTo(11, 10);
     expect(priceSummary(stats, { ...vehicle, tankLitersSource: "estimate" }, prices, month()).tankSpread).toBeNull();
+  });
+
+  it("v3: cheapest and dearest paid per litre come from known amounts of the vehicle's fuel in the period", () => {
+    const stats = computeStats([
+      priced("old", "2026-09-01", 1000, 40, 200, "old", "ישנה"),
+      priced("a", "2026-10-01", 1400, 40, 288, "a", "א"), priced("a2", "2026-10-05", 1500, 10, 78, "a", "א"),
+      priced("b", "2026-10-10", 1900, 40, 284, "b", "ב"), priced("tie", "2026-10-11", 2300, 40, 284, "b", "ב"),
+      priced("unknown", "2026-10-12", 2000, 10, 0, "a", "א", { totalCostUnknown: true }),
+      priced("diesel", "2026-10-15", 2400, 40, 40, "d", "סולר", { fuelType: "diesel" }),
+    ], vehicle);
+    const extremes = priceExtremes(priceSummary(stats, vehicle, prices, month()).points);
+    expect(extremes.dearest).toMatchObject({ fillId: "a2", paid: 7.8 });
+    // 284/40 = 7.10 twice: the earlier fill wins; the cheap diesel and the unknown amount never compete.
+    expect(extremes.cheapest).toMatchObject({ fillId: "b", paid: 7.1 });
+    expect(extremes.knownCount).toBe(4);
+    expect(extremes.knownLiters).toBe(130);
+    const single = priceExtremes(priceSummary(computeStats([priced("one", "2026-10-01", 1000, 40, 288, "a", "א")], vehicle), vehicle, prices, month()).points);
+    expect(single.dearest?.fillId).toBe("one");
+    expect(single.cheapest).toBeNull();
+    expect(priceExtremes([]).dearest).toBeNull();
   });
 
   it("labels a historical scheduled figure honestly after a later manual write and does not substitute today's month", () => {

@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 import { Bar, BarChart, Cell, Tooltip, XAxis, YAxis } from "recharts";
 import { hasComparison, MIN_PEERS, type BenchmarkComparison, type InsufficientPeers } from "../../lib/benchmarks";
 import { consumption, int, num, price } from "../../lib/format";
-import { ConsumptionValue, NumericText, NumRun, Percent, PricePerLiter } from "../Fmt";
+import { ConsumptionValue, NumericText, NumRun, Percent } from "../Fmt";
+import { Fact, FactsStrip } from "../FactsStrip";
 import { InfoTip } from "../InfoTip";
 import { CHART_MARGIN, ChartLegend, InsightCard, InsightChart, InsightTable, InsightTooltip, TIME_AXIS, VALUE_AXIS } from "./InsightChart";
 import { consumptionNumber, consumptionRangeLabel, type ConsumptionUnits } from "./presentation";
@@ -66,8 +67,13 @@ function PeerComparison({ comparison, units, ownPriceKnown }: { comparison: Benc
   return <div className="insights-stack">
     <InsightCard label={<>לפי כל ההיסטוריה · <NumRun>{int(comparison.peers)}</NumRun> סיכומי רכבים</>}
       title={<><Percent value={comparison.percentile} /> מהסיכומים מצביעים על צריכת דלק גבוהה משלך לק״מ</>}>
-      <div className="insights-comparison-pair"><div><span>הממוצע שלך</span><strong><ConsumptionValue kmPerLiter={comparison.yourAverage} units={units} /></strong></div>
-        <div><span>ממוצע הקבוצה</span><strong><ConsumptionValue kmPerLiter={comparison.peerAverage} units={units} /></strong></div></div>
+      <FactsStrip label="הממוצע שלך מול הקבוצה" testId="insights-community-facts">
+        <Fact testId="insights-community-yours" label="הממוצע שלך" sub="כל ההיסטוריה" value={consumption(comparison.yourAverage, units).value} unit={unit} />
+        <Fact testId="insights-community-group" label="ממוצע הקבוצה" sub={<><NumRun>{int(comparison.peers)}</NumRun> סיכומי רכבים</>}
+          value={consumption(comparison.peerAverage, units).value} unit={unit} />
+        <Fact testId="insights-community-best" label="החסכוני בקבוצה" sub={comparison.basis === "model" ? "אותו דגם ואותו סוג דלק" : "אותו סוג דלק"}
+          value={consumption(comparison.best, units).value} unit={unit} />
+      </FactsStrip>
       <div className="insights-basis"><span>{comparison.basis === "model" ? "אותו דגם ואותו סוג דלק" : "אותו סוג דלק"}</span>
         <InfoTip label="מה ההשוואה אומרת"><span>הקבוצה כוללת ממוצעים מתועדים של רכבים עם {comparison.basis === "model" ? "אותו דגם ואותו סוג דלק" : "אותו סוג דלק"}. תנאי הנסיעה עשויים להיות שונים.</span></InfoTip>
       </div>
@@ -105,8 +111,10 @@ function PeerComparison({ comparison, units, ownPriceKnown }: { comparison: Benc
     {ownPriceKnown && comparison.yourAvgPrice !== null && comparison.peerAvgPrice !== null ? <InsightCard label="מחיר ממוצע לליטר · כל ההיסטוריה"
       title={Math.abs(comparison.yourAvgPrice - comparison.peerAvgPrice) < .005 ? "המחיר שלך קרוב לממוצע הקבוצה"
         : <>שילמת <NumRun>{price(Math.abs(comparison.yourAvgPrice - comparison.peerAvgPrice))}</NumRun> {comparison.yourAvgPrice < comparison.peerAvgPrice ? "פחות" : "יותר"} לליטר מממוצע הקבוצה</>}>
-      <div className="insights-comparison-pair"><div><span>שלך</span><strong><PricePerLiter value={comparison.yourAvgPrice} /></strong></div>
-        <div><span>הקבוצה</span><strong><PricePerLiter value={comparison.peerAvgPrice} /></strong></div></div>
+      <FactsStrip label="מחיר ממוצע לליטר, שלך מול הקבוצה" testId="insights-community-price-facts">
+        <Fact label="מחיר ממוצע · שלך" value={price(comparison.yourAvgPrice)} unit="לליטר" />
+        <Fact label="מחיר ממוצע · הקבוצה" value={price(comparison.peerAvgPrice)} unit="לליטר" />
+      </FactsStrip>
     </InsightCard> : null}
   </div>;
 }

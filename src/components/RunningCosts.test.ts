@@ -73,4 +73,16 @@ describe('vehicle running-cost display boundaries', () => {
     expect(all.replace(/<[^>]*>/g, '')).toContain('כל התקופה');
     expect(all.replace(/<[^>]*>/g, '')).not.toContain('1900');
   });
+
+  it('v3: an expense outside vehicle ownership is its own muted line, never in the total or per-km', () => {
+    const care: CareData = { ...EMPTY_CARE, serviceEvents: [service], vehicleExpenses: [
+      { id: 'gift', schemaVersion: 1, version: 1, day: '2026-10-12', title: 'מתנה', category: 'other', costAgorot: 12345, notes: '', excluded: true },
+    ] };
+    const markup = render(care);
+    expect(value(markup, 'running-total')).toBe('800\u202F₪');
+    expect(value(markup, 'running-cost-per-km')).toBe('200');
+    expect(value(markup, 'running-excluded')).toBe('123\u202F₪');
+    expect(markup).toContain('לא בעלות הרכב');
+    expect(render({ ...EMPTY_CARE, serviceEvents: [service] })).not.toContain('running-excluded');
+  });
 });

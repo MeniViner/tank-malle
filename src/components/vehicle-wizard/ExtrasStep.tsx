@@ -6,8 +6,8 @@ import { num, parseDecimal } from "../../lib/format";
 import type { VehicleSpecs } from "../../lib/vehicleSpecs";
 import type { WizardDraft, WizardErrors, WizardNumbers } from "./wizardState";
 
-export function ExtrasStep({ draft, numbers, nickname, specs, loadingSpecs, saving, errors, onTankChange, onDeclaredChange, onNicknameChange, onSave }: {
-  draft: WizardDraft; numbers: WizardNumbers; nickname: string; specs: VehicleSpecs | null;
+export function ExtrasStep({ draft, ev = false, numbers, nickname, specs, loadingSpecs, saving, errors, onTankChange, onDeclaredChange, onNicknameChange, onSave }: {
+  draft: WizardDraft; ev?: boolean; numbers: WizardNumbers; nickname: string; specs: VehicleSpecs | null;
   loadingSpecs: boolean; saving: boolean; errors: WizardErrors;
   onTankChange: (value: string) => void; onDeclaredChange: (value: string) => void;
   onNicknameChange: (value: string) => void; onSave: () => void;
@@ -31,14 +31,15 @@ export function ExtrasStep({ draft, numbers, nickname, specs, loadingSpecs, savi
 
   return <section className="wizard-step">
     <div className="wizard-scroll">
-      <h1 ref={heading} tabIndex={-1} className="wizard-title">עוד שני פרטים</h1>
+      {/* An electric car has no tank or litre consumption (v3 §7.4): only the name is asked here. */}
+      <h1 ref={heading} tabIndex={-1} className="wizard-title">{ev ? "עוד פרט אחד" : "עוד שני פרטים"}</h1>
       <p className="wizard-intro">לא חובה. אפשר להשלים אחר כך בפרטי הרכב.</p>
       {loadingSpecs ? <div className="wizard-specs-loading" role="status"><Spinner size={18}/>מאתרים נתוני רכב…</div> : null}
       <fieldset disabled={saving} className="wizard-extra-fields">
         <Field label="איך קוראים לרכב?" data-testid="wizard-nickname" dir="auto" value={nickname} maxLength={60}
           placeholder={[draft.make, draft.model].filter(Boolean).join(" ")} error={fieldError("nickname")}
           onChange={event => onNicknameChange(event.currentTarget.value)}/>
-        <div className="wizard-extra-numbers">
+        {!ev ? <div className="wizard-extra-numbers">
           <Field label="נפח מיכל" data-testid="wizard-tank" inputMode="decimal" suffix="ליטר" value={numbers.tank.value}
             placeholder={!tankCleared && specs?.suggestedTankLiters ? num(specs.suggestedTankLiters, 2) : "לא ידוע"}
             hint={tankHint ? <NumericText>{tankHint}</NumericText> : undefined} error={fieldError("tank")}
@@ -47,7 +48,7 @@ export function ExtrasStep({ draft, numbers, nickname, specs, loadingSpecs, savi
             suffix="ק״מ/ל׳" value={numbers.declared.value} placeholder="לא ידוע"
             hint={declaredHint ? <NumericText>{declaredHint}</NumericText> : undefined} error={fieldError("declared")}
             onChange={event => onDeclaredChange(event.currentTarget.value)}/>
-        </div>
+        </div> : null}
       </fieldset>
     </div>
     <div className="wizard-footer">

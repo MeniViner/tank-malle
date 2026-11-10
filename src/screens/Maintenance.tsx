@@ -4,7 +4,10 @@ import { useVehicleData } from '../context/VehicleDataContext';
 import { useData } from '../context/DataContext';
 import { useToast } from '../context/ToastContext';
 import { useAccountScope } from '../components/account/useAccountScope';
-import { FUEL_TYPE_LABELS, vehicleLabel } from '../lib/format';
+import { FUEL_TYPE_LABELS, consumption, formatPlate, int, num, vehicleLabel } from '../lib/format';
+import { isEv, readBattery, readMotorKw } from '../lib/vehicle/v3Fields';
+import { BusinessStatementSheet } from '../components/business/BusinessStatementSheet';
+import { Fact, FactsStrip } from '../components/FactsStrip';
 import { vehicleDay, vehicleMoney } from '../lib/vehicle/format';
 import { civilDaysBetween } from '../lib/vehicle/documents';
 import { periodSummary } from '../lib/vehicle/derived';
@@ -15,9 +18,9 @@ import { VehicleDocuments } from '../components/VehicleDocuments';
 import { RunningCosts } from '../components/RunningCosts';
 import { CareGlyph } from '../components/maintenance/CareGlyph';
 import { PeriodPicker } from '../components/PeriodPicker';
-import { NumericText, NumRun, ConsumptionValue } from '../components/Fmt';
+import { NumericText, NumRun } from '../components/Fmt';
 import { TankPreferencesSection } from '../components/TankPreferencesSection';
-import { ChevronStart, PlusIcon, WarningIcon, WrenchIcon, CarIcon, SlidersIcon } from '../components/icons';
+import { ChevronStart, PlusIcon, WarningIcon, WrenchIcon, CarIcon, SlidersIcon, DocumentIcon } from '../components/icons';
 
 const statusLabels = { due: 'הגיע הזמן', soon: 'מתקרב', unknown: 'נדרש עדכון ק״מ', later: 'בהמשך', done: 'הושלם' };
 const suggestions: { job: Job; label: string }[] = [{ job: 'periodic', label: 'טיפול תקופתי' }, { job: 'oil', label: 'החלפת שמן' }, { job: 'tires', label: 'החלפת צמיגים' }];
@@ -31,14 +34,19 @@ export function Maintenance() {
   const requested = params.get('tab') ?? 'due';
   const tab = ['costs', 'details', 'prefs'].includes(requested) && !params.has('doc') ? requested : 'due';
   const [period, setPeriod] = useState('all');
+  const [statementOpen, setStatementOpen] = useState(false);
   if (!activeVehicle) return <VehiclePage title="הרכב שלי"><div className="tm-vehicle-empty"><CarIcon size={28}/><h2>כאן מכירים את הרכב</h2><p>בחרו רכב או הוסיפו אחד כדי לרכז רישוי, ביטוח ותחזוקה.</p><Link className="tm-button tm-button-primary" to="/settings/vehicles">ניהול רכבים</Link><Link className="tm-vehicle-chip" to="/vehicles/new">הוספת רכב</Link></div></VehiclePage>;
   const year = v.today.slice(0, 4);
+  const ev = isEv(activeVehicle);
+  const battery = readBattery(activeVehicle.battery);
+  const motorKw = readMotorKw(activeVehicle.motorKw);
   const years = [...new Set(v.ledger.map(r => r.day.slice(0, 4)))].sort().reverse();
   const yearSummary = periodSummary(v.ledger, v.mileage, `${year}-01-01`, v.today, v.incomplete);
   const activeReminders = v.reminders.filter(row => row.plan.active);
   const paused = v.reminders.filter(row => !row.plan.active);
   const openIssues = v.extra.vehicleIssues.filter(issue => issue.status !== 'resolved');
   const resolvedIssues = v.extra.vehicleIssues.filter(issue => issue.status === 'resolved');
+  const declared = consumption(activeVehicle.declaredKmPerLiter ?? null, settings.units ?? 'kmPerLiter');
   const subTitle = { costs: 'עלויות הרכב', details: 'פרטי הרכב', prefs: 'הגדרות הרכב', due: 'הרכב שלי' }[tab] ?? 'הרכב שלי';
 
   const reminderRow = (row: typeof v.reminders[number]) => {
@@ -75,15 +83,31 @@ export function Maintenance() {
       <div className="tm-vehicle-links">
         <Link className="tm-vehicle-link" to="/vehicle?tab=costs"><span><NumericText>{`${year} עד עכשיו`}</NumericText><small>{yearSummary.incomplete || yearSummary.unknown ? 'הסכום הידוע · נתונים חלקיים' : 'עלויות הרכב'}</small></span><span><NumericText>{vehicleMoney(yearSummary.total)}</NumericText></span><ChevronStart size={18}/></Link>
         <Link className="tm-vehicle-link" to="/history?kind=service"><WrenchIcon size={20}/><span>טיפולים<small><NumericText>{`${v.care.data.serviceEvents.length} ${v.care.data.serviceEvents.length === 1 ? 'רשומה' : 'רשומות'} ביומן`}</NumericText></small></span><ChevronStart size={18}/></Link>
-        <Link className="tm-vehicle-link" to={`/vehicle/edit/${encodeURIComponent(activeVehicle.id)}`}><CarIcon size={20}/><span>פרטי הרכב<small>דגם, סוג דלק, נפח מיכל, נתון יצרן</small></span><ChevronStart size={18}/></Link>
+        <Link className="tm-vehicle-link" to={`/vehicle/edit/${encodeURIComponent(activeVehicle.id)}`}><CarIcon size={20}/><span>פרטי הרכב<small>{ev ? 'דגם, סוללה, טווח והספק' : 'דגם, סוג דלק, נפח מיכל, נתון יצרן'}</small></span><ChevronStart size={18}/></Link>
+        <button type="button" className="tm-vehicle-link" data-testid="vehicle-business-statement" aria-haspopup="dialog" onClick={() => setStatementOpen(true)}><DocumentIcon size={20}/><span>דוח חודשי לעסק<small>PDF או CSV של כל ההוצאות בחודש</small></span><ChevronStart size={18}/></button>
         <Link className="tm-vehicle-link" to="/vehicle?tab=prefs"><SlidersIcon size={20}/><span>הגדרות הרכב<small>העדפות מיכל ורכבים נוספים</small></span><ChevronStart size={18}/></Link>
       </div>
       <VehicleAddBar includeMileage={false}/>
     </> : null}
     <CoverageNotice/>
     {v.care.errors.length || v.extraErrors.length ? <p className="tm-vehicle-error" role="alert">לא ניתן לקרוא חלק מהנתונים. אפשר לנסות שוב לאחר רענון.</p> : null}
-    {tab === 'costs' ? <><div className="v-period"><span>תקופת הסיכום</span><PeriodPicker value={period} onChange={setPeriod} ariaLabel="תקופת הסיכום" options={[{ value: 'all', label: 'כל התקופה' }, { value: 'year', label: 'השנה' }, { value: 'month', label: 'החודש' }]}/></div><RunningCosts from={period === 'month' ? v.today.slice(0, 7) + '-01' : period === 'year' ? year + '-01-01' : '1900-01-01'} to={v.today}/><h2 className="tm-vehicle-section-title">לפי שנה</h2><div className="v-group">{years.map(value => { const summary = periodSummary(v.ledger, v.mileage, `${value}-01-01`, `${value}-12-31`, v.incomplete), gross = summary.fuel + summary.maintenance + summary.other; return <Link className="vehicle-year-row" to={`/vehicle/years/${value}`} key={value}><span className="v-row"><b><NumRun>{value}</NumRun></b><span><NumericText>{vehicleMoney(summary.total)}</NumericText> ←</span></span>{gross > 0 ? <span className="vehicle-year-bar" aria-label={`חלוקת הוצאות לפני החזרים: דלק ${vehicleMoney(summary.fuel)}, טיפולים ${vehicleMoney(summary.maintenance)}, אחרות ${vehicleMoney(summary.other)}`} role="img">{[summary.fuel, summary.maintenance, summary.other].map((amount, index) => <span key={index} style={{ width: `${100 * amount / gross}%` }}/>)}</span> : null}<small><NumericText>{`${summary.count} ${summary.count === 1 ? 'רשומה' : 'רשומות'}${summary.refunds ? ` · הוחזרו ${vehicleMoney(summary.refunds)}` : ''}${summary.unknown ? ` · ${summary.unknown} ${summary.unknown === 1 ? 'עלות חסרה' : 'עלויות חסרות'}` : ''}`}</NumericText></small></Link>; })}</div><VehicleAddBar includeMileage={false}/></> : null}
-    {tab === 'details' ? <><dl className="v-group">{[['יצרן ודגם', `${activeVehicle.make} ${activeVehicle.model}`], ['שנת ייצור', activeVehicle.year ?? 'לא תועדה'], ['מספר רישוי', activeVehicle.plateNumber || 'לא תועד'], ['סוג דלק', FUEL_TYPE_LABELS[activeVehicle.fuelType]], ['נפח מיכל', activeVehicle.tankLiters ? `${activeVehicle.tankLiters} ל׳` : 'לא ידוע']].map(([label, value]) => <div className="v-row" key={label}><dt>{label}</dt><dd><NumericText>{String(value)}</NumericText></dd></div>)}<div className="v-row"><dt>צריכה מוצהרת</dt><dd>{activeVehicle.declaredKmPerLiter ? <ConsumptionValue kmPerLiter={activeVehicle.declaredKmPerLiter} units={settings.units ?? 'kmPerLiter'}/> : 'לא תועדה'}</dd></div></dl><Link className="tm-button tm-button-primary" to={`/vehicle/edit/${encodeURIComponent(activeVehicle.id)}`}>עריכת פרטי הרכב</Link><div className="tm-vehicle-links"><Link className="tm-vehicle-link" to="/history?kind=service">היסטוריית הטיפולים<ChevronStart size={18}/></Link><Link className="tm-vehicle-link" to="/settings/vehicles">רכבים נוספים וארכיון<ChevronStart size={18}/></Link><Link className="tm-vehicle-link" to="/account">הנתונים שלי וגיבוי<ChevronStart size={18}/></Link></div></> : null}
+    {tab === 'costs' ? <><div className="v-period"><span>תקופת הסיכום</span><PeriodPicker value={period} onChange={setPeriod} ariaLabel="תקופת הסיכום" options={[{ value: 'all', label: 'כל התקופה' }, { value: 'year', label: 'השנה' }, { value: 'month', label: 'החודש' }]}/></div><RunningCosts ev={ev} from={period === 'month' ? v.today.slice(0, 7) + '-01' : period === 'year' ? year + '-01-01' : '1900-01-01'} to={v.today}/><h2 className="tm-vehicle-section-title">לפי שנה</h2><div className="v-years">{years.map(value => { const summary = periodSummary(v.ledger, v.mileage, `${value}-01-01`, `${value}-12-31`, v.incomplete), gross = summary.fuel + summary.maintenance + summary.other; return <Link className="vehicle-year-row" to={`/vehicle/years/${value}`} key={value}><span className="vehicle-year-head"><b><NumRun>{value}</NumRun></b>{gross > 0 ? <span className="vehicle-year-bar" aria-label={`חלוקת הוצאות לפני החזרים: ${ev ? 'חשמל' : 'דלק'} ${vehicleMoney(summary.fuel)}, טיפולים ${vehicleMoney(summary.maintenance)}, אחרות ${vehicleMoney(summary.other)}`} role="img">{[summary.fuel, summary.maintenance, summary.other].map((amount, index) => <span key={index} style={{ width: `${100 * amount / gross}%` }}/>)}</span> : <span className="vehicle-year-bar vehicle-year-bar-empty" aria-hidden="true"/>}<span className="vehicle-year-total"><NumericText>{vehicleMoney(summary.total)}</NumericText></span><ChevronStart size={16}/></span><small><NumericText>{`${summary.count} ${summary.count === 1 ? 'רשומה' : 'רשומות'}${summary.refunds ? ` · הוחזרו ${vehicleMoney(summary.refunds)}` : ''}${summary.unknown ? ` · ${summary.unknown} ${summary.unknown === 1 ? 'עלות חסרה' : 'עלויות חסרות'}` : ''}`}</NumericText></small></Link>; })}</div><VehicleAddBar includeMileage={false}/></> : null}
+    {tab === 'details' ? <><FactsStrip label="פרטי הרכב" testId="vehicle-details-facts" className="v-details-facts">
+      <Fact label="יצרן ודגם" valueKind="text" value={`${activeVehicle.make} ${activeVehicle.model}`.trim() || 'לא תועד'}/>
+      <Fact label="שנת ייצור" valueKind={activeVehicle.year ? undefined : 'text'} value={activeVehicle.year ? String(activeVehicle.year) : 'לא תועדה'} muted={!activeVehicle.year}/>
+      <Fact label="מספר רישוי" valueKind={activeVehicle.plateNumber ? undefined : 'text'} value={activeVehicle.plateNumber ? formatPlate(activeVehicle.plateNumber) : 'לא תועד'} muted={!activeVehicle.plateNumber}/>
+      {ev ? <>
+        <Fact label="הנעה" valueKind="text" value="חשמלי"/>
+        <Fact label="סוללה" sub={battery?.kwh ? undefined : 'לא ידוע'} value={battery?.kwh ? num(battery.kwh, 1) : null} unit="kWh" testId="vehicle-battery"/>
+        <Fact label="טווח WLTP" sub={battery?.wltp ? 'נתון יצרן' : 'לא ידוע'} value={battery?.wltp ? int(battery.wltp) : null} unit="ק״מ" testId="vehicle-wltp"/>
+        <Fact label="הספק מנוע" sub={motorKw ? undefined : 'לא ידוע'} value={motorKw ? int(motorKw) : null} unit="kW" testId="vehicle-motor"/>
+      </> : <>
+        <Fact label="סוג דלק" valueKind="text" value={FUEL_TYPE_LABELS[activeVehicle.fuelType]}/>
+        <Fact label="נפח מיכל" testId="vehicle-tank" sub={activeVehicle.tankLiters ? activeVehicle.tankLitersSource === 'estimate' ? 'הערכה לפי סוג הרכב' : 'מאושר' : 'לא ידוע'} value={activeVehicle.tankLiters ? int(activeVehicle.tankLiters) : null} unit="ל׳"/>
+        <Fact label="צריכה מוצהרת" testId="vehicle-declared" sub={activeVehicle.declaredKmPerLiter ? undefined : 'לא תועדה'} value={activeVehicle.declaredKmPerLiter ? declared.value : null} unit={declared.unit}/>
+      </>}
+    </FactsStrip><Link className="tm-button tm-button-primary" to={`/vehicle/edit/${encodeURIComponent(activeVehicle.id)}`}>עריכת פרטי הרכב</Link><div className="tm-vehicle-links"><Link className="tm-vehicle-link" to="/history?kind=service">היסטוריית הטיפולים<ChevronStart size={18}/></Link><button type="button" className="tm-vehicle-link" aria-haspopup="dialog" onClick={() => setStatementOpen(true)}>דוח חודשי לעסק<ChevronStart size={18}/></button><Link className="tm-vehicle-link" to="/settings/vehicles">רכבים נוספים וארכיון<ChevronStart size={18}/></Link><Link className="tm-vehicle-link" to="/account">הנתונים שלי וגיבוי<ChevronStart size={18}/></Link></div></> : null}
     {tab === 'prefs' ? <><section aria-label="הגדרות הרכב"><div className="v-group"><TankPreferencesSection embedded/></div></section><div className="tm-vehicle-links">{activeVehicles.length > 1 ? activeVehicles.map(vehicle => <button type="button" className="tm-vehicle-link" key={vehicle.id} onClick={() => { const isCurrent = captureAccount(); void setActiveVehicle(vehicle.id).catch(() => { if (isCurrent()) showToast({ tone: 'error', title: 'בחירת הרכב לא נשמרה' }); }); }}><span><NumericText>{vehicleLabel(vehicle)}</NumericText></span><small>{vehicle.id === activeVehicle.id ? 'פעיל' : 'בחירה'}</small></button>) : null}<Link className="tm-vehicle-link" to="/settings/vehicles">רכבים וארכיון<ChevronStart size={18}/></Link><Link className="tm-vehicle-link" to="/vehicles/new">הוספת רכב<PlusIcon size={18}/></Link><Link className="tm-vehicle-link" to="/account">העדפות האפליקציה<ChevronStart size={18}/></Link></div></> : null}
+    <BusinessStatementSheet open={statementOpen} onClose={() => setStatementOpen(false)}/>
   </VehiclePage>;
 }

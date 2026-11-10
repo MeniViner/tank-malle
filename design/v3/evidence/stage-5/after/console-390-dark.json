@@ -1,0 +1,15 @@
+{
+  "tag": "390-dark",
+  "shots": [
+    "onboarding-390-dark.png",
+    "onboarding-2-390-dark.png",
+    "onboarding-3-390-dark.png",
+    "onboarding-4-390-dark.png",
+    "signin-390-dark.png",
+    "wizard-390-dark.png",
+    "wizard-manual-390-dark.png",
+    "wizard-ev-390-dark.png"
+  ],
+  "failures": [],
+  "entries": []
+}

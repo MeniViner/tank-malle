@@ -1,12 +1,13 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Line, LineChart, Tooltip, XAxis, YAxis } from "recharts";
-import { FUEL_TYPE_SHORT, dayMonthShort, int, price } from "../../lib/format";
+import { FUEL_TYPE_SHORT, dayMonthShort, int, num, price } from "../../lib/format";
 import type { DateRange } from "../../lib/periods";
 import type { Vehicle } from "../../lib/stats";
 import { Money, NumericText, NumRun, PricePerLiter } from "../Fmt";
+import { Fact, FactsStrip } from "../FactsStrip";
 import { InfoTip } from "../InfoTip";
 import { CHART_MARGIN, ChartLegend, InsightCard, InsightChart, InsightEmpty, InsightTable, InsightTooltip, TIME_AXIS, VALUE_AXIS } from "./InsightChart";
-import { REFERENCE_LABELS, type PriceSummary } from "./presentation";
+import { priceExtremes, REFERENCE_LABELS, type PriceExtreme, type PriceSummary } from "./presentation";
 
 const PRICE_CHART_MARGIN = { ...CHART_MARGIN, left: 8 };
 
@@ -24,6 +25,10 @@ export function PriceInsights({ summary, vehicle, range, historyReady }: { summa
   const referenceLabel = summary.kinds.length === 1 ? REFERENCE_LABELS[summary.kinds[0]] : "מחיר להשוואה לפי מקורו";
   const hasReference = summary.kinds.length > 0;
   const rankingMax = Math.max(...summary.stations.map(station => station.average), 1);
+  const navigate = useNavigate();
+  const extremes = priceExtremes(summary.points);
+  const extremeSub = (extreme: PriceExtreme) => <NumericText>{`${summary.fills.find(fill => fill.id === extreme.fillId)?.station?.name?.trim() || "ללא מיקום"} · ${dayMonthShort(extreme.date)}`}</NumericText>;
+  const openFill = (extreme: PriceExtreme) => navigate(`/fillup/${encodeURIComponent(extreme.fillId)}`);
   if (!summary.fills.length) return <div className="insights-stack" data-testid="insights-panel-price">
     <InsightEmpty action={historyReady} title={historyReady ? "אין תדלוקים מהסוג הזה בתקופה שנבחרה" : "נתוני המחירים עדיין אינם זמינים"}>
       {historyReady ? <NumericText>{`המחירים מוצגים עבור ${FUEL_TYPE_SHORT[vehicle?.fuelType ?? "95"]}.`}</NumericText> : "נחכה להשלמת היסטוריית התדלוקים."}
@@ -77,6 +82,14 @@ export function PriceInsights({ summary, vehicle, range, historyReady }: { summa
       </div>
     </InsightCard>
 
+    {extremes.dearest ? <FactsStrip label="קצוות המחיר בתקופה" testId="insights-price-facts">
+      <Fact testId="insights-price-dearest" label="התדלוק היקר ביותר לליטר" sub={extremeSub(extremes.dearest)} value={price(extremes.dearest.paid)}
+        onClick={() => openFill(extremes.dearest!)} ariaLabel={`התדלוק היקר ביותר לליטר, ${price(extremes.dearest.paid)}, פתיחת התדלוק`} />
+      {extremes.cheapest ? <Fact testId="insights-price-cheapest" label="הכי זול ששילמתם לליטר" sub={extremeSub(extremes.cheapest)} value={price(extremes.cheapest.paid)}
+        onClick={() => openFill(extremes.cheapest!)} ariaLabel={`הכי זול ששילמתם לליטר, ${price(extremes.cheapest.paid)}, פתיחת התדלוק`} /> : null}
+      <Fact testId="insights-price-known-liters" label="ליטרים עם סכום ידוע" sub={<><NumRun>{int(extremes.knownCount)}</NumRun> תדלוקים</>}
+        value={num(extremes.knownLiters, 1)} unit="ל׳" />
+    </FactsStrip> : null}
     {summary.stations.length > 0 ? <InsightCard label="תחנות · המחירים האישיים שתועדו"
       title={summary.stations.length > 1 ? <>הכי זול ששילמתם בתקופה: <NumericText>{summary.stations[0].name}</NumericText></>
         : <>המחיר שתועד ב<NumericText>{summary.stations[0].name}</NumericText></>}>

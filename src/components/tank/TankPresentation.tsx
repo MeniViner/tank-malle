@@ -32,13 +32,14 @@ export function TankLevel({ level }: { level: number | null }) {
 }
 
 /** Mixed routines remain a range instead of a midpoint nobody actually uses. */
-export function TankHabitLevel({ habit }: { habit: TankEstimate["habit"] }) {
+export function TankHabitLevel({ habit }: { habit: Pick<TankEstimate["habit"], "mixed" | "overridden" | "low" | "high" | "typicalLevel"> }) {
   return habit.mixed && !habit.overridden
     ? <>בין <Percent value={habit.low * 100} /> ל־<Percent value={habit.high * 100} /></>
     : <Percent value={habit.typicalLevel * 100} />;
 }
 
-function tankSourceText(estimate: TankEstimate, displayLevel: number | null): string {
+type TankSourceEstimate = Pick<TankEstimate, "reasons" | "lastLevelReport"> & { current: Pick<TankEstimate["current"], "level"> };
+function tankSourceText(estimate: TankSourceEstimate, displayLevel: number | null): string {
   if (displayLevel === null) return "עדכון המחוון ישפר את ההערכה";
   if (estimate.reasons.includes("recentGaugeObservation")
     || (estimate.current.level === null && estimate.lastLevelReport)) return "לפי המחוון שסימנת";
@@ -47,7 +48,7 @@ function tankSourceText(estimate: TankEstimate, displayLevel: number | null): st
 }
 
 /** A reported level without a live projection always carries the report age. */
-export function TankSource({ estimate, level }: { estimate: TankEstimate; level: number | null }) {
+export function TankSource({ estimate, level }: { estimate: TankSourceEstimate; level: number | null }) {
   const reportOnly = level !== null && estimate.current.level === null && estimate.lastLevelReport;
   return <>{tankSourceText(estimate, level)}{reportOnly ? <> · עודכן <NumericText>{timeAgo(reportOnly.at)}</NumericText></> : null}</>;
 }

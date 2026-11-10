@@ -121,3 +121,19 @@
 @media(min-width:700px){.vehicle-v2-page .tm-page{max-width:620px;margin-inline:auto}.tm-vehicle-heading h1{font-size:62px}}
 @media(max-width:350px){.tm-vehicle-edit .tm-vehicle-field-pair{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.vehicle-v2-page :is(a,button),.tm-vehicle-form :is(button,input),.tm-civil-picker{animation:none!important;transition:none!important;transform:none!important;scale:1!important}}
+
+/* Design v3 Stage 3 — "כמה עלה" facts, year rows and details facts. */
+.v-costs .facts { margin-block: 4px 12px; }
+.v-costs .v-section-head h2 { color: var(--ink); font: 400 26px/1 var(--font-display); }
+.v-years { display: grid; border-top: 1px solid var(--line); }
+.v-years > .vehicle-year-row { display: grid; gap: 4px; min-height: 60px; padding: 10px 0; border-bottom: 1px dashed var(--line); color: var(--ink); }
+.v-years > .vehicle-year-row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-sm); }
+.vehicle-year-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.vehicle-year-head > b { flex: none; font: 400 18px/1 var(--font-mono); }
+.vehicle-year-head > .vehicle-year-bar { flex: 1; min-width: 40px; height: 8px; margin: 0; border-radius: 99px; }
+.vehicle-year-bar-empty { display: block; background: var(--surface-2); }
+.vehicle-year-total { flex: none; font: 400 18px/1 var(--font-mono); direction: ltr; }
+.v-years > .vehicle-year-row > small { margin: 0; color: var(--ink-2); font-size: 12px; }
+.v-details-facts { margin-block: 4px 12px; }
+button.tm-vehicle-link { border: 0; background: none; font: inherit; cursor: pointer; }
+.tm-vehicle-links > button.tm-vehicle-link + .tm-vehicle-link, .tm-vehicle-links > .tm-vehicle-link + button.tm-vehicle-link { border-block-start: 1px solid var(--hairline); }

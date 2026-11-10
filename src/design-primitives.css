@@ -283,6 +283,12 @@ button.tm-odometer { cursor: pointer; }
 .facts .fv > .tm-number.n { font: 400 22px/1 var(--font-mono); letter-spacing: -.01em; color: var(--ink); }
 .facts .fv > .tm-number.n.muted { color: var(--ink-2); }
 .facts .fv > u { text-decoration: none; font: 400 12px/1.2 var(--font-sans); color: var(--ink-2); }
+.facts .fv:has(> .t) { flex: 0 1 auto; min-width: 0; }
+.facts .fv > .t { overflow-wrap: anywhere; font: 400 15px/1.35 var(--font-sans); color: var(--ink); text-align: left; }
+.facts .fv > .t.muted { color: var(--ink-2); }
+.facts > .fact.minor { min-height: 44px; padding: 6px 0; }
+.facts > .fact.minor .fl { font: 400 13px/1.35 var(--font-sans); color: var(--ink-2); }
+.facts > .fact.minor .fv > .tm-number.n { font-size: 16px; }
 
 @media (prefers-reduced-motion: reduce) {
   .tm-button, .tm-switch.tm-plate-switch, .tm-switch.tm-plate-switch .tm-switch-track, .tm-switch.tm-plate-switch .tm-switch-thumb { transition: none; }

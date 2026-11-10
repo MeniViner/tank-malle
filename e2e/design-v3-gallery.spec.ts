@@ -78,6 +78,11 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
       await shot("onboarding", async () => {
         await go("/", page.getByRole("button", { name: "דלג" }));
       });
+      for (const slide of [2, 3, 4]) await shot(`onboarding-${slide}`, async () => {
+        await go("/", page.getByRole("button", { name: "דלג" }));
+        for (let step = 1; step < slide; step++) await page.getByTestId("onboarding-next").click();
+        await settle(page, page.locator(`[data-testid=onboarding-slide][data-slide="${slide}"]`));
+      });
       await shot("signin", async () => {
         const skip = page.getByRole("button", { name: "דלג" });
         if (await skip.count()) await skip.first().click();
@@ -209,6 +214,16 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
 
       /* ---------- account and secondary screens ---------- */
       await shot("account", () => go("/account", main), { fullPage: true });
+      await shot("sheet-account-identity", async () => {
+        await go("/account", main);
+        await page.getByTestId("account-identity").click();
+        await settle(page, page.getByTestId("account-summary"));
+      });
+      await shot("sheet-statement", async () => {
+        await go("/vehicle", page.getByRole("region", { name: "הרכב שלי", exact: true }));
+        await page.getByTestId("vehicle-business-statement").click();
+        await settle(page, page.getByTestId("business-statement"));
+      });
       await shot("notifications", () => go("/notifications", main), { fullPage: true });
       await shot("unsynced", () => go("/settings/unsynced", main), { fullPage: true });
       await shot("import", () => go("/settings/import", main), { fullPage: true });
@@ -220,8 +235,17 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
         await settle(page, page.getByTestId("wizard-make"));
       }, { fullPage: true });
 
-      // EV: the production vehicle model has no powertrain/battery fields yet
-      // (DESIGN-V3 §7.4 is a Stage 5 feature), so there is no EV state to capture.
+      // EV (Stage 5d): the confirm step with the electric drivetrain chosen manually
+      // (motor kW appears only from a registry lookup; see e2e/design-v3-entry.spec.ts).
+      await shot("wizard-ev", async () => {
+        await go("/vehicles/new", page.getByTestId("wizard-manual"));
+        await page.getByTestId("wizard-manual").click();
+        await page.getByTestId("wizard-make").fill("BYD");
+        await page.getByTestId("wizard-model").fill("ATTO 3");
+        await page.getByTestId("wizard-fuel-ev").check({ force: true });
+        await page.getByRole("textbox", { name: "קיבולת סוללה" }).fill("60.48");
+        await settle(page, page.getByTestId("wizard-ev"));
+      }, { fullPage: true });
       expect(shots.length).toBeGreaterThan(0);
     } finally {
       await writeConsole(tag, consoleLog.entries, failures, shots);
