@@ -1,0 +1,140 @@
+/**
+ * The scan engine: one code-only reader for odometer and pump photos, whole
+ * photo or camera frame alike. It proposes rows of digit-like marks anywhere in
+ * the picture, reads each as seven-segment digits, and lets what is known
+ * about the numbers (a pump's total = litres × price; an odometer only goes
+ * up) choose among the rows. It only ever suggests: the person confirms.
+ */
+import { luma, pyramid, type RGBA } from './image';
+import { proposeLines, rectify, type LineProposal } from './proposals';
+import { readStrip, type Cell } from './decode';
+
+export type Word = {
+  /** Digits with at most one decimal point, as shown. */
+  text: string; digits: string; dot: number | null;
+  /** 0..1, geometric mean of the cells' pattern fit. */
+  fit: number; cells: Cell[];
+  line: LineProposal; flipped: boolean;
+};
+export type ScanKind = 'odometer' | 'pump';
+export type ScanContext = { lastOdometer?: number | null; pricePerLiter?: number | null; tankCapacity?: number | null };
+export type OdometerRead = { text: string; value: number; confidence: number; word: Word };
+export type PumpRead = { total: string; liters: string; price: string | null; confidence: number; words: { total: Word; liters: Word; price: Word | null } };
+export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number };
+
+const MIN_FIT = .55;
+
+/** Splits a row into runs of well-read digits on one regular pitch. */
+export function wordsOf(cells: Cell[], dots: number[], line: LineProposal, flipped: boolean): Word[] {
+  const out: Word[] = [];
+  const pitches: number[] = [];
+  for (let i = 1; i < cells.length; i++) if (cells[i].fit >= MIN_FIT && cells[i - 1].fit >= MIN_FIT) pitches.push(cells[i].x1 - cells[i - 1].x1);
+  const pitch = pitches.length ? pitches.sort((a, b) => a - b)[pitches.length >> 1] : 0;
+  let start = 0;
+  const flush = (end: number) => {
+    if (end - start >= 3) {
+      const part = cells.slice(start, end), inside = dots.filter(d => d >= start && d < end - 1);
+      const digits = part.map(c => c.options[0].digit).join(''), dot = inside.length === 1 ? inside[0] - start : null;
+      // A row of nothing but upright strokes is a grille or a barcode, not a number.
+      if (inside.length <= 1 && [...digits].filter(d => d !== '1').length >= Math.min(2, digits.length - 1)) {
+        // Segment displays keep an exact pitch; printed numerals (a speedometer scale) do not.
+        let drift = 0; for (let k = 1; k < part.length; k++) drift = Math.max(drift, Math.abs((part[k].x1 - part[k - 1].x1) / pitch - 1));
+        const fit = Math.exp(part.reduce((s, c) => s + Math.log(c.fit), 0) / part.length) * (drift > .12 ? Math.max(.5, 1 - (drift - .12) * 2.5) : 1);
+        out.push({ digits, dot, text: dot == null ? digits : `${digits.slice(0, dot + 1)}.${digits.slice(dot + 1)}`, fit, cells: part, line, flipped });
+      }
+    }
+  };
+  for (let i = 0; i < cells.length; i++) {
+    const bad = cells[i].fit < MIN_FIT;
+    const jump = i > start && pitch > 0 && (cells[i].x1 - cells[i - 1].x1 > pitch * 1.3 || cells[i].x1 - cells[i - 1].x1 < pitch * .72);
+    if (bad) { flush(i); start = i + 1; } else if (jump) { flush(i); start = i; }
+  }
+  flush(cells.length);
+  return out;
+}
+
+export function readWords(image: RGBA): { words: Word[]; lines: number } {
+  const levels = pyramid(luma(image)), lines = proposeLines(levels), words: Word[] = [];
+  for (const line of lines) {
+    // A steep row may be upside down; a gently sloped one is read left to right only.
+    for (const flipped of Math.abs(line.ux) < .5 ? [false, true] : [false]) {
+      const read = readStrip(rectify(levels, line, 64, flipped, 3), line.polarity);
+      if (read) words.push(...wordsOf(read.cells, read.dots, line, flipped));
+    }
+  }
+  return { words, lines: lines.length };
+}
+
+const ODOMETER_LENGTH: Record<number, number> = { 4: .5, 5: .85, 6: 1, 7: .8 };
+
+export function chooseOdometer(words: Word[], context: ScanContext = {}): OdometerRead[] {
+  const best = new Map<string, OdometerRead>();
+  for (const word of words) {
+    if (word.dot != null) continue;
+    // The number may sit inside a longer row (a gear letter before it, a unit after it).
+    for (let n = Math.min(7, word.digits.length); n >= 4; n--) for (let s = 0; s + n <= word.digits.length; s++) {
+      const text = word.digits.slice(s, s + n).replace(/^0+(?=\d)/, ''); if (text.length < 4) continue;
+      const value = Number(text), part = word.cells.slice(s, s + n);
+      let confidence = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit * c.options[0].p), 0) / n) * (ODOMETER_LENGTH[text.length] ?? .4) * (n === word.digits.length ? 1 : .8) * word.fit;
+      const last = context.lastOdometer;
+      if (last != null && last > 0) confidence *= value >= last && value <= last + 5000 ? 1 : value >= last && value <= last + 30000 ? .5 : .1;
+      const prev = best.get(text);
+      if (!prev || confidence > prev.confidence) best.set(text, { text, value, confidence, word });
+    }
+  }
+  return [...best.values()].sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+}
+
+type Decimal = { word: Word; text: string; value: number; quality: number };
+/**
+ * Readings of a row as a number with `places` decimals and at most `maxInt`
+ * whole digits. The row may carry extra cells at either end (a frame, a label),
+ * so every window that ends in the right place is offered; a point the display
+ * did not show may be assumed, at a cost.
+ */
+function decimals(word: Word, places: number[], maxInt: number, minInt = 1): Decimal[] {
+  const out: Decimal[] = [], n = word.digits.length;
+  const add = (start: number, end: number, d: number, cost: number) => {
+    const part = word.cells.slice(start, end), whole = word.digits.slice(start, end - d).replace(/^0+(?=\d)/, '');
+    const text = `${whole}.${word.digits.slice(end - d, end)}`, fit = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit), 0) / part.length);
+    // Leaving out a cell that read well as a digit is suspicious; leaving out a poor one (a frame, a letter) is not.
+    let dropped = 1; word.cells.forEach((c, i) => { if (i < start || i >= end) dropped *= 1 - .7 * c.fit * c.fit; });
+    out.push({ word, text, value: Number(text), quality: fit * cost * dropped });
+  };
+  for (const d of places) {
+    if (word.dot != null) { const end = word.dot + 1 + d; if (end <= n) for (let i = minInt; i <= maxInt && word.dot + 1 - i >= 0; i++) add(word.dot + 1 - i, end, d, 1); }
+    else for (let end = d + minInt; end <= n; end++) for (let i = minInt; i <= maxInt && end - d - i >= 0; i++) add(end - d - i, end, d, .55);
+  }
+  return out;
+}
+
+/** Two words read from the same physical row of the display (found twice, at different scales). */
+const sameRow = (a: Word, b: Word) => a === b || Math.hypot(a.line.cx - b.line.cx, a.line.cy - b.line.cy) < Math.max(a.line.height, b.line.height) * .6;
+
+export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[] {
+  const good = words.filter(w => w.fit >= .6);
+  const totals = good.flatMap(w => decimals(w, [2], 4)), liters = good.flatMap(w => decimals(w, [3, 2], 3)), prices = good.flatMap(w => decimals(w, [2], 2));
+  const best = new Map<string, PumpRead>();
+  for (const t of totals) for (const l of liters) {
+    if (sameRow(l.word, t.word) || l.value <= 0 || t.value <= 0) continue;
+    const implied = t.value / l.value; if (implied < 3 || implied > 20) continue;
+    // Same display: the litres row sits near the total and is not larger than it.
+    const distance = Math.hypot(t.word.line.cx - l.word.line.cx, t.word.line.cy - l.word.line.cy), size = Math.max(t.word.line.height, l.word.line.height);
+    if (distance > size * 6 || distance < size * .4 || l.word.line.height > t.word.line.height * 1.6) continue;
+    // The pump rounds litres × price to the agora, and shows litres to the millilitre.
+    const tolerance = .0062 + .0006 * implied;
+    let price: Decimal | null = null;
+    for (const p of prices) if (!sameRow(p.word, t.word) && !sameRow(p.word, l.word) && Math.abs(l.value * p.value - t.value) <= tolerance && (!price || p.quality > price.quality)) price = p;
+    let confidence = t.quality * l.quality;
+    if (price) confidence *= .5 + .5 * price.quality; else if (context.pricePerLiter && Math.abs(implied - context.pricePerLiter) < .6) confidence *= .4; else confidence *= implied >= 5 && implied <= 13 ? .2 : .05;
+    if (context.tankCapacity && l.value > context.tankCapacity * 1.05) confidence *= .2;
+    const k = `${t.text}|${l.text}`, prev = best.get(k);
+    if (!prev || confidence > prev.confidence) best.set(k, { total: t.text, liters: l.text, price: price?.text ?? null, confidence, words: { total: t.word, liters: l.word, price: price?.word ?? null } });
+  }
+  return [...best.values()].sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+}
+
+export function scanPhoto(image: RGBA, kind: ScanKind, context: ScanContext = {}): EngineResult {
+  const started = Date.now(), { words } = readWords(image);
+  return { kind, words, odometer: kind === 'odometer' ? chooseOdometer(words, context) : [], pump: kind === 'pump' ? choosePump(words, context) : [], ms: Date.now() - started };
+}
