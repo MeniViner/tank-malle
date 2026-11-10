@@ -41,7 +41,7 @@ export function importPreview(backup:CareBackup,existing:CareData): { additions:
   return {additions,duplicates,conflicts};
 }
 /** Spreadsheet formula prefixes must remain literal user text after opening a CSV. */
-function cell(value:unknown): string {
+export function cell(value:unknown): string {
   let text=String(value??''); if (typeof value==='string' && /^[\s]*[=+@-]/.test(text)) text="'"+text;
   return '"'+text.replaceAll('"','""')+'"';
 }
