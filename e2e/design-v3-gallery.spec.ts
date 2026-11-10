@@ -14,7 +14,7 @@ import {
  *     npx playwright test e2e/design-v3-gallery.spec.ts --project=chromium
  *
  * V3_GALLERY_OUT=<dir> picks the output folder (default design/v3/evidence/stage-0/before).
- * Optional filters: V3_GALLERY_WIDTHS=390,430  V3_GALLERY_THEMES=dark
+ * Optional filters: V3_GALLERY_WIDTHS=390,430  V3_GALLERY_THEMES=dark  V3_GALLERY_SCREENS=home,sheet-tco
  * Files: <screen>-<width>-<theme>.png, plus console.json (errors and React key
  * warnings per route) and console-<width>-<theme>.json per run.
  *
@@ -36,6 +36,7 @@ test.use({
 });
 
 const SETTLE = 700;
+const SCREENS = process.env.V3_GALLERY_SCREENS?.split(",").map(name => name.trim()).filter(Boolean) ?? null;
 
 async function settle(page: Page, ready?: Locator) {
   if (ready) await ready.first().waitFor({ state: "visible", timeout: 20_000 });
@@ -56,6 +57,8 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
 
     /** Run one capture; a failure is recorded and the run continues. */
     async function shot(name: string, steps: () => Promise<void>, options: { fullPage?: boolean } = {}) {
+      // Optional V3_GALLERY_SCREENS=home,home-viewport,sheet-tco limits a run to the named shots.
+      if (SCREENS && !SCREENS.includes(name)) return;
       consoleLog.setRoute(name);
       try {
         await steps();

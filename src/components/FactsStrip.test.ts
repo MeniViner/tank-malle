@@ -14,7 +14,7 @@ describe("FactsStrip (Design v3 §3)", () => {
       { id: "km", label: "נוסע ביום", sub: "כ־540 ק״מ בחודש", value: "18", unit: "ק״מ" },
     ] }));
     expect(markup).toMatch(/^<div class="facts" role="group" aria-label="עובדות">/);
-    expect(markup).toMatch(/<div class="fact"><span class="fl">נוסע ביום<small>כ־540 ק״מ בחודש<\/small><\/span><i class="ld" aria-hidden="true"><\/i><span class="fv"><bdi dir="ltr"[^>]*class="num tm-number n">18<\/bdi><u>ק״מ<\/u><\/span><\/div>/);
+    expect(markup).toMatch(/<div class="fact"><span class="fl"><span class="fl-text">נוסע ביום<\/span><small>כ־540 ק״מ בחודש<\/small><\/span><i class="ld" aria-hidden="true"><\/i><span class="fv"><bdi dir="ltr"[^>]*class="num tm-number n">18<\/bdi><u>ק״מ<\/u><\/span><\/div>/);
   });
 
   it("a row with onClick is a real button with a Hebrew label and optional popup", () => {
@@ -46,14 +46,14 @@ describe("FactsStrip (Design v3 §3)", () => {
     const markup = render(createElement(FactsStrip, { rows: [
       { id: "a", label: "א", value: "1" }, { id: "b", label: "ב", value: "2" },
     ] }, createElement(Fact, { label: "ג", value: "3" })));
-    expect([...markup.matchAll(/<span class="fl">(.)/g)].map(match => match[1])).toEqual(["א", "ב", "ג"]);
+    expect([...markup.matchAll(/<span class="fl"><span class="fl-text">(.)/g)].map(match => match[1])).toEqual(["א", "ב", "ג"]);
     expect(markup).toMatch(/^<div class="facts">/);
   });
 
   it("the shared stylesheet holds the §3 typography and rules", () => {
     const css = readFileSync(resolve(__dirname, "../design-primitives.css"), "utf8");
     expect(css).toMatch(/\.facts \{[^}]*border-block: 1px solid var\(--line\)/);
-    expect(css).toMatch(/\.facts > \* \+ \* \{ border-top: 1px dashed var\(--line\)/);
+    expect(css).toMatch(/\.facts > \.fact \+ \.fact \{ border-top: 1px dashed var\(--line\)/);
     expect(css).toMatch(/\.facts \.fv > \.tm-number\.n \{ font: 400 22px\/1 var\(--font-mono\)/);
     expect(css).toMatch(/\.facts \.fv > u \{[^}]*font: 400 12px/);
     expect(css).toMatch(/\.facts \.fl \{[^}]*font: 500 15px/);

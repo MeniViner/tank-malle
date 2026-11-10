@@ -12,7 +12,7 @@
 .tm-tco-top>.home-label{font-size:13px;font-weight:600;line-height:17px;color:var(--ink-2)}
 .tm-tco-missing{padding:5px 9px;border-radius:999px;background:var(--warning-soft);color:var(--warning-ink);font-size:12px;font-weight:600;line-height:1.4}
 .tm-tco-number{display:flex;align-items:flex-end;gap:10px;min-width:0}
-.tm-tco>.tm-tco-summary .tm-tco-number{align-items:center}
+.tm-tco>.tm-tco-summary .tm-tco-number{align-items:center;justify-content:space-between}
 .tm-tco-value{max-width:100%;font-family:var(--font-display);font-size:64px;font-weight: 400;line-height:.84;letter-spacing:-.01em;overflow-wrap:anywhere}
 .tm-tco-number>.tm-tco-value.tm-number-block{width:auto;flex:0 1 auto}
 .tm-tco-unit{padding-block-end:8px;font-size:15px;font-weight:600;color:var(--ink-2);flex:none}

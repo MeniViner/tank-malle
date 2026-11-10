@@ -38,7 +38,7 @@ export function vehicleDocumentOccurrences(vehicle: { id: string; docs?: unknown
 }
 
 /** Spotlight names read as a sentence on one line: "הטסט בעוד 22 ימים" (v3 §2.3). */
-const SPOTLIGHT_NAMES: Record<VehicleDocKey, string> = { test: 'הטסט', mandatory: 'ביטוח החובה', coverage: 'ביטוח הרכב' };
+const SPOTLIGHT_NAMES: Record<VehicleDocKey, string> = { test: 'הטסט', mandatory: 'ביטוח חובה', coverage: 'ביטוח רכב' };
 
 /** One-line spotlight title; the notification list keeps the full `title`. */
 export function vehicleDocumentSpotlightTitle(item: Pick<VehicleDocumentOccurrence, 'key' | 'daysLeft'>): string {

@@ -1,7 +1,7 @@
 .home-page { flex: 1; padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)); }
 /* v3 rhythm: one even gap between blocks (prototype density pass: 26px); a block = label → number → one support line. */
 .home-body { display: flex; flex-direction: column; gap: 26px; padding: 2px 20px 28px; min-width: 0; }
-.home-status { margin: -2px 0 -8px; color: var(--ink); font: 400 15px/1.45 var(--font-sans); }
+.home-status { margin: 4px 0 -8px; color: var(--ink); font: 400 15px/1.45 var(--font-sans); }
 .home-label { margin: 0; font-size: 13px; font-weight: 500; line-height: 1.5; letter-spacing: .01em; color: var(--ink-2); }
 .home-history-status { margin: 0; color: var(--warning); font-size: 14px; line-height: 1.5; }
 .home-group-title { font: 400 30px/1 var(--font-display); color: var(--ink); margin: 0; }
@@ -21,7 +21,8 @@
 .home-consumption { display: grid; gap: 10px; min-width: 0; }
 .home-consumption-heading { display: flex; align-items: center; justify-content: flex-start; gap: 0; min-height: 32px; margin-block: -6px -8px; }
 /* ⓘ sits beside the label (44px target, 16px glyph). */
-.home-consumption-heading .home-info-button { margin-block: -6px; color: var(--ink-2); }
+.home-consumption-heading .home-info-button { position: relative; margin-block: -6px; color: var(--ink-2); }
+.home-consumption-heading .home-info-button::before { content: ""; position: absolute; inset: 8px; border: 1px solid var(--line); border-radius: 50%; }
 .home-consumption-reading { display: grid; gap: 4px; padding: 0; border: 0; background: transparent; color: var(--ink); text-align: right; cursor: pointer; }
 .home-consumption-value { display: flex; align-items: flex-end; justify-content: flex-start; gap: 10px; }
 .home-consumption-value > .tm-number { font: 400 56px/.95 var(--font-display); text-align: right; letter-spacing: -.5px; }
@@ -56,6 +57,12 @@
 .home-consumption-unit, .home-history-status, .home-page .tm-sparkline-legend, .home-page .tm-sparkline-caption {
   text-shadow: var(--tm-atmosphere-text-shadow);
 }
+/* v3 density pass on Home spotlight (prototype .spot-card): compact card, 36px icon tile; targets stay ≥44px. */
+.home-spotlight .tm-spotlight-card { min-height: 58px; }
+.home-spotlight .tm-spotlight-open { min-height: 56px; gap: 10px; padding: 8px 10px; }
+.home-spotlight .tm-spotlight-icon { width: 36px; height: 36px; border-radius: var(--r-sm); }
+.home-spotlight .tm-spotlight-icon svg { width: 18px; height: 18px; }
+.home-spotlight .tm-spotlight-copy { gap: 3px; }
 @media (prefers-reduced-motion: reduce) {
   .home-spotlight-track { scroll-behavior: auto; }
 }

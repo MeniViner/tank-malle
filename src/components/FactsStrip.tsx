@@ -5,7 +5,8 @@ import { NumRun } from "./Fmt";
  * Design v3 §3 facts strip: a receipt-style list that replaces KPI tiles.
  *
  * Markup is fixed so every screen reads the same:
- * `.facts > button|div > .fl(+small) + .ld + .fv(.n + u)`.
+ * `.facts > button|div > .fl(.fl-text + small) + .ld + .fv(.n + u)` (the label sits in
+ * `.fl-text` so mixed Hebrew/number labels stay on one line inside the grid).
  *
  * Values are passed already formatted by `src/lib/format.ts` (`shekel`,
  * `price`, `int`, …) so the AGENTS.md money rule lives in one place; `null`
@@ -47,7 +48,7 @@ export interface FactsStripProps {
 export function Fact({ label, sub, value, unit, onClick, ariaLabel, hasPopup, testId, muted = false }: FactProps) {
   const known = value !== null;
   const content = <>
-    <span className="fl">{label}{sub !== undefined && sub !== null && sub !== false ? <small>{sub}</small> : null}</span>
+    <span className="fl"><span className="fl-text">{label}</span>{sub !== undefined && sub !== null && sub !== false ? <small>{sub}</small> : null}</span>
     <i className="ld" aria-hidden="true" />
     <span className="fv">
       <NumRun className={`n${muted || !known ? " muted" : ""}`}>{known ? value : "—"}</NumRun>
