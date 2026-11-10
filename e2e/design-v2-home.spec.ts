@@ -43,7 +43,8 @@ async function fieldAccessibility(input: Locator) {
   expect(measurement.placeholderOpacity).toBe("1");
   expect(measurement.placeholderColor).not.toMatch(/rgba\([^)]*,\s*0\./);
   expect(measurement.focusOutline).toBe("none");
-  expect(measurement.focusShadow).toBe("none");
+  // v3 stage 4: boxed form controls show an ink focus frame (1px inset); row fields stay quiet.
+  expect(measurement.focusShadow).toMatch(/^(none|rgb\(\d+, \d+, \d+\) 0px 0px 0px 1px inset)$/);
   return measurement;
 }
 

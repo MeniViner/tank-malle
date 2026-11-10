@@ -2,7 +2,8 @@ import { careDraftKey, readCareDraft, writeCareDraft, removeCareDraft } from '..
 import { useAppUpdateBlocker } from '../../hooks/useAppUpdateBlocker';
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { CareGlyph } from './CareGlyph';
-import { CheckIcon, ChevronStart, ChevronEnd, CloseIcon } from '../icons';
+import { CheckIcon, ChevronStart, ChevronEnd, CloseIcon, InfoIcon } from '../icons';
+import { ExcludeInfoSheet } from './ExcludeInfoSheet';
 import { Field } from '../Field';
 import { CivilDateField } from '../CivilDateField';
 import { PumpDisplay, PumpDisplayRow } from '../DesignPrimitives';
@@ -20,7 +21,7 @@ import '../../care-entry-design.css';
 
 const TITLES: Record<CareCollection,string> = { serviceEvents: 'טיפול שבוצע', maintenancePlans: 'תזכורת לטיפול', vehicleExpenses: 'הוצאה לרכב', odometerReadings: 'עדכון קילומטראז׳' };
 export function SelectField({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
-  return <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted">{label}<select aria-label={label} className="min-h-12 w-full min-w-0 rounded-md border border-line bg-surface p-3 text-base text-ink" value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>;
+  return <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted">{label}<select aria-label={label} className="min-h-12 w-full min-w-0 rounded-md border border-line-control bg-surface p-3 text-base text-ink" value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>;
 }
 export function CareEditor({ uid, vehicleId, collection, record: currentRecord, plans, completePlan, initialJob, currentOdometer, odometerIntent, completionDefaults, onClose, onSave }: {
   uid: string; vehicleId: string; collection: CareCollection; record?: CareRecord; plans: MaintenancePlan[]; completePlan?: MaintenancePlan;
@@ -65,8 +66,9 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const [source,setSource] = useState<MaintenancePlan['source']>(() => restore('source', plan?.source ?? 'owner'));
   const [active,setActive] = useState(() => restore('active', plan?.active ?? true));
   const [category,setCategory] = useState(() => restore('category', record && 'category' in record ? record.category : 'other'));
-  // "לכלול בעלות הרכב" (default included). Preserved through edits and drafts; the toggle UI arrives in the v3 forms pass.
-  const [excluded] = useState(() => restore('excluded', !!record && 'category' in record && record.excluded === true));
+  // "לכלול בעלות הרכב" (default included). Off ⇒ `excluded: true`; preserved through edits and drafts.
+  const [excluded,setExcluded] = useState(() => restore('excluded', !!record && 'category' in record && record.excluded === true));
+  const [excludeInfo,setExcludeInfo] = useState(false);
   const [step,setStep] = useState(() => restore('_step', record || completePlan || initialJob || restored || collection === 'odometerReadings' ? 1 : 0));
   const heading = useRef<HTMLHeadingElement>(null);
   const [linkedOpen,setLinkedOpen] = useState(completed.length>0);
@@ -229,6 +231,12 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
                   {expenseMode&&category==='refund'?'סכום חיובי שהוחזר לכם':<NumericText>ריק אם לא ידוע · 0 אם לא שילמתם</NumericText>}
                 </p>
               </div>:null}
+              {expenseMode?<div className="v3-toggle-row care-ownership-toggle" data-testid="care-ownership">
+                <span><span>לכלול בעלות הרכב</span><small>{excluded?'יישאר ביומן, בלי להיכנס לעלות החודשית ולממוצעים':'נכנס ל״כמה הרכב עולה לך״ ולממוצעים'}</small></span>
+                <button type="button" className="v3-info-button" aria-label="מה זה לכלול בעלות הרכב?" aria-haspopup="dialog"
+                  data-testid="care-ownership-info" onClick={()=>setExcludeInfo(true)}><InfoIcon size={18}/></button>
+                <Toggle ariaLabel="לכלול בעלות הרכב" checked={!excluded} onChange={checked=>setExcluded(!checked)}/>
+              </div>:null}
               <div className={fullHeight||odometerMode?undefined:'px-4 py-3.5'}>
                 <CivilDateField label="תאריך ביצוע" data-testid="care-day" required draftText={day} onDraftTextChange={setDay}/>
               </div>
@@ -306,7 +314,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
         </div>:null}
       </div>
     </form>
-  </Sheet><ConfirmDialog open={discard} title="למחוק את הטיוטה?" body="הפרטים שערכתם עדיין לא נשמרו ביומן."
+  </Sheet><ExcludeInfoSheet open={excludeInfo} onClose={()=>setExcludeInfo(false)}/><ConfirmDialog open={discard} title="למחוק את הטיוטה?" body="הפרטים שערכתם עדיין לא נשמרו ביומן."
     confirmLabel="יציאה ללא שמירה" cancelLabel="המשך עריכה"
     onConfirm={()=>{if(!removeCareDraft(draftKey)){setError('לא ניתן למחוק את הטיוטה מהמכשיר. נסו שוב.');setDiscard(false);return;}saved.current=true;onClose();}}
     onCancel={()=>setDiscard(false)}/>

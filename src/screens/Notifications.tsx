@@ -10,6 +10,7 @@ import { Button } from '../components/Button';
 import { NumericText } from '../components/Fmt';
 import { vehicleDay } from '../lib/vehicle/format';
 import { parseCivilDay } from '../lib/civilDate';
+import { snoozePresets } from '../lib/vehicle/snooze';
 import { createNotificationUndo, restoredNotification } from '../lib/vehicle/notificationUndo';
 import { ArchiveIcon, TrashIcon, RestoreIcon, BellIcon, ChevronStart, PumpIcon, WarningIcon, CloudOffIcon } from '../components/icons';
 import type { NotificationState } from '../lib/vehicle/model';
@@ -179,6 +180,13 @@ export function Notifications() {
       {archived.length ? <p className="helper">מחיקה מסירה את ההתראה הזו בלבד. היא אינה מוחקת טיפול, משנה תזכורת או מבטלת פעולת סנכרון.</p> : null}
     </div>
     <Sheet open={!!snooze} onClose={() => { if (!busy) setSelected(null); }} title="מתי להציג שוב?">
+      <div className="v3-snooze-presets" role="group" aria-label="דחייה מהירה" data-testid="snooze-presets">
+        {snoozePresets(v.today).map(preset => <button key={preset.key} type="button" data-testid={'snooze-' + preset.key}
+          disabled={busy || !snooze || v.notificationBase(snooze).kind === 'unavailable'}
+          onClick={() => { if (snooze) { setError(''); void update(snooze, { snoozeUntilDay: preset.day }); } }}>
+          <span><b>{preset.label}</b><small><NumericText>{vehicleDay(preset.day)}</NumericText></small></span>
+        </button>)}
+      </div>
       <form className="vehicle-form" onSubmit={event => {
         event.preventDefault(); if (!snooze) return;
         const day = parseCivilDay(until); if (!day || day <= v.today) { setError('בחרו יום עתידי.'); return; }

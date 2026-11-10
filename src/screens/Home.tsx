@@ -26,7 +26,7 @@ import { JournalEntryRow } from "../components/JournalEntryRow";
 import { serviceMileageWarning } from "../lib/journal/presentation";
 import { HomeSpotlight } from "../components/home/HomeSpotlight";
 import { ConsumptionComparison } from "../components/home/ConsumptionComparison";
-import { ConsumptionDetails } from "../components/home/ConsumptionDetails";
+import { MeasurementSheet } from "../components/tank/MeasurementSheet";
 import { HomeFuelPrice } from "../components/home/HomeFuelPrice";
 import { SegmentSheet } from "../components/home/SegmentSheet";
 import { TankHero, type TankSheetEntry } from "../components/tank/TankHero";
@@ -152,7 +152,7 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
       </section> : null}
       <TankSheets handle={tank} entry={tankEntry} enriching={enriching} onClose={() => setTankEntry(null)} />
       {segmentId ? <SegmentSheet endId={segmentId} stats={stats} units={units} onClose={() => setSegmentId(null)} /> : null}
-      {measurementOpen ? <ConsumptionDetails stats={stats} units={units} incomplete={incompleteHistory} onClose={() => setMeasurementOpen(false)} /> : null}
+      {measurementOpen ? <MeasurementSheet stats={stats} units={units} incomplete={incompleteHistory} onClose={() => setMeasurementOpen(false)} /> : null}
     </>}
   </div>;
 }

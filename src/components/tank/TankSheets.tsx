@@ -93,21 +93,24 @@ function TankSheetSession({ handle, entry, enriching, onClose }: TankSheetsProps
           <GroupRow testId="tank-open-odometer" icon={<GaugeIcon />} title="עדכון קילומטראז׳"
             subtitle={estimate.lastOdometer ? <>אחרון: <Distance value={estimate.lastOdometer.value} /> · <NumericText>{timeAgo(estimate.lastOdometer.at)}</NumericText></> : "קריאה מלוח הקילומטרים, בלי תדלוק"}
             onClick={() => setNested("odometer")} />
-          <GroupRow testId="tank-open-trip" icon={<CalendarIcon />} title="יש לי נסיעה מתוכננת"
-            subtitle="הנסיעה תשפיע על התחזית" onClick={() => setNested("trip")} />
         </div>
 
-        {plans.length > 0 ? <section className="tm-tank-stack">
-          <h3 className="tm-tank-section-title">נסיעות מתוכננות</h3>
-          <div className="tm-group">{plans.map(plan => <div key={plan.id} data-testid={`tank-plan-${plan.id}`} className="tm-tank-plan-row">
+        <section className="tm-tank-trips" aria-labelledby="tank-trips-title">
+          <div className="tm-tank-trips-head">
+            <h3 id="tank-trips-title" className="tm-tank-section-title">נסיעות מתוכננות</h3>
+            <button type="button" className="tm-tank-trip-add" data-testid="tank-open-trip" aria-haspopup="dialog"
+              onClick={() => setNested("trip")}><CalendarIcon size={16} />יש לי נסיעה מתוכננת</button>
+          </div>
+          {plans.length === 0 ? <p className="tm-tank-note">נסיעה ארוכה בדרך? הנסיעה תשפיע על התחזית בלבד, ונראה אם כדאי לתדלק לפניה.</p> : null}
+          {plans.length > 0 ? <div className="tm-group">{plans.map(plan => <div key={plan.id} data-testid={`tank-plan-${plan.id}`} className="tm-tank-plan-row">
             <span className="tm-tank-plan-copy"><span><NumericText>{dayMonthShort(plan.date)}</NumericText> · <Distance value={plan.distanceKm} /></span>
               <small>{plan.mode === "replaces" ? "במקום הנהיגה הרגילה" : "בנוסף לנהיגה הרגילה"}
                 {plan.bufferKm != null && plan.bufferKm > 0 ? <> · מרווח <Distance value={plan.bufferKm} /></> : null}</small>
               {plan.note ? <small><TankText>{plan.note}</TankText></small> : null}</span>
             <button type="button" className="tm-tank-action tm-tank-action-danger" disabled={deleting !== null}
               aria-label={`מחיקת הנסיעה ב־${dayMonthShort(plan.date)}`} onClick={() => void removePlan(plan.id)}>{deleting === plan.id ? "מוחקים…" : "מחיקה"}</button>
-          </div>)}</div>
-        </section> : null}
+          </div>)}</div> : null}
+        </section>
         {error ? <p role="alert" className="tm-tank-error">{error}</p> : null}
 
         <TankPreferenceControls estimate={estimate} />

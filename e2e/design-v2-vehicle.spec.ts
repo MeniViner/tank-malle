@@ -353,13 +353,13 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
           styles.push({ id: `${key}-${id}`, sample: await vehicleStyle(page.getByTestId(id)) });
           const field = await page.getByTestId(id).evaluate(element => {
             const control = element.closest(".tm-field-control")!, style = getComputedStyle(control), input = getComputedStyle(element);
-            const probe = document.createElement("i"); probe.style.color = "var(--line)"; document.body.append(probe);
+            const probe = document.createElement("i"); probe.style.color = "var(--line-control)"; document.body.append(probe);
             const line = getComputedStyle(probe).color; probe.remove();
             return { height: control.getBoundingClientRect().height, border: style.borderTopColor, line, borderWidth: style.borderTopWidth,
               foreground: input.color, weight: Number(input.fontWeight), radius: style.borderRadius };
           });
           expect(field.height).toBeCloseTo(52, 1);
-          // v3 §1: inputs use the 1px --line hairline (v2 used an ink rule).
+          // v3 stage 4: inputs use the 1px --line-control boundary (≥3:1, WCAG 1.4.11); v2 used an ink rule.
           expect(field.border).toBe(field.line);
           expect(field.borderWidth).toBe("1px");
           expect(field.weight).toBe(400);

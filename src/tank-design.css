@@ -65,3 +65,13 @@
 .tm-tank-capacity-number .unit { font-family: var(--font-sans); font-size: 14px; }
 .tm-tank-capacity-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 360px) { .tm-tank-hero { padding-inline: 16px; } .tm-tank-headline { font-size: 42px; } .tm-tank-headline-small { font-size: 34px; } }
+
+/* v3 stage 4 — tank sheet: gauge → save → forecast; trips as their own section. */
+.tm-tank-gauge-reading { font: 400 18px/1.3 var(--font-mono); text-align: center; }
+.tm-tank-gauge-reading .tm-tank-note { font-family: var(--font-sans); font-size: 13px; }
+.tm-tank-trips { display: grid; gap: 8px; min-width: 0; }
+.tm-tank-trips-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tm-tank-trip-add { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: var(--ink); font: 600 14px/1.3 var(--font-sans); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.tm-tank-trip-add:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
+.tm-tank-section-title { font-weight: 500; font-size: 13px; }
+.tm-tank-capacity-confirm { border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-card); }

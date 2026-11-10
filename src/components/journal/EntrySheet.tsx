@@ -14,6 +14,7 @@ import { GroupRow } from "../DesignPrimitives";
 import { ConsumptionValue, Distance, NumericText, NumRun, Percent, Quantity, SignedMoney } from "../Fmt";
 import { PencilIcon, TrashIcon, WarningIcon } from "../icons";
 import { Sheet } from "../Sheet";
+import { EXCLUDED_LABEL } from "../../lib/vehicle/ownership";
 
 export interface JournalEntrySelection {
   row: LedgerRow;
@@ -63,6 +64,7 @@ export function JournalEntrySheet({ row, stats, pending, attention, onClose, onE
             : <NumRun block className="journal-entry-amount">{entry.amountAgorot === null ? "—" : vehicleMoney(entry.amountAgorot)}</NumRun>}
           {entry.amountAgorot === null ? <p className="journal-entry-caption">הסכום לא תועד</p>
             : refund ? <p className="journal-entry-caption">חזר אליכם</p> : null}
+          {entry.excluded ? <p className="journal-entry-caption"><span className="v3-tag" data-testid="journal-entry-excluded">{EXCLUDED_LABEL}</span> · לא נכלל ב״כמה הרכב עולה לך״</p> : null}
         </div> : observation?.level != null ? <div>
           <Percent value={observation.level * 100} block className="journal-entry-amount" />
           <p className="journal-entry-caption">{observationLevelLabel(observation)}</p>
