@@ -1,5 +1,9 @@
 # Design v3 — handoff
 
+## Resume here
+
+All stages (0–7) are implemented and merged on `feat/design-v3`; status, gate numbers and known gaps are in `PROGRESS.md`. Open product decisions: whether to build EV charge (kWh) records; whether OCR v2 ever leaves the flag (it needs real pump photos and phone testing first). Re-run the screenshot gallery with `E2E_ISOLATED=1 V3_GALLERY=1 V3_GALLERY_OUT=<dir> PATH="/opt/homebrew/opt/openjdk/bin:$PATH" npx playwright test e2e/design-v3-gallery.spec.ts --project=chromium`. Only the 390px screenshots are committed; the 430 and 768 sets stay local (`.gitignore`).
+
 Branch `feat/design-v3`, cut from `main` at `05548ba`. Brief: `design/v3/PROMPT.md`. Spec: `design/v3/DESIGN-V3.md` (delta over `design/v2/DESIGN-V2.md`). Reference: `design/v3/prototype.html` (+ `proto/*.js`, `proto/lite.css`). Progress log: `design/v3/PROGRESS.md`.
 
 ## Rules every agent follows
