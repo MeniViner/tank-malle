@@ -68,6 +68,26 @@ function refine(word: Word, read: { top: number; bottom: number; slope: number }
     height: (read.bottom - read.top + 1) * step, length: (word.cells.at(-1)!.x1 - word.cells[0].x0) * step, count: word.cells.length };
 }
 
+/**
+ * A pump shows its numbers stacked: the amount, and the volume under it. Once one of them is read
+ * well, the rows just above and below it are cut out directly, at a few offsets and sizes, instead
+ * of waiting for the blob search to stumble on them (reflections and glare often hide them from it).
+ */
+export function stackedRows(levels: Gray[], words: Word[]): Word[] {
+  const anchors = words.filter(w => w.dot != null && w.fit >= .85 && w.digits.length >= 4).sort((a, b) => b.fit * b.line.height - a.fit * a.line.height);
+  const kept: Word[] = [], out: Word[] = [];
+  for (const a of anchors) { if (kept.length < 3 && !kept.some(k => sameRow(k, a))) kept.push(a); }
+  for (const a of kept) {
+    const dir = a.flipped ? -1 : 1, ux = a.line.ux * dir, uy = a.line.uy * dir, nx = -uy, ny = ux;
+    for (const side of [1, -1]) for (let k = .8; k <= 2.21; k += .2) for (const scale of [.65, .8, 1, 1.25]) {
+      const line: LineProposal = { ...a.line, ux, uy, cx: a.line.cx + nx * side * k * a.line.height, cy: a.line.cy + ny * side * k * a.line.height, height: a.line.height * scale, length: a.line.length * 1.1 };
+      const read = readStrip(rectify(levels, line, STRIP_H, false, PAD, BAND), line.polarity);
+      if (read) out.push(...wordsOf(read.cells, read.dots, line, false).filter(w => w.fit >= .8));
+    }
+  }
+  return out;
+}
+
 export function readWords(levels: Gray[], options: ProposalOptions = {}): { words: Word[]; lines: number } {
   const lines = proposeLines(levels, options), first: { word: Word; refined: LineProposal }[] = [], words: Word[] = [];
   for (const line of lines) {
@@ -148,17 +168,23 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
   const totals = good.flatMap(w => decimals(w, [2], 4)), liters = good.flatMap(w => decimals(w, [3, 2], 3)), prices = good.flatMap(w => decimals(w, [2], 2));
   const best = new Map<string, PumpRead>();
   for (const t of totals) for (const l of liters) {
-    if (sameRow(l.word, t.word) || l.value < .5 || t.value < 3) continue;
+    if (sameRow(l.word, t.word) || l.value < 1 || t.value < 3) continue;
     const implied = t.value / l.value; if (implied < 3 || implied > 20) continue;
-    // Same display: the litres row sits near the total and is not larger than it.
-    const distance = Math.hypot(t.word.line.cx - l.word.line.cx, t.word.line.cy - l.word.line.cy), size = Math.max(t.word.line.height, l.word.line.height);
-    if (distance > size * 6 || distance < size * .4 || l.word.line.height > t.word.line.height * 1.6) continue;
+    // Same display: the litres row sits right under the amount (never beside it) and is not larger than it.
+    const dir = t.word.flipped ? -1 : 1, ux = t.word.line.ux * dir, uy = t.word.line.uy * dir, dx = l.word.line.cx - t.word.line.cx, dy = l.word.line.cy - t.word.line.cy;
+    const along = dx * ux + dy * uy, below = -dx * uy + dy * ux, size = t.word.line.height;
+    if (below < size * .6 || below > size * 3 || Math.abs(along) > Math.max(t.word.line.length, size * 3) || l.word.line.height > size * 1.5 || l.word.line.height < size * .3) continue;
     // The pump rounds litres × price to the agora, and shows litres to the millilitre.
     const tolerance = .0062 + .0006 * implied;
     let price: Decimal | null = null;
-    for (const p of prices) if (!sameRow(p.word, t.word) && !sameRow(p.word, l.word) && Math.abs(l.value * p.value - t.value) <= tolerance && (!price || p.quality > price.quality)) price = p;
+    for (const p of prices) if (p.value >= 3 && !sameRow(p.word, t.word) && !sameRow(p.word, l.word) && Math.abs(l.value * p.value - t.value) <= tolerance && (!price || p.quality > price.quality)) price = p;
     let confidence = t.quality * l.quality;
-    if (price) confidence *= .5 + .5 * price.quality; else if (context.pricePerLiter && Math.abs(implied - context.pricePerLiter) < .6) confidence *= .4; else confidence *= implied >= 5 && implied <= 13 ? .2 : .05;
+    // Evidence that the two numbers belong together, strongest first: the price row itself agrees;
+    // the known price agrees; some whole-agora price makes the sum exact (true of every real sale).
+    const round = Math.abs(l.value * Math.round(implied * 100) / 100 - t.value) <= tolerance;
+    if (price) confidence *= .6 + .4 * price.quality;
+    else if (context.pricePerLiter && Math.abs(implied - context.pricePerLiter) < .6) confidence *= round ? .7 : .4;
+    else confidence *= round && implied >= 4 && implied <= 15 ? .4 : .08;
     if (context.tankCapacity && l.value > context.tankCapacity * 1.05) confidence *= .2;
     const k = `${t.text}|${l.text}`, prev = best.get(k);
     if (!prev || confidence > prev.confidence) best.set(k, { total: t.text, liters: l.text, price: price?.text ?? null, confidence, words: { total: t.word, liters: l.word, price: price?.word ?? null } });
@@ -174,6 +200,8 @@ export function scanPhoto(image: RGBA, kind: ScanKind, context: ScanContext = {}
   const choose = (words: Word[]) => ({ odometer: kind === 'odometer' ? chooseOdometer(words, context) : [], pump: kind === 'pump' ? choosePump(words, context) : [] });
   let { words } = readWords(levels), chosen = choose(words);
   const sure = kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
-  if (!sure) { words = [...words, ...readWords(levels, FAINT).words]; chosen = choose(words); }
+  const sureNow = () => kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
+  if (!sure && kind === 'pump') { words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
+  if (!sureNow()) { words = [...words, ...readWords(levels, FAINT).words]; if (kind === 'pump') words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
   return { kind, words, ...chosen, ms: Date.now() - started };
 }
