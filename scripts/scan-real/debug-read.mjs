@@ -6,6 +6,7 @@ const { luma, pyramid } = await load('src/lib/scan/engine/image.ts');
 const { proposeLines, rectify } = await load('src/lib/scan/engine/proposals.ts');
 const { readStrip, binarise } = await load('src/lib/scan/engine/decode.ts');
 const want = args.want ?? null;
+if (args.marks) globalThis.SCAN_DEBUG = true;
 const image = await readRGBA(join(args.dir, args.file));
 const levels = pyramid(luma(image)), lines = proposeLines(levels);
 const rows = [];

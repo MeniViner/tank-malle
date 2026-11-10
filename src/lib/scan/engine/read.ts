@@ -15,6 +15,8 @@ export type Word = {
   /** 0..1, geometric mean of the cells' pattern fit. */
   fit: number; cells: Cell[];
   line: LineProposal; flipped: boolean;
+  /** Read from the second, re-measured cut of its row. */
+  refined?: boolean;
 };
 export type ScanKind = 'odometer' | 'pump';
 export type ScanContext = { lastOdometer?: number | null; pricePerLiter?: number | null; tankCapacity?: number | null };
@@ -53,15 +55,42 @@ export function wordsOf(cells: Cell[], dots: number[], line: LineProposal, flipp
   return out;
 }
 
+const STRIP_H = 64, BAND = 1.7, PAD = 3;
+
+/** The row a word was read from, re-measured from its own digits: exact centre, direction and digit height. */
+function refine(word: Word, read: { top: number; bottom: number; slope: number }, stripWidth: number): LineProposal {
+  const { line } = word, dir = word.flipped ? -1 : 1, ux = line.ux * dir, uy = line.uy * dir, nx = -uy, ny = ux;
+  const step = line.height * BAND / STRIP_H, xm = (stripWidth - 1) / 2;
+  const x = (word.cells[0].x0 + word.cells.at(-1)!.x1) / 2, y = (read.top + read.bottom) / 2 + read.slope * (x - xm);
+  const du = (x - xm) * step, dv = (y - (STRIP_H - 1) / 2) * step;
+  let vx = ux + read.slope * nx, vy = uy + read.slope * ny; const norm = Math.hypot(vx, vy); vx /= norm; vy /= norm;
+  return { ...line, cx: line.cx + ux * du + nx * dv, cy: line.cy + uy * du + ny * dv, ux: vx, uy: vy,
+    height: (read.bottom - read.top + 1) * step, length: (word.cells.at(-1)!.x1 - word.cells[0].x0) * step, count: word.cells.length };
+}
+
 export function readWords(image: RGBA): { words: Word[]; lines: number } {
-  const levels = pyramid(luma(image)), lines = proposeLines(levels), words: Word[] = [];
+  const levels = pyramid(luma(image)), lines = proposeLines(levels), first: { word: Word; refined: LineProposal }[] = [], words: Word[] = [];
   for (const line of lines) {
     // A steep row may be upside down; a gently sloped one is read left to right only.
     for (const flipped of Math.abs(line.ux) < .5 ? [false, true] : [false]) {
-      const read = readStrip(rectify(levels, line, 64, flipped, 3), line.polarity);
-      if (read) words.push(...wordsOf(read.cells, read.dots, line, flipped));
+      const strip = rectify(levels, line, STRIP_H, flipped, PAD, BAND), read = readStrip(strip, line.polarity);
+      if (read) for (const word of wordsOf(read.cells, read.dots, line, flipped)) first.push({ word, refined: refine(word, read, strip.width) });
     }
   }
+  // Second look: each promising row is cut out again from its own measured geometry
+  // (first-pass strips come from blob statistics and are often off-centre or tilted).
+  first.sort((a, b) => b.word.fit * Math.min(6, b.word.cells.length) - a.word.fit * Math.min(6, a.word.cells.length));
+  const seeds: typeof first = [];
+  for (const f of first) {
+    if (f.word.fit < .7 || seeds.length >= 40) continue;
+    if (seeds.some(s => s.word.line.polarity === f.word.line.polarity && Math.hypot(s.refined.cx - f.refined.cx, s.refined.cy - f.refined.cy) < s.refined.height * .5 && Math.min(s.refined.height, f.refined.height) / Math.max(s.refined.height, f.refined.height) > .7)) continue;
+    seeds.push(f);
+  }
+  for (const seed of seeds) {
+    const read = readStrip(rectify(levels, seed.refined, STRIP_H, false, PAD + 1, BAND), seed.refined.polarity);
+    if (read) for (const word of wordsOf(read.cells, read.dots, seed.refined, false)) words.push({ ...word, refined: true });
+  }
+  for (const f of first) words.push(f.word);
   return { words, lines: lines.length };
 }
 
@@ -75,7 +104,7 @@ export function chooseOdometer(words: Word[], context: ScanContext = {}): Odomet
     for (let n = Math.min(7, word.digits.length); n >= 4; n--) for (let s = 0; s + n <= word.digits.length; s++) {
       const text = word.digits.slice(s, s + n).replace(/^0+(?=\d)/, ''); if (text.length < 4) continue;
       const value = Number(text), part = word.cells.slice(s, s + n);
-      let confidence = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit * c.options[0].p), 0) / n) * (ODOMETER_LENGTH[text.length] ?? .4) * (n === word.digits.length ? 1 : .8) * word.fit;
+      let confidence = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit * c.options[0].p), 0) / n) * (ODOMETER_LENGTH[text.length] ?? .4) * (n === word.digits.length ? 1 : .8) * word.fit * (word.refined ? 1 : .85);
       const last = context.lastOdometer;
       if (last != null && last > 0) confidence *= value >= last && value <= last + 5000 ? 1 : value >= last && value <= last + 30000 ? .5 : .1;
       const prev = best.get(text);
@@ -99,7 +128,7 @@ function decimals(word: Word, places: number[], maxInt: number, minInt = 1): Dec
     const text = `${whole}.${word.digits.slice(end - d, end)}`, fit = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit), 0) / part.length);
     // Leaving out a cell that read well as a digit is suspicious; leaving out a poor one (a frame, a letter) is not.
     let dropped = 1; word.cells.forEach((c, i) => { if (i < start || i >= end) dropped *= 1 - .7 * c.fit * c.fit; });
-    out.push({ word, text, value: Number(text), quality: fit * cost * dropped });
+    out.push({ word, text, value: Number(text), quality: fit * cost * dropped * (word.refined ? 1 : .85) * (/^0\d/.test(word.digits.slice(start, end - d)) ? .5 : 1) });
   };
   for (const d of places) {
     if (word.dot != null) { const end = word.dot + 1 + d; if (end <= n) for (let i = minInt; i <= maxInt && word.dot + 1 - i >= 0; i++) add(word.dot + 1 - i, end, d, 1); }
@@ -116,7 +145,7 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
   const totals = good.flatMap(w => decimals(w, [2], 4)), liters = good.flatMap(w => decimals(w, [3, 2], 3)), prices = good.flatMap(w => decimals(w, [2], 2));
   const best = new Map<string, PumpRead>();
   for (const t of totals) for (const l of liters) {
-    if (sameRow(l.word, t.word) || l.value <= 0 || t.value <= 0) continue;
+    if (sameRow(l.word, t.word) || l.value < .5 || t.value < 3) continue;
     const implied = t.value / l.value; if (implied < 3 || implied > 20) continue;
     // Same display: the litres row sits near the total and is not larger than it.
     const distance = Math.hypot(t.word.line.cx - l.word.line.cx, t.word.line.cy - l.word.line.cy), size = Math.max(t.word.line.height, l.word.line.height);

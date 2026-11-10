@@ -27,6 +27,8 @@ export type StripRead = {
   /** Decimal points: index of the cell each one follows. */
   dots: number[];
   top: number; bottom: number; shear: number;
+  /** Rise per pixel of the row inside the strip that was levelled out. */
+  slope: number;
   /** The cleaned, straightened ink mask the cells were sampled from (for diagnosis). */
   mask?: Uint8Array;
 };
@@ -131,12 +133,15 @@ export function readStrip(strip: Gray, polarity: Polarity): StripRead | null {
   const { width: w, height: h } = strip, raw0 = binarise(strip, polarity), prior = h * DIGIT_SHARE;
   const median = (v: number[]) => v.sort((p, q) => p - q)[v.length >> 1];
   // Digit marks: blobs about as tall as the row that proposed this strip, not cut by the strip's edge.
-  const digitMarks = (mask: Uint8Array) => {
-    const joined = new Uint8Array(w * h);
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) for (let d = -2; d <= 2; d++) { const yy = y + d; if (yy >= 0 && yy < h) joined[yy * w + x] = 1; }
-    return blobs(joined, w, h, 6, w * h).filter(m => m.y0 > 0 && m.y1 < h - 1).map(m => ({ ...m, y0: m.y0 + 2, y1: m.y1 - 2 }))
+  const marksAt = (mask: Uint8Array, join: number) => {
+    let source = mask;
+    if (join) { source = new Uint8Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (mask[y * w + x]) for (let d = -join; d <= join; d++) { const yy = y + d; if (yy >= 0 && yy < h) source[yy * w + x] = 1; } }
+    return blobs(source, w, h, 6, w * h).filter(m => m.y0 > 0 && m.y1 < h - 1).map(m => ({ ...m, y0: m.y0 + join, y1: m.y1 - join }))
       .filter(m => m.y1 - m.y0 + 1 >= prior * .65 && m.y1 - m.y0 + 1 <= prior * 1.4 && m.x1 - m.x0 + 1 < prior * 4);
   };
+  // Whole digits where the strokes touch; where the display leaves gaps between segments, join them vertically first
+  // (joining always would also glue a label above the number onto the digits below it).
+  const digitMarks = (mask: Uint8Array) => { const plain = marksAt(mask, 0); if (plain.length >= 3) return plain; const joined = marksAt(mask, 2); return joined.length > plain.length ? joined : plain; };
   // Leftover tilt: the line through the marks' feet (median of pairwise slopes, so a stray glyph cannot pull it).
   let raw = raw0, marks = digitMarks(raw0);
   if (!marks.length) return null;
@@ -155,6 +160,7 @@ export function readStrip(strip: Gray, polarity: Polarity): StripRead | null {
   const feet = marks.map(m => m.y1), foot = feet.slice().sort((p, q) => Math.abs(p - (h / 2 + prior / 2)) - Math.abs(q - (h / 2 + prior / 2)))
     .map(f => ({ f, n: feet.filter(v => Math.abs(v - f) <= prior * .12).length })).sort((p, q) => q.n - p.n)[0].f;
   marks = marks.filter(m => Math.abs(m.y1 - foot) <= prior * .12);
+  if ((globalThis as { SCAN_DEBUG?: boolean }).SCAN_DEBUG) console.log('marks', prior.toFixed(1), slope.toFixed(3), foot, marks.map(m => `${m.x0}-${m.x1}:${m.y0}-${m.y1}`).join(' '));
   const top = Math.max(0, median(marks.map(m => m.y0))), bottom = Math.min(h - 1, median(marks.map(m => m.y1))), bandH = bottom - top + 1;
   if (bandH < h * .25) return null;
   // Marks that mostly lie outside the band (a label above the number, a unit below it) are not digits.
@@ -225,5 +231,5 @@ export function readStrip(strip: Gray, polarity: Polarity): StripRead | null {
     const cx = (r.x0 + r.x1) / 2, after = cells.findIndex(c => cx > c.x1 - pitch * .08 && cx < c.x1 + (pitch - digitW) + pitch * .12);
     if (after >= 0 && after < cells.length - 1 && !dots.includes(after)) dots.push(after);
   }
-  return { cells, dots, top, bottom, shear, mask };
+  return { cells, dots, top, bottom, shear, slope: raw === raw0 ? 0 : slope, mask };
 }
