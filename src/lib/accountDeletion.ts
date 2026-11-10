@@ -3,9 +3,9 @@ import {
   collection, deleteDoc, doc, getDocFromServer, getDocsFromServer, query,
   serverTimestamp, setDoc, where, writeBatch, type Firestore, type Query,
 } from "firebase/firestore";
+import { deleteLegacyScanData } from "./scan/legacyCorrections";
 import { withdrawBenchmark } from "./benchmarks";
 import { withdrawCostBenchmarks } from "./costBenchmarks";
-import { clearCorrections } from "./scan/v2/correctionLog";
 
 export interface DeletionResult {
   ok: boolean;
@@ -31,11 +31,11 @@ export function clearAccountLocalStorage(uid: string): void {
 }
 /**
  * The local-data step of account deletion: the account's localStorage keys and
- * the on-device scan correction log (IndexedDB; device-wide, never synced, may
- * hold 1-bit crops of the account's pump displays). A failure is thrown so the
- * step stays retryable and the identity is kept.
+ * whatever the retired experimental scanner left on the device (IndexedDB;
+ * device-wide, never synced, may hold 1-bit crops of pump displays). A failure
+ * is thrown so the step stays retryable and the identity is kept.
  */
-export async function clearAccountLocalData(uid: string, clearScanCorrections: () => Promise<void> = clearCorrections): Promise<void> {
+export async function clearAccountLocalData(uid: string, clearScanCorrections: () => Promise<void> = deleteLegacyScanData): Promise<void> {
   clearAccountLocalStorage(uid);
   await clearScanCorrections();
 }

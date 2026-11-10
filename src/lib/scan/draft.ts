@@ -1,6 +1,6 @@
 import { parseNumberInput } from '../numeric';
 import { deriveReceipt, type ReceiptState } from '../receipt';
-import type { DisplayReading } from './automaticDisplay';
+import type { DisplayReading } from './engine';
 
 export interface ScanDraft { total: string; liters: string; odometer: string }
 export type ScanField = keyof ScanDraft;

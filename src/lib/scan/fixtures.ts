@@ -48,9 +48,11 @@ export function lineFixture(text: string, { blue = false, scale = 1, light = fal
 
 export function demoPhoto(step: string) {
   if (step === 'pump') {
-    const image = blank(820, 480);
-    drawDigits(image, '287.40', 150, 95);
-    drawDigits(image, '40.000', 150, 285);
+    // A real sale: 40.000 L at 7.19 = 287.60, with the price row a pump shows under the volume.
+    const image = blank(820, 640);
+    drawDigits(image, '287.60', 150, 70);
+    drawDigits(image, '40.000', 150, 255);
+    drawDigits(image, '7.19', 306, 450, [15, 29, 23], .8);
     return image;
   }
   const image = blank(820, 480, [8, 15, 24]);

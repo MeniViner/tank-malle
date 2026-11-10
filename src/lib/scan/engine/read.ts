@@ -24,7 +24,7 @@ export type OdometerRead = { text: string; value: number; confidence: number; wo
 export type PumpRead = { total: string; liters: string; price: string | null; confidence: number; words: { total: Word; liters: Word; price: Word | null } };
 export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number };
 
-const MIN_FIT = .55;
+const MIN_FIT = .55, PRICE_MIN = 4.5, PRICE_MAX = 14;
 
 /** Splits a row into runs of well-read digits on one regular pitch. */
 export function wordsOf(cells: Cell[], dots: number[], line: LineProposal, flipped: boolean): Word[] {
@@ -183,7 +183,8 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
   const best = new Map<string, PumpRead>();
   for (const t of totals) for (const l of liters) {
     if (sameRow(l.word, t.word) || l.value < 1 || t.value < 3) continue;
-    const implied = t.value / l.value; if (implied < 3 || implied > 20) continue;
+    // Fuel sells for a few shekels a litre; anything far outside that is two unrelated numbers.
+    const implied = t.value / l.value; if (implied < PRICE_MIN || implied > PRICE_MAX) continue;
     // Same display: the litres row sits right under the amount (never beside it) and is not larger than it.
     const dir = t.word.flipped ? -1 : 1, ux = t.word.line.ux * dir, uy = t.word.line.uy * dir, dx = l.word.line.cx - t.word.line.cx, dy = l.word.line.cy - t.word.line.cy;
     const along = dx * ux + dy * uy, below = -dx * uy + dy * ux, size = t.word.line.height;
@@ -191,14 +192,14 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
     // The pump rounds litres × price to the agora, and shows litres to the millilitre.
     const tolerance = .0062 + .0006 * implied;
     let price: Decimal | null = null;
-    for (const p of prices) if (p.value >= 3 && !sameRow(p.word, t.word) && !sameRow(p.word, l.word) && Math.abs(l.value * p.value - t.value) <= tolerance && (!price || p.quality > price.quality)) price = p;
+    for (const p of prices) if (p.value >= PRICE_MIN && p.value <= PRICE_MAX && !sameRow(p.word, t.word) && !sameRow(p.word, l.word) && Math.abs(l.value * p.value - t.value) <= tolerance && (!price || p.quality > price.quality)) price = p;
     let confidence = t.quality * l.quality;
     // Evidence that the two numbers belong together, strongest first: the price row itself agrees;
     // the known price agrees; some whole-agora price makes the sum exact (true of every real sale).
     const round = Math.abs(l.value * Math.round(implied * 100) / 100 - t.value) <= tolerance;
     if (price) confidence *= .6 + .4 * price.quality;
     else if (context.pricePerLiter && Math.abs(implied - context.pricePerLiter) < .6) confidence *= round ? .7 : .4;
-    else confidence *= round && implied >= 4 && implied <= 15 ? .4 : .08;
+    else confidence *= round ? .4 : .08;
     if (context.tankCapacity && l.value > context.tankCapacity * 1.05) confidence *= .2;
     const k = `${t.text}|${l.text}`, prev = best.get(k);
     if (!prev || confidence > prev.confidence) best.set(k, { total: t.text, liters: l.text, price: price?.text ?? null, confidence, words: { total: t.word, liters: l.word, price: price?.word ?? null } });

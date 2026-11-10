@@ -2,13 +2,11 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../Button';
 import { cameraFrameCrop, createCameraZoom } from './cameraZoom';
 import type { CameraZoomState } from './cameraZoom';
-import type { Rect } from '../../lib/scan/v2/preprocess';
 import './LiveCamera.css';
 
 /** The camera samples until two consecutive frames agree. Every effect owns
  * its stream, including late permission results and late zoom/read callbacks. */
-/** `guide` (scan v2 only) draws the viewfinder box, as fractions of the visible frame; the frame passed to `onFrame` is unchanged. */
-export function LiveCamera({ onFrame,onClose,guide }: { onFrame:(image:ImageData,isActive:()=>boolean)=>Promise<boolean>;onClose:()=>void;guide?:Rect }) {
+export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isActive:()=>boolean)=>Promise<boolean>;onClose:()=>void }) {
   const video=useRef<HTMLVideoElement>(null),frame=useRef(onFrame);
   const zoomControl=useRef<ReturnType<typeof createCameraZoom>|null>(null),zoomId=useId();
   const [zoom,setZoom]=useState<CameraZoomState|null>(null),[aspect,setAspect]=useState(4/3);
@@ -26,8 +24,8 @@ export function LiveCamera({ onFrame,onClose,guide }: { onFrame:(image:ImageData
       const input=video.current;if(cancelled||!input||!context)return;
       const currentZoom=zoomControl.current?.getState();
       if(input.readyState>=2 && input.videoWidth && !currentZoom?.busy && performance.now()>=settleUntil) {
-        // Two frames at each scale preserve the agreement check at either size.
-        const maximum=Math.floor(samples++/2)%2===0?960:1280;
+        // The frame at the camera's own size: the display may be a small part of it.
+        samples++;const maximum=1920;
         const crop=cameraFrameCrop(input.videoWidth,input.videoHeight,currentZoom?.mode==='digital'?currentZoom.value:1,maximum);
         canvas.width=crop.width;canvas.height=crop.height;
         context.drawImage(input,crop.sx,crop.sy,crop.sw,crop.sh,0,0,crop.width,crop.height);
@@ -41,7 +39,7 @@ export function LiveCamera({ onFrame,onClose,guide }: { onFrame:(image:ImageData
       try {
         if(document.visibilityState==='hidden'){background();return;}
         if(!navigator.mediaDevices?.getUserMedia)throw new Error('unsupported');
-        const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:960}},audio:false});
+        const next=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1440}},audio:false});
         if(cancelled){next.getTracks().forEach(track=>track.stop());return;}
         ownedStream=next;if(!video.current)throw new Error('closed');
         video.current.srcObject=next;await video.current.play();
@@ -64,7 +62,6 @@ export function LiveCamera({ onFrame,onClose,guide }: { onFrame:(image:ImageData
   return <div className="scan-camera">
     <div className="scan-camera-preview" style={{aspectRatio:aspect,maxWidth:`calc(44dvh * ${aspect})`}}>
       <video ref={video} playsInline muted autoPlay aria-label="תצוגת מצלמה" style={{transform:`scale(${digital})`}} onResize={event=>{const input=event.currentTarget;if(input.videoWidth&&input.videoHeight)setAspect(input.videoWidth/input.videoHeight);}}/>
-      {guide?<div className="scan-camera-guide" aria-hidden="true" style={{left:`${guide.x*100}%`,top:`${guide.y*100}%`,width:`${guide.width*100}%`,height:`${guide.height*100}%`}}/>:null}
     </div>
     {state==='ready'&&zoom?<div className="scan-camera-zoom">
       <label className="scan-camera-zoom-label" htmlFor={zoomId}>{zoom.mode==='digital'?'זום דיגיטלי':'זום'}</label>
