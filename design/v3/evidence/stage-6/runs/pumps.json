@@ -1,0 +1,138 @@
+{
+ "format": "tank-malle-scan-v2-accuracy-v1",
+ "at": "2026-11-10T10:33:51.169Z",
+ "commit": "ae03d94d1896bf7bfd1c2abc5dbadd58d0cd7929",
+ "dirty": false,
+ "v2options": {},
+ "split": "pumps",
+ "crop": "display",
+ "context": "none",
+ "role": "eligible",
+ "status": "complete",
+ "missing": [],
+ "wallMs": 1785,
+ "v2msMedian": 72,
+ "summary": {
+  "v1full": {
+   "sessions": 3,
+   "answered": 0,
+   "abstained": 3,
+   "correct": 0,
+   "wrong": 0,
+   "fieldAccuracy": 0,
+   "answeredPrecision": null,
+   "digitAccuracyAnswered": null,
+   "digitAccuracyAll": 0,
+   "top3Hit": null
+  },
+  "v1crop": {
+   "sessions": 3,
+   "answered": 0,
+   "abstained": 3,
+   "correct": 0,
+   "wrong": 0,
+   "fieldAccuracy": 0,
+   "answeredPrecision": null,
+   "digitAccuracyAnswered": null,
+   "digitAccuracyAll": 0,
+   "top3Hit": null
+  },
+  "v2": {
+   "sessions": 3,
+   "answered": 1,
+   "abstained": 2,
+   "correct": 0,
+   "wrong": 1,
+   "fieldAccuracy": 0,
+   "answeredPrecision": 0,
+   "digitAccuracyAnswered": 0.6153846153846154,
+   "digitAccuracyAll": 0.20512820512820518,
+   "top3Hit": null
+  },
+  "mustNotFill": []
+ },
+ "rows": [
+  {
+   "id": "il-paz-2019",
+   "role": "eligible",
+   "label": "150.00|23.734",
+   "kind": "pump",
+   "cropRect": {
+    "left": 334,
+    "top": 519,
+    "width": 168,
+    "height": 154
+   },
+   "v2ms": 72,
+   "v1full": null,
+   "v1crop": null,
+   "v2": null,
+   "v2fields": {
+    "liters": [
+     "23.734",
+     "237.34",
+     "23.794"
+    ]
+   },
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "il-sonol-2016",
+   "role": "eligible",
+   "label": "163.06|26.514",
+   "kind": "pump",
+   "cropRect": {
+    "left": 1783,
+    "top": 1593,
+    "width": 139,
+    "height": 79
+   },
+   "v2ms": 45,
+   "v1full": null,
+   "v1crop": null,
+   "v2": null,
+   "v2fields": {
+    "liters": [
+     "6.584",
+     "65.84",
+     "6.504"
+    ]
+   },
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "il-sonol-jordan-valley-2011",
+   "role": "eligible",
+   "label": "320.08|44.332",
+   "kind": "pump",
+   "cropRect": {
+    "left": 1795,
+    "top": 442,
+    "width": 540,
+    "height": 336
+   },
+   "v2ms": 134,
+   "v1full": null,
+   "v1crop": null,
+   "v2": {
+    "total": "0.08",
+    "liters": "243.32",
+    "price": null,
+    "consistent": false
+   },
+   "v2fields": {
+    "total": [
+     "0.08",
+     "8.08",
+     "0.88"
+    ],
+    "liters": [
+     "243.32",
+     "293.32",
+     "843.32"
+    ]
+   },
+   "v2status": "candidates"
+  }
+ ]
+}

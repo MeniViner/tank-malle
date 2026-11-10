@@ -6,11 +6,24 @@ import { PhotoReader } from './PhotoReader';
 import { acceptScanReading, type AcceptedScanDraft, type ScanDraft, type ScanField } from '../../lib/scan/draft';
 import type { DisplayReading } from '../../lib/scan/automaticDisplay';
 import { Money, NumRun } from '../Fmt';
+import type { ScanContext } from '../../lib/scan/v2/constraints';
+import { ScanV2Wizard } from './v2/ScanV2Wizard';
+import { useScanV2 } from './v2/useScanV2';
 
-export function ScanWizard({ initial,protectedFields,onClose,onApply }: {
+type ScanWizardProps = {
   initial:ScanDraft;protectedFields:readonly ScanField[];onClose:()=>void;
   onApply:(draft:ScanDraft,acceptedFields:readonly ScanField[])=>void;
-}) {
+  /** Last odometer and tank capacity for the scan v2 constraints. */
+  context?:ScanContext;
+};
+
+/** Picks the scan pipeline by the per-device `scanV2` flag (default: the shipped v1). */
+export function ScanWizard({ context,...props }: ScanWizardProps) {
+  const [v2]=useScanV2();
+  return v2?<ScanV2Wizard {...props} context={context??{}}/>:<ScanWizardV1 {...props}/>;
+}
+
+function ScanWizardV1({ initial,protectedFields,onClose,onApply }: Omit<ScanWizardProps,'context'>) {
   const heading=useRef<HTMLParagraphElement>(null);
   const session=useRef<AcceptedScanDraft>({draft:{...initial},acceptedFields:[]});
   const closed=useRef(false);

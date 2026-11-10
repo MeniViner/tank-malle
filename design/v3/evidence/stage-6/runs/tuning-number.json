@@ -1,0 +1,8998 @@
+{
+ "format": "tank-malle-scan-v2-accuracy-v1",
+ "at": "2026-11-10T10:31:22.649Z",
+ "commit": "ae03d94d1896bf7bfd1c2abc5dbadd58d0cd7929",
+ "dirty": false,
+ "v2options": {},
+ "split": "tuning",
+ "crop": "number",
+ "context": "none",
+ "role": "eligible",
+ "status": "complete",
+ "missing": [],
+ "wallMs": 19977,
+ "v2msMedian": 42,
+ "summary": {
+  "v1full": {
+   "sessions": 371,
+   "answered": 3,
+   "abstained": 368,
+   "correct": 3,
+   "wrong": 0,
+   "fieldAccuracy": 0.008086253369272238,
+   "answeredPrecision": 1,
+   "digitAccuracyAnswered": 1,
+   "digitAccuracyAll": 0.00832177531206657,
+   "top3Hit": null
+  },
+  "v1crop": {
+   "sessions": 371,
+   "answered": 14,
+   "abstained": 357,
+   "correct": 13,
+   "wrong": 1,
+   "fieldAccuracy": 0.03504043126684636,
+   "answeredPrecision": 0.9285714285714286,
+   "digitAccuracyAnswered": 0.9879518072289156,
+   "digitAccuracyAll": 0.037910309754969895,
+   "top3Hit": null
+  },
+  "v2": {
+   "sessions": 371,
+   "answered": 285,
+   "abstained": 86,
+   "correct": 181,
+   "wrong": 104,
+   "fieldAccuracy": 0.48787061994609165,
+   "answeredPrecision": 0.6350877192982456,
+   "digitAccuracyAnswered": 0.8398809523809524,
+   "digitAccuracyAll": 0.6523347202958854,
+   "top3Hit": 0.5309973045822103
+  },
+  "v2confident": {
+   "sessions": 371,
+   "answered": 141,
+   "abstained": 230,
+   "correct": 135,
+   "wrong": 6,
+   "fieldAccuracy": 0.3638814016172507,
+   "answeredPrecision": 0.9574468085106383,
+   "digitAccuracyAnswered": 0.98698224852071,
+   "digitAccuracyAll": 0.38557558945908466,
+   "top3Hit": null
+  }
+ },
+ "rows": [
+  {
+   "id": "00000004-PHOTO-2020-11-20-11-21-25",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "159073",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 550,
+    "top": 306,
+    "width": 242,
+    "height": 241
+   },
+   "v2ms": 188,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159073",
+    "15903",
+    "153073"
+   ],
+   "v2": "159073",
+   "v2top1raw": "159073",
+   "v2conf": 0.7644489814800874,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000023-PHOTO-2020-11-20-15-22-22",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "26174",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 748,
+    "top": 364,
+    "width": 124,
+    "height": 83
+   },
+   "v2ms": 124,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000024-PHOTO-2020-11-20-15-22-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "26188",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 770,
+    "top": 408,
+    "width": 186,
+    "height": 138
+   },
+   "v2ms": 233,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000045-PHOTO-2020-11-20-22-59-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "230592",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 204,
+    "top": 717,
+    "width": 750,
+    "height": 415
+   },
+   "v2ms": 514,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "230592",
+    "230532",
+    "230552"
+   ],
+   "v2": "230592",
+   "v2top1raw": "230592",
+   "v2conf": 0.8732776219490005,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000048-PHOTO-2020-11-20-23-40-17",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "159131",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 526,
+    "top": 248,
+    "width": 430,
+    "height": 259
+   },
+   "v2ms": 457,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159131",
+    "153131",
+    "155131"
+   ],
+   "v2": "159131",
+   "v2top1raw": "159131",
+   "v2conf": 0.8516886554154806,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000053-PHOTO-2020-11-21-09-54-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "230592",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 163,
+    "top": 582,
+    "width": 860,
+    "height": 462
+   },
+   "v2ms": 602,
+   "v1full": "230592",
+   "v1crop": "230592",
+   "v2top3": [
+    "230592",
+    "20592",
+    "230532"
+   ],
+   "v2": "230592",
+   "v2top1raw": "230592",
+   "v2conf": 0.8732776219490005,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000055-PHOTO-2020-11-21-10-15-21",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "159162",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 756,
+    "top": 456,
+    "width": 383,
+    "height": 384
+   },
+   "v2ms": 931,
+   "v1full": "159162",
+   "v1crop": "159162",
+   "v2top3": [
+    "159162",
+    "153162",
+    "155162"
+   ],
+   "v2": "159162",
+   "v2top1raw": "159162",
+   "v2conf": 0.8556944912866038,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000082-PHOTO-2020-11-21-20-47-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "315703",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 535,
+    "top": 685,
+    "width": 201,
+    "height": 131
+   },
+   "v2ms": 244,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "315703",
+    "375703",
+    "315103"
+   ],
+   "v2": "315703",
+   "v2top1raw": "315703",
+   "v2conf": 0.8429609454291642,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000089-PHOTO-2020-12-16-20-30-00",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235320",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 614,
+    "width": 976,
+    "height": 497
+   },
+   "v2ms": 372,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6027",
+    "2027",
+    "6827"
+   ],
+   "v2": "6027",
+   "v2top1raw": "6027",
+   "v2conf": 0.2988225662531781,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000097-PHOTO-2020-12-17-10-18-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235320",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 459,
+    "top": 758,
+    "width": 226,
+    "height": 123
+   },
+   "v2ms": 155,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235320",
+    "235328",
+    "235920"
+   ],
+   "v2": "235320",
+   "v2top1raw": "235320",
+   "v2conf": 0.8944892656219708,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000098-PHOTO-2020-12-17-10-41-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "283954",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 308,
+    "top": 514,
+    "width": 180,
+    "height": 100
+   },
+   "v2ms": 84,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "283954",
+    "283354",
+    "283554"
+   ],
+   "v2": "283954",
+   "v2top1raw": "283954",
+   "v2conf": 0.8405405392467395,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000101-PHOTO-2020-12-17-11-04-50",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119462",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 420,
+    "top": 727,
+    "width": 181,
+    "height": 111
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119462",
+    "113462",
+    "115462"
+   ],
+   "v2": "119462",
+   "v2top1raw": "119462",
+   "v2conf": 0.8665797791370734,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000102-PHOTO-2020-12-17-18-58-17",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119556",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 317,
+    "top": 739,
+    "width": 181,
+    "height": 114
+   },
+   "v2ms": 85,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119556",
+    "229556",
+    "119558"
+   ],
+   "v2": "119556",
+   "v2top1raw": "119556",
+   "v2conf": 0.7841618954358892,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000104-PHOTO-2020-12-17-19-27-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "318387",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 505,
+    "top": 786,
+    "width": 191,
+    "height": 114
+   },
+   "v2ms": 50,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "388387",
+    "380307",
+    "308387"
+   ],
+   "v2": "388387",
+   "v2top1raw": "388387",
+   "v2conf": 0.7642966960154837,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000109-PHOTO-2020-11-21-22-36-12",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "148641",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 15,
+    "top": 419,
+    "width": 115,
+    "height": 252
+   },
+   "v2ms": 73,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000112-PHOTO-2020-11-22-00-14-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159222",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 422,
+    "top": 270,
+    "width": 362,
+    "height": 219
+   },
+   "v2ms": 188,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159222",
+    "153222",
+    "155222"
+   ],
+   "v2": "159222",
+   "v2top1raw": "159222",
+   "v2conf": 0.8896937356398426,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000113-PHOTO-2020-12-17-21-40-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235551",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 337,
+    "top": 757,
+    "width": 482,
+    "height": 234
+   },
+   "v2ms": 188,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235551",
+    "235591",
+    "1235551"
+   ],
+   "v2": "235551",
+   "v2top1raw": "235551",
+   "v2conf": 0.6553265178195867,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000114-PHOTO-2020-11-22-10-57-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "315703",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 457,
+    "top": 830,
+    "width": 190,
+    "height": 120
+   },
+   "v2ms": 105,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1726",
+    "1725",
+    "1728"
+   ],
+   "v2": "1726",
+   "v2top1raw": "1726",
+   "v2conf": 0.42981929580144485,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000114-PHOTO-2020-12-18-10-08-47",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235552",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 457,
+    "top": 818,
+    "width": 210,
+    "height": 117
+   },
+   "v2ms": 81,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235552",
+    "235562",
+    "235592"
+   ],
+   "v2": "235552",
+   "v2top1raw": "235552",
+   "v2conf": 0.8750976006799289,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000115-PHOTO-2020-12-18-10-11-53",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "318387",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 441,
+    "top": 836,
+    "width": 191,
+    "height": 115
+   },
+   "v2ms": 160,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "31838",
+    "31830",
+    "31836"
+   ],
+   "v2": "31838",
+   "v2top1raw": "31838",
+   "v2conf": 0.7406587882937216,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000120-PHOTO-2020-12-18-11-08-24",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119556",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 433,
+    "top": 756,
+    "width": 183,
+    "height": 112
+   },
+   "v2ms": 101,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "9556",
+    "9555",
+    "5556"
+   ],
+   "v2": "9556",
+   "v2top1raw": "9556",
+   "v2conf": 0.4312442918362721,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000121-PHOTO-2020-12-18-20-35-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119664",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 393,
+    "top": 736,
+    "width": 180,
+    "height": 112
+   },
+   "v2ms": 82,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119664",
+    "113664",
+    "115664"
+   ],
+   "v2": "119664",
+   "v2top1raw": "119664",
+   "v2conf": 0.8439645328678308,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000123-PHOTO-2020-11-22-10-58-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159259",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 823,
+    "top": 426,
+    "width": 444,
+    "height": 452
+   },
+   "v2ms": 607,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159259",
+    "159253",
+    "159255"
+   ],
+   "v2": "159259",
+   "v2top1raw": "159259",
+   "v2conf": 0.8322710942259386,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000127-PHOTO-2020-12-18-21-17-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "188331",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 900,
+    "top": 370,
+    "width": 228,
+    "height": 206
+   },
+   "v2ms": 196,
+   "v1full": null,
+   "v1crop": "188331",
+   "v2top3": [
+    "9999",
+    "9899",
+    "8999"
+   ],
+   "v2": "9999",
+   "v2top1raw": "9999",
+   "v2conf": 0.15390577155483262,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000132-PHOTO-2020-11-22-10-58-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "26475",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 741,
+    "top": 330,
+    "width": 156,
+    "height": 76
+   },
+   "v2ms": 17,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "8980",
+    "8988",
+    "8880"
+   ],
+   "v2": "8980",
+   "v2top1raw": "8980",
+   "v2conf": 0.2876301414418297,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000132-PHOTO-2020-12-18-22-05-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235763",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 111,
+    "top": 808,
+    "width": 852,
+    "height": 431
+   },
+   "v2ms": 532,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000134-PHOTO-2020-11-22-12-33-17",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162069",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 786,
+    "top": 504,
+    "width": 261,
+    "height": 153
+   },
+   "v2ms": 272,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162069",
+    "162063",
+    "162065"
+   ],
+   "v2": "162069",
+   "v2top1raw": "162069",
+   "v2conf": 0.8536878480608258,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000139-PHOTO-2020-12-19-11-10-17",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119664",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 373,
+    "top": 769,
+    "width": 178,
+    "height": 110
+   },
+   "v2ms": 38,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119664",
+    "119684",
+    "119864"
+   ],
+   "v2": "119664",
+   "v2top1raw": "119664",
+   "v2conf": 0.8439645328678308,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000143-PHOTO-2020-12-19-17-36-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "188455",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 905,
+    "top": 406,
+    "width": 224,
+    "height": 204
+   },
+   "v2ms": 116,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "99499",
+    "98499",
+    "89499"
+   ],
+   "v2": "99499",
+   "v2top1raw": "99499",
+   "v2conf": 0.3161397773889485,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000146-PHOTO-2020-11-22-20-01-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "30940",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 359,
+    "top": 139,
+    "width": 364,
+    "height": 589
+   },
+   "v2ms": 272,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000147-PHOTO-2020-11-22-20-01-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "15750",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 512,
+    "top": 410,
+    "width": 146,
+    "height": 57
+   },
+   "v2ms": 29,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "157563",
+    "157567",
+    "157561"
+   ],
+   "v2": "157563",
+   "v2top1raw": "157563",
+   "v2conf": 0.6460711639117689,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000148-PHOTO-2020-12-19-17-40-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "318589",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 458,
+    "top": 814,
+    "width": 188,
+    "height": 115
+   },
+   "v2ms": 23,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "318589",
+    "378589",
+    "318583"
+   ],
+   "v2": "318589",
+   "v2top1raw": "318589",
+   "v2conf": 0.7968331050367073,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000154-PHOTO-2020-12-19-18-27-43",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119752",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 384,
+    "top": 763,
+    "width": 179,
+    "height": 112
+   },
+   "v2ms": 32,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119752",
+    "113752",
+    "115752"
+   ],
+   "v2": "119752",
+   "v2top1raw": "119752",
+   "v2conf": 0.8666658667188223,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000167-PHOTO-2020-11-22-21-02-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159312",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 473,
+    "top": 269,
+    "width": 397,
+    "height": 250
+   },
+   "v2ms": 100,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159312",
+    "153312",
+    "155312"
+   ],
+   "v2": "159312",
+   "v2top1raw": "159312",
+   "v2conf": 0.8645145620395777,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000171-PHOTO-2020-12-20-19-03-29",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236096",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 74,
+    "top": 753,
+    "width": 877,
+    "height": 429
+   },
+   "v2ms": 282,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236096",
+    "296096",
+    "888864"
+   ],
+   "v2": "236096",
+   "v2top1raw": "236096",
+   "v2conf": 0.636120330965414,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000179-PHOTO-2020-12-21-10-59-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119752",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 573,
+    "top": 730,
+    "width": 180,
+    "height": 108
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "9752",
+    "3752",
+    "5752"
+   ],
+   "v2": "9752",
+   "v2top1raw": "9752",
+   "v2conf": 0.46948930684597284,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000180-PHOTO-2020-12-21-19-01-47",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119843",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 413,
+    "top": 745,
+    "width": 180,
+    "height": 112
+   },
+   "v2ms": 34,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119843",
+    "113843",
+    "115843"
+   ],
+   "v2": "119843",
+   "v2top1raw": "119843",
+   "v2conf": 0.8417941872168089,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000182-PHOTO-2020-12-21-19-51-36",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "188627",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 686,
+    "top": 546,
+    "width": 270,
+    "height": 74
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "4464",
+    "4462",
+    "6464"
+   ],
+   "v2": "4464",
+   "v2top1raw": "4464",
+   "v2conf": 0.1501817560833611,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000193-PHOTO-2020-12-21-22-00-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236329",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 180,
+    "top": 644,
+    "width": 801,
+    "height": 464
+   },
+   "v2ms": 276,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236329",
+    "236323",
+    "236325"
+   ],
+   "v2": "236329",
+   "v2top1raw": "236329",
+   "v2conf": 0.872276565394654,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000194-PHOTO-2020-12-22-10-08-56",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236329",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 451,
+    "top": 781,
+    "width": 217,
+    "height": 119
+   },
+   "v2ms": 146,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236329",
+    "236323",
+    "236325"
+   ],
+   "v2": "236329",
+   "v2top1raw": "236329",
+   "v2conf": 0.872276565394654,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000195-PHOTO-2020-11-23-12-32-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159341",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 521,
+    "top": 200,
+    "width": 267,
+    "height": 269
+   },
+   "v2ms": 76,
+   "v1full": "159341",
+   "v1crop": "159341",
+   "v2top3": [
+    "159341",
+    "153341",
+    "155341"
+   ],
+   "v2": "159341",
+   "v2top1raw": "159341",
+   "v2conf": 0.8520317855105508,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000198-PHOTO-2020-11-23-12-32-28",
+   "role": "eligible",
+   "family": "digital-dark-on-light-red",
+   "label": "115508",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 160,
+    "top": 520,
+    "width": 435,
+    "height": 320
+   },
+   "v2ms": 187,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "115508",
+    "119508",
+    "11550"
+   ],
+   "v2": "115508",
+   "v2top1raw": "115508",
+   "v2conf": 0.7991054354834097,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000199-PHOTO-2020-12-22-11-15-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119843",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 418,
+    "top": 758,
+    "width": 178,
+    "height": 110
+   },
+   "v2ms": 40,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119843",
+    "719843",
+    "119043"
+   ],
+   "v2": "119843",
+   "v2top1raw": "119843",
+   "v2conf": 0.8320406329579628,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000201-PHOTO-2020-12-22-19-02-00",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "188760",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 918,
+    "top": 591,
+    "width": 205,
+    "height": 63
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "18870",
+    "18878",
+    "18810"
+   ],
+   "v2": "18870",
+   "v2top1raw": "18870",
+   "v2conf": 0.7507595513978436,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000207-PHOTO-2020-11-23-15-48-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "278438",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 193,
+    "top": 499,
+    "width": 188,
+    "height": 105
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "278438",
+    "270438",
+    "278430"
+   ],
+   "v2": "278438",
+   "v2top1raw": "278438",
+   "v2conf": 0.8419979469388734,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000208-PHOTO-2020-12-22-20-42-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236560",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 670,
+    "width": 939,
+    "height": 490
+   },
+   "v2ms": 143,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "082365",
+    "236560",
+    "8236560"
+   ],
+   "v2": "082365",
+   "v2top1raw": "082365",
+   "v2conf": 0.6806322281671789,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000211-PHOTO-2020-11-23-18-03-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "278438",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 123,
+    "top": 319,
+    "width": 121,
+    "height": 68
+   },
+   "v2ms": 29,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "278438",
+    "270438",
+    "278430"
+   ],
+   "v2": "278438",
+   "v2top1raw": "278438",
+   "v2conf": 0.8521710607283451,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000212-PHOTO-2020-11-23-18-03-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231281",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 96,
+    "top": 201,
+    "width": 399,
+    "height": 197
+   },
+   "v2ms": 74,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "231281",
+    "291281",
+    "1231281"
+   ],
+   "v2": "231281",
+   "v2top1raw": "231281",
+   "v2conf": 0.7124839317556869,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000213-PHOTO-2020-12-23-09-58-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236560",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 463,
+    "top": 758,
+    "width": 209,
+    "height": 119
+   },
+   "v2ms": 17,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "23656",
+    "23655",
+    "23556"
+   ],
+   "v2": "23656",
+   "v2top1raw": "23656",
+   "v2conf": 0.7728055811812624,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000215-PHOTO-2020-11-23-21-05-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159399",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 445,
+    "top": 220,
+    "width": 433,
+    "height": 261
+   },
+   "v2ms": 110,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "015939",
+    "0159399",
+    "159399"
+   ],
+   "v2": "015939",
+   "v2top1raw": "015939",
+   "v2conf": 0.7002257215254473,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000216-PHOTO-2020-12-23-10-50-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119962",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 372,
+    "top": 761,
+    "width": 178,
+    "height": 109
+   },
+   "v2ms": 33,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119962",
+    "179962",
+    "139962"
+   ],
+   "v2": "119962",
+   "v2top1raw": "119962",
+   "v2conf": 0.7510152437653947,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000217-PHOTO-2020-11-23-21-05-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162271",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 426,
+    "width": 558,
+    "height": 352
+   },
+   "v2ms": 197,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162231",
+    "162271",
+    "182231"
+   ],
+   "v2": "162231",
+   "v2top1raw": "162231",
+   "v2conf": 0.8226043713170417,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000219-PHOTO-2020-12-23-19-47-49",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "188954",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 898,
+    "top": 315,
+    "width": 232,
+    "height": 65
+   },
+   "v2ms": 14,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1889",
+    "1883",
+    "1885"
+   ],
+   "v2": "1889",
+   "v2top1raw": "1889",
+   "v2conf": 0.43502201639067684,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000222-PHOTO-2020-11-23-21-05-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159399",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 446,
+    "top": 219,
+    "width": 432,
+    "height": 263
+   },
+   "v2ms": 120,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "015939",
+    "0159399",
+    "159399"
+   ],
+   "v2": "015939",
+   "v2top1raw": "015939",
+   "v2conf": 0.7002257215254473,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000223-PHOTO-2020-11-23-21-05-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162271",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 426,
+    "width": 557,
+    "height": 352
+   },
+   "v2ms": 204,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162231",
+    "162271",
+    "182231"
+   ],
+   "v2": "162231",
+   "v2top1raw": "162231",
+   "v2conf": 0.8226043713170417,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000228-PHOTO-2020-12-23-21-38-34",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236757",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 63,
+    "top": 888,
+    "width": 992,
+    "height": 477
+   },
+   "v2ms": 132,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "23657",
+    "23667",
+    "23697"
+   ],
+   "v2": "23657",
+   "v2top1raw": "23657",
+   "v2conf": 0.7572471929079649,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000232-PHOTO-2020-11-24-08-54-09",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162271",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 426,
+    "width": 556,
+    "height": 353
+   },
+   "v2ms": 251,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162232",
+    "162272",
+    "182232"
+   ],
+   "v2": "162232",
+   "v2top1raw": "162232",
+   "v2conf": 0.8342639652624558,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000234-PHOTO-2020-11-24-08-54-09",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "26728",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 466,
+    "top": 201,
+    "width": 196,
+    "height": 92
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000238-PHOTO-2020-11-24-08-54-09",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "189576",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 566,
+    "top": 451,
+    "width": 114,
+    "height": 119
+   },
+   "v2ms": 27,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "0856",
+    "0056",
+    "8856"
+   ],
+   "v2": "0856",
+   "v2top1raw": "0856",
+   "v2conf": 0.3434076927240643,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000241-PHOTO-2020-11-24-08-54-09",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "15917",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 171,
+    "top": 418,
+    "width": 85,
+    "height": 31
+   },
+   "v2ms": 5,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6987",
+    "6983",
+    "6387"
+   ],
+   "v2": "6987",
+   "v2top1raw": "6987",
+   "v2conf": 0.4049085597137744,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000241-PHOTO-2020-12-24-19-22-14",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236965",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 188,
+    "top": 965,
+    "width": 655,
+    "height": 314
+   },
+   "v2ms": 225,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236965",
+    "236365",
+    "236565"
+   ],
+   "v2": "236965",
+   "v2top1raw": "236965",
+   "v2conf": 0.8407724770214807,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000244-PHOTO-2020-11-24-08-54-09",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "25696",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 434,
+    "top": 366,
+    "width": 235,
+    "height": 103
+   },
+   "v2ms": 33,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "25696",
+    "25695",
+    "2332"
+   ],
+   "v2": "25696",
+   "v2top1raw": "25696",
+   "v2conf": 0.7359699548576337,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000246-PHOTO-2020-11-24-13-52-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "222962",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 469,
+    "width": 657,
+    "height": 265
+   },
+   "v2ms": 175,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "222962",
+    "0822296",
+    "222862"
+   ],
+   "v2": "222962",
+   "v2top1raw": "222962",
+   "v2conf": 0.7530572262368519,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000248-PHOTO-2020-11-24-13-52-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "115605",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 235,
+    "top": 508,
+    "width": 284,
+    "height": 203
+   },
+   "v2ms": 60,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "115605",
+    "115685",
+    "115505"
+   ],
+   "v2": "115605",
+   "v2top1raw": "115605",
+   "v2conf": 0.8545850863138515,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000250-PHOTO-2020-12-24-20-58-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120169",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 381,
+    "top": 745,
+    "width": 179,
+    "height": 110
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120169",
+    "120163",
+    "120165"
+   ],
+   "v2": "120169",
+   "v2top1raw": "120169",
+   "v2conf": 0.8656573338175041,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000258-PHOTO-2020-12-25-10-35-45",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120169",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 363,
+    "top": 769,
+    "width": 177,
+    "height": 108
+   },
+   "v2ms": 24,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120169",
+    "120163",
+    "120165"
+   ],
+   "v2": "120169",
+   "v2top1raw": "120169",
+   "v2conf": 0.8656573338175041,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000260-PHOTO-2020-12-25-19-42-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "189272",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 867,
+    "top": 455,
+    "width": 212,
+    "height": 200
+   },
+   "v2ms": 40,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "99272",
+    "89272",
+    "99279"
+   ],
+   "v2": "99272",
+   "v2top1raw": "99272",
+   "v2conf": 0.3079778465106108,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000264-PHOTO-2020-11-24-13-52-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "25736",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 153,
+    "top": 459,
+    "width": 184,
+    "height": 84
+   },
+   "v2ms": 15,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1347",
+    "1397",
+    "1947"
+   ],
+   "v2": "1347",
+   "v2top1raw": "1347",
+   "v2conf": 0.4837258783912056,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000267-PHOTO-2020-12-25-20-19-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120250",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 395,
+    "top": 770,
+    "width": 180,
+    "height": 110
+   },
+   "v2ms": 53,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120250",
+    "120258",
+    "128250"
+   ],
+   "v2": "120250",
+   "v2top1raw": "120250",
+   "v2conf": 0.8988855161482702,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000272-PHOTO-2020-12-25-21-25-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237193",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 219,
+    "top": 714,
+    "width": 771,
+    "height": 437
+   },
+   "v2ms": 146,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237193",
+    "237793",
+    "237133"
+   ],
+   "v2": "237193",
+   "v2top1raw": "237193",
+   "v2conf": 0.8604223215388478,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000273-PHOTO-2020-12-26-10-16-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237193",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 490,
+    "top": 752,
+    "width": 219,
+    "height": 125
+   },
+   "v2ms": 40,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "23719",
+    "61016",
+    "23718"
+   ],
+   "v2": "23719",
+   "v2top1raw": "23719",
+   "v2conf": 0.6856625037054158,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000277-PHOTO-2020-12-26-10-36-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120250",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 438,
+    "top": 780,
+    "width": 178,
+    "height": 108
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120250",
+    "120258",
+    "128250"
+   ],
+   "v2": "120250",
+   "v2top1raw": "120250",
+   "v2conf": 0.8988855161482702,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000278-PHOTO-2020-11-24-20-43-46",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162384",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 270,
+    "width": 527,
+    "height": 283
+   },
+   "v2ms": 211,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "82904",
+    "82304",
+    "62904"
+   ],
+   "v2": "82904",
+   "v2top1raw": "82904",
+   "v2conf": 0.4279372206645773,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000283-PHOTO-2020-12-26-17-03-31",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "189407",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 829,
+    "top": 371,
+    "width": 216,
+    "height": 62
+   },
+   "v2ms": 17,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1894",
+    "1834",
+    "1854"
+   ],
+   "v2": "1894",
+   "v2top1raw": "1894",
+   "v2conf": 0.4519049047284745,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000285-PHOTO-2020-12-26-17-28-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120336",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 385,
+    "top": 824,
+    "width": 178,
+    "height": 109
+   },
+   "v2ms": 25,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120336",
+    "120335",
+    "128336"
+   ],
+   "v2": "120336",
+   "v2top1raw": "120336",
+   "v2conf": 0.8834367838547341,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000288-PHOTO-2020-12-26-18-16-33",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237348",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 203,
+    "top": 872,
+    "width": 653,
+    "height": 376
+   },
+   "v2ms": 215,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237340",
+    "237348",
+    "237390"
+   ],
+   "v2": "237340",
+   "v2top1raw": "237340",
+   "v2conf": 0.8595543469724429,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000293-PHOTO-2020-11-25-07-47-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "149028",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 571,
+    "top": 446,
+    "width": 181,
+    "height": 113
+   },
+   "v2ms": 65,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "0808",
+    "0800",
+    "0608"
+   ],
+   "v2": "0808",
+   "v2top1raw": "0808",
+   "v2conf": 0.27953839386849594,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000294-PHOTO-2020-12-27-09-57-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237348",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 506,
+    "top": 768,
+    "width": 214,
+    "height": 118
+   },
+   "v2ms": 40,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6957",
+    "2373",
+    "2973"
+   ],
+   "v2": "6957",
+   "v2top1raw": "6957",
+   "v2conf": 0.38195336681943715,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000295-PHOTO-2020-11-25-09-55-35",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "118668",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 356,
+    "top": 720,
+    "width": 153,
+    "height": 47
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000299-PHOTO-2020-11-25-12-10-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159460",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 517,
+    "top": 245,
+    "width": 218,
+    "height": 217
+   },
+   "v2ms": 63,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159460",
+    "169460",
+    "153460"
+   ],
+   "v2": "159460",
+   "v2top1raw": "159460",
+   "v2conf": 0.8321577788363387,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000302-PHOTO-2020-12-27-17-40-17",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237562",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 35,
+    "top": 699,
+    "width": 1007,
+    "height": 486
+   },
+   "v2ms": 178,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237562",
+    "237552",
+    "237582"
+   ],
+   "v2": "237562",
+   "v2top1raw": "237562",
+   "v2conf": 0.8781237495869482,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000308-PHOTO-2020-11-25-12-10-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "26848",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 370,
+    "top": 221,
+    "width": 124,
+    "height": 90
+   },
+   "v2ms": 31,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "61102",
+    "61702",
+    "61108"
+   ],
+   "v2": "61102",
+   "v2top1raw": "61102",
+   "v2conf": 0.5584498054865354,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000308-PHOTO-2020-12-27-17-58-10",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "319281",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 519,
+    "top": 826,
+    "width": 192,
+    "height": 115
+   },
+   "v2ms": 25,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "319281",
+    "319287",
+    "379281"
+   ],
+   "v2": "319281",
+   "v2top1raw": "319281",
+   "v2conf": 0.8231031985356952,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000313-PHOTO-2020-12-28-10-07-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237562",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 457,
+    "top": 768,
+    "width": 227,
+    "height": 123
+   },
+   "v2ms": 42,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237562",
+    "237552",
+    "231562"
+   ],
+   "v2": "237562",
+   "v2top1raw": "237562",
+   "v2conf": 0.8864719999925996,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000314-PHOTO-2020-12-28-10-20-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "319281",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 447,
+    "top": 761,
+    "width": 192,
+    "height": 116
+   },
+   "v2ms": 25,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "319281",
+    "319201",
+    "319261"
+   ],
+   "v2": "319281",
+   "v2top1raw": "319281",
+   "v2conf": 0.850608841616163,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000315-PHOTO-2020-11-25-12-11-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231315",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 159,
+    "top": 302,
+    "width": 349,
+    "height": 201
+   },
+   "v2ms": 89,
+   "v1full": null,
+   "v1crop": "31315",
+   "v2top3": [
+    "231315",
+    "31315",
+    "231316"
+   ],
+   "v2": "231315",
+   "v2top1raw": "231315",
+   "v2conf": 0.8855133536943448,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000318-PHOTO-2020-11-25-12-11-04",
+   "role": "eligible",
+   "family": "digital-dark-on-light-amber",
+   "label": "217485",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 202,
+    "top": 458,
+    "width": 111,
+    "height": 61
+   },
+   "v2ms": 26,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "7174",
+    "2174",
+    "9174"
+   ],
+   "v2": "7174",
+   "v2top1raw": "7174",
+   "v2conf": 0.2720147899811086,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000319-PHOTO-2020-12-28-10-43-58",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120336",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 424,
+    "top": 725,
+    "width": 179,
+    "height": 109
+   },
+   "v2ms": 26,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120336",
+    "120335",
+    "128336"
+   ],
+   "v2": "120336",
+   "v2top1raw": "120336",
+   "v2conf": 0.8834367838547341,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000325-PHOTO-2020-11-26-00-44-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159542",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 420,
+    "top": 255,
+    "width": 448,
+    "height": 269
+   },
+   "v2ms": 146,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159542",
+    "0159542",
+    "015954"
+   ],
+   "v2": "159542",
+   "v2top1raw": "159542",
+   "v2conf": 0.7103913987237261,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000329-PHOTO-2020-12-28-21-04-09",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120449",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 424,
+    "top": 712,
+    "width": 181,
+    "height": 111
+   },
+   "v2ms": 30,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120449",
+    "120443",
+    "120445"
+   ],
+   "v2": "120449",
+   "v2top1raw": "120449",
+   "v2conf": 0.8753931740412355,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000330-PHOTO-2020-12-28-21-52-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237773",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 756,
+    "width": 958,
+    "height": 487
+   },
+   "v2ms": 190,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237773",
+    "237713",
+    "237173"
+   ],
+   "v2": "237773",
+   "v2top1raw": "237773",
+   "v2conf": 0.8893117304693637,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000331-PHOTO-2020-11-26-00-44-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "25940",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 134,
+    "top": 521,
+    "width": 200,
+    "height": 83
+   },
+   "v2ms": 32,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6114",
+    "6111",
+    "6714"
+   ],
+   "v2": "6114",
+   "v2top1raw": "6114",
+   "v2conf": 0.2826576120845661,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000331-PHOTO-2020-12-29-09-43-34",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "237773",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 395,
+    "top": 730,
+    "width": 247,
+    "height": 117
+   },
+   "v2ms": 50,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237773",
+    "0723777",
+    "237713"
+   ],
+   "v2": "237773",
+   "v2top1raw": "237773",
+   "v2conf": 0.7606009602383964,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000332-PHOTO-2020-11-26-00-44-36",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "189723",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 583,
+    "top": 442,
+    "width": 190,
+    "height": 119
+   },
+   "v2ms": 55,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "789723",
+    "089723",
+    "8323"
+   ],
+   "v2": "789723",
+   "v2top1raw": "789723",
+   "v2conf": 0.5240595425523642,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000335-PHOTO-2020-12-29-10-50-24",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "120449",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 369,
+    "top": 755,
+    "width": 178,
+    "height": 109
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120449",
+    "120443",
+    "120445"
+   ],
+   "v2": "120449",
+   "v2top1raw": "120449",
+   "v2conf": 0.8753931740412355,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000339-PHOTO-2020-12-29-19-54-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "189752",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 834,
+    "top": 440,
+    "width": 170,
+    "height": 156
+   },
+   "v2ms": 34,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "18952",
+    "78952",
+    "19952"
+   ],
+   "v2": "18952",
+   "v2top1raw": "18952",
+   "v2conf": 0.6222755541601701,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000341-PHOTO-2020-11-26-00-45-22",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "184972",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 554,
+    "top": 249,
+    "width": 270,
+    "height": 175
+   },
+   "v2ms": 49,
+   "v1full": null,
+   "v1crop": "184972",
+   "v2top3": [
+    "18492",
+    "18432",
+    "18452"
+   ],
+   "v2": "18492",
+   "v2top1raw": "18492",
+   "v2conf": 0.7633447815056694,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000341-PHOTO-2020-12-29-20-37-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "237956",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 82,
+    "top": 677,
+    "width": 866,
+    "height": 486
+   },
+   "v2ms": 241,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "237956",
+    "882364",
+    "237955"
+   ],
+   "v2": "237956",
+   "v2top1raw": "237956",
+   "v2conf": 0.8499918937545625,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000348-PHOTO-2020-12-16-21-18-57",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161098",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 597,
+    "top": 491,
+    "width": 619,
+    "height": 401
+   },
+   "v2ms": 189,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161098",
+    "0161098",
+    "0161090"
+   ],
+   "v2": "161098",
+   "v2top1raw": "161098",
+   "v2conf": 0.7074711478563741,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000374-PHOTO-2020-11-26-11-14-18",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159556",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 605,
+    "top": 457,
+    "width": 263,
+    "height": 266
+   },
+   "v2ms": 81,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159556",
+    "159555",
+    "159558"
+   ],
+   "v2": "159556",
+   "v2top1raw": "159556",
+   "v2conf": 0.821697365847172,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000379-PHOTO-2020-11-26-13-36-11",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "189736",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 860,
+    "top": 666,
+    "width": 170,
+    "height": 178
+   },
+   "v2ms": 57,
+   "v1full": null,
+   "v1crop": "189736",
+   "v2top3": [
+    "189736",
+    "188736",
+    "183736"
+   ],
+   "v2": "189736",
+   "v2top1raw": "189736",
+   "v2conf": 0.8303093668710692,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000380-PHOTO-2020-11-26-21-23-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "191840",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 197,
+    "top": 415,
+    "width": 79,
+    "height": 83
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000388-PHOTO-2020-11-26-21-23-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159622",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 310,
+    "top": 239,
+    "width": 394,
+    "height": 248
+   },
+   "v2ms": 134,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159622",
+    "759622",
+    "159522"
+   ],
+   "v2": "159622",
+   "v2top1raw": "159622",
+   "v2conf": 0.86647528141312,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000394-PHOTO-2020-11-26-21-23-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162513",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 76,
+    "top": 232,
+    "width": 367,
+    "height": 369
+   },
+   "v2ms": 110,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "62513",
+    "62573",
+    "62613"
+   ],
+   "v2": "62513",
+   "v2top1raw": "62513",
+   "v2conf": 0.6437053479550595,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000396-PHOTO-2020-11-26-21-24-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231755",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 35,
+    "top": 338,
+    "width": 630,
+    "height": 306
+   },
+   "v2ms": 108,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "231755",
+    "832864",
+    "231155"
+   ],
+   "v2": "231755",
+   "v2top1raw": "231755",
+   "v2conf": 0.874526899169189,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000397-PHOTO-2020-11-26-21-24-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117585",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 222,
+    "top": 410,
+    "width": 119,
+    "height": 76
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "117585",
+    "117586",
+    "117589"
+   ],
+   "v2": "117585",
+   "v2top1raw": "117585",
+   "v2conf": 0.7572404397309282,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000409-PHOTO-2020-11-27-13-56-50",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117585",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 245,
+    "top": 472,
+    "width": 127,
+    "height": 79
+   },
+   "v2ms": 13,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "117585",
+    "117505",
+    "117565"
+   ],
+   "v2": "117585",
+   "v2top1raw": "117585",
+   "v2conf": 0.8410646403218766,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000426-PHOTO-2020-11-27-13-57-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159657",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 500,
+    "top": 202,
+    "width": 232,
+    "height": 237
+   },
+   "v2ms": 69,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159657",
+    "159651",
+    "159557"
+   ],
+   "v2": "159657",
+   "v2top1raw": "159657",
+   "v2conf": 0.8323052567528496,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000432-PHOTO-2020-11-27-13-58-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "191840",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 224,
+    "top": 450,
+    "width": 73,
+    "height": 51
+   },
+   "v2ms": 5,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000434-PHOTO-2020-12-16-23-05-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "83692",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 528,
+    "top": 655,
+    "width": 157,
+    "height": 114
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "83692",
+    "83592",
+    "83632"
+   ],
+   "v2": "83692",
+   "v2top1raw": "83692",
+   "v2conf": 0.7443090504449801,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000437-PHOTO-2020-11-27-13-58-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "189790",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 676,
+    "top": 486,
+    "width": 116,
+    "height": 124
+   },
+   "v2ms": 24,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1820",
+    "1020",
+    "1620"
+   ],
+   "v2": "1820",
+   "v2top1raw": "1820",
+   "v2conf": 0.2853253336969786,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000447-PHOTO-2020-11-27-20-22-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "316384",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 313,
+    "top": 494,
+    "width": 127,
+    "height": 79
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "316384",
+    "316304",
+    "316364"
+   ],
+   "v2": "316384",
+   "v2top1raw": "316384",
+   "v2conf": 0.8451281064074518,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000449-PHOTO-2020-11-27-20-22-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231945",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 9,
+    "top": 368,
+    "width": 619,
+    "height": 298
+   },
+   "v2ms": 114,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "231945",
+    "231949",
+    "88836"
+   ],
+   "v2": "231945",
+   "v2top1raw": "231945",
+   "v2conf": 0.6438558682860223,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000452-PHOTO-2020-11-27-21-30-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159675",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 575,
+    "top": 364,
+    "width": 270,
+    "height": 274
+   },
+   "v2ms": 94,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159675",
+    "153675",
+    "155675"
+   ],
+   "v2": "159675",
+   "v2top1raw": "159675",
+   "v2conf": 0.8308258240821794,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000453-PHOTO-2020-11-27-21-30-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "118860",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 323,
+    "top": 196,
+    "width": 122,
+    "height": 41
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000454-PHOTO-2020-11-27-21-30-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "16453",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 471,
+    "top": 247,
+    "width": 180,
+    "height": 67
+   },
+   "v2ms": 6,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000455-PHOTO-2020-12-17-09-57-43",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120045",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 544,
+    "top": 401,
+    "width": 153,
+    "height": 50
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120045",
+    "120845",
+    "120095"
+   ],
+   "v2": "120045",
+   "v2top1raw": "120045",
+   "v2conf": 0.8864526105904118,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000456-PHOTO-2020-12-17-10-11-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "152666",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 304,
+    "top": 738,
+    "width": 199,
+    "height": 112
+   },
+   "v2ms": 27,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "62666",
+    "638828",
+    "638888"
+   ],
+   "v2": "62666",
+   "v2top1raw": "62666",
+   "v2conf": 0.7539472956754438,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000462-PHOTO-2020-12-17-10-34-18",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118044",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 621,
+    "top": 872,
+    "width": 196,
+    "height": 119
+   },
+   "v2ms": 38,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118044",
+    "718044",
+    "118844"
+   ],
+   "v2": "118044",
+   "v2top1raw": "118044",
+   "v2conf": 0.8568927399715723,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000469-PHOTO-2020-11-28-08-39-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27040",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 455,
+    "top": 213,
+    "width": 167,
+    "height": 105
+   },
+   "v2ms": 22,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "2225",
+    "2226",
+    "2229"
+   ],
+   "v2": "2225",
+   "v2top1raw": "2225",
+   "v2conf": 0.4601835465134387,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000470-PHOTO-2020-11-28-20-58-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231958",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 274,
+    "top": 410,
+    "width": 147,
+    "height": 83
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000470-PHOTO-2020-12-17-10-55-53",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192285",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 337,
+    "top": 696,
+    "width": 294,
+    "height": 154
+   },
+   "v2ms": 64,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "192285",
+    "192286",
+    "1192285"
+   ],
+   "v2": "192285",
+   "v2top1raw": "192285",
+   "v2conf": 0.6062652021316499,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000474-PHOTO-2020-12-17-11-11-31",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "191239",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 952,
+    "top": 688,
+    "width": 181,
+    "height": 188
+   },
+   "v2ms": 56,
+   "v1full": null,
+   "v1crop": "191239",
+   "v2top3": [
+    "191239",
+    "191233",
+    "191235"
+   ],
+   "v2": "191239",
+   "v2top1raw": "191239",
+   "v2conf": 0.8527875957419819,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000478-PHOTO-2020-11-28-20-58-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "316495",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 318,
+    "top": 467,
+    "width": 130,
+    "height": 82
+   },
+   "v2ms": 13,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "316495",
+    "316435",
+    "316455"
+   ],
+   "v2": "316495",
+   "v2top1raw": "316495",
+   "v2conf": 0.840800716333125,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000480-PHOTO-2020-11-28-20-58-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232137",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 105,
+    "top": 506,
+    "width": 532,
+    "height": 306
+   },
+   "v2ms": 113,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "232137",
+    "232737",
+    "232131"
+   ],
+   "v2": "232137",
+   "v2top1raw": "232137",
+   "v2conf": 0.8888744883342194,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000484-PHOTO-2020-11-28-20-59-30",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "118860",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 315,
+    "top": 269,
+    "width": 114,
+    "height": 39
+   },
+   "v2ms": 6,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000486-PHOTO-2020-11-28-20-59-30",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "116665",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 331,
+    "top": 484,
+    "width": 119,
+    "height": 120
+   },
+   "v2ms": 29,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1004",
+    "1084",
+    "1804"
+   ],
+   "v2": "1004",
+   "v2top1raw": "1004",
+   "v2conf": 0.4867737361019724,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000489-PHOTO-2020-11-28-20-59-30",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "16457",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 459,
+    "top": 218,
+    "width": 244,
+    "height": 96
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "16457",
+    "16497",
+    "16453"
+   ],
+   "v2": "16457",
+   "v2top1raw": "16457",
+   "v2conf": 0.5796361040523105,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000505-PHOTO-2020-11-28-20-59-30",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "65457",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 199,
+    "top": 443,
+    "width": 38,
+    "height": 37
+   },
+   "v2ms": 2,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000506-PHOTO-2020-11-28-21-01-29",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "189897",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 643,
+    "top": 398,
+    "width": 121,
+    "height": 131
+   },
+   "v2ms": 39,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "189897",
+    "10221",
+    "189837"
+   ],
+   "v2": "189897",
+   "v2top1raw": "189897",
+   "v2conf": 0.7927542492471873,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000507-PHOTO-2020-11-28-21-01-29",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162667",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 345,
+    "width": 768,
+    "height": 369
+   },
+   "v2ms": 336,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162667",
+    "162567",
+    "152667"
+   ],
+   "v2": "162667",
+   "v2top1raw": "162667",
+   "v2conf": 0.8563158690984394,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000513-PHOTO-2020-11-28-21-01-29",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "16575",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 246,
+    "top": 237,
+    "width": 538,
+    "height": 211
+   },
+   "v2ms": 124,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "16575",
+    "16579",
+    "16975"
+   ],
+   "v2": "16575",
+   "v2top1raw": "16575",
+   "v2conf": 0.601483799923391,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000520-PHOTO-2020-11-29-11-15-49",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "232137",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 292,
+    "top": 456,
+    "width": 145,
+    "height": 82
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000520-PHOTO-2020-12-17-17-45-51",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118032",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 160,
+    "top": 722,
+    "width": 750,
+    "height": 473
+   },
+   "v2ms": 189,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118032",
+    "0118032",
+    "118832"
+   ],
+   "v2": "118032",
+   "v2top1raw": "118032",
+   "v2conf": 0.7440735896513264,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000526-PHOTO-2020-11-29-11-16-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "118948",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 239,
+    "top": 276,
+    "width": 103,
+    "height": 37
+   },
+   "v2ms": 4,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000533-PHOTO-2020-11-29-11-16-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159776",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 335,
+    "top": 329,
+    "width": 394,
+    "height": 243
+   },
+   "v2ms": 85,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159776",
+    "759776",
+    "159775"
+   ],
+   "v2": "159776",
+   "v2top1raw": "159776",
+   "v2conf": 0.8355667040897816,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000534-PHOTO-2020-11-29-11-16-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "149778",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 23,
+    "top": 439,
+    "width": 115,
+    "height": 212
+   },
+   "v2ms": 27,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000540-PHOTO-2020-11-29-11-16-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159791",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 554,
+    "top": 262,
+    "width": 279,
+    "height": 282
+   },
+   "v2ms": 75,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159791",
+    "159731",
+    "159751"
+   ],
+   "v2": "159791",
+   "v2top1raw": "159791",
+   "v2conf": 0.8120891608565315,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000548-PHOTO-2020-11-29-11-16-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "240463",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 290,
+    "top": 509,
+    "width": 117,
+    "height": 109
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000554-PHOTO-2020-11-29-19-35-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "118948",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 238,
+    "top": 276,
+    "width": 103,
+    "height": 36
+   },
+   "v2ms": 7,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000555-PHOTO-2020-11-29-19-35-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162758",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 308,
+    "width": 576,
+    "height": 317
+   },
+   "v2ms": 277,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6258",
+    "6250",
+    "6256"
+   ],
+   "v2": "6258",
+   "v2top1raw": "6258",
+   "v2conf": 0.46123508185509293,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000557-PHOTO-2020-11-29-19-35-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "240496",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 254,
+    "top": 533,
+    "width": 175,
+    "height": 108
+   },
+   "v2ms": 31,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "0496",
+    "0436",
+    "0456"
+   ],
+   "v2": "0496",
+   "v2top1raw": "0496",
+   "v2conf": 0.4590063519624603,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000559-PHOTO-2020-11-30-13-25-25",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119025",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 315,
+    "top": 249,
+    "width": 114,
+    "height": 40
+   },
+   "v2ms": 6,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000569-PHOTO-2020-11-30-13-25-25",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159855",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 439,
+    "top": 264,
+    "width": 392,
+    "height": 246
+   },
+   "v2ms": 100,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159855",
+    "153855",
+    "155855"
+   ],
+   "v2": "159855",
+   "v2top1raw": "159855",
+   "v2conf": 0.8112226058086226,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000571-PHOTO-2020-12-17-19-22-57",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "164015",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 371,
+    "top": 746,
+    "width": 974,
+    "height": 422
+   },
+   "v2ms": 172,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1640",
+    "1840",
+    "1648"
+   ],
+   "v2": "1640",
+   "v2top1raw": "1640",
+   "v2conf": 0.46123308902927296,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000579-PHOTO-2020-11-30-13-26-03",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "149932",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 181,
+    "top": 471,
+    "width": 137,
+    "height": 89
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000581-PHOTO-2020-11-30-13-26-03",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "116889",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 275,
+    "top": 526,
+    "width": 160,
+    "height": 164
+   },
+   "v2ms": 54,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1020",
+    "1028",
+    "1820"
+   ],
+   "v2": "1020",
+   "v2top1raw": "1020",
+   "v2conf": 0.49702201748059804,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000602-PHOTO-2020-11-30-13-27-18",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232301",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 11,
+    "top": 481,
+    "width": 617,
+    "height": 308
+   },
+   "v2ms": 224,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "2320",
+    "2920",
+    "2328"
+   ],
+   "v2": "2320",
+   "v2top1raw": "2320",
+   "v2conf": 0.4736970923842976,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000605-PHOTO-2020-11-30-13-27-18",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "232301",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 313,
+    "top": 537,
+    "width": 140,
+    "height": 84
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000614-PHOTO-2020-11-30-23-25-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "240587",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 142,
+    "top": 478,
+    "width": 144,
+    "height": 79
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "9936",
+    "9536",
+    "8936"
+   ],
+   "v2": "9936",
+   "v2top1raw": "9936",
+   "v2conf": 0.3006484737027517,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000623-PHOTO-2020-11-30-23-25-32",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "190105",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 593,
+    "top": 400,
+    "width": 193,
+    "height": 122
+   },
+   "v2ms": 53,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "2050",
+    "2058",
+    "2850"
+   ],
+   "v2": "2050",
+   "v2top1raw": "2050",
+   "v2conf": 0.48668569132772765,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000637-PHOTO-2020-11-30-23-26-16",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232487",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 174,
+    "width": 638,
+    "height": 324
+   },
+   "v2ms": 205,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "232487",
+    "292487",
+    "888964"
+   ],
+   "v2": "232487",
+   "v2top1raw": "232487",
+   "v2conf": 0.6228451376088853,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000674-PHOTO-2020-12-02-17-31-21",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160007",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 510,
+    "top": 450,
+    "width": 138,
+    "height": 143
+   },
+   "v2ms": 34,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160007",
+    "160087",
+    "160807"
+   ],
+   "v2": "160007",
+   "v2top1raw": "160007",
+   "v2conf": 0.8593836957109117,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000674-PHOTO-2020-12-17-20-34-34",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161204",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 569,
+    "top": 403,
+    "width": 680,
+    "height": 461
+   },
+   "v2ms": 369,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161204",
+    "151204",
+    "161209"
+   ],
+   "v2": "161204",
+   "v2top1raw": "161204",
+   "v2conf": 0.8887247313460247,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000686-PHOTO-2020-12-02-17-31-21",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "17006",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 571,
+    "top": 544,
+    "width": 160,
+    "height": 65
+   },
+   "v2ms": 14,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "8861",
+    "8111",
+    "0111"
+   ],
+   "v2": "8861",
+   "v2top1raw": "8861",
+   "v2conf": 0.38597348423024513,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000697-PHOTO-2020-12-02-17-32-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159944",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 434,
+    "top": 224,
+    "width": 318,
+    "height": 337
+   },
+   "v2ms": 83,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159944",
+    "759944",
+    "159344"
+   ],
+   "v2": "159944",
+   "v2top1raw": "159944",
+   "v2conf": 0.8174022049004743,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000708-PHOTO-2020-12-02-17-32-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "159982",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 409,
+    "top": 252,
+    "width": 394,
+    "height": 251
+   },
+   "v2ms": 134,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "159982",
+    "159382",
+    "159582"
+   ],
+   "v2": "159982",
+   "v2top1raw": "159982",
+   "v2conf": 0.821733036678431,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000718-PHOTO-2020-12-02-17-33-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "280200",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 154,
+    "top": 323,
+    "width": 119,
+    "height": 69
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "280200",
+    "280208",
+    "280280"
+   ],
+   "v2": "280200",
+   "v2top1raw": "280200",
+   "v2conf": 0.8853457270028852,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000723-PHOTO-2020-12-02-17-33-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "185822",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 509,
+    "top": 388,
+    "width": 190,
+    "height": 62
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "185822",
+    "185022",
+    "185622"
+   ],
+   "v2": "185822",
+   "v2top1raw": "185822",
+   "v2conf": 0.8562127722049127,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000725-PHOTO-2020-12-02-17-33-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232502",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 310,
+    "top": 497,
+    "width": 140,
+    "height": 80
+   },
+   "v2ms": 23,
+   "v1full": null,
+   "v1crop": "232502",
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000740-PHOTO-2020-12-02-23-36-54",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118134",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 241,
+    "top": 399,
+    "width": 117,
+    "height": 75
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118134",
+    "718134",
+    "118194"
+   ],
+   "v2": "118134",
+   "v2top1raw": "118134",
+   "v2conf": 0.8654103018152374,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000741-PHOTO-2020-12-02-23-36-54",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232699",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 58,
+    "top": 469,
+    "width": 512,
+    "height": 286
+   },
+   "v2ms": 156,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "232699",
+    "89836",
+    "232693"
+   ],
+   "v2": "232699",
+   "v2top1raw": "232699",
+   "v2conf": 0.8505197955860866,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000750-PHOTO-2020-12-02-23-38-11",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119203",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 212,
+    "top": 269,
+    "width": 115,
+    "height": 39
+   },
+   "v2ms": 4,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000762-PHOTO-2020-12-02-23-38-11",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "26921",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 500,
+    "top": 322,
+    "width": 84,
+    "height": 65
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000763-PHOTO-2020-12-02-23-38-11",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160068",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 612,
+    "top": 231,
+    "width": 308,
+    "height": 303
+   },
+   "v2ms": 86,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160068",
+    "160058",
+    "760068"
+   ],
+   "v2": "160068",
+   "v2top1raw": "160068",
+   "v2conf": 0.7479264922302054,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000773-PHOTO-2020-12-03-13-12-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "26921",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 197,
+    "top": 472,
+    "width": 124,
+    "height": 77
+   },
+   "v2ms": 38,
+   "v1full": null,
+   "v1crop": "26921",
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000778-PHOTO-2020-12-03-13-12-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162949",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 201,
+    "top": 503,
+    "width": 89,
+    "height": 60
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000779-PHOTO-2020-12-03-13-12-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160068",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 595,
+    "top": 415,
+    "width": 205,
+    "height": 206
+   },
+   "v2ms": 64,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160068",
+    "160060",
+    "160066"
+   ],
+   "v2": "160068",
+   "v2top1raw": "160068",
+   "v2conf": 0.8417858264350423,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000786-PHOTO-2020-12-03-13-12-16",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117191",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 303,
+    "top": 415,
+    "width": 346,
+    "height": 269
+   },
+   "v2ms": 134,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "117191",
+    "117197",
+    "177191"
+   ],
+   "v2": "117191",
+   "v2top1raw": "117191",
+   "v2conf": 0.848465137684144,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000798-PHOTO-2020-12-03-22-12-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118134",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 257,
+    "top": 408,
+    "width": 123,
+    "height": 74
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118134",
+    "118734",
+    "178134"
+   ],
+   "v2": "118134",
+   "v2top1raw": "118134",
+   "v2conf": 0.8453233118136143,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000804-PHOTO-2020-12-03-22-12-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "186156",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 551,
+    "top": 458,
+    "width": 182,
+    "height": 63
+   },
+   "v2ms": 13,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "186156",
+    "186155",
+    "185156"
+   ],
+   "v2": "186156",
+   "v2top1raw": "186156",
+   "v2conf": 0.8341261867989079,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000805-PHOTO-2020-12-03-22-12-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232900",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 67,
+    "top": 576,
+    "width": 565,
+    "height": 316
+   },
+   "v2ms": 146,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "232900",
+    "621009",
+    "661009"
+   ],
+   "v2": "232900",
+   "v2top1raw": "232900",
+   "v2conf": 0.8834451846969567,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000811-PHOTO-2020-12-03-22-13-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "167492",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 292,
+    "top": 481,
+    "width": 144,
+    "height": 86
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000814-PHOTO-2020-12-03-22-13-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160115",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 497,
+    "top": 383,
+    "width": 246,
+    "height": 156
+   },
+   "v2ms": 69,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160115",
+    "160116",
+    "0811601"
+   ],
+   "v2": "160115",
+   "v2top1raw": "160115",
+   "v2conf": 0.667541137464774,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000829-PHOTO-2020-12-06-19-04-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "232900",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 287,
+    "top": 462,
+    "width": 147,
+    "height": 82
+   },
+   "v2ms": 22,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000836-PHOTO-2020-12-06-19-04-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118323",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 231,
+    "top": 388,
+    "width": 140,
+    "height": 89
+   },
+   "v2ms": 15,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118323",
+    "110323",
+    "118329"
+   ],
+   "v2": "118323",
+   "v2top1raw": "118323",
+   "v2conf": 0.780057718517361,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000841-PHOTO-2020-12-06-19-04-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "186351",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 445,
+    "top": 397,
+    "width": 249,
+    "height": 156
+   },
+   "v2ms": 56,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "186351",
+    "186357",
+    "185351"
+   ],
+   "v2": "186351",
+   "v2top1raw": "186351",
+   "v2conf": 0.8427239422588184,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000843-PHOTO-2020-12-06-19-04-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233133",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 84,
+    "top": 378,
+    "width": 568,
+    "height": 328
+   },
+   "v2ms": 180,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "23389",
+    "23388",
+    "23989"
+   ],
+   "v2": "23389",
+   "v2top1raw": "23389",
+   "v2conf": 0.5065296310406204,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000847-PHOTO-2020-12-06-19-04-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "233133",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 293,
+    "top": 509,
+    "width": 142,
+    "height": 81
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": "233133",
+   "v2top3": [
+    "2333",
+    "2338",
+    "2339"
+   ],
+   "v2": "2333",
+   "v2top1raw": "2333",
+   "v2conf": 0.4029388931647415,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000852-PHOTO-2020-12-06-19-04-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118323",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 235,
+    "top": 513,
+    "width": 116,
+    "height": 72
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118323",
+    "110323",
+    "116323"
+   ],
+   "v2": "118323",
+   "v2top1raw": "118323",
+   "v2conf": 0.8743011528320808,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000860-PHOTO-2020-12-06-19-05-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233295",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 53,
+    "top": 540,
+    "width": 562,
+    "height": 275
+   },
+   "v2ms": 150,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "082332",
+    "002332",
+    "0823329"
+   ],
+   "v2": "082332",
+   "v2top1raw": "082332",
+   "v2conf": 0.6657119223412882,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000866-PHOTO-2020-12-06-19-05-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233296",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 288,
+    "top": 512,
+    "width": 138,
+    "height": 78
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000870-PHOTO-2020-12-18-09-32-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "28409",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 258,
+    "top": 860,
+    "width": 320,
+    "height": 142
+   },
+   "v2ms": 106,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "688888",
+    "680888",
+    "81108"
+   ],
+   "v2": "688888",
+   "v2top1raw": "688888",
+   "v2conf": 0.6500369078784851,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000872-PHOTO-2020-12-06-19-05-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "186608",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 577,
+    "top": 342,
+    "width": 220,
+    "height": 66
+   },
+   "v2ms": 14,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "86608",
+    "8608",
+    "86609"
+   ],
+   "v2": "86608",
+   "v2top1raw": "86608",
+   "v2conf": 0.6523190926865887,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000879-PHOTO-2020-12-06-19-05-30",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233488",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 102,
+    "top": 487,
+    "width": 476,
+    "height": 240
+   },
+   "v2ms": 93,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6603",
+    "6607",
+    "6803"
+   ],
+   "v2": "6603",
+   "v2top1raw": "6603",
+   "v2conf": 0.16698998894840222,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000884-PHOTO-2020-12-06-19-06-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "230968",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 232,
+    "top": 411,
+    "width": 98,
+    "height": 33
+   },
+   "v2ms": 6,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "230760",
+    "230060",
+    "230960"
+   ],
+   "v2": "230760",
+   "v2top1raw": "230760",
+   "v2conf": 0.5991945497300195,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000884-PHOTO-2020-12-18-10-39-12",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161219",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 719,
+    "top": 321,
+    "width": 470,
+    "height": 477
+   },
+   "v2ms": 202,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161219",
+    "161213",
+    "161215"
+   ],
+   "v2": "161219",
+   "v2top1raw": "161219",
+   "v2conf": 0.867767610488208,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000885-PHOTO-2020-12-06-19-06-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27493",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 482,
+    "top": 262,
+    "width": 163,
+    "height": 105
+   },
+   "v2ms": 24,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000886-PHOTO-2020-12-06-19-06-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119213",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 229,
+    "top": 276,
+    "width": 111,
+    "height": 36
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000890-PHOTO-2020-12-06-19-06-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "167492",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 290,
+    "top": 480,
+    "width": 147,
+    "height": 87
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000898-PHOTO-2020-12-18-11-47-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "118052",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 245,
+    "top": 689,
+    "width": 701,
+    "height": 507
+   },
+   "v2ms": 493,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118052",
+    "118852",
+    "110052"
+   ],
+   "v2": "118052",
+   "v2top1raw": "118052",
+   "v2conf": 0.8663743791824048,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000909-PHOTO-2020-12-06-19-07-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231060",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 342,
+    "top": 315,
+    "width": 108,
+    "height": 34
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "231060",
+    "237060",
+    "231050"
+   ],
+   "v2": "231060",
+   "v2top1raw": "231060",
+   "v2conf": 0.7693054286923539,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000911-PHOTO-2020-12-06-19-07-28",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "190325",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 622,
+    "top": 443,
+    "width": 198,
+    "height": 128
+   },
+   "v2ms": 38,
+   "v1full": null,
+   "v1crop": "190325",
+   "v2top3": [
+    "190325",
+    "190326",
+    "1190325"
+   ],
+   "v2": "190325",
+   "v2top1raw": "190325",
+   "v2conf": 0.6721189157051303,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000913-PHOTO-2020-12-06-19-07-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27572",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 461,
+    "top": 265,
+    "width": 142,
+    "height": 111
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000915-PHOTO-2020-12-06-19-07-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27060",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 183,
+    "top": 533,
+    "width": 183,
+    "height": 81
+   },
+   "v2ms": 17,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6819",
+    "6879",
+    "6919"
+   ],
+   "v2": "6819",
+   "v2top1raw": "6819",
+   "v2conf": 0.20401690176279513,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000926-PHOTO-2020-12-09-20-30-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160131",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 510,
+    "top": 341,
+    "width": 149,
+    "height": 150
+   },
+   "v2ms": 24,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "16013",
+    "16813",
+    "15013"
+   ],
+   "v2": "16013",
+   "v2top1raw": "16013",
+   "v2conf": 0.7849361804785697,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000928-PHOTO-2020-12-09-20-30-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160208",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 419,
+    "top": 179,
+    "width": 262,
+    "height": 264
+   },
+   "v2ms": 77,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160208",
+    "160200",
+    "160206"
+   ],
+   "v2": "160208",
+   "v2top1raw": "160208",
+   "v2conf": 0.8643426911247196,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000930-PHOTO-2020-12-09-20-30-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "66020",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 310,
+    "top": 401,
+    "width": 111,
+    "height": 73
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000937-PHOTO-2020-12-09-20-30-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "66020",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 189,
+    "top": 381,
+    "width": 111,
+    "height": 72
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000945-PHOTO-2020-12-09-20-30-13",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "190336",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 645,
+    "top": 433,
+    "width": 123,
+    "height": 125
+   },
+   "v2ms": 37,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "190336",
+    "190335",
+    "130336"
+   ],
+   "v2": "190336",
+   "v2top1raw": "190336",
+   "v2conf": 0.8486368739168088,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000956-PHOTO-2020-12-18-19-37-19",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "18515",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 754,
+    "top": 606,
+    "width": 268,
+    "height": 99
+   },
+   "v2ms": 32,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00000960-PHOTO-2020-12-09-20-32-29",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "163136",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 36,
+    "top": 402,
+    "width": 540,
+    "height": 346
+   },
+   "v2ms": 464,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "163136",
+    "63136",
+    "163135"
+   ],
+   "v2": "163136",
+   "v2top1raw": "163136",
+   "v2conf": 0.8624790337900166,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000971-PHOTO-2020-12-09-20-34-13",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "190399",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 593,
+    "top": 473,
+    "width": 121,
+    "height": 129
+   },
+   "v2ms": 28,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "190399",
+    "190393",
+    "190395"
+   ],
+   "v2": "190399",
+   "v2top1raw": "190399",
+   "v2conf": 0.8172028480396699,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000972-PHOTO-2020-12-09-20-34-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "150863",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 494,
+    "top": 395,
+    "width": 193,
+    "height": 108
+   },
+   "v2ms": 33,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "150863",
+    "150663",
+    "190863"
+   ],
+   "v2": "150863",
+   "v2top1raw": "150863",
+   "v2conf": 0.8136490120017275,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000987-PHOTO-2020-12-09-20-34-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160302",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 452,
+    "top": 215,
+    "width": 274,
+    "height": 278
+   },
+   "v2ms": 137,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160302",
+    "760302",
+    "160382"
+   ],
+   "v2": "160302",
+   "v2top1raw": "160302",
+   "v2conf": 0.8789348077507889,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00000995-PHOTO-2020-12-09-20-35-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "190413",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 574,
+    "top": 355,
+    "width": 122,
+    "height": 124
+   },
+   "v2ms": 31,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "19041",
+    "13041",
+    "15041"
+   ],
+   "v2": "19041",
+   "v2top1raw": "19041",
+   "v2conf": 0.7742289730687978,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001002-PHOTO-2020-12-09-20-35-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27158",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 134,
+    "top": 458,
+    "width": 70,
+    "height": 58
+   },
+   "v2ms": 6,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001006-PHOTO-2020-12-09-20-35-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160302",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 640,
+    "top": 313,
+    "width": 272,
+    "height": 271
+   },
+   "v2ms": 138,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "60302",
+    "1026",
+    "60382"
+   ],
+   "v2": "60302",
+   "v2top1raw": "60302",
+   "v2conf": 0.7944935388988836,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001011-PHOTO-2020-12-09-20-35-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "66148",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 258,
+    "top": 485,
+    "width": 68,
+    "height": 68
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "8828",
+    "6643",
+    "8888"
+   ],
+   "v2": "8828",
+   "v2top1raw": "8828",
+   "v2conf": 0.42526618882927564,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001015-PHOTO-2020-12-09-20-35-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "116740",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 95,
+    "top": 682,
+    "width": 501,
+    "height": 319
+   },
+   "v2ms": 211,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "16740",
+    "118740",
+    "116740"
+   ],
+   "v2": "16740",
+   "v2top1raw": "16740",
+   "v2conf": 0.6385859338305352,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001034-PHOTO-2020-12-09-20-36-47",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "190465",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 619,
+    "top": 436,
+    "width": 125,
+    "height": 126
+   },
+   "v2ms": 82,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "190465",
+    "130465",
+    "150465"
+   ],
+   "v2": "190465",
+   "v2top1raw": "190465",
+   "v2conf": 0.8418388926392811,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001041-PHOTO-2020-12-09-20-36-47",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160353",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 377,
+    "top": 295,
+    "width": 439,
+    "height": 269
+   },
+   "v2ms": 89,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160353",
+    "0160353",
+    "168353"
+   ],
+   "v2": "160353",
+   "v2top1raw": "160353",
+   "v2conf": 0.8603067622559568,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001044-PHOTO-2020-12-18-20-27-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161275",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 780,
+    "top": 250,
+    "width": 460,
+    "height": 465
+   },
+   "v2ms": 184,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161275",
+    "151275",
+    "181275"
+   ],
+   "v2": "161275",
+   "v2top1raw": "161275",
+   "v2conf": 0.8739501811038455,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001051-PHOTO-2020-12-09-21-01-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233488",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 264,
+    "top": 485,
+    "width": 138,
+    "height": 77
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001058-PHOTO-2020-12-09-21-01-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "186786",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 559,
+    "top": 356,
+    "width": 197,
+    "height": 191
+   },
+   "v2ms": 47,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "8686",
+    "8586",
+    "8606"
+   ],
+   "v2": "8686",
+   "v2top1raw": "8686",
+   "v2conf": 0.4342516100505198,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001062-PHOTO-2020-12-09-21-01-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233653",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 73,
+    "top": 427,
+    "width": 531,
+    "height": 259
+   },
+   "v2ms": 161,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "002336",
+    "233653",
+    "0023365"
+   ],
+   "v2": "002336",
+   "v2top1raw": "002336",
+   "v2conf": 0.7487593767373399,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001072-PHOTO-2020-12-18-20-46-45",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192398",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 339,
+    "top": 564,
+    "width": 210,
+    "height": 147
+   },
+   "v2ms": 40,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "081192",
+    "084192",
+    "0811923"
+   ],
+   "v2": "081192",
+   "v2top1raw": "081192",
+   "v2conf": 0.532885802945276,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001079-PHOTO-2020-12-09-21-02-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "282085",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 153,
+    "top": 225,
+    "width": 128,
+    "height": 76
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "202085",
+    "282085",
+    "202086"
+   ],
+   "v2": "202085",
+   "v2top1raw": "202085",
+   "v2conf": 0.7786788690875115,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001086-PHOTO-2020-12-09-21-02-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "187094",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 511,
+    "top": 407,
+    "width": 189,
+    "height": 60
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "18094",
+    "18034",
+    "18054"
+   ],
+   "v2": "18094",
+   "v2top1raw": "18094",
+   "v2conf": 0.7497680037236293,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001087-PHOTO-2020-12-09-21-02-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "233865",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 168,
+    "top": 525,
+    "width": 344,
+    "height": 173
+   },
+   "v2ms": 80,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001097-PHOTO-2020-12-10-11-16-56",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27558",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 177,
+    "top": 508,
+    "width": 187,
+    "height": 79
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001099-PHOTO-2020-12-10-11-16-56",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "28116",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 181,
+    "top": 499,
+    "width": 102,
+    "height": 162
+   },
+   "v2ms": 26,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001101-PHOTO-2020-12-10-11-16-56",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160634",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 400,
+    "top": 261,
+    "width": 394,
+    "height": 240
+   },
+   "v2ms": 94,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160634",
+    "160534",
+    "168634"
+   ],
+   "v2": "160634",
+   "v2top1raw": "160634",
+   "v2conf": 0.8623619274463621,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001114-PHOTO-2020-12-10-11-16-56",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "66500",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 209,
+    "top": 429,
+    "width": 68,
+    "height": 66
+   },
+   "v2ms": 7,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001124-PHOTO-2020-12-10-11-20-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117437",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 190,
+    "top": 248,
+    "width": 254,
+    "height": 198
+   },
+   "v2ms": 71,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "117437",
+    "177437",
+    "717437"
+   ],
+   "v2": "117437",
+   "v2top1raw": "117437",
+   "v2conf": 0.8498965408221612,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001125-PHOTO-2020-12-10-11-20-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "190475",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 632,
+    "top": 497,
+    "width": 122,
+    "height": 126
+   },
+   "v2ms": 36,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6888",
+    "6880",
+    "6886"
+   ],
+   "v2": "6888",
+   "v2top1raw": "6888",
+   "v2conf": 0.397770949573717,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001126-PHOTO-2020-12-10-11-20-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "116886",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 276,
+    "top": 534,
+    "width": 380,
+    "height": 228
+   },
+   "v2ms": 91,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "116886",
+    "116885",
+    "116806"
+   ],
+   "v2": "116886",
+   "v2top1raw": "116886",
+   "v2conf": 0.8235646404237509,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001127-PHOTO-2020-12-10-11-20-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "66229",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 236,
+    "top": 455,
+    "width": 66,
+    "height": 63
+   },
+   "v2ms": 7,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6223",
+    "2223",
+    "6229"
+   ],
+   "v2": "6223",
+   "v2top1raw": "6223",
+   "v2conf": 0.2642588897435196,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001130-PHOTO-2020-12-10-11-20-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160376",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 397,
+    "top": 276,
+    "width": 436,
+    "height": 267
+   },
+   "v2ms": 69,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160376",
+    "160375",
+    "160316"
+   ],
+   "v2": "160376",
+   "v2top1raw": "160376",
+   "v2conf": 0.8572827302174362,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001150-PHOTO-2020-12-10-11-20-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119462",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 325,
+    "top": 301,
+    "width": 113,
+    "height": 38
+   },
+   "v2ms": 5,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001162-PHOTO-2020-12-10-11-45-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160461",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 366,
+    "top": 312,
+    "width": 407,
+    "height": 253
+   },
+   "v2ms": 157,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160461",
+    "60461",
+    "0160461"
+   ],
+   "v2": "160461",
+   "v2top1raw": "160461",
+   "v2conf": 0.8655315653515783,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001165-PHOTO-2020-12-10-11-45-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117499",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 196,
+    "top": 544,
+    "width": 452,
+    "height": 235
+   },
+   "v2ms": 78,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "117499",
+    "1117499",
+    "117493"
+   ],
+   "v2": "117499",
+   "v2top1raw": "117499",
+   "v2conf": 0.71280895233972,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001168-PHOTO-2020-12-10-11-45-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27921",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 490,
+    "top": 259,
+    "width": 138,
+    "height": 106
+   },
+   "v2ms": 23,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001169-PHOTO-2020-12-10-11-45-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "146116",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 277,
+    "top": 444,
+    "width": 149,
+    "height": 85
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6116",
+    "6716",
+    "6115"
+   ],
+   "v2": "6116",
+   "v2top1raw": "6116",
+   "v2conf": 0.43851039117190665,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001179-PHOTO-2020-12-10-11-46-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27303",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 142,
+    "top": 470,
+    "width": 169,
+    "height": 78
+   },
+   "v2ms": 26,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6911",
+    "6811",
+    "8911"
+   ],
+   "v2": "6911",
+   "v2top1raw": "6911",
+   "v2conf": 0.22999630509630858,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001203-PHOTO-2020-12-10-11-47-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "146155",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 215,
+    "top": 379,
+    "width": 149,
+    "height": 87
+   },
+   "v2ms": 17,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "146155",
+    "145155",
+    "146156"
+   ],
+   "v2": "146155",
+   "v2top1raw": "146155",
+   "v2conf": 0.8367843688733198,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001212-PHOTO-2020-12-10-11-47-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160553",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 429,
+    "top": 301,
+    "width": 468,
+    "height": 283
+   },
+   "v2ms": 146,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160553",
+    "160559",
+    "168553"
+   ],
+   "v2": "160553",
+   "v2top1raw": "160553",
+   "v2conf": 0.8514555351903029,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001215-PHOTO-2020-12-10-11-47-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "17658",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 338,
+    "top": 359,
+    "width": 285,
+    "height": 111
+   },
+   "v2ms": 79,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001221-PHOTO-2020-12-10-11-47-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "146155",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 240,
+    "top": 451,
+    "width": 89,
+    "height": 81
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "14665",
+    "14565",
+    "14666"
+   ],
+   "v2": "14665",
+   "v2top1raw": "14665",
+   "v2conf": 0.7391429206809543,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001222-PHOTO-2020-12-10-11-47-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "28007",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 533,
+    "top": 278,
+    "width": 126,
+    "height": 99
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001223-PHOTO-2020-12-10-11-47-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27428",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 172,
+    "top": 489,
+    "width": 158,
+    "height": 74
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "3861",
+    "3961",
+    "3862"
+   ],
+   "v2": "3861",
+   "v2top1raw": "3861",
+   "v2conf": 0.17283997235422754,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001228-PHOTO-2020-12-10-11-48-31",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160570",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 575,
+    "top": 231,
+    "width": 231,
+    "height": 234
+   },
+   "v2ms": 66,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160570",
+    "760570",
+    "160578"
+   ],
+   "v2": "160570",
+   "v2top1raw": "160570",
+   "v2conf": 0.8572959107520091,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001255-PHOTO-2020-12-10-11-49-58",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "241630",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 4,
+    "top": 384,
+    "width": 620,
+    "height": 387
+   },
+   "v2ms": 224,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "241630",
+    "8241630",
+    "241830"
+   ],
+   "v2": "241630",
+   "v2top1raw": "241630",
+   "v2conf": 0.730055219477294,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001259-PHOTO-2020-12-10-11-49-58",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235233",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 209,
+    "top": 422,
+    "width": 107,
+    "height": 86
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235233",
+    "235239",
+    "235293"
+   ],
+   "v2": "235233",
+   "v2top1raw": "235233",
+   "v2conf": 0.8933861595885012,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001265-PHOTO-2020-12-10-15-17-55",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "117386",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 129,
+    "top": 523,
+    "width": 499,
+    "height": 263
+   },
+   "v2ms": 332,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1173",
+    "1179",
+    "1773"
+   ],
+   "v2": "1173",
+   "v2top1raw": "1173",
+   "v2conf": 0.4114908873373049,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001293-PHOTO-2020-12-10-20-02-06",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "187249",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 586,
+    "top": 398,
+    "width": 171,
+    "height": 47
+   },
+   "v2ms": 14,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "187249",
+    "187243",
+    "187245"
+   ],
+   "v2": "187249",
+   "v2top1raw": "187249",
+   "v2conf": 0.8544172071786562,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001294-PHOTO-2020-12-10-20-02-06",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234098",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 24,
+    "top": 463,
+    "width": 636,
+    "height": 308
+   },
+   "v2ms": 159,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "234098",
+    "89386",
+    "89366"
+   ],
+   "v2": "234098",
+   "v2top1raw": "234098",
+   "v2conf": 0.6989695024402004,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001296-PHOTO-2020-12-10-21-59-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160755",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 345,
+    "top": 388,
+    "width": 404,
+    "height": 251
+   },
+   "v2ms": 95,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160755",
+    "0160755",
+    "160155"
+   ],
+   "v2": "160755",
+   "v2top1raw": "160755",
+   "v2conf": 0.8521321963516569,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001316-PHOTO-2020-12-11-13-27-55",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160778",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 574,
+    "top": 334,
+    "width": 256,
+    "height": 264
+   },
+   "v2ms": 72,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "16078",
+    "1035",
+    "16070"
+   ],
+   "v2": "16078",
+   "v2top1raw": "16078",
+   "v2conf": 0.76240737127667,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001319-PHOTO-2020-12-11-13-27-55",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "190780",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 535,
+    "top": 388,
+    "width": 112,
+    "height": 118
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001321-PHOTO-2020-12-19-10-17-47",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "164092",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 325,
+    "top": 764,
+    "width": 242,
+    "height": 146
+   },
+   "v2ms": 35,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001325-PHOTO-2020-12-11-13-27-55",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235340",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 211,
+    "top": 536,
+    "width": 108,
+    "height": 88
+   },
+   "v2ms": 13,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235340",
+    "235348",
+    "235940"
+   ],
+   "v2": "235340",
+   "v2top1raw": "235340",
+   "v2conf": 0.8798146630841166,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001330-PHOTO-2020-12-19-10-37-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "75885",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 630,
+    "top": 209,
+    "width": 313,
+    "height": 317
+   },
+   "v2ms": 93,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "5885",
+    "66198",
+    "66188"
+   ],
+   "v2": "5885",
+   "v2top1raw": "5885",
+   "v2conf": 0.4301407056625152,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001332-PHOTO-2020-12-19-10-38-29",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161296",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 902,
+    "top": 386,
+    "width": 481,
+    "height": 482
+   },
+   "v2ms": 200,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161296",
+    "161295",
+    "161236"
+   ],
+   "v2": "161296",
+   "v2top1raw": "161296",
+   "v2conf": 0.8557689458341002,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001340-PHOTO-2020-12-12-10-55-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119728",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 320,
+    "top": 262,
+    "width": 112,
+    "height": 39
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001344-PHOTO-2020-12-12-10-55-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "235383",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 196,
+    "top": 339,
+    "width": 153,
+    "height": 91
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235383",
+    "235393",
+    "235983"
+   ],
+   "v2": "235383",
+   "v2top1raw": "235383",
+   "v2conf": 0.8423126519754924,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001348-PHOTO-2020-12-12-10-55-01",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160851",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 449,
+    "top": 226,
+    "width": 307,
+    "height": 315
+   },
+   "v2ms": 174,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160851",
+    "60851",
+    "160051"
+   ],
+   "v2": "160851",
+   "v2top1raw": "160851",
+   "v2conf": 0.7593880439364715,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001353-PHOTO-2020-12-12-10-58-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "163667",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 91,
+    "top": 332,
+    "width": 485,
+    "height": 299
+   },
+   "v2ms": 138,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "163667",
+    "163567",
+    "763667"
+   ],
+   "v2": "163667",
+   "v2top1raw": "163667",
+   "v2conf": 0.7735889980592653,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001357-PHOTO-2020-12-12-10-58-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231465",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 317,
+    "top": 371,
+    "width": 105,
+    "height": 33
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001366-PHOTO-2020-12-12-10-58-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160839",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 466,
+    "top": 226,
+    "width": 477,
+    "height": 297
+   },
+   "v2ms": 174,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160839",
+    "0160839",
+    "0160833"
+   ],
+   "v2": "160839",
+   "v2top1raw": "160839",
+   "v2conf": 0.7048803383967774,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001368-PHOTO-2020-12-12-10-58-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "17921",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 374,
+    "top": 396,
+    "width": 172,
+    "height": 69
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001376-PHOTO-2020-12-12-11-00-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234120",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 310,
+    "top": 527,
+    "width": 138,
+    "height": 78
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001390-PHOTO-2020-12-12-11-00-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234352",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 186,
+    "top": 529,
+    "width": 343,
+    "height": 173
+   },
+   "v2ms": 89,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001396-PHOTO-2020-12-12-11-00-04",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234352",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 293,
+    "top": 420,
+    "width": 145,
+    "height": 82
+   },
+   "v2ms": 42,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001404-PHOTO-2020-12-15-22-16-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117588",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 788,
+    "width": 785,
+    "height": 488
+   },
+   "v2ms": 238,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "11588",
+    "1130",
+    "11580"
+   ],
+   "v2": "11588",
+   "v2top1raw": "11588",
+   "v2conf": 0.7414551442246506,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001409-PHOTO-2020-12-15-22-16-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119779",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 487,
+    "top": 359,
+    "width": 174,
+    "height": 60
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119779",
+    "119773",
+    "119775"
+   ],
+   "v2": "119779",
+   "v2top1raw": "119779",
+   "v2conf": 0.8432742817944318,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001410-PHOTO-2020-12-15-22-16-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231529",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 483,
+    "top": 704,
+    "width": 158,
+    "height": 49
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "231529",
+    "237529",
+    "231523"
+   ],
+   "v2": "231529",
+   "v2top1raw": "231529",
+   "v2conf": 0.8314846056234972,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001417-PHOTO-2020-12-15-22-16-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27850",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 234,
+    "top": 754,
+    "width": 260,
+    "height": 126
+   },
+   "v2ms": 52,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "88808",
+    "88888",
+    "88800"
+   ],
+   "v2": "88808",
+   "v2top1raw": "88808",
+   "v2conf": 0.4031503250509154,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001423-PHOTO-2020-12-19-17-13-07",
+   "role": "eligible",
+   "family": "digital-dark-on-light-blue",
+   "label": "75916",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 647,
+    "top": 94,
+    "width": 396,
+    "height": 138
+   },
+   "v2ms": 81,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001427-PHOTO-2020-12-15-22-17-24",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "190912",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 540,
+    "top": 475,
+    "width": 190,
+    "height": 125
+   },
+   "v2ms": 37,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "19091",
+    "19031",
+    "19051"
+   ],
+   "v2": "19091",
+   "v2top1raw": "19091",
+   "v2conf": 0.7501772950742348,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001428-PHOTO-2020-12-15-22-17-24",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "17986",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 536,
+    "top": 420,
+    "width": 163,
+    "height": 62
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001433-PHOTO-2020-12-15-22-17-24",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160899",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 383,
+    "top": 291,
+    "width": 381,
+    "height": 237
+   },
+   "v2ms": 95,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "60899",
+    "160899",
+    "0160899"
+   ],
+   "v2": "60899",
+   "v2top1raw": "60899",
+   "v2conf": 0.7144389167702441,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001436-PHOTO-2020-12-15-22-17-24",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "117802",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 276,
+    "top": 793,
+    "width": 350,
+    "height": 200
+   },
+   "v2ms": 83,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001441-PHOTO-2020-12-15-22-18-02",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119780",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 307,
+    "top": 345,
+    "width": 104,
+    "height": 38
+   },
+   "v2ms": 6,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001443-PHOTO-2020-12-15-22-18-03",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "190924",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 613,
+    "top": 428,
+    "width": 121,
+    "height": 131
+   },
+   "v2ms": 28,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "190924",
+    "19092",
+    "190324"
+   ],
+   "v2": "190924",
+   "v2top1raw": "190924",
+   "v2conf": 0.8526718052898797,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001444-PHOTO-2020-12-19-17-37-33",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161335",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 775,
+    "top": 625,
+    "width": 535,
+    "height": 374
+   },
+   "v2ms": 212,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161335",
+    "151335",
+    "161336"
+   ],
+   "v2": "161335",
+   "v2top1raw": "161335",
+   "v2conf": 0.8624039954440955,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001463-PHOTO-2020-12-15-22-18-03",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "18022",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 413,
+    "top": 245,
+    "width": 195,
+    "height": 83
+   },
+   "v2ms": 41,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001470-PHOTO-2020-12-15-22-18-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "231617",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 348,
+    "top": 379,
+    "width": 108,
+    "height": 39
+   },
+   "v2ms": 5,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001471-PHOTO-2020-12-15-22-18-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119841",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 332,
+    "top": 232,
+    "width": 106,
+    "height": 39
+   },
+   "v2ms": 4,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001483-PHOTO-2020-12-15-22-18-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "27850",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 164,
+    "top": 483,
+    "width": 151,
+    "height": 73
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001495-PHOTO-2020-12-15-22-19-58",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119841",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 208,
+    "top": 177,
+    "width": 108,
+    "height": 44
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001501-PHOTO-2020-12-15-22-19-58",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "191033",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 569,
+    "top": 400,
+    "width": 212,
+    "height": 131
+   },
+   "v2ms": 57,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "191033",
+    "131033",
+    "151033"
+   ],
+   "v2": "191033",
+   "v2top1raw": "191033",
+   "v2conf": 0.8605355403884153,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001502-PHOTO-2020-12-15-22-19-58",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235497",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 237,
+    "top": 466,
+    "width": 107,
+    "height": 87
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235497",
+    "235493",
+    "235437"
+   ],
+   "v2": "235497",
+   "v2top1raw": "235497",
+   "v2conf": 0.8395352341622075,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001519-PHOTO-2020-12-15-22-20-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "18089",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 304,
+    "top": 276,
+    "width": 142,
+    "height": 58
+   },
+   "v2ms": 9,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "18089",
+    "10089",
+    "18009"
+   ],
+   "v2": "18089",
+   "v2top1raw": "18089",
+   "v2conf": 0.5003898138806093,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001531-PHOTO-2020-12-15-22-20-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119902",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 282,
+    "top": 264,
+    "width": 115,
+    "height": 41
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001533-PHOTO-2020-12-15-22-20-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "83541",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 175,
+    "top": 543,
+    "width": 396,
+    "height": 171
+   },
+   "v2ms": 88,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "083541",
+    "0083541",
+    "008354"
+   ],
+   "v2": "083541",
+   "v2top1raw": "083541",
+   "v2conf": 0.6056322680363487,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001534-PHOTO-2020-12-15-22-20-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "163866",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 70,
+    "top": 530,
+    "width": 304,
+    "height": 211
+   },
+   "v2ms": 84,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001544-PHOTO-2020-12-15-22-22-36",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "191106",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 601,
+    "top": 404,
+    "width": 118,
+    "height": 127
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "2104",
+    "2184",
+    "2109"
+   ],
+   "v2": "2104",
+   "v2top1raw": "2104",
+   "v2conf": 0.4978166698196461,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001545-PHOTO-2020-12-15-22-22-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "67034",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 189,
+    "top": 552,
+    "width": 129,
+    "height": 80
+   },
+   "v2ms": 16,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001552-PHOTO-2020-12-15-22-22-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119902",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 276,
+    "top": 207,
+    "width": 118,
+    "height": 49
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001555-PHOTO-2020-12-15-22-22-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "83541",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 323,
+    "top": 411,
+    "width": 99,
+    "height": 77
+   },
+   "v2ms": 12,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "8354",
+    "8394",
+    "8359"
+   ],
+   "v2": "8354",
+   "v2top1raw": "8354",
+   "v2conf": 0.42817150894458056,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001560-PHOTO-2020-12-15-22-22-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160926",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 425,
+    "top": 203,
+    "width": 280,
+    "height": 297
+   },
+   "v2ms": 104,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160926",
+    "160326",
+    "160526"
+   ],
+   "v2": "160926",
+   "v2top1raw": "160926",
+   "v2conf": 0.8536878480608258,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001573-PHOTO-2020-12-15-22-23-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160958",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 486,
+    "top": 242,
+    "width": 352,
+    "height": 237
+   },
+   "v2ms": 119,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160958",
+    "160950",
+    "160956"
+   ],
+   "v2": "160958",
+   "v2top1raw": "160958",
+   "v2conf": 0.8203289565531039,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001589-PHOTO-2020-12-15-22-24-15",
+   "role": "eligible",
+   "family": "digital-dark-on-light-neutral",
+   "label": "191169",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 550,
+    "top": 430,
+    "width": 202,
+    "height": 132
+   },
+   "v2ms": 45,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "191169",
+    "191163",
+    "191165"
+   ],
+   "v2": "191169",
+   "v2top1raw": "191169",
+   "v2conf": 0.8335849329679523,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001592-PHOTO-2020-12-15-22-24-15",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119962",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 263,
+    "top": 244,
+    "width": 113,
+    "height": 41
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001600-PHOTO-2020-12-15-22-25-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234517",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 434,
+    "width": 608,
+    "height": 319
+   },
+   "v2ms": 191,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "234517",
+    "234577",
+    "234511"
+   ],
+   "v2": "234517",
+   "v2top1raw": "234517",
+   "v2conf": 0.8765664667165728,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001605-PHOTO-2020-12-15-22-25-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119145",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 253,
+    "top": 484,
+    "width": 116,
+    "height": 75
+   },
+   "v2ms": 34,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119145",
+    "113145",
+    "115145"
+   ],
+   "v2": "119145",
+   "v2top1raw": "119145",
+   "v2conf": 0.8557232317890252,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001610-PHOTO-2020-12-15-22-25-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234517",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 295,
+    "top": 500,
+    "width": 140,
+    "height": 80
+   },
+   "v2ms": 13,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001622-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "318012",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 258,
+    "top": 496,
+    "width": 128,
+    "height": 84
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "31802",
+    "38802",
+    "31882"
+   ],
+   "v2": "31802",
+   "v2top1raw": "31802",
+   "v2conf": 0.7525596039695006,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001625-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "318012",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 346,
+    "top": 472,
+    "width": 103,
+    "height": 62
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "318012",
+    "378012",
+    "318072"
+   ],
+   "v2": "318012",
+   "v2top1raw": "318012",
+   "v2conf": 0.7548595542081227,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001630-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "119159",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 302,
+    "top": 446,
+    "width": 121,
+    "height": 75
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "19159",
+    "119159",
+    "119759"
+   ],
+   "v2": "19159",
+   "v2top1raw": "19159",
+   "v2conf": 0.7398287152427248,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001632-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "187679",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 681,
+    "top": 448,
+    "width": 214,
+    "height": 68
+   },
+   "v2ms": 44,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1869",
+    "1863",
+    "1859"
+   ],
+   "v2": "1869",
+   "v2top1raw": "1869",
+   "v2conf": 0.39881723119467943,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001633-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "318086",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 314,
+    "top": 502,
+    "width": 122,
+    "height": 82
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "318086",
+    "378086",
+    "318085"
+   ],
+   "v2": "318086",
+   "v2top1raw": "318086",
+   "v2conf": 0.8300301071919844,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001640-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234904",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 561,
+    "width": 623,
+    "height": 319
+   },
+   "v2ms": 180,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "23404",
+    "234904",
+    "234504"
+   ],
+   "v2": "23404",
+   "v2top1raw": "23404",
+   "v2conf": 0.7605290118557458,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001641-PHOTO-2020-12-15-22-26-20",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "234904",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 293,
+    "top": 497,
+    "width": 141,
+    "height": 80
+   },
+   "v2ms": 58,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001648-PHOTO-2020-12-15-22-26-43",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "187837",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 622,
+    "top": 299,
+    "width": 172,
+    "height": 164
+   },
+   "v2ms": 81,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "18837",
+    "10037",
+    "18833"
+   ],
+   "v2": "18837",
+   "v2top1raw": "18837",
+   "v2conf": 0.6850889981079282,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001653-PHOTO-2020-12-15-22-26-43",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235128",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 98,
+    "top": 494,
+    "width": 544,
+    "height": 313
+   },
+   "v2ms": 185,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "235128",
+    "235120",
+    "235126"
+   ],
+   "v2": "235128",
+   "v2top1raw": "235128",
+   "v2conf": 0.8752454236322582,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001657-PHOTO-2020-12-16-20-20-25",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "235128",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 303,
+    "top": 509,
+    "width": 139,
+    "height": 78
+   },
+   "v2ms": 59,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001663-PHOTO-2020-12-16-20-20-57",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "187999",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 525,
+    "top": 341,
+    "width": 176,
+    "height": 179
+   },
+   "v2ms": 66,
+   "v1full": null,
+   "v1crop": "187999",
+   "v2top3": [
+    "87999",
+    "87993",
+    "87995"
+   ],
+   "v2": "87999",
+   "v2top1raw": "87999",
+   "v2conf": 0.7012795171603329,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001669-PHOTO-2020-12-16-20-22-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "119967",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 330,
+    "top": 272,
+    "width": 112,
+    "height": 44
+   },
+   "v2ms": 7,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001677-PHOTO-2020-12-16-20-22-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "160990",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 521,
+    "top": 423,
+    "width": 139,
+    "height": 148
+   },
+   "v2ms": 51,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "160990",
+    "160998",
+    "160930"
+   ],
+   "v2": "160990",
+   "v2top1raw": "160990",
+   "v2conf": 0.8295355633152605,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001678-PHOTO-2020-12-16-20-22-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192204",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 193,
+    "top": 425,
+    "width": 185,
+    "height": 99
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6866",
+    "6864",
+    "6066"
+   ],
+   "v2": "6866",
+   "v2top1raw": "6866",
+   "v2conf": 0.27135690576256954,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001680-PHOTO-2020-12-16-20-22-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "75566",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 156,
+    "top": 435,
+    "width": 206,
+    "height": 192
+   },
+   "v2ms": 55,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001686-PHOTO-2020-12-16-20-22-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "242210",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 176,
+    "top": 452,
+    "width": 347,
+    "height": 218
+   },
+   "v2ms": 80,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "242210",
+    "242218",
+    "1242210"
+   ],
+   "v2": "242210",
+   "v2top1raw": "242210",
+   "v2conf": 0.7780766240108234,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00001842-PHOTO-2020-12-19-22-24-38",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118221",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 520,
+    "top": 810,
+    "width": 446,
+    "height": 232
+   },
+   "v2ms": 142,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001877-PHOTO-2020-12-19-23-42-55",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "67657",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 410,
+    "top": 903,
+    "width": 415,
+    "height": 246
+   },
+   "v2ms": 79,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001907-PHOTO-2020-12-20-10-27-12",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "164168",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 342,
+    "top": 666,
+    "width": 168,
+    "height": 283
+   },
+   "v2ms": 42,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00001927-PHOTO-2020-12-20-11-31-36",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118221",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 619,
+    "top": 1100,
+    "width": 261,
+    "height": 154
+   },
+   "v2ms": 62,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118221",
+    "110221",
+    "116221"
+   ],
+   "v2": "118221",
+   "v2top1raw": "118221",
+   "v2conf": 0.8918363415214764,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002023-PHOTO-2020-12-20-17-53-58",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "164214",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 0,
+    "top": 739,
+    "width": 843,
+    "height": 592
+   },
+   "v2ms": 227,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "001642",
+    "164214",
+    "001542"
+   ],
+   "v2": "001642",
+   "v2top1raw": "001642",
+   "v2conf": 0.8865634901973927,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002055-PHOTO-2020-12-20-18-18-11",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "76016",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 531,
+    "top": 65,
+    "width": 368,
+    "height": 171
+   },
+   "v2ms": 62,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00002067-PHOTO-2020-12-20-18-48-02",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "18711",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 845,
+    "top": 627,
+    "width": 154,
+    "height": 66
+   },
+   "v2ms": 8,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00002076-PHOTO-2020-12-20-19-06-43",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161411",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 665,
+    "top": 489,
+    "width": 599,
+    "height": 411
+   },
+   "v2ms": 212,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "016141",
+    "0161411",
+    "161411"
+   ],
+   "v2": "016141",
+   "v2top1raw": "016141",
+   "v2conf": 0.746017044244245,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002371-PHOTO-2020-12-20-21-07-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118288",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 591,
+    "top": 1161,
+    "width": 389,
+    "height": 214
+   },
+   "v2ms": 69,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "11028",
+    "11020",
+    "71028"
+   ],
+   "v2": "11028",
+   "v2top1raw": "11028",
+   "v2conf": 0.7403753836187227,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002510-PHOTO-2020-12-21-10-01-49",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120356",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 555,
+    "top": 547,
+    "width": 137,
+    "height": 47
+   },
+   "v2ms": 7,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00002518-PHOTO-2020-12-21-10-34-52",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "191607",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 941,
+    "top": 621,
+    "width": 183,
+    "height": 196
+   },
+   "v2ms": 68,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "191607",
+    "131607",
+    "151607"
+   ],
+   "v2": "191607",
+   "v2top1raw": "191607",
+   "v2conf": 0.8538756207105332,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002535-PHOTO-2020-12-21-12-20-26",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "18737",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 646,
+    "top": 472,
+    "width": 379,
+    "height": 154
+   },
+   "v2ms": 59,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "18737",
+    "18733",
+    "8111"
+   ],
+   "v2": "18737",
+   "v2top1raw": "18737",
+   "v2conf": 0.5318996699032569,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002647-PHOTO-2020-12-21-18-47-30",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "192497",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 315,
+    "top": 556,
+    "width": 128,
+    "height": 88
+   },
+   "v2ms": 18,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "19249",
+    "19299",
+    "19243"
+   ],
+   "v2": "19249",
+   "v2top1raw": "19249",
+   "v2conf": 0.7485564946201162,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002690-PHOTO-2020-12-21-19-35-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "76068",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 569,
+    "top": 70,
+    "width": 308,
+    "height": 107
+   },
+   "v2ms": 67,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "19146",
+    "19141",
+    "19196"
+   ],
+   "v2": "19146",
+   "v2top1raw": "19146",
+   "v2conf": 0.4841901597956535,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002898-PHOTO-2020-12-21-22-08-02",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161563",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 819,
+    "top": 589,
+    "width": 586,
+    "height": 399
+   },
+   "v2ms": 164,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161563",
+    "0161563",
+    "0161553"
+   ],
+   "v2": "161563",
+   "v2top1raw": "161563",
+   "v2conf": 0.7255646387962095,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00002985-PHOTO-2020-12-22-10-03-33",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "191716",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 785,
+    "top": 549,
+    "width": 317,
+    "height": 330
+   },
+   "v2ms": 120,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "191716",
+    "191316",
+    "191116"
+   ],
+   "v2": "191716",
+   "v2top1raw": "191716",
+   "v2conf": 0.8391909311920651,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003000-PHOTO-2020-12-22-10-32-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161571",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 809,
+    "top": 329,
+    "width": 509,
+    "height": 544
+   },
+   "v2ms": 277,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161571",
+    "162532",
+    "162572"
+   ],
+   "v2": "161571",
+   "v2top1raw": "161571",
+   "v2conf": 0.8574730039012434,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003095-PHOTO-2020-12-22-18-56-24",
+   "role": "eligible",
+   "family": "digital-light-on-dark-red",
+   "label": "192625",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 222,
+    "top": 624,
+    "width": 180,
+    "height": 119
+   },
+   "v2ms": 29,
+   "v1full": null,
+   "v1crop": "192625",
+   "v2top3": [
+    "182625",
+    "482625",
+    "1753"
+   ],
+   "v2": "182625",
+   "v2top1raw": "182625",
+   "v2conf": 0.5223584529285286,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003275-PHOTO-2020-12-22-20-55-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120499",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 318,
+    "top": 436,
+    "width": 164,
+    "height": 61
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00003351-PHOTO-2020-12-22-22-13-46",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161670",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 685,
+    "top": 440,
+    "width": 593,
+    "height": 402
+   },
+   "v2ms": 241,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161670",
+    "761670",
+    "161610"
+   ],
+   "v2": "161670",
+   "v2top1raw": "161670",
+   "v2conf": 0.8627611870906967,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003482-PHOTO-2020-12-23-10-20-40",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236238",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 516,
+    "top": 666,
+    "width": 157,
+    "height": 130
+   },
+   "v2ms": 25,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236238",
+    "236298",
+    "238238"
+   ],
+   "v2": "236238",
+   "v2top1raw": "236238",
+   "v2conf": 0.8046889590011634,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003489-PHOTO-2020-12-23-10-44-05",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "84180",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 490,
+    "top": 731,
+    "width": 144,
+    "height": 109
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "84180",
+    "84188",
+    "84100"
+   ],
+   "v2": "84180",
+   "v2top1raw": "84180",
+   "v2conf": 0.7505916909631225,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003497-PHOTO-2020-12-23-12-17-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192627",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 334,
+    "top": 669,
+    "width": 287,
+    "height": 155
+   },
+   "v2ms": 57,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "192627",
+    "182627",
+    "1192627"
+   ],
+   "v2": "192627",
+   "v2top1raw": "192627",
+   "v2conf": 0.7142005686098067,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003665-PHOTO-2020-12-23-20-26-39",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236349",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 462,
+    "top": 752,
+    "width": 204,
+    "height": 123
+   },
+   "v2ms": 26,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236349",
+    "082008",
+    "062008"
+   ],
+   "v2": "236349",
+   "v2top1raw": "236349",
+   "v2conf": 0.860244447556256,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003751-PHOTO-2020-12-23-21-37-03",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120593",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 487,
+    "top": 378,
+    "width": 175,
+    "height": 60
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120593",
+    "120533",
+    "120553"
+   ],
+   "v2": "120593",
+   "v2top1raw": "120593",
+   "v2conf": 0.8624121962797753,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003874-PHOTO-2020-12-24-10-22-08",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161745",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 804,
+    "top": 359,
+    "width": 445,
+    "height": 458
+   },
+   "v2ms": 105,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161745",
+    "151745",
+    "181745"
+   ],
+   "v2": "161745",
+   "v2top1raw": "161745",
+   "v2conf": 0.8600364979405885,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003887-PHOTO-2020-12-24-10-49-44",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236349",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 490,
+    "top": 706,
+    "width": 152,
+    "height": 122
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236349",
+    "23349",
+    "235349"
+   ],
+   "v2": "236349",
+   "v2top1raw": "236349",
+   "v2conf": 0.8519595684503389,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003915-PHOTO-2020-12-24-11-52-54",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192701",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 308,
+    "top": 629,
+    "width": 283,
+    "height": 152
+   },
+   "v2ms": 60,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "119270",
+    "419270",
+    "8119270"
+   ],
+   "v2": "119270",
+   "v2top1raw": "119270",
+   "v2conf": 0.6971478323557065,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00003950-PHOTO-2020-12-24-18-44-17",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192730",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 289,
+    "top": 570,
+    "width": 193,
+    "height": 131
+   },
+   "v2ms": 26,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "1927",
+    "1923",
+    "1327"
+   ],
+   "v2": "1927",
+   "v2top1raw": "1927",
+   "v2conf": 0.4614154380503587,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004025-PHOTO-2020-12-24-19-34-12",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161803",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 88,
+    "top": 800,
+    "width": 632,
+    "height": 419
+   },
+   "v2ms": 224,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161803",
+    "0161803",
+    "161809"
+   ],
+   "v2": "161803",
+   "v2top1raw": "161803",
+   "v2conf": 0.6925854892711673,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004058-PHOTO-2020-12-24-20-03-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120674",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 502,
+    "top": 300,
+    "width": 201,
+    "height": 78
+   },
+   "v2ms": 17,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120674",
+    "120574",
+    "120614"
+   ],
+   "v2": "120674",
+   "v2top1raw": "120674",
+   "v2conf": 0.8876736101398719,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004095-PHOTO-2020-12-24-20-10-34",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236422",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 480,
+    "top": 729,
+    "width": 165,
+    "height": 130
+   },
+   "v2ms": 20,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00004115-PHOTO-2020-12-24-20-17-56",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "68310",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 247,
+    "top": 810,
+    "width": 254,
+    "height": 161
+   },
+   "v2ms": 45,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "002014",
+    "68310",
+    "082014"
+   ],
+   "v2": "002014",
+   "v2top1raw": "002014",
+   "v2conf": 0.8243233531489077,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004343-PHOTO-2020-12-25-10-09-27",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "68310",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 334,
+    "top": 766,
+    "width": 258,
+    "height": 153
+   },
+   "v2ms": 27,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "6830",
+    "3884",
+    "6838"
+   ],
+   "v2": "6830",
+   "v2top1raw": "6830",
+   "v2conf": 0.45805442229634996,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004351-PHOTO-2020-12-25-10-29-16",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "236422",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 501,
+    "top": 752,
+    "width": 156,
+    "height": 128
+   },
+   "v2ms": 19,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "236422",
+    "23422",
+    "238422"
+   ],
+   "v2": "236422",
+   "v2top1raw": "236422",
+   "v2conf": 0.8492799650309601,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004354-PHOTO-2020-12-25-10-34-28",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161834",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 496,
+    "top": 793,
+    "width": 180,
+    "height": 178
+   },
+   "v2ms": 55,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161834",
+    "151834",
+    "161894"
+   ],
+   "v2": "161834",
+   "v2top1raw": "161834",
+   "v2conf": 0.8534442317819834,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004365-PHOTO-2020-12-25-11-37-48",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192730",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 392,
+    "top": 626,
+    "width": 189,
+    "height": 151
+   },
+   "v2ms": 47,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "192730",
+    "192738",
+    "132730"
+   ],
+   "v2": "192730",
+   "v2top1raw": "192730",
+   "v2conf": 0.8735457046419807,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004612-PHOTO-2020-12-25-20-42-35",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120729",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 435,
+    "top": 478,
+    "width": 152,
+    "height": 53
+   },
+   "v2ms": 10,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00004639-PHOTO-2020-12-25-20-52-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192782",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 214,
+    "top": 580,
+    "width": 286,
+    "height": 133
+   },
+   "v2ms": 43,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "008270",
+    "0082702",
+    "000270"
+   ],
+   "v2": "008270",
+   "v2top1raw": "008270",
+   "v2conf": 0.6928317209575123,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004722-PHOTO-2020-12-25-21-29-41",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161916",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 520,
+    "top": 509,
+    "width": 583,
+    "height": 385
+   },
+   "v2ms": 216,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161916",
+    "0161916",
+    "161316"
+   ],
+   "v2": "161916",
+   "v2top1raw": "161916",
+   "v2conf": 0.718353160444008,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004815-PHOTO-2020-12-26-09-56-16",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "29759",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 770,
+    "top": 425,
+    "width": 184,
+    "height": 140
+   },
+   "v2ms": 23,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "29759",
+    "2975",
+    "29753"
+   ],
+   "v2": "29759",
+   "v2top1raw": "29759",
+   "v2conf": 0.6637024913945053,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004819-PHOTO-2020-12-26-10-09-57",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161916",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 456,
+    "top": 721,
+    "width": 169,
+    "height": 172
+   },
+   "v2ms": 53,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161916",
+    "161316",
+    "161516"
+   ],
+   "v2": "161916",
+   "v2top1raw": "161916",
+   "v2conf": 0.8451213652282448,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00004836-PHOTO-2020-12-26-11-15-14",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192782",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 374,
+    "top": 732,
+    "width": 145,
+    "height": 155
+   },
+   "v2ms": 21,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "19278",
+    "19238",
+    "19270"
+   ],
+   "v2": "19278",
+   "v2top1raw": "19278",
+   "v2conf": 0.7314538243949495,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005024-PHOTO-2020-12-26-19-29-54",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "161974",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 712,
+    "top": 300,
+    "width": 530,
+    "height": 559
+   },
+   "v2ms": 185,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "161974",
+    "61974",
+    "161914"
+   ],
+   "v2": "161974",
+   "v2top1raw": "161974",
+   "v2conf": 0.8547855114248477,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005281-PHOTO-2020-12-26-22-03-22",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "29888",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 821,
+    "top": 313,
+    "width": 218,
+    "height": 138
+   },
+   "v2ms": 46,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00005366-PHOTO-2020-12-27-10-34-07",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162010",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 747,
+    "top": 317,
+    "width": 430,
+    "height": 454
+   },
+   "v2ms": 158,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162010",
+    "152010",
+    "162018"
+   ],
+   "v2": "162010",
+   "v2top1raw": "162010",
+   "v2conf": 0.8877787134622102,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005422-PHOTO-2020-12-27-17-44-00",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "118647",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 285,
+    "top": 676,
+    "width": 147,
+    "height": 81
+   },
+   "v2ms": 14,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "118647",
+    "118547",
+    "110647"
+   ],
+   "v2": "118647",
+   "v2top1raw": "118647",
+   "v2conf": 0.8496359397111345,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005523-PHOTO-2020-12-27-18-51-13",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "76595",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 334,
+    "top": 132,
+    "width": 593,
+    "height": 603
+   },
+   "v2ms": 441,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00005577-PHOTO-2020-12-27-19-38-59",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162063",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 558,
+    "top": 411,
+    "width": 625,
+    "height": 418
+   },
+   "v2ms": 168,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "016206",
+    "0162063",
+    "162063"
+   ],
+   "v2": "016206",
+   "v2top1raw": "016206",
+   "v2conf": 0.7441778511728149,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005791-PHOTO-2020-12-28-10-30-42",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162092",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 426,
+    "top": 682,
+    "width": 190,
+    "height": 196
+   },
+   "v2ms": 39,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162092",
+    "162032",
+    "162052"
+   ],
+   "v2": "162092",
+   "v2top1raw": "162092",
+   "v2conf": 0.8765636445772402,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005869-PHOTO-2020-12-28-18-59-37",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "19344",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 383,
+    "top": 812,
+    "width": 88,
+    "height": 234
+   },
+   "v2ms": 15,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [],
+   "v2": null,
+   "v2top1raw": null,
+   "v2conf": null,
+   "v2status": "nothing-found"
+  },
+  {
+   "id": "00005903-PHOTO-2020-12-28-19-19-23",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "162166",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 718,
+    "top": 355,
+    "width": 678,
+    "height": 465
+   },
+   "v2ms": 100,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "162166",
+    "62166",
+    "0162166"
+   ],
+   "v2": "162166",
+   "v2top1raw": "162166",
+   "v2conf": 0.7374705354390052,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00005936-PHOTO-2020-12-28-19-40-12",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "164754",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 76,
+    "top": 592,
+    "width": 1057,
+    "height": 449
+   },
+   "v2ms": 80,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "164754",
+    "154754",
+    "184754"
+   ],
+   "v2": "164754",
+   "v2top1raw": "164754",
+   "v2conf": 0.8285262176317695,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00006036-PHOTO-2020-12-28-21-11-47",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192939",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 195,
+    "top": 586,
+    "width": 268,
+    "height": 143
+   },
+   "v2ms": 41,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "081929",
+    "0819293",
+    "084929"
+   ],
+   "v2": "081929",
+   "v2top1raw": "081929",
+   "v2conf": 0.5602621096104137,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00006076-PHOTO-2020-12-28-21-36-11",
+   "role": "eligible",
+   "family": "digital-light-on-dark-blue",
+   "label": "120972",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 482,
+    "top": 282,
+    "width": 161,
+    "height": 60
+   },
+   "v2ms": 11,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "120972",
+    "120912",
+    "120372"
+   ],
+   "v2": "120972",
+   "v2top1raw": "120972",
+   "v2conf": 0.8876979672780355,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00006199-PHOTO-2020-12-29-11-20-51",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "192946",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 368,
+    "top": 689,
+    "width": 180,
+    "height": 151
+   },
+   "v2ms": 29,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "192946",
+    "792946",
+    "192346"
+   ],
+   "v2": "192946",
+   "v2top1raw": "192946",
+   "v2conf": 0.8309610357878459,
+   "v2status": "candidates"
+  },
+  {
+   "id": "00006363-PHOTO-2020-12-29-20-19-32",
+   "role": "eligible",
+   "family": "digital-light-on-dark-amber",
+   "label": "68746",
+   "kind": "odometer",
+   "cropRect": {
+    "left": 326,
+    "top": 770,
+    "width": 316,
+    "height": 208
+   },
+   "v2ms": 61,
+   "v1full": null,
+   "v1crop": null,
+   "v2top3": [
+    "68746",
+    "68796",
+    "68748"
+   ],
+   "v2": "68746",
+   "v2top1raw": "68746",
+   "v2conf": 0.7316511174200999,
+   "v2status": "candidates"
+  }
+ ]
+}

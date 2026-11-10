@@ -2,11 +2,13 @@ import { useEffect, useId, useRef, useState } from 'react';
 import { Button } from '../Button';
 import { cameraFrameCrop, createCameraZoom } from './cameraZoom';
 import type { CameraZoomState } from './cameraZoom';
+import type { Rect } from '../../lib/scan/v2/preprocess';
 import './LiveCamera.css';
 
 /** The camera samples until two consecutive frames agree. Every effect owns
  * its stream, including late permission results and late zoom/read callbacks. */
-export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isActive:()=>boolean)=>Promise<boolean>;onClose:()=>void }) {
+/** `guide` (scan v2 only) draws the viewfinder box, as fractions of the visible frame; the frame passed to `onFrame` is unchanged. */
+export function LiveCamera({ onFrame,onClose,guide }: { onFrame:(image:ImageData,isActive:()=>boolean)=>Promise<boolean>;onClose:()=>void;guide?:Rect }) {
   const video=useRef<HTMLVideoElement>(null),frame=useRef(onFrame);
   const zoomControl=useRef<ReturnType<typeof createCameraZoom>|null>(null),zoomId=useId();
   const [zoom,setZoom]=useState<CameraZoomState|null>(null),[aspect,setAspect]=useState(4/3);
@@ -62,6 +64,7 @@ export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isAct
   return <div className="scan-camera">
     <div className="scan-camera-preview" style={{aspectRatio:aspect,maxWidth:`calc(44dvh * ${aspect})`}}>
       <video ref={video} playsInline muted autoPlay aria-label="תצוגת מצלמה" style={{transform:`scale(${digital})`}} onResize={event=>{const input=event.currentTarget;if(input.videoWidth&&input.videoHeight)setAspect(input.videoWidth/input.videoHeight);}}/>
+      {guide?<div className="scan-camera-guide" aria-hidden="true" style={{left:`${guide.x*100}%`,top:`${guide.y*100}%`,width:`${guide.width*100}%`,height:`${guide.height*100}%`}}/>:null}
     </div>
     {state==='ready'&&zoom?<div className="scan-camera-zoom">
       <label className="scan-camera-zoom-label" htmlFor={zoomId}>{zoom.mode==='digital'?'זום דיגיטלי':'זום'}</label>
