@@ -14,7 +14,8 @@
 ## Final gate results (after the Stage 7 fixes)
 
 - `tsc -b` passes. `oxlint` 0 errors; the 20 warnings are all in files v3 didn't touch. `vitest`: 1,528 passed, 12 skipped (private fixtures). Rules: 287 passed. `vite build` passes.
-- Main e2e (chromium + pwa): 318 passed, 1 failed, 8 skipped. The failure is `mobile-fuel-release.spec.ts:21`, which already failed at Stage 0 on `main`. The specs under other configs: 53 passed, 2 skipped.
+- Main e2e (chromium + pwa): 318 passed, 1 failed, 8 skipped. The failure was `mobile-fuel-release.spec.ts:21`, which already failed at Stage 0 on `main`. It is now fixed (see below).
+- CI follow-up: automatic spec fill-in (tank size, declared consumption) could run against the cached vehicle list before the server copy arrived; the write was refused and never retried. It now waits for the listener's copy (`activeVehicleVerified`). `audit-fixes.spec.ts:234` raced a history-back with the next navigation; the test now waits for the back navigation to land. The specs under other configs: 53 passed, 2 skipped.
 - Smoke walk at 390/430, light and dark: 42 of 43 steps pass in each run. The failing step is "fill(charge)": production has no charge (kWh) record type. Console: 0 errors and 0 React key warnings on every route.
 - Offline: a fill-up and an expense made while offline reach "confirmed" when back online, and the journal shows the pending state meanwhile.
 

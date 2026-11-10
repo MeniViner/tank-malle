@@ -9,7 +9,7 @@ import { vehicleEnrichmentRequestKey, vehicleEnrichmentSettled, vehicleSpecIdent
 /** Enrich missing fields only; stale requests cannot modify a different account/car. */
 export function useVehicleEnrichment() {
   const { user } = useAuth();
-  const { activeVehicle, enrichVehicleSpecs, outboxReady } = useData();
+  const { activeVehicle, activeVehicleVerified, enrichVehicleSpecs, outboxReady } = useData();
   const latest = useRef({ vehicle: activeVehicle, uid: user?.uid });
   useLayoutEffect(() => { latest.current = { vehicle: activeVehicle, uid: user?.uid }; }, [activeVehicle, user?.uid]);
   const attempted = useRef(new Set<string>());
@@ -17,7 +17,9 @@ export function useVehicleEnrichment() {
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     const { vehicle, uid } = latest.current;
-    if (!uid || !vehicle || !outboxReady || !requestKey) { setLoading(false); return; }
+    // A cached vehicle has no raw before-image yet; an attempt now would be refused
+    // and never retried, so wait for the listener's copy (it re-runs this effect).
+    if (!uid || !vehicle || !outboxReady || !activeVehicleVerified || !requestKey) { setLoading(false); return; }
     const key = requestKey;
     if (attempted.current.has(key)) { setLoading(false); return; }
     const abort = new AbortController();
@@ -47,6 +49,6 @@ export function useVehicleEnrichment() {
     })().catch(() => { /* Manual refresh remains available in vehicle settings. */ })
       .finally(() => { if (!abort.signal.aborted) setLoading(false); });
     return () => abort.abort();
-  }, [requestKey, outboxReady, enrichVehicleSpecs]);
+  }, [requestKey, outboxReady, activeVehicleVerified, enrichVehicleSpecs]);
   return loading;
 }

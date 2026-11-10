@@ -185,6 +185,8 @@ interface DataContextValue {
   vehicles: Vehicle[];
   activeVehicles: Vehicle[];
   activeVehicle: Vehicle | null;
+  /** The active vehicle came from the live vehicle listener, not only the display cache. */
+  activeVehicleVerified: boolean;
   fillups: Fillup[];
   prices: RegulatedPriceConfig | null;
   updateAdminPrices: (payload: OutboxPayload) => Promise<void>;
@@ -1212,6 +1214,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       activeVehicles.find((v) => v.id === settings.activeVehicleId) ?? activeVehicles[0]
     );
   }, [activeVehicles, settings.activeVehicleId]);
+  // The cached catalog carries no raw identities; only a listener snapshot does.
+  // Spec enrichment needs that raw before-image, so it waits for this.
+  const activeVehicleVerified = !!activeVehicle && vehicleSnapshot?.scope === accountScope && vehicleSnapshot.identities.has(activeVehicle.id);
 
   /* ---------- fill-ups for the active vehicle ---------- */
 
@@ -2928,6 +2933,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles,
       activeVehicles,
       activeVehicle,
+      activeVehicleVerified,
       fillups: scopedFillups,
       prices,
       updateAdminPrices,
@@ -3001,6 +3007,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       vehicles,
       activeVehicles,
       activeVehicle,
+      activeVehicleVerified,
       scopedFillups,
       prices,
       updateAdminPrices,
