@@ -1,0 +1,15 @@
+{
+  "tag": "390-light",
+  "shots": [
+    "onboarding-390-light.png",
+    "onboarding-2-390-light.png",
+    "onboarding-3-390-light.png",
+    "onboarding-4-390-light.png",
+    "signin-390-light.png",
+    "wizard-390-light.png",
+    "wizard-manual-390-light.png",
+    "wizard-ev-390-light.png"
+  ],
+  "failures": [],
+  "entries": []
+}
