@@ -592,11 +592,11 @@
    and a focused control shows a visible ink frame. Error/warning borders win.
    Pump readouts and the date/time sheet keep their deliberate no-ring
    instrument style (asserted by the fill-up e2e). */
-:is(.tm-field-control, .tm-civil-control, .journal-search, .tm-control):focus-within:not([data-invalid=true], .border-danger, .border-warning) {
+:is(.tm-field-control, .tm-civil-control, .journal-search, .tm-control, .wizard-catalog-search):focus-within:not([data-invalid=true], .border-danger, .border-warning) {
   border-color: var(--ink);
   box-shadow: inset 0 0 0 1px var(--ink);
 }
-:is(.fillup-note-field textarea, .care-entry-notes textarea, .vehicle-form textarea, .vehicle-form select, .tm-control-text):is(:focus, :focus-visible) {
+:is(.fillup-note-field textarea, .care-entry-notes textarea, .vehicle-form textarea, .vehicle-form select, .tm-vehicle-issue-form textarea, .tm-vehicle-issue-form select, .tm-feedback-input, .tm-control-text):is(:focus, :focus-visible) {
   border-color: var(--ink) !important;
   box-shadow: inset 0 0 0 1px var(--ink) !important;
 }
