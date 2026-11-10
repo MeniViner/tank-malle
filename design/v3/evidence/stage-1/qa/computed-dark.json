@@ -1,0 +1,1682 @@
+{
+  "home": {
+    "theme": "dark",
+    "url": "/",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": {
+      "bg": "color(srgb 0.117647 0.109804 0.0941176 / 0.88)",
+      "backdrop": "blur(14px)",
+      "borderTop": "1px rgb(61, 57, 50)"
+    },
+    "pill": {
+      "bg": "color(srgb 0.901961 0.705882 0.0901961 / 0.38)",
+      "radius": "14px"
+    },
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Mono\", \"IBM Plex Sans Hebrew\",",
+        "weight": "600",
+        "synth": "auto",
+        "text": "72-480-78"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "30"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "19"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "95"
+      }
+    ],
+    "money": [
+      {
+        "island": "0.07 ₪",
+        "innerText": "\"0.07\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          -176,
+          79,
+          23,
+          23
+        ],
+        "symRect": [
+          -153,
+          79,
+          2,
+          23
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 39
+      },
+      {
+        "island": "0.07 ₪",
+        "innerText": "\"0.07\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          -176,
+          79,
+          23,
+          23
+        ],
+        "symRect": [
+          -151,
+          82,
+          14,
+          18
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 39
+      },
+      {
+        "island": "7.35 ₪",
+        "innerText": "\"7.35\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          -96,
+          107,
+          27,
+          18
+        ],
+        "symRect": [
+          -70,
+          107,
+          2,
+          18
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 37
+      },
+      {
+        "island": "7.35 ₪",
+        "innerText": "\"7.35\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          -96,
+          107,
+          27,
+          18
+        ],
+        "symRect": [
+          -68,
+          109,
+          8,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 37
+      },
+      {
+        "island": "3 ₪",
+        "innerText": "\"3\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": false,
+        "sameLine": true,
+        "digitsRect": [
+          -235,
+          143,
+          8,
+          18
+        ],
+        "symRect": [
+          -227,
+          143,
+          2,
+          18
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 17
+      }
+    ],
+    "inputs": []
+  },
+  "fillup": {
+    "theme": "dark",
+    "url": "/fillup/new",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": null,
+    "pill": null,
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 unloaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "10"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "13:20"
+      },
+      {
+        "cls": "tm-pump-display ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "סכום₪ליטריםל׳מחיר לל"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "1"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "00:00"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "171,980"
+      }
+    ],
+    "money": [],
+    "inputs": [
+      {
+        "id": "fillup-total",
+        "container": "tm-pump-display ",
+        "tag": "DIV",
+        "borderWidth": "0px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(221, 214, 199)",
+        "boxShadow": "rgb(61, 57, 50) 0px 0px 0px 1px inset",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 10.55,
+        "vsOutside": 11.76,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": "fillup-liters",
+        "container": "tm-pump-row ",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#282520",
+        "vsInside": 1.33,
+        "vsOutside": 1.33,
+        "insideVsOutside": 1
+      },
+      {
+        "id": "fillup-price",
+        "container": "tm-pump-row tm-pump-row-small ",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#282520",
+        "vsInside": 1.33,
+        "vsOutside": 1.33,
+        "insideVsOutside": 1
+      },
+      {
+        "id": "fillup-odometer",
+        "container": "tm-pump-row ",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#282520",
+        "vsInside": 1.33,
+        "vsOutside": 1.33,
+        "insideVsOutside": 1
+      }
+    ]
+  },
+  "vehicle-edit": {
+    "theme": "dark",
+    "url": "/vehicle/edit/v3-fuel",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": null,
+    "pill": null,
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 unloaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "72-480-78"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "95"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "98"
+      }
+    ],
+    "money": [],
+    "inputs": [
+      {
+        "id": ":r1:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r3:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r5:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r7:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r9:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":rd:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":rf:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      }
+    ]
+  },
+  "wizard-manual": {
+    "theme": "dark",
+    "url": "/vehicles/new",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": null,
+    "pill": null,
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 unloaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "2"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "3"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "95"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "98"
+      }
+    ],
+    "money": [],
+    "inputs": [
+      {
+        "id": ":r3:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r5:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r7:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      }
+    ]
+  },
+  "sheet-service": {
+    "theme": "dark",
+    "url": "/vehicle",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": {
+      "bg": "color(srgb 0.117647 0.109804 0.0941176 / 0.88)",
+      "backdrop": "blur(14px)",
+      "borderTop": "1px rgb(61, 57, 50)"
+    },
+    "pill": {
+      "bg": "color(srgb 0.901961 0.705882 0.0901961 / 0.38)",
+      "radius": "14px"
+    },
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 unloaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "20"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2019"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "95"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "45"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "4"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "02/12/2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "1,240 ₪"
+      }
+    ],
+    "money": [
+      {
+        "island": "1,240 ₪",
+        "innerText": "\"1,240\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          153,
+          -466,
+          32,
+          19
+        ],
+        "symRect": [
+          185,
+          -466,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,240 ₪",
+        "innerText": "\"1,240\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          153,
+          -466,
+          32,
+          19
+        ],
+        "symRect": [
+          187,
+          -463,
+          7,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,180 ₪",
+        "innerText": "\"1,180\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          116,
+          -385,
+          32,
+          19
+        ],
+        "symRect": [
+          148,
+          -385,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,180 ₪",
+        "innerText": "\"1,180\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          116,
+          -385,
+          32,
+          19
+        ],
+        "symRect": [
+          150,
+          -382,
+          7,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "2,650 ₪",
+        "innerText": "\"2,650\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          83,
+          -308,
+          32,
+          19
+        ],
+        "symRect": [
+          115,
+          -308,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      }
+    ],
+    "inputs": []
+  },
+  "sheet-expense": {
+    "theme": "dark",
+    "url": "/vehicle",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": {
+      "bg": "color(srgb 0.117647 0.109804 0.0941176 / 0.88)",
+      "backdrop": "blur(14px)",
+      "borderTop": "1px rgb(61, 57, 50)"
+    },
+    "pill": {
+      "bg": "color(srgb 0.901961 0.705882 0.0901961 / 0.38)",
+      "radius": "14px"
+    },
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 unloaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "20"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2019"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "95"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "45"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "4"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "02/12/2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "1,240 ₪"
+      }
+    ],
+    "money": [
+      {
+        "island": "1,240 ₪",
+        "innerText": "\"1,240\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          153,
+          -466,
+          32,
+          19
+        ],
+        "symRect": [
+          185,
+          -466,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,240 ₪",
+        "innerText": "\"1,240\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          153,
+          -466,
+          32,
+          19
+        ],
+        "symRect": [
+          187,
+          -463,
+          7,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,180 ₪",
+        "innerText": "\"1,180\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          116,
+          -385,
+          32,
+          19
+        ],
+        "symRect": [
+          148,
+          -385,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,180 ₪",
+        "innerText": "\"1,180\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          116,
+          -385,
+          32,
+          19
+        ],
+        "symRect": [
+          150,
+          -382,
+          7,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "2,650 ₪",
+        "innerText": "\"2,650\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          83,
+          -308,
+          32,
+          19
+        ],
+        "symRect": [
+          115,
+          -308,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      }
+    ],
+    "inputs": []
+  },
+  "sheet-doc-test": {
+    "theme": "dark",
+    "url": "/vehicle",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": {
+      "bg": "color(srgb 0.117647 0.109804 0.0941176 / 0.88)",
+      "backdrop": "blur(14px)",
+      "borderTop": "1px rgb(61, 57, 50)"
+    },
+    "pill": {
+      "bg": "color(srgb 0.901961 0.705882 0.0901961 / 0.38)",
+      "radius": "14px"
+    },
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "20"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2019"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "95"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "45"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "4"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "02/12/2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "1,240 ₪"
+      }
+    ],
+    "money": [
+      {
+        "island": "1,240 ₪",
+        "innerText": "\"1,240\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          153,
+          533,
+          32,
+          19
+        ],
+        "symRect": [
+          185,
+          533,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,240 ₪",
+        "innerText": "\"1,240\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          153,
+          533,
+          32,
+          19
+        ],
+        "symRect": [
+          187,
+          536,
+          7,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,180 ₪",
+        "innerText": "\"1,180\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          116,
+          614,
+          32,
+          19
+        ],
+        "symRect": [
+          148,
+          614,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "1,180 ₪",
+        "innerText": "\"1,180\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          116,
+          614,
+          32,
+          19
+        ],
+        "symRect": [
+          150,
+          617,
+          7,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      },
+      {
+        "island": "2,650 ₪",
+        "innerText": "\"2,650\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          83,
+          691,
+          32,
+          19
+        ],
+        "symRect": [
+          115,
+          691,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 41
+      }
+    ],
+    "inputs": [
+      {
+        "id": "vehicle-doc-due",
+        "container": "tm-civil-control",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      },
+      {
+        "id": ":r5:",
+        "container": "tm-field-control flex items-center gap-2.5 rounded-md border bg-surface px-3.5 transition-[border-color,box-shadow] dura",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      }
+    ]
+  },
+  "journal": {
+    "theme": "dark",
+    "url": "/history",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": {
+      "bg": "color(srgb 0.117647 0.109804 0.0941176 / 0.88)",
+      "backdrop": "blur(14px)",
+      "borderTop": "1px rgb(61, 57, 50)"
+    },
+    "pill": {
+      "bg": "color(srgb 0.901961 0.705882 0.0901961 / 0.38)",
+      "radius": "14px"
+    },
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 loaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "273 ₪"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "1"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "55%"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "8"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "2026"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "Karantina, \"IBM Plex Sans Hebrew\", sans-",
+        "weight": "400",
+        "synth": "auto",
+        "text": "4"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "37.2"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "12.9"
+      }
+    ],
+    "money": [
+      {
+        "island": "273 ₪",
+        "innerText": "\"273\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          73,
+          245,
+          23,
+          19
+        ],
+        "symRect": [
+          95,
+          245,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 32
+      },
+      {
+        "island": "273 ₪",
+        "innerText": "\"273\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          73,
+          245,
+          23,
+          19
+        ],
+        "symRect": [
+          96,
+          248,
+          8,
+          15
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 32
+      },
+      {
+        "island": "273 ₪",
+        "innerText": "\"273\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          20,
+          342,
+          22,
+          26
+        ],
+        "symRect": [
+          42,
+          342,
+          2,
+          26
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "block",
+        "bdiWidth": 40
+      },
+      {
+        "island": "273 ₪",
+        "innerText": "\"273\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          20,
+          342,
+          22,
+          26
+        ],
+        "symRect": [
+          44,
+          347,
+          16,
+          21
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "block",
+        "bdiWidth": 40
+      },
+      {
+        "island": "1,148 ₪",
+        "innerText": "\"1,148\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          73,
+          515,
+          33,
+          19
+        ],
+        "symRect": [
+          106,
+          515,
+          1,
+          19
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 43
+      }
+    ],
+    "inputs": [
+      {
+        "id": "journal-search",
+        "container": "journal-search",
+        "tag": "DIV",
+        "borderWidth": "1px",
+        "borderStyle": "solid",
+        "borderColor": "rgb(61, 57, 50)",
+        "boxShadow": "none",
+        "inside": "#282520",
+        "outside": "#1e1c18",
+        "vsInside": 1.33,
+        "vsOutside": 1.48,
+        "insideVsOutside": 1.11
+      }
+    ]
+  },
+  "account": {
+    "theme": "dark",
+    "url": "/account",
+    "accent": "#E6B417",
+    "line": "#3D3932",
+    "rLg": "20px",
+    "shadowCard": "none",
+    "tabbar": null,
+    "pill": null,
+    "fontFaces": [
+      "IBM Plex Mono 500 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 500 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 600 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 600 unloaded U+0-FF, U+131, U+152",
+      "Karantina 700 unloaded U+307-308, U+590-5FF",
+      "Karantina 700 unloaded U+0-FF, U+131, U+152",
+      "Karantina 400 loaded U+307-308, U+590-5FF",
+      "Karantina 400 loaded U+0-FF, U+131, U+152",
+      "IBM Plex Mono 400 unloaded U+100-2BA, U+2BD-2C5",
+      "IBM Plex Mono 400 loaded U+0-FF, U+131, U+152"
+    ],
+    "missing400": [],
+    "missing700": [
+      "0",
+      "1",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9"
+    ],
+    "widths": {
+      "k400": 164.4799041748047,
+      "k700": 224.679931640625,
+      "fallback": 384.0625
+    },
+    "display": [
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "600",
+        "synth": "auto",
+        "text": "95"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "7.35 ₪"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "1.7.3"
+      },
+      {
+        "cls": "num tm-number ",
+        "family": "\"IBM Plex Sans Hebrew\", system-ui, -appl",
+        "weight": "400",
+        "synth": "auto",
+        "text": "ee15a145b6"
+      }
+    ],
+    "money": [
+      {
+        "island": "7.35 ₪",
+        "innerText": "\"7.35\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          50,
+          282,
+          29,
+          20
+        ],
+        "symRect": [
+          79,
+          282,
+          2,
+          20
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 39
+      },
+      {
+        "island": "7.35 ₪",
+        "innerText": "\"7.35\\n \\n₪\"",
+        "dir": "ltr",
+        "symbolRightOfDigits": true,
+        "sameLine": true,
+        "digitsRect": [
+          50,
+          282,
+          29,
+          20
+        ],
+        "symRect": [
+          81,
+          285,
+          9,
+          16
+        ],
+        "display": "inline-flex",
+        "bdiDisplay": "inline-block",
+        "bdiWidth": 39
+      }
+    ],
+    "inputs": []
+  }
+}

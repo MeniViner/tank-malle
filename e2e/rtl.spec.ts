@@ -43,7 +43,8 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
   await expect(page.getByTestId("consumption-chart").locator("figcaption")).toContainText("הטווח הרגיל שלך", { timeout: 25_000 });
 
   /* --- money (v3 §5): digits, a narrow no-break space, then the symbol --- */
-  const money = await islandText(page, /₪/);
+  // innerText puts a line break between the inline-flex items (digits / gap / symbol); they render on one line.
+  const money = (await islandText(page, /₪/)).replace(/\n/g, "");
   expect(money).toMatch(/^[\d,]+(?:\.\d+)?\u202F₪$/);
   expect(money).not.toMatch(/^₪/);
   const geometry = await page.locator('bdi[dir="ltr"], span[dir="ltr"]').filter({ hasText: /₪/ }).first().evaluate(island => {

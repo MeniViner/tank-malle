@@ -36,7 +36,7 @@
   height: 30px;
   display: grid;
   place-items: center;
-  border-radius: var(--r-md);
+  border-radius: var(--r-sm);
   transition: background .18s, transform .18s;
 }
 .tm-tab-link[aria-current="page"] { color: var(--ink); }

@@ -1,0 +1,52 @@
+{
+  "tag": "768-dark",
+  "shots": [
+    "onboarding-768-dark.png",
+    "signin-768-dark.png",
+    "home-768-dark.png",
+    "home-viewport-768-dark.png",
+    "journal-768-dark.png",
+    "insights-cons-768-dark.png",
+    "insights-price-768-dark.png",
+    "insights-spend-768-dark.png",
+    "insights-community-768-dark.png",
+    "vehicle-768-dark.png",
+    "vehicle-costs-768-dark.png",
+    "vehicle-details-768-dark.png",
+    "vehicle-prefs-768-dark.png",
+    "vehicle-edit-768-dark.png",
+    "year-768-dark.png",
+    "sheet-tank-768-dark.png",
+    "sheet-trip-768-dark.png",
+    "sheet-measurement-768-dark.png",
+    "sheet-tco-768-dark.png",
+    "sheet-car-switch-768-dark.png",
+    "fillup-empty-768-dark.png",
+    "fillup-filled-768-dark.png",
+    "fillup-more-768-dark.png",
+    "sheet-station-768-dark.png",
+    "reminder-detail-768-dark.png",
+    "issue-detail-768-dark.png",
+    "sheet-reminder-new-768-dark.png",
+    "sheet-issue-new-768-dark.png",
+    "sheet-service-768-dark.png",
+    "sheet-expense-768-dark.png",
+    "sheet-doc-test-768-dark.png",
+    "account-768-dark.png",
+    "notifications-768-dark.png",
+    "unsynced-768-dark.png",
+    "import-768-dark.png",
+    "vehicles-768-dark.png",
+    "wizard-768-dark.png",
+    "wizard-manual-768-dark.png"
+  ],
+  "failures": [],
+  "entries": [
+    {
+      "route": "sheet-issue-new",
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)",
+      "keyWarning": false
+    }
+  ]
+}

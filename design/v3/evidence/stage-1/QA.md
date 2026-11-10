@@ -115,3 +115,96 @@ Tailwind `@layer theme` self-reference is overridden, as in v2); `.rounded-md`
 - TCO legend still shows the first four parts in v2 order. §2 "sorted, all parts" is a Home change (Stage 2).
 - The font binaries were not glyph-inspected (no fontTools offline). They are unmodified Google Fonts `wOF2` files, their SHA-256 is recorded in the manifest, and their unicode ranges match the 700 faces (U+202F is inside the Latin `U+2000-206F` range).
 - PWA `theme_color` (`vite.config.ts`) is still `#FFC915`, the brand plate colour. Left alone.
+
+---
+
+## QA cycle (QA agent, 2026-11-10)
+
+Tree: `feat/design-v3` at `ee15a14` (Stage 1 + Stage 5 data + Stage 6 OCR behind `scanV2`). The QA agent changed no product code (`src/`, rules, CSS). Its only edit is one line in an e2e test, listed below.
+
+### Gates
+
+| gate | result |
+|---|---|
+| `npx tsc -b` | exit 0 |
+| `npm run lint` | exit 0: **0 errors**, 18 warnings. All warnings are the same pre-existing ones (`DataContext.tsx` and others). |
+| `npm test` | **108 files: 1469 passed, 12 skipped, 0 failed** |
+| Rules (`emulators:exec`, port 8089, `vitest.rules.config.ts`) | exit 0: **11 files, 282 passed** |
+
+### Full main e2e
+
+Command as in the brief. Ports 8087/9097/5273/5274 were free before the run. Exit 1. Wall time 29.9 min. Report: `e2e.json`.
+
+- First run: **297 passed, 2 failed, 8 skipped, 4 did not run**. The 8 skipped are the 6 opt-in gallery tests and the 2 private-fixture import tests. The 4 that did not run are serial `rtl.spec` tests after the failure.
+- `e2e.json` stats: expected 297, unexpected 2, skipped 12 (8 skipped + 4 not run), flaky 0.
+
+| failure | classification |
+|---|---|
+| `mobile-fuel-release.spec.ts:21` (tankLiters: expected 45, got null) | **Pre-existing** (Stage 0 baseline #1). Same error on re-run. |
+| `rtl.spec.ts:38` "signed numbers, money and units read correctly" | **Test expectation for the money format.** Stage 1 edited this test without running it. Received `"175  \n₪"`: `innerText` of the `.tm-symbol-number` inline-flex island puts a line break between the flex items. The rendered geometry is correct: digits and symbol sit on one line, the symbol is right of the digits and smaller, and `textContent` is exactly `175 ₪` (U+202F), per `qa/computed-*.json` → `money[]`. The v2 regex `^₪\s*[\d,]` tolerated the break; the new strict ` ₪$` does not. |
+
+Baseline failure #2 (`tank-pricing-followup.spec.ts:86`) **passed** in this run (4.7 s).
+
+**Test edit (money-format expectation only):**
+
+- `e2e/rtl.spec.ts:46-47`: the island text is now `.replace(/\n/g, "")` before it is matched. The `/^[\d,]+(?:\.\d+)? ₪$/` assertion (U+202F, symbol last) is unchanged, and so is the geometry assertion.
+
+Re-run of `rtl.spec.ts` and `mobile-fuel-release.spec.ts` (chromium): **10 passed, 1 failed**. All 5 rtl tests passed; the failure is the pre-existing `mobile-fuel-release:21`.
+
+**Net result: 302 passed, 1 failed (pre-existing), 2 skipped (fixtures), plus 6 gallery tests that are opt-in. 0 new failures.**
+
+### Gallery "after" (`after/`, 228 PNGs, 0 capture failures, 6/6 passed, 6.0 min)
+
+`after/console.json`: **0 React key warnings**, but **3 console errors**, each a bare `Failed to load resource` with no URL logged:
+
+- `430-light` signin: 409
+- `430-light` vehicle-prefs: 400
+- `768-dark` sheet-issue-new: 400
+
+I re-ran 430 and 768 in both themes into a scratch folder: **0 errors, 0 key warnings** across 152 shots. These look like transient emulator/auth races, not Stage 1 code, but Stage 0 had 0, so this is recorded as an open item rather than "zero errors". The gallery does not log the request URL; adding `page.on('requestfailed'/'response')` would identify it.
+
+### Computed-style probe (390, light + dark)
+
+A temporary spec (`e2e/zz-qa-stage1-probe.spec.ts`, **deleted after use**) seeded the gallery account and read computed styles on Home, fill-up, vehicle edit, wizard (manual), the document sheet, journal and account. Raw output: `qa/computed-light.json`, `qa/computed-dark.json`.
+
+- **Karantina 400 renders as a real face, not faux or fallback.** Both the `Karantina 400` faces (Hebrew + Latin) are `loaded`; the 700 faces stay `unloaded` (never requested). All 27 Hebrew letters, the digits and ₪ resolve to the Karantina 400 glyphs: the canvas width differs from the fallback for every character. The width of a sample string is 164 px at 400 vs 225 px at 700 vs 384 px fallback, so the 400 is a distinct design, not synthetic. Display numbers compute `font-weight: 400`.
+- **Accent:** light `--accent` is `#F3C54B`, dark `#E6B417`.
+- **Tab bar:** light `color(srgb .976 .969 .949 / .88)` with `backdrop-filter: blur(14px)` and a 1px `--line` top rule. The active pill is accent at 38% alpha with radius 14px. Dark is the same pattern.
+- **Money:** every trailing island has `dir=ltr`, digits and symbol on the same line, and the symbol after the digits.
+- **Radius / shadow:** `--r-lg` is 20px; `--shadow-card` is set in light and `none` in dark.
+
+### Input borders vs WCAG 1.4.11 (3:1). **FAIL**
+
+Measured as the computed `border-top-color` against the field fill (inside) and the page (outside):
+
+| input container | theme | border | fill / page | vs fill | vs page |
+|---|---|---|---|---|---|
+| `.tm-field-control` (vehicle edit ×7, wizard manual ×3, doc sheet), `.tm-civil-control` (doc date), `.journal-search` | light | 1px `#E4DFD4` | `#FFFFFF` / `#F9F7F2` | **1.33** | **1.24** |
+| same | dark | 1px `#3D3932` | `#282520` / `#1E1C18` | **1.33** | **1.48** |
+| fill-up pump rows (`.tm-pump-row`) | light | readout `#15130F`, row rules `#34302A` | dark readout | n/a: the panel is 17.3:1 vs page | |
+| fill-up pump rows | dark | `#3D3932` | `#282520` / `#1E1C18` | panel 1.11:1 vs page; no per-field boundary | |
+
+The fill-to-page difference is only 1.07 (light) and 1.11 (dark), so the white fill does not mark the field either. In v2 these containers had `1.5px var(--ink)` (18.5:1). Stage 1 changed them to `--line` in `vehicle-page-design.css:90-91`, `vehicle-wizard-design.css:44`, `care-entry-design.css:84`, `journal-design.css` (`.journal-search`) and `.tm-civil-control`. This is a **regression** against WCAG 1.4.11. The generic `Field` (`border-line`) was already a hairline in v2.
+
+The prototype `.inp` uses the same hairline, so the prototype has the same failure. Labels and the 2px focus ring do not satisfy 1.4.11, which asks for the boundary of the control itself. **Suggested fix:** inputs (not cards) use `--ink-3`, which gives 5.53:1 on `#FFF` and 4.06:1 on `#282520`, or any border ≥3:1 against both fill and page. Owner: Stage 1 (tokens) agent, with design sign-off. Screenshot: `after/vehicle-edit-390-light.png`, `after/wizard-manual-390-dark.png`.
+
+### Visual comparison (390, light + dark: after vs `stage-0/before` vs `stage-0/prototype`)
+
+Screens checked: home, journal, insights-spend, vehicle, account, fillup-filled, the TCO sheet and vehicle edit.
+
+- **Karantina 400:** visibly lighter on every heading and hero number, e.g. the spotlight title in `after/home-viewport-390-light.png` versus before. It matches the prototype's weight.
+- **Hairlines:** cards, spotlight, journal month rules, chips, the search box, the vehicle and account icon tiles, the segmented control, and the date/station chips on fill-up are all 1px `--line`. The ink is kept on the plate, the odometer cells, the FAB, the primary button and the selected segment. This matches lite.css.
+- **Card shadow:** soft in light, none in dark.
+- **Accent:** `#F3C54B` on the FAB, the primary button and the active pill. The light 38% tint pill and the dark olive tint pill both match the prototype.
+- **Money:** `824 ₪`, `145 ₪`, `+18 ₪`, `7.35 ₪`. The symbol sits right of the digits inside the LTR island, the same as the prototype's `774 ₪`. `לק״מ` appears in the TCO sub-line.
+- **Category colours** in the TCO sheet tiles (light and dark), the TCO bar on Insights and the spend chart all match §4 and the prototype. The dark `ins1`/`ins2`/`test` tiles use dark icons; dark `other` uses a white icon.
+- **Dark mode:** text tokens are unchanged from v2 and pass, as in CONTRAST.md. The only new failures are the input boundaries above and the sub-3:1 category fills already documented in CONTRAST.md.
+- **Out of Stage 1 scope, still v2:** the "next refuel" ink slab on Home, the TCO legend order and its first-4-only rule, the 3-tile KPI grid instead of the facts strip, and the avatar ring. These are expected in Stage 2/3 and are listed in `DIFF.md`.
+
+### Defects filed
+
+1. **Input boundaries are below 3:1 (WCAG 1.4.11)** in both themes. Owner: Stage 1 tokens agent and design. See above.
+2. **Three transient console 400/409 errors** in the gallery that did not reproduce. Owner: QA/gallery harness, which should log the failing URL. This is not a product defect yet.
+3. **Tab icon pill radius is 14px; the prototype's `.tab .ico` uses `--r-sm` (10px).** Minor. Location: `src/shell-design.css` `.tm-tab-icon-pill`. Owner: Stage 1. See DIFF.md.
+
+The QA agent created and then removed `e2e/zz-qa-stage1-probe.spec.ts` (temporary). Evidence it left behind: `qa/computed-{light,dark}.json`, `after/`, `e2e.json`. Nothing is committed.
