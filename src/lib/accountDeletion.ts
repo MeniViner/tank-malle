@@ -5,6 +5,7 @@ import {
 } from "firebase/firestore";
 import { withdrawBenchmark } from "./benchmarks";
 import { withdrawCostBenchmarks } from "./costBenchmarks";
+import { clearCorrections } from "./scan/v2/correctionLog";
 
 export interface DeletionResult {
   ok: boolean;
@@ -27,6 +28,16 @@ export function clearAccountLocalStorage(uid: string): void {
       key.startsWith(`tm.fillup-draft.v1.${uid}.`) ||
       key.startsWith(`tm.care-draft.v1.${encodeURIComponent(uid)}.`))) localStorage.removeItem(key);
   }
+}
+/**
+ * The local-data step of account deletion: the account's localStorage keys and
+ * the on-device scan correction log (IndexedDB; device-wide, never synced, may
+ * hold 1-bit crops of the account's pump displays). A failure is thrown so the
+ * step stays retryable and the identity is kept.
+ */
+export async function clearAccountLocalData(uid: string, clearScanCorrections: () => Promise<void> = clearCorrections): Promise<void> {
+  clearAccountLocalStorage(uid);
+  await clearScanCorrections();
 }
 export function clearVehicleLocalDrafts(uid:string,vehicleId:string): void {
   const prefixes=[`tm.care-draft.v1.${encodeURIComponent(uid)}.${encodeURIComponent(vehicleId)}.`,`tm.fillup-draft.v1.${uid}.${vehicleId}.`];

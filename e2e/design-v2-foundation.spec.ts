@@ -250,16 +250,17 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await capture(page, `atmosphere-signin-${theme}-${accent}`);
     await page.evaluate(() => localStorage.removeItem("tm.onboarded"));
     await page.reload();
-    for (let slide = 1; slide <= 3; slide++) {
+    // Design v3 §7.3: four slides.
+    for (let slide = 1; slide <= 4; slide++) {
       await expect(page.getByRole("button", { name: "דלג", exact: true })).toBeVisible();
       await expect(page.getByTestId("onboarding-slide")).toHaveAttribute("data-slide", String(slide));
       const counter = page.getByRole("progressbar", { name: "היכרות עם טנק מלא" });
       await expect(counter).toHaveAttribute("aria-valuenow", String(slide));
-      await expect(counter).toHaveAttribute("aria-valuemax", "3");
+      await expect(counter).toHaveAttribute("aria-valuemax", "4");
       await expect(page.getByTestId("onboarding-art")).toBeVisible();
       await atmosphere(page, "home", "right", "0.3");
       await capture(page, `atmosphere-onboarding-${slide}-${theme}-${accent}`);
-      if (slide < 3) await page.getByRole("button", { name: "הבא", exact: true }).click();
+      if (slide < 4) await page.getByRole("button", { name: "הבא", exact: true }).click();
     }
   });
 }

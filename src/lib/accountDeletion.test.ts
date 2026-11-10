@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("./firebase", () => ({ db: {} }));
-import { clearAccountLocalStorage, runAccountDeletion } from "./accountDeletion";
+import { clearAccountLocalData, clearAccountLocalStorage, runAccountDeletion } from "./accountDeletion";
+import { countCorrections, logCorrections, resetMemoryForTests, type CorrectionEntry } from "./scan/v2/correctionLog";
 import { careDraftKey } from "./maintenance/draft";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -12,6 +13,25 @@ it("erases every care draft for the deleted account, preserving other accounts a
   vi.stubGlobal("localStorage", { get length() { return values.size; }, key: (i:number) => [...values.keys()][i], removeItem: (key:string) => values.delete(key) });
   clearAccountLocalStorage(uid);
   expect([...values.keys()]).toEqual(retained);
+});
+
+describe("account deletion local-data step", () => {
+  const entry: CorrectionEntry = { at: "2026-11-10T10:00:00.000Z", kind: "pump", field: "total", recognised: "218", confirmed: "218.4",
+    changed: true, confidence: .6, top3: ["218"], digitConfidences: [.9], failedChecks: [] };
+  it("clears the account's local storage and the on-device scan correction log", async () => {
+    resetMemoryForTests();
+    const values = new Map([["tm.fillup-draft.v1.u1.v1", "draft"], ["tm.theme", "dark"]]);
+    vi.stubGlobal("localStorage", { get length() { return values.size; }, key: (i:number) => [...values.keys()][i], removeItem: (key:string) => values.delete(key) });
+    await logCorrections([entry, { ...entry, field: "odometer" }]);
+    expect(await countCorrections()).toBe(2);
+    await clearAccountLocalData("u1");
+    expect(await countCorrections()).toBe(0);
+    expect([...values.keys()]).toEqual(["tm.theme"]);
+  });
+  it("propagates a correction-log failure so the step is retried and the identity kept", async () => {
+    vi.stubGlobal("localStorage", { length: 0, key: () => null, removeItem: () => {} });
+    await expect(clearAccountLocalData("u1", async () => { throw new Error("idb blocked"); })).rejects.toThrow("idb blocked");
+  });
 });
 
 function steps() {

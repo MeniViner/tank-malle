@@ -4,13 +4,15 @@ import { NumericText } from "../components/Fmt";
 import { OnboardingArt } from "../components/entry/OnboardingArt";
 import "../entry-design.css";
 
+/** Design v3 §7.3: car-cost management, not only fuel. The copy promises only what the app does today. */
 const SLIDES = [
-  { title: "תדלוק נרשם ב־15 שניות", body: "סכום, ליטרים וקילומטראז׳. את מה שכבר ידוע, נמלא בשבילכם." },
-  { title: "צריכה אמיתית, לא הבטחות", body: "בין שני מילויים עד הסוף, עם השוואה לרגיל שלכם ולנתון היצרן כשיש כזה." },
-  { title: "יודעים מתי לתדלק", body: "הערכה למועד התדלוק הבא, לפי הנהיגה שלכם." },
+  { title: "כמה הרכב באמת עולה לך", body: "דלק או חשמל, טיפולים, ביטוח, טסט ואגרה. סכום אחד בחודש, מחולק לקטגוריות: כל ההוצאות של הרכב במקום אחד." },
+  { title: "כל רישום ב־15 שניות", body: "תדלוק: סכום וקילומטראז׳. טיפול או הוצאה: סכום ותאריך. את מה שכבר ידוע, נמלא בשבילכם." },
+  { title: "צריכה אמיתית, לא הבטחות", body: "בין שני מילויים עד הסוף: כמה נסעתם על ליטר, כמה עולה כל ק״מ, ואיך זה ביחס לרגיל שלכם ולנהגים עם אותו רכב." },
+  { title: "שום דבר לא נופל בין הכיסאות", body: "טסט, ביטוח חובה ומקיף, טיפול תקופתי ותקלות פתוחות: תזכורות לפי תאריך או קילומטראז׳, ותחזית מתי לתדלק." },
 ];
 
-/** The illustrations use the same readout, comparison and gauge as the app. */
+/** The illustrations are the app's own TCO card, pump display, consumption figure, spotlight and next-refuel card, fed with demo data. */
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [index, setIndex] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);

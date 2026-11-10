@@ -107,8 +107,62 @@ describe('vehicle EV fields', () => {
     await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { ...ev, biz: { company: 'C'.repeat(120), driver: 'D'.repeat(80), usagePct: 100 } }));
     await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { docs: { test: { due: '1900-01-01' }, mandatory: { insurer: 'C', cost: 0, due: '2096-02-29' }, coverage: { type: 'third', insurer: 'D', cost: 1234.56789, due: '2104-02-29' } } }));
     await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { nickname: 'still editable' }));
-    // Known, documented gap (DATA.md): a single patch that changes `docs` is
-    // validated by the document branch only, which has no expression budget
-    // for the v3 fields. Clients never combine them; readers re-validate.
+  });
+  // Stage 5 UI: the v3 fields are a separate conjunct of validVehicleWrite, so
+  // a single patch that changes `docs` and a v3 field validates both.
+  const maximum = { ...vehicle, make: 'M'.repeat(60), model: 'X'.repeat(80), nickname: 'N'.repeat(60), plateNumber: '1'.repeat(12), year: 2100,
+    priceDiscount: { kind: 'percent', value: 100 }, tankLiters: 60, tankLitersSource: 'trusted', declaredKmPerLiter: 17.123456,
+    declaredSource: 'exact-year', manualPricePerLiter: 8.123456, tozeretCd: 1, degemCd: 2, deletionPending: false,
+    tankPrefs: { reserveFraction: .2, refuelLevelOverride: .3, usualFillStyle: 'full', usualRefuelLevel: .2, habitResetAt: 1_800_000_000_000 },
+    docs: { test: { due: '2199-12-31' }, mandatory: { insurer: 'A'.repeat(160), cost: 1_000_000, due: '2000-02-29' }, coverage: { type: 'comprehensive', insurer: 'B'.repeat(160), cost: 999_999.123456, due: '2028-02-29' } } };
+  const changedDocs = { test: { due: '1900-01-01' }, mandatory: { insurer: 'C', cost: 0, due: '2096-02-29' }, coverage: { type: 'third', insurer: 'D', cost: 1234.56789, due: '2104-02-29' } };
+  const maxBiz = { company: 'C'.repeat(120), driver: 'D'.repeat(80), usagePct: 100 };
+  it('one patch that changes a document row and every v3 field is accepted, even on a maximum vehicle', async () => {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), vehiclePath), maximum));
+    // Clients write one document row per patch ('docs.<key>').
+    await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { 'docs.mandatory': changedDocs.mandatory, ...ev, biz: maxBiz }));
+    await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { 'docs.coverage': changedDocs.coverage, biz: null, battery: { kwh: 0.1, wltp: 2000 }, motorKw: 2000 }));
+    // Stored v3 fields cost nothing on a later docs-only patch, all three rows included.
+    await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { docs: maximum.docs }));
+    // A typical vehicle can change all three rows and every v3 field at once.
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), vehiclePath), { ...vehicle, nickname: 'רכב', year: 2024, docs: maximum.docs }));
+    await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { docs: changedDocs, ...ev, biz: maxBiz }));
+  });
+  it('fails closed when a combined patch would exceed the expression budget', async () => {
+    // Every optional vehicle field, three changed document rows and four v3
+    // fields in one write is more than 1,000 expressions. It is refused,
+    // never accepted unvalidated. No client writes this shape.
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), vehiclePath), maximum));
+    await assertFails(updateDoc(doc(owner(), vehiclePath), { docs: changedDocs, ...ev, biz: maxBiz }));
+  });
+  it('a patch that changes docs still rejects an invalid biz, battery, powertrain or motor', async () => {
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), vehiclePath), maximum));
+    for (const patch of [
+      { biz: { usagePct: 101 } }, { biz: { company: 'x'.repeat(121) } }, { biz: { company: 'x', vatId: '1' } }, { biz: 'company' },
+      { battery: { kwh: 0 } }, { battery: { kwh: 501 } }, { battery: { wltp: 2001 } }, { battery: { kwh: '60' } }, { battery: { kwh: 60, chemistry: 'LFP' } },
+      { powertrain: 'hydrogen' }, { motorKw: 0 }, { motorKw: '150' },
+      { ...ev, biz: { ...maxBiz, usagePct: -1 } },
+    ]) {
+      await assertFails(updateDoc(doc(owner(), vehiclePath), { 'docs.mandatory': changedDocs.mandatory, ...patch }));
+      await assertFails(updateDoc(doc(owner(), vehiclePath), { docs: changedDocs, ...patch }));
+    }
+    // Same patches on a small vehicle (cheap path) are rejected too.
+    await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), vehiclePath), { ...vehicle, docs: { test: { due: '2027-01-01' } } }));
+    await assertFails(updateDoc(doc(owner(), vehiclePath), { docs: { test: { due: '2028-01-01' } }, battery: { kwh: 501 } }));
+    await assertFails(updateDoc(doc(owner(), vehiclePath), { docs: { test: { due: '2028-01-01' } }, biz: { usagePct: 101 } }));
+    await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { docs: { test: { due: '2028-01-01' } }, battery: { kwh: 64.8 }, biz: { usagePct: 50 } }));
+  });
+  it('the inlined finite-number checks still refuse NaN, infinities and strings', async () => {
+    for (const patch of [{ priceAdjustment: NaN }, { priceAdjustment: Infinity }, { priceAdjustment: -Infinity }, { priceAdjustment: '0' },
+      { priceAdjustment: 9_999_999_999 }, { priceAdjustment: -9_999_999_999 }, { tozeretCd: NaN }, { tozeretCd: Infinity }, { degemCd: -Infinity }, { degemCd: '3' }]) {
+      await assertFails(updateDoc(doc(owner(), vehiclePath), patch));
+    }
+    await assertSucceeds(updateDoc(doc(owner(), vehiclePath), { priceAdjustment: -9_999_999_998, tozeretCd: 9_999_999_998, degemCd: null }));
+  });
+  it('a created vehicle with docs and invalid v3 fields is rejected', async () => {
+    const created = { ...vehicle, fuelType: 'other', docs: { test: { due: '2027-01-01' } } };
+    await assertSucceeds(setDoc(doc(owner(), 'users/alice/vehicles/c1'), { ...created, ...ev }));
+    await assertFails(setDoc(doc(owner(), 'users/alice/vehicles/c2'), { ...created, battery: { kwh: 501 } }));
+    await assertFails(setDoc(doc(owner(), 'users/alice/vehicles/c3'), { ...created, biz: { usagePct: 101 } }));
   });
 });
