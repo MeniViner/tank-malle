@@ -185,6 +185,24 @@ export function priceSummary(stats: Stats, vehicle: Vehicle | null, prices: Regu
 }
 export type PriceSummary = ReturnType<typeof priceSummary>;
 
+export interface PriceExtreme { fillId: string; date: number; paid: number; liters: number }
+/**
+ * Cheapest and dearest paid price per litre among the period's fills of the
+ * vehicle's fuel with a known amount (v3 Stage 3 presentational addition).
+ * Reads the summary's own points, so it never prices an unknown amount; ties
+ * keep the earlier fill. `cheapest` is null when it is the same fill as `dearest`.
+ */
+export function priceExtremes(points: readonly PricePoint[]) {
+  const known = points.filter((point): point is PricePoint & { fillId: string; paid: number } => point.paid !== null && point.fillId !== null)
+    .sort((a, b) => a.date - b.date);
+  if (!known.length) return { dearest: null, cheapest: null, knownLiters: 0, knownCount: 0 };
+  const pick = (better: (a: number, b: number) => boolean) => known.reduce((best, point) => better(point.paid, best.paid) ? point : best);
+  const toExtreme = (point: PricePoint & { fillId: string; paid: number }): PriceExtreme => ({ fillId: point.fillId, date: point.date, paid: point.paid, liters: point.liters });
+  const dearest = pick((a, b) => a > b), cheapest = pick((a, b) => a < b);
+  return { dearest: toExtreme(dearest), cheapest: cheapest.fillId === dearest.fillId ? null : toExtreme(cheapest),
+    knownLiters: known.reduce((sum, point) => sum + point.liters, 0), knownCount: known.length };
+}
+
 /** A missing amount stays unknown even when the known subtotal happens to be zero. */
 export function knownLedgerAmount(rows: readonly LedgerRow[]): number | null {
   const financial = rows.filter(row => row.financial);

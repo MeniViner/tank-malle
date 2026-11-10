@@ -31,6 +31,14 @@ export interface FactProps {
   testId?: string;
   /** Quieter value colour, e.g. for a stale or partial reading. */
   muted?: boolean;
+  /** Test id on the value (`.fv`) so a test can read exactly the formatted number. */
+  valueTestId?: string;
+  /** Extra `data-*` attributes on the row (e.g. `data-segment-end-id`). */
+  data?: Record<`data-${string}`, string | undefined>;
+  /** "minor": a breakdown row under a total (13px label, 16px value), as in the prototype. */
+  variant?: "minor";
+  /** "text": the value is words (a date, "חשבון Google"), set in the body face, not as a numeric island. */
+  valueKind?: "text";
 }
 
 export interface FactsStripProps {
@@ -45,19 +53,22 @@ export interface FactsStripProps {
 }
 
 /** One row. Use inside `<FactsStrip>`. */
-export function Fact({ label, sub, value, unit, onClick, ariaLabel, hasPopup, testId, muted = false }: FactProps) {
+export function Fact({ label, sub, value, unit, onClick, ariaLabel, hasPopup, testId, muted = false, valueTestId, data, variant, valueKind }: FactProps) {
   const known = value !== null;
   const content = <>
     <span className="fl"><span className="fl-text">{label}</span>{sub !== undefined && sub !== null && sub !== false ? <small>{sub}</small> : null}</span>
     <i className="ld" aria-hidden="true" />
-    <span className="fv">
-      <NumRun className={`n${muted || !known ? " muted" : ""}`}>{known ? value : "—"}</NumRun>
+    <span className="fv" data-testid={valueTestId}>
+      {valueKind === "text" && known
+        ? <span className={`t${muted ? " muted" : ""}`}>{value}</span>
+        : <NumRun className={`n${muted || !known ? " muted" : ""}`}>{known ? value : "—"}</NumRun>}
       {known && unit ? <u>{unit}</u> : null}
     </span>
   </>;
+  const className = `fact${variant ? ` ${variant}` : ""}`;
   return onClick
-    ? <button type="button" className="fact" data-testid={testId} aria-label={ariaLabel} aria-haspopup={hasPopup} onClick={onClick}>{content}</button>
-    : <div className="fact" data-testid={testId}>{content}</div>;
+    ? <button type="button" className={className} data-testid={testId} aria-label={ariaLabel} aria-haspopup={hasPopup} onClick={onClick} {...data}>{content}</button>
+    : <div className={className} data-testid={testId} {...data}>{content}</div>;
 }
 
 /** The strip. Rows are separated by dashed hairlines, the strip has top and bottom rules. */

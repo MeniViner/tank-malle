@@ -89,8 +89,9 @@ test('period lists select full rows, return focus and keep standalone money alig
   const chart=page.getByTestId('insights-odometer-chart');
   await expect(chart.locator('.recharts-yAxis-tick-labels .recharts-cartesian-axis-tick-value').first()).toHaveText('0');
   await expect(chart).toHaveAccessibleName('קילומטראז׳ מצטבר, כולל הפסקות רציפות');
-  const leading=page.locator('.insights-kpi strong');expect(await leading.count()).toBeGreaterThan(0);
-  for(const strong of await leading.all())expect(await strong.evaluate(e=>getComputedStyle(e).textAlign)).toBe('right');
+  // v3 §3: the KPI tiles became a facts strip; every value sits at the inline end (physical left in RTL), after the label.
+  const leading=page.getByTestId('insights-spend-facts').locator('.fact');expect(await leading.count()).toBeGreaterThan(0);
+  for(const row of await leading.all()){const [label,value]=await Promise.all([row.locator('.fl').boundingBox(),row.locator('.fv').boundingBox()]);expect(value!.x+value!.width).toBeLessThanOrEqual(label!.x+1);}
   await expect(page.getByTestId('insights-period-summary')).toContainText('4 תדלוקים · 3 מקטעים');
 });
 

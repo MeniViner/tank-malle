@@ -5,6 +5,7 @@ import { consumption, dayMonthShort, int, num } from "../../lib/format";
 import type { DateRange } from "../../lib/periods";
 import type { Segment, Stats, Vehicle } from "../../lib/stats";
 import { ConsumptionValue, Distance, NumericText, NumRun, Percent, Quantity } from "../Fmt";
+import { Fact, FactsStrip } from "../FactsStrip";
 import { InfoTip } from "../InfoTip";
 import { CHART_MARGIN, ChartLegend, InsightCard, InsightChart, InsightEmpty, InsightTable, InsightTooltip, TIME_AXIS, VALUE_AXIS } from "./InsightChart";
 import { consumptionNumber, consumptionPoints, type ConsumptionPoint, type ConsumptionSummary, type ConsumptionUnits } from "./presentation";
@@ -65,13 +66,13 @@ export function ConsumptionInsights({ stats, summary, vehicle, units, range, his
           </tr>)}</tbody>
         </InsightTable>
       </InsightCard>
-      <div className="insights-kpis">
-        <SegmentKpi segment={summary.best!} units={units} title="המקטע הטוב" testId="insights-best-segment" onSelect={onSelect} />
-        <SegmentKpi segment={summary.worst!} units={units} title="המקטע החלש" testId="insights-worst-segment" onSelect={onSelect} />
-        <div className="insights-kpi" data-testid="insights-measured-km"><span>מרחק שנמדד</span><strong><NumRun>{int(summary.km)}</NumRun></strong>
-          <small>ק״מ ב־<NumRun>{int(summary.segments.length)}</NumRun> מקטעים סגורים</small></div>
-        <div className="insights-kpi" data-testid="insights-measured-liters"><span>דלק במקטעים</span><strong><NumRun>{num(summary.liters, 1)}</NumRun></strong><small>ליטרים</small></div>
-      </div>
+      <FactsStrip label="מדדי הצריכה בתקופה" testId="insights-consumption-facts">
+        <SegmentFact segment={summary.best!} units={units} title="המקטע הטוב" testId="insights-best-segment" onSelect={onSelect} />
+        <SegmentFact segment={summary.worst!} units={units} title="המקטע החלש" testId="insights-worst-segment" onSelect={onSelect} />
+        <Fact testId="insights-measured-km" label="מרחק שנמדד" value={int(summary.km)} unit="ק״מ"
+          sub={<>ב־<NumRun>{int(summary.segments.length)}</NumRun> מקטעים סגורים</>} />
+        <Fact testId="insights-measured-liters" label="דלק במקטעים" sub="מה שתודלק ונצרך במקטעים הסגורים" value={num(summary.liters, 1)} unit="ליטרים" />
+      </FactsStrip>
     </> : <InsightEmpty action={historyReady} title={!historyReady ? "נתוני הצריכה עדיין אינם זמינים" : stats.segments.length ? "אין מקטעים סגורים בתקופה הזו" : stats.openSegment.hasBaseline ? "עוד תדלוק מלא אחד ונדע" : "מתחילים מתדלוק מלא"}>
       {!historyReady ? "נחכה להשלמת היסטוריית התדלוקים." : stats.segments.length ? "אפשר לבחור תקופה אחרת כדי לראות את המקטעים שנמדדו."
         : "צריכה נמדדת בין שני תדלוקים שסומנו כמלאים, יחד עם התדלוקים החלקיים שביניהם."}
@@ -107,12 +108,13 @@ function ConsumptionDot({ cx, cy, payload, summary, units, onSelect }: {
   </g>;
 }
 
-function SegmentKpi({ segment, units, title, testId, onSelect }: {
+function SegmentFact({ segment, units, title, testId, onSelect }: {
   segment: Segment; units: ConsumptionUnits; title: string; testId: string; onSelect: (endId: string) => void;
 }) {
-  return <button type="button" className="insights-kpi" data-testid={testId} data-segment-end-id={segment.endId} onClick={() => onSelect(segment.endId)}>
-    <span>{title}</span><strong><ConsumptionValue kmPerLiter={segment.kmPerLiter} units={units} /></strong><small><NumericText>{dayMonthShort(segment.endDate)}</NumericText> ←</small>
-  </button>;
+  const shown = consumption(segment.kmPerLiter, units);
+  return <Fact testId={testId} data={{ "data-segment-end-id": segment.endId }} onClick={() => onSelect(segment.endId)} hasPopup="dialog"
+    ariaLabel={`${title}, ${shown.value} ${shown.unit}, עד ${dayMonthShort(segment.endDate)}, פתיחת פרטים`}
+    label={title} sub={<NumericText>{dayMonthShort(segment.endDate)}</NumericText>} value={shown.value} unit={shown.unit} />;
 }
 
 function OpenSegment({ stats }: { stats: Stats }) {
