@@ -27,6 +27,7 @@ import { buildBehaviorSamples, learnHabitProfile, type BehaviorSample, type Habi
 import { estimateMobility, type MobilityEstimate } from "./mobility";
 import { buildEventStream, type FillEvent, type TankEvent } from "./observations";
 import { buildReasonCodes, chooseNextUpdate, primaryReason, type NextUpdate } from "./quality";
+import { isEv } from "../vehicle/v3Fields";
 import {
   DEFAULT_TANK_PREFERENCES,
   type NextUpdateKind,
@@ -213,9 +214,12 @@ export interface ProjectionInput {
 export function projectTank(input: ProjectionInput): TankEstimate {
   const { fit, preferences, plans, now } = input;
   const fuelType = input.vehicle?.fuelType ?? "95";
+  // Design v3: an explicit battery-electric powertrain has no tank either,
+  // even if its fuel type was later edited away from "other".
+  const tankless = fuelType === "other" || isEv(input.vehicle);
 
   const result: ForecastResult =
-    fuelType === "other"
+    tankless
       ? {
           current: {
             level: null,
@@ -254,7 +258,7 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     forecast: result,
     capacityTrusted: fit.capacityTrusted,
     capacityKnown: fit.capacityLiters !== null,
-    fuelType,
+    fuelType: tankless ? "other" as const : fuelType,
     now,
   };
 
@@ -266,7 +270,7 @@ export function projectTank(input: ProjectionInput): TankEstimate {
     // An electric or unclassified vehicle is not a petrol tank with missing
     // data. The whole surface is gated rather than filled with plausible
     // numbers about a tank that may not exist.
-    available: fuelType !== "other",
+    available: !tankless,
     capacityLiters: fit.capacityLiters,
     capacityTrusted: fit.capacityTrusted,
     capacity: fit.capacity,
@@ -378,6 +382,7 @@ export function tankInputSignature(input: {
     String(input.vehicle?.tankLiters ?? "-"),
     String(input.vehicle?.tankLitersSource ?? "-"),
     String(input.vehicle?.fuelType ?? "-"),
+    String(input.vehicle?.powertrain ?? "-"),
     String(input.vehicle?.declaredKmPerLiter ?? "-"),
     String(input.vehicle?.declaredSource ?? "-"),
     `p${input.preferences.reserveFraction}:${input.preferences.refuelLevelOverride ?? "-"}:${input.preferences.usualFillStyle ?? "-"}:${input.preferences.usualRefuelLevel ?? "-"}:${input.preferences.habitResetAt ?? "-"}`,

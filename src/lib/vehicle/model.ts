@@ -1,4 +1,4 @@
-import { CARE_COLLECTIONS, validCareRecord, type CareBase, type CareCollection, type CareRecord, validDay } from '../maintenance/model';
+import { CARE_COLLECTIONS, normalizeCareRecord, validCareRecord, type CareBase, type CareCollection, type CareRecord, validDay } from '../maintenance/model';
 export const EXTRA_COLLECTIONS = ['vehicleIssues', 'notificationStates'] as const;
 export const VEHICLE_COLLECTIONS = [...CARE_COLLECTIONS, ...EXTRA_COLLECTIONS] as const;
 export type VehicleCollection = typeof VEHICLE_COLLECTIONS[number];
@@ -40,7 +40,8 @@ export function decodeVehicleRecord(name:VehicleCollection,value:unknown):unknow
 }
 export function vehiclePayload(name: VehicleCollection, record: VehicleRecord): Record<string, unknown> {
   if (!validVehicleRecord(name,record)) throw new Error('פרטי הרשומה אינם תקינים');
-  const {id: _id,...payload}=record;return name==='vehicleIssues'?{...payload,history:(record as VehicleIssue).history.map(h=>JSON.stringify(h))}:payload;
+  const stored=(CARE_COLLECTIONS as readonly string[]).includes(name)?normalizeCareRecord(name as CareCollection,record as CareRecord):record;
+  const {id: _id,...payload}=stored;return name==='vehicleIssues'?{...payload,history:(record as VehicleIssue).history.map(h=>JSON.stringify(h))}:payload;
 }
 /** Deterministic document identity; full occurrence is also compared before applying state. */
 export function notificationId(occurrence: string): string {

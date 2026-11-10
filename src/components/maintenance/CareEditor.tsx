@@ -65,6 +65,8 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const [source,setSource] = useState<MaintenancePlan['source']>(() => restore('source', plan?.source ?? 'owner'));
   const [active,setActive] = useState(() => restore('active', plan?.active ?? true));
   const [category,setCategory] = useState(() => restore('category', record && 'category' in record ? record.category : 'other'));
+  // "לכלול בעלות הרכב" (default included). Preserved through edits and drafts; the toggle UI arrives in the v3 forms pass.
+  const [excluded] = useState(() => restore('excluded', !!record && 'category' in record && record.excluded === true));
   const [step,setStep] = useState(() => restore('_step', record || completePlan || initialJob || restored || collection === 'odometerReadings' ? 1 : 0));
   const heading = useRef<HTMLHeadingElement>(null);
   const [linkedOpen,setLinkedOpen] = useState(completed.length>0);
@@ -76,7 +78,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const [error,setError] = useState('');
   const errorMessage = useRef<HTMLParagraphElement>(null);
   useEffect(()=>{if(error)errorMessage.current?.focus();},[error]);
-  const signature=JSON.stringify({id,title,titleAuthored,day,odo,cost,notes,garage,jobs,completed,job,dueDay,dueOdo,months,km,basis,source,active,category});
+  const signature=JSON.stringify({id,title,titleAuthored,day,odo,cost,notes,garage,jobs,completed,job,dueDay,dueOdo,months,km,basis,source,active,category,excluded});
   const [original]=useState(signature);
   const [storageFailed,setStorageFailed] = useState(false);
   const saved = useRef(false);
@@ -105,7 +107,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
     const base = { id, schemaVersion: 1 as const, version: (record?.version ?? 0)+1, notes: notes.trim() };
     const next: CareRecord = collection === 'serviceEvents' ? { ...base, title: title.trim(), day: recordDay!, odometer: optionalNumber(odo), costAgorot: cents, garage: garage.trim(), jobs, completedPlanIds: completed }
       : collection === 'maintenancePlans' ? { ...base, title: title.trim(), job, dueDay: targetDay, dueOdometer: optionalNumber(dueOdo), intervalMonths: basis === 'manual' ? null : optionalNumber(months), intervalKm: basis === 'manual' ? null : optionalNumber(km), basis, source, active }
-      : collection === 'vehicleExpenses' ? { ...base, title: title.trim(), day: recordDay!, category, costAgorot: cents }
+      : collection === 'vehicleExpenses' ? { ...base, title: title.trim(), day: recordDay!, category, costAgorot: cents, ...(excluded ? { excluded: true } : {}) }
       : { ...base, day: recordDay!, odometer: optionalNumber(odo) as number, notes: notes.trim() };
     if (!validCareRecord(collection,next) || (collection !== 'maintenancePlans' && recordDay! > localDay())) {
       setError(collection === 'maintenancePlans' ? 'יש להזין שם ויעד בתאריך או בק״מ. מרווח חזרה צריך להיות מספר שלם וחיובי, עם יעד מתאים.' : 'בדקו את השדות: תאריך עד היום, שם, קילומטראז׳ שלם ועלות שאינה שלילית (עד שתי ספרות אחרי הנקודה).'); return;

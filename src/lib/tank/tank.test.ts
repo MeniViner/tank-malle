@@ -904,6 +904,19 @@ describe("tank estimate", () => {
     expect(estimate.current.level).toBeNull();
   });
 
+  it("design v3: gates an explicit EV powertrain even with a petrol fuel type", () => {
+    const estimate = estimateTank({
+      fillups: routineHistory(0.25, 8),
+      observations: [],
+      vehicle: { ...TANK_40, fuelType: "95", powertrain: "ev" },
+      preferences: DEFAULT_TANK_PREFERENCES,
+      now: T0 + 72 * DAY,
+    });
+    expect(estimate.available).toBe(false);
+    expect(estimate.reasons).toEqual(["unsupportedFuelType"]);
+    expect(estimate.current.level).toBeNull();
+  });
+
   it("§15.15: the same inputs always produce the same output", () => {
     const now = T0 + 72 * DAY;
     const input = {
