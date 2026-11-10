@@ -347,6 +347,13 @@ export const ArrowDown = (props: IconProps) => (
   </Svg>
 );
 
+/** Two opposing arrows: a value that flips between two periods (v3 TCO "בחודש ⇅"). */
+export const SwapIcon = (props: IconProps) => (
+  <Svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+    <path d="M7 16V5m0 0L3.5 8.5M7 5l3.5 3.5M17 8v11m0 0 3.5-3.5M17 19l-3.5-3.5"/>
+  </Svg>
+);
+
 export const InfoIcon = (props: IconProps) => (
   <Svg strokeWidth={1.8} {...props}>
     <circle cx="12" cy="12" r="8.2" />
@@ -523,6 +530,7 @@ const DESIGN_ICONS = {
   "drop": DropIcon,
   "ticket": TicketIcon,
   "calendar": CalendarIcon,
+  "swap": SwapIcon,
 } as const;
 
 export type DesignIconName = keyof typeof DESIGN_ICONS;

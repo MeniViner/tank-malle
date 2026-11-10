@@ -40,7 +40,7 @@ test("signed numbers, money and units read correctly", async ({ page }) => {
   await signedInWithData(page, { fillups: RECORDS });
 
   await page.goto("/");
-  await expect(page.getByTestId("consumption-chart").locator("figcaption")).toContainText("הטווח הרגיל שלך", { timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption")).toContainText("הרגיל שלך", { timeout: 25_000 });
 
   /* --- money (v3 §5): digits, a narrow no-break space, then the symbol --- */
   // innerText puts a line break between the inline-flex items (digits / gap / symbol); they render on one line.

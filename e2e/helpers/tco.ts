@@ -53,7 +53,7 @@ export async function completeTcoFlow(page: Page) {
   await expect(page.getByTestId('tco-value-test')).toHaveText('1,200\u202F₪');
   await page.getByRole('radio', { name: 'בחודש', exact: true }).click();
   await page.keyboard.press('Escape');
-  await expect(card).toBeFocused();
+  await expect(card.getByRole('button', { name: 'כמה הרכב עולה לך', exact: true })).toBeFocused();
   await page.goto('/stats?tab=spend');
   const compact = page.getByTestId('tco-card');
   await expect(compact).toHaveAttribute('data-compact', 'true');

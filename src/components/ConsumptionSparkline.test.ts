@@ -75,4 +75,24 @@ describe("Plate consumption sparkline", () => {
     expect(markup).not.toContain('data-testid="consumption-usual-band"');
     expect(markup).not.toMatch(/NaN|Infinity/);
   });
+
+  it("v3 Home variant: values on every point, dates only at both ends, no legend, split caption", () => {
+    const data = segments([10, 11, 12, 13, 14, 15]);
+    const markup = renderToStaticMarkup(createElement(ConsumptionSparkline,
+      { segments: data, units: "kmPerLiter", average: 12, onSelect: () => undefined, variant: "home" }));
+    expect(markup.match(/class="tm-sparkline-value/g)).toHaveLength(6);
+    expect(markup.match(/class="tm-sparkline-date/g)).toHaveLength(2);
+    expect(markup.match(/<button type="button" class="tm-sparkline-point"/g)).toHaveLength(6);
+    expect(markup).not.toContain("tm-sparkline-legend");
+    expect(markup).not.toContain("הטווח הרגיל שלך");
+    expect(markup).toMatch(/<figcaption class="tm-sparkline-caption"><span>.*6.*תדלוקים אחרונים<\/span><span>הרגיל שלך <b>.*12\.0.*<\/b><\/span><\/figcaption>/);
+    expect(markup).toContain('data-variant="home"');
+    // Same band and last-six rule as the full chart.
+    expect(markup).toContain('data-testid="consumption-usual-band"');
+    const lone = renderToStaticMarkup(createElement(ConsumptionSparkline,
+      { segments: segments([11]), units: "kmPerLiter", average: null, onSelect: () => undefined, variant: "home" }));
+    expect(lone).toContain("התדלוק האחרון");
+    expect(lone).not.toContain("הרגיל שלך");
+    expect(lone.match(/class="tm-sparkline-date/g)).toHaveLength(1);
+  });
 });

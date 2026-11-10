@@ -106,7 +106,7 @@ test("Home sparkline uses the last six canonical intervals, correct usual band a
   await expect(page.getByTestId("consumption-point-home-1")).toHaveCount(0);
   await expect(summary.getByText("10.5", { exact: true }).first()).toBeVisible();
   await expect(summary.getByRole("button", { name: /פרטי המקטע האחרון.*10\.5.*ק״מ לליטר/ })).toBeVisible();
-  await expect(chart.locator("figcaption")).toContainText("הטווח הרגיל שלך, סביב 12.4");
+  await expect(chart.locator("figcaption")).toContainText("הרגיל שלך 12.4");
   await expect(page.getByTestId("consumption-comparison")).toContainText("18%");
   await expect(page.getByTestId("consumption-comparison")).toContainText("יותר דלק לק״מ");
   await expect(chart).toHaveAttribute("data-tone", "worse");
@@ -147,7 +147,7 @@ test("Home sparkline uses the last six canonical intervals, correct usual band a
   await page.goto("/");
   await expect(summary.getByText("9.5", { exact: true }).first()).toBeVisible();
   await expect(summary.getByRole("button", { name: /פרטי המקטע האחרון.*9\.5.*100.*ק״מ/ })).toBeVisible();
-  await expect(chart.locator("figcaption")).toContainText("הטווח הרגיל שלך, סביב 8.1");
+  await expect(chart.locator("figcaption")).toContainText("הרגיל שלך 8.1");
   await expect(chart).toHaveAttribute("data-tone", "worse");
   await expect(page.getByTestId("consumption-comparison")).toContainText("18%");
   expect(Number(await band.getAttribute("data-low"))).toBeCloseTo(100 / (HOME_AVERAGE * 1.07), 7);
@@ -186,31 +186,48 @@ test("a missing partial cost never becomes a complete segment or monthly fuel to
   expect((await getDocument(basePath))?.totalCost).toBeNull();
 });
 
-test("the three recent records and Journal share refund, unknown cost and quiet odometer rows", async ({ page }) => {
+test("the recent records and Journal share refund, unknown cost and quiet odometer rows", async ({ page }) => {
   const scope = await homeFixture(page);
   await expect(page.getByTestId("tank-hero")).toHaveAccessibleDescription(/100\s*%/);
   await expect(page.getByTestId("tank-hero")).toHaveAccessibleDescription(/הערכה מהטנק המלא האחרון/);
   await homeMixedRecent(scope);
   await page.goto("/");
   const recent = page.getByTestId("recent-fillups-timeline");
-  await expect(recent.locator(".ledger-row")).toHaveCount(3);
+  // Design v3 §2.8: Home shows the two newest rows (was three).
+  await expect(recent.locator(".ledger-row")).toHaveCount(2);
   const ids = ["observations/mixed-odometer", "vehicleExpenses/mixed-refund", "serviceEvents/mixed-service"];
   const text = new Map<string, string>();
-  for (const id of ids) {
+  for (const id of ids.slice(0, 2)) {
     const row = recent.getByTestId(`journal-entry-${id}`);
     await expect(row).toBeVisible();
     await size44(row);
     text.set(id, await row.innerText());
   }
-  await expect(recent.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+11\u202F₪");
-  await expect(recent.getByTestId("journal-entry-serviceEvents/mixed-service")).toContainText("—");
+  await expect(recent.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+11 ₪");
+  // Move the two newest rows back so the unknown-cost service row reaches Home's two rows too.
+  const odometerPath = `${scope.base}/observations/mixed-odometer`, refundPath = `${scope.base}/vehicleExpenses/mixed-refund`;
+  const [odometerDoc, refundDoc] = [await getDocument(odometerPath), await getDocument(refundPath)];
+  const older = new Date(scope.now - 10 * 86_400_000);
+  await setDocument(odometerPath, { ...odometerDoc, observedAt: older, recordedAt: older });
+  await setDocument(refundPath, { ...refundDoc, day: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(older) });
+  const service = recent.getByTestId("journal-entry-serviceEvents/mixed-service");
+  await expect(service).toBeVisible();
+  await size44(service);
+  await expect(service).toContainText("—");
+  // Compare it with the Journal under the same data (its mileage flag depends on the newest odometer).
+  const serviceText = await service.innerText();
+  await page.goto("/history");
+  await expect(page.getByTestId(`journal-entry-${ids[2]}`)).toHaveText(serviceText, { useInnerText: true });
+  await homeMixedRecent(scope);
+  await page.goto("/");
+  await expect(recent.getByTestId("journal-entry-observations/mixed-odometer")).toBeVisible();
   await expect(recent.getByTestId("journal-entry-observations/mixed-odometer")).toContainText("172,600");
   await expect(recent.getByTestId("journal-entry-observations/mixed-odometer")).not.toContainText("₪");
   await recent.getByTestId("journal-entry-observations/mixed-odometer").click();
   await expect(page).toHaveURL(/\/history\?.*entry=observations%2Fmixed-odometer/);
   await expect(page.getByTestId("journal-entry-sheet")).toContainText("172,600");
   await page.keyboard.press("Escape");
-  for (const id of ids) await expect(page.getByTestId(`journal-entry-${id}`)).toHaveText(text.get(id)!, { useInnerText: true });
+  for (const id of ids.slice(0, 2)) await expect(page.getByTestId(`journal-entry-${id}`)).toHaveText(text.get(id)!, { useInnerText: true });
   expect((await getDocument(`${scope.base}/vehicleExpenses/mixed-refund`))?.costAgorot).toBe(1050);
   expect((await getDocument(`${scope.base}/serviceEvents/mixed-service`))?.costAgorot).toBeNull();
   expect(await listDocuments(`${scope.base}/fillups`)).toHaveLength(8);
@@ -566,7 +583,8 @@ for (const [theme, accent] of [["light", "plate"], ["light", "mint"], ["dark", "
     await page.goto("/");
     await page.getByTestId("recent-fillups-timeline").scrollIntoViewIfNeeded();
     await expect(page.getByTestId("recent-fillups-timeline").getByTestId("journal-entry-observations/mixed-odometer")).toBeVisible();
-    await expect(page.getByTestId("recent-fillups-timeline").getByTestId("journal-entry-serviceEvents/mixed-service")).toBeVisible();
+    // v3 §2.8: two rows on Home; the third (service) row is checked in the Journal below.
+    await expect(page.getByTestId("recent-fillups-timeline").locator(".ledger-row")).toHaveCount(2);
     await expect(page.getByTestId("journal-entry-vehicleExpenses/mixed-refund")).toContainText("+11\u202F₪");
     await capture(page, `home-recent-mixed-${suffix}`);
     await page.goto("/history");

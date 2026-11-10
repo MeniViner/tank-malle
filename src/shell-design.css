@@ -109,7 +109,12 @@
 }
 .tm-header-bell { border: 0; background: transparent; }
 .tm-header-account, .tm-screen-back { border: 1px solid var(--line); background: var(--surface); }
-.tm-header-account { overflow: hidden; }
+.tm-header-account { border-color: transparent; }
+.tm-header-account > img, .tm-header-account > .tm-avatar-initial { position: relative; }
+.tm-avatar-initial { font-family: var(--font-display); font-weight: 400; line-height: 1; }
+.tm-header-ring { position: absolute; inset: -1px; width: calc(100% + 2px); height: calc(100% + 2px); overflow: visible; pointer-events: none; transform: rotate(117deg); transform-origin: 50% 50%; }
+.tm-header-ring circle { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
+.tm-header-account:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .tm-header-unread { position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--worse); border: 2px solid var(--bg); }
 .tm-screen-header { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 10px; min-height: 68px; padding: 10px 20px 12px; }
 .tm-screen-header-spacer { width: 44px; height: 44px; flex: none; }

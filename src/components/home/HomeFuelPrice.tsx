@@ -10,6 +10,7 @@ import { israelMonthKey, publicationDate } from "../../lib/prices/publicSource";
 import { type Vehicle } from "../../lib/stats";
 import { Button } from "../Button";
 import { Pill } from "../DesignPrimitives";
+import { Fact } from "../FactsStrip";
 import { FuelDiscountSheet } from "../FuelDiscountSheet";
 import { NumericText, NumRun, PricePerLiter } from "../Fmt";
 import { TagIcon } from "../icons";
@@ -42,22 +43,20 @@ function PriceCard({ vehicle, now, open, onOpen, onClose, lookup, market }: Prop
   const fromMarket = lookup.price === null && !!market;
   const current = lookup.effectiveMonth === israelMonthKey(now);
   const name = fuel === "95" ? "בנזין 95" : fuel === "98" ? "בנזין 98" : fuel === "diesel" ? "סולר" : "דלק";
+  // v3 facts strip: "בנזין 95 היום". Market lists and stale prices keep saying what they are.
   const label = fromMarket ? `מחירון ${fuel === "98" ? "98" : "סולר"}` : fuel === "other" ? "מחיר הדלק"
-    : current ? `${fuel === "diesel" ? "סולר" : fuel} היום` : `מחיר ${fuel === "diesel" ? "סולר" : fuel}`;
+    : current ? `${fuel === "diesel" ? "סולר" : `בנזין ${fuel}`} היום` : `מחיר ${fuel === "diesel" ? "סולר" : fuel}`;
   const discount = fuel === "95" ? vehicleDiscount(vehicle) : null;
   const after = lookup.price !== null && discount?.value ? discountedPrice(lookup.price, discount) : null;
   const staleMarket = market?.reading ? marketPriceIsStale(market.reading, now) : false;
   const caption = value === null ? "לא ידוע" : fromMarket ? staleMarket ? "מחירון אחרון" : "מחירון הרשת"
-    : !current ? "מחיר אחרון" : lookup.isManual ? "הוזן ידנית" : after !== null ? "לפני ההנחה" : lookup.isRegulated ? "מחיר מרבי" : "מחיר שנשמר";
+    : !current ? "מחיר אחרון" : lookup.isManual ? "הוזן ידנית" : after !== null ? "המחיר המרבי, לפני ההנחה שלך" : lookup.isRegulated ? "המחיר המרבי בתחנות" : "מחיר שנשמר";
   const upcoming = fuel === "95" ? upcomingOfficialPrice(prices, now) : null;
   const officialUrl = lookup.sourceUrl && publicationDate(lookup.sourceUrl) !== null ? lookup.sourceUrl : null;
   const history = useMemo(() => fuel === "95" ? officialPriceHistory(prices, now).slice(-6) : [], [fuel, prices, now]);
   return <>
-    <button type="button" className="home-trio-cell" onClick={onOpen} data-testid="home-fuel-price">
-      <span className="home-trio-label"><NumericText>{label}</NumericText></span>
-      <NumRun block className="home-trio-value">{value === null ? "—" : price(value)}</NumRun>
-      <span className="home-trio-caption">{caption}</span>
-    </button>
+    <Fact testId="home-fuel-price" label={<NumericText>{label}</NumericText>} sub={caption}
+      value={value === null ? null : price(value)} unit="לליטר" onClick={onOpen} hasPopup="dialog" />
     <Sheet open={open} onClose={() => { setDiscountOpen(false); onClose(); }} title={<h2><NumericText>{name}</NumericText></h2>}>
       <div className="home-sheet-stack" data-testid="price-sheet">
         {value === null ? <NumRun block className="home-sheet-price">—</NumRun>

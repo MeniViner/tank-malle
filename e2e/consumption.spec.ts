@@ -133,7 +133,7 @@ test("the closing full fill-up produces the canonical segment result", async ({ 
 
   // The dashboard agrees with the toast, because both come from one engine.
   await page.goto("/");
-  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 13\.3/)).toBeVisible();
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הרגיל שלך 13\.3/)).toBeVisible();
   await expectConsumptionCounts(page, 1, 3);
 });
 
@@ -188,7 +188,7 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await setActiveVehicle(uid, vehicleId);
   await page.goto("/");
   // 600 km / 50 L = 12.0 km/L
-  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 12\.0/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הרגיל שלך 12\.0/)).toBeVisible({ timeout: 25_000 });
   await expectConsumptionCounts(page, 1, 2);
 
   // A BACKDATED partial lands between them and changes the answer: the same
@@ -207,7 +207,7 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   // 600 / 60 = 10.0 — the same distance, now covered by 50 + 10 litres. The
   // fill-up count is asserted in the same string so the check cannot pass
   // against a list that has not finished loading the third record.
-  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 10\.0/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הרגיל שלך 10\.0/)).toBeVisible({ timeout: 25_000 });
   await expectConsumptionCounts(page, 1, 3);
 
   // Delete the exact backdated record through its entry sheet and original
@@ -230,6 +230,6 @@ test("editing, deleting and backdating recompute the result", async ({ page }) =
   await expect(page.getByText("התדלוק נמחק")).toBeVisible({ timeout: 15_000 });
 
   await page.goto("/");
-  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הטווח הרגיל שלך, סביב 12\.0/)).toBeVisible({ timeout: 25_000 });
+  await expect(page.getByTestId("consumption-chart").locator("figcaption").getByText(/הרגיל שלך 12\.0/)).toBeVisible({ timeout: 25_000 });
   await expectConsumptionCounts(page, 1, 2);
 });

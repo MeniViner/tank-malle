@@ -9,17 +9,18 @@ import type { Fillup } from "../stats";
 import { groupedReminderSpotlights } from "./groupedReminders";
 import { paidPriceSpotlight } from "./paidPriceInsight";
 import { sustainedConsumptionSpotlight } from "./sustainedConsumption";
+import { vehicleDay } from "../vehicle/format";
 
 export interface SpotlightItem {
   id: string;
   tone: "info" | "warn" | "danger" | "better";
-  icon: "alert" | "wrench" | "chart" | "coin" | "doc" | "shield";
+  icon: "alert" | "wrench" | "chart" | "coin" | "doc" | "shield" | "road";
   title: string;
   body: string;
   sticky?: boolean;
   /** Dismissing a group also dismisses these individual calendar occurrences. */
   dismisses?: readonly string[];
-  target: { kind: "route"; to: string } | { kind: "segment"; endId: string } | { kind: "price" };
+  target: { kind: "route"; to: string } | { kind: "segment"; endId: string } | { kind: "price" } | { kind: "tank" };
 }
 
 export interface ReminderInput {
@@ -47,6 +48,27 @@ export interface SpotlightInput {
   ownerId?: string | null;
   fillups?: readonly Fillup[];
   dismissedIds?: readonly string[];
+  /** The next planned trip when the tank forecast says it pulls the refuel earlier (`tripPullsForward`). */
+  trip?: PlannedTripWarning | null;
+}
+
+export interface PlannedTripWarning {
+  planId: string;
+  /** Civil day of the trip, "YYYY-MM-DD". */
+  day: string;
+  distanceKm: number;
+  rangeToReserveKm: number | null;
+}
+
+/** Design v3 §2.3: "כדאי לתדלק לפני הנסיעה", from the existing tank forecast only. */
+export function plannedTripSpotlight(trip: PlannedTripWarning): SpotlightItem {
+  const range = trip.rangeToReserveKm !== null && Number.isFinite(trip.rangeToReserveKm) && trip.rangeToReserveKm > 0
+    ? ` · יש כ-${int(trip.rangeToReserveKm)} ק״מ עד לרזרבה` : "";
+  return { id: `trip:${trip.planId}:${trip.day}`, tone: "warn", icon: "road",
+    title: "כדאי לתדלק לפני הנסיעה",
+    body: `${int(trip.distanceKm)} ק״מ ב-${vehicleDay(trip.day)}${range}`,
+    target: { kind: "tank" },
+  };
 }
 
 export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
@@ -76,6 +98,7 @@ export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
   }
   items.push(...groupedReminderSpotlights({ vehicle, today, reminders, mileageCards,
     documents: input.documents, dismissedIds: input.dismissedIds }));
+  if (input.trip) items.push(plannedTripSpotlight(input.trip));
   const paid = paidPriceSpotlight({ now, ownerId: input.ownerId ?? null, vehicle,
     fillups: input.fillups ?? stats.fillups, prices, historyComplete: input.historyComplete });
   const sustained = sustainedConsumptionSpotlight({ now, stats, units, historyComplete: input.historyComplete });
