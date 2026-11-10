@@ -145,8 +145,8 @@ describe('statementHtml', () => {
     expect(html).not.toContain('<בע"מ>');
   });
   it('shows whole shekels for amounts and two decimals per litre (AGENTS.md)', () => {
-    expect(html).toContain('₪7.35');
-    expect(html).toContain('₪300');
+    expect(html).toContain('7.35\u202F₪');
+    expect(html).toContain('300\u202F₪');
     expect(html).not.toContain('300.45');
     expect(html).toContain('03.10.2026');
   });
