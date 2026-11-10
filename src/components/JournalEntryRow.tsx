@@ -12,8 +12,10 @@ import { EXCLUDED_LABEL } from "../lib/vehicle/ownership";
 import { StationBrandMark } from "./StationBrand";
 import "../journal-entry.css";
 
-export function JournalEntryRow({ row, units, kmPerLiter, pending = false, attention = false, flagged = false, to, onOpen }: {
+export function JournalEntryRow({ row, units, kmPerLiter, ev = false, pending = false, attention = false, flagged = false, to, onOpen }: {
   row: LedgerRow; units: "kmPerLiter" | "litersPer100"; kmPerLiter?: number;
+  /** EV (Stage 7 D2): a charge row names the record instead of showing litres or km/L. */
+  ev?: boolean;
   pending?: boolean; attention?: boolean; flagged?: boolean; to?: string; onOpen?: () => void;
 }) {
   const date = new Date(`${row.day}T12:00:00`);
@@ -42,7 +44,7 @@ export function JournalEntryRow({ row, units, kmPerLiter, pending = false, atten
       </span>}
     <span className="tm-journal-main">
       <strong className="tm-journal-title"><NumericText>{row.title}</NumericText></strong>
-      <span className="tm-journal-meta">{fuel ? <FuelMeta fillup={fuel} value={kmPerLiter} units={units} /> : <>
+      <span className="tm-journal-meta">{fuel ? ev ? <>טעינה · {fillupEndLabel(fuel)}</> : <FuelMeta fillup={fuel} value={kmPerLiter} units={units} /> : <>
         {row.kind === "service" ? "טיפול" : row.kind === "issue" ? "תקלה" : refund ? "החזר" : "הוצאה"}
         {row.odometer !== null ? <> · <Distance value={row.odometer} /></> : null}
         {row.at === null ? " · יום בלבד" : null}

@@ -10,6 +10,7 @@ import { groupedReminderSpotlights } from "./groupedReminders";
 import { paidPriceSpotlight } from "./paidPriceInsight";
 import { sustainedConsumptionSpotlight } from "./sustainedConsumption";
 import { vehicleDay } from "../vehicle/format";
+import { isEv } from "../vehicle/v3Fields";
 
 export interface SpotlightItem {
   id: string;
@@ -99,13 +100,15 @@ export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
   items.push(...groupedReminderSpotlights({ vehicle, today, reminders, mileageCards,
     documents: input.documents, dismissedIds: input.dismissedIds }));
   if (input.trip) items.push(plannedTripSpotlight(input.trip));
+  // Stage 7 D2: per-litre consumption and price cards are meaningless for an EV recorded in litres.
+  const ev = isEv(vehicle);
   const paid = paidPriceSpotlight({ now, ownerId: input.ownerId ?? null, vehicle,
     fillups: input.fillups ?? stats.fillups, prices, historyComplete: input.historyComplete });
   const sustained = sustainedConsumptionSpotlight({ now, stats, units, historyComplete: input.historyComplete });
-  if (paid) items.push(paid);
-  if (sustained) items.push(sustained);
+  if (paid && !ev) items.push(paid);
+  if (sustained && !ev) items.push(sustained);
   const last = stats.lastSegment;
-  if (input.historyComplete !== false && last && stats.segments.length >= 3 && !stats.anomalies.some(anomaly => anomaly.fillupId === last.endId)
+  if (!ev && input.historyComplete !== false && last && stats.segments.length >= 3 && !stats.anomalies.some(anomaly => anomaly.fillupId === last.endId)
       && stats.segments.every(segment => segment.endId === last.endId || segment.kmPerLiter < last.kmPerLiter)) {
     const shown = consumption(last.kmPerLiter, units);
     items.push({ id: `best:${last.startId}:${last.endId}:${last.kmPerLiter}`, tone: "better", icon: "chart",
@@ -116,16 +119,17 @@ export function deriveSpotlight(input: SpotlightInput): SpotlightItem[] {
   const date = new Date(now);
   const previousDate = new Date(date.getFullYear(), date.getMonth(), 0, 23, 59, 59, 999);
   const previousMonth = monthKey(+previousDate);
-  items.push(...priceSpotlights(prices, vehicle, now));
+  if (!ev) items.push(...priceSpotlights(prices, vehicle, now));
   if (input.historyComplete !== false && date.getDate() <= 7) {
     const rows = ledger.filter(row => row.day.startsWith(previousMonth) && row.financial);
     const fuel = rows.filter(row => row.kind === "fuel"), services = rows.filter(row => row.kind === "service");
     if (fuel.length) {
-      const fuelText = fuel.some(row => row.amountAgorot === null) ? "סכום הדלק חלקי" : `${shekel(fuel.reduce((sum, row) => sum + row.amountAgorot!, 0) / 100)} דלק`;
+      const energy = ev ? "חשמל" : "דלק";
+      const fuelText = fuel.some(row => row.amountAgorot === null) ? `סכום ה${energy} חלקי` : `${shekel(fuel.reduce((sum, row) => sum + row.amountAgorot!, 0) / 100)} ${energy}`;
       const serviceText = !services.length ? "" : services.some(row => row.amountAgorot === null)
         ? " · עלות הטיפולים חלקית" : ` · ${shekel(services.reduce((sum, row) => sum + row.amountAgorot!, 0) / 100)} טיפולים`;
       items.push({ id: `month:${previousMonth}`, tone: "info", icon: "chart", title: `${monthYear(previousMonth)} בסיכום`,
-        body: `${fuelText} · ${fuel.length === 1 ? "תדלוק אחד" : `${int(fuel.length)} תדלוקים`}${serviceText}`,
+        body: `${fuelText} · ${ev ? fuel.length === 1 ? "טעינה אחת" : `${int(fuel.length)} טעינות` : fuel.length === 1 ? "תדלוק אחד" : `${int(fuel.length)} תדלוקים`}${serviceText}`,
         target: { kind: "route", to: `/stats?tab=spend&month=${previousMonth}` },
       });
     }

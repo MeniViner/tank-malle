@@ -37,6 +37,8 @@ export interface TcoInput {
   today: string;
   kmPerDay: number | null;
   incomplete?: boolean;
+  /** EV: the energy part is labelled "חשמל" (DESIGN-V3 §4 "fuel / electric"); values are unchanged. */
+  ev?: boolean;
 }
 
 const monthIndex = (day: string) => Number(day.slice(0, 4)) * 12 + Number(day.slice(5, 7)) - 1;
@@ -58,7 +60,7 @@ export function ledgerAmount(row: LedgerRow): number | null {
 }
 
 /** Read-only ownership estimate. No date clock, rounding, writes, or SDK dependencies. */
-export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false }: TcoInput): TcoResult {
+export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false, ev = false }: TcoInput): TcoResult {
   if (!validDay(today)) throw new TypeError('TCO requires a valid civil day');
   const dated = ledger.filter(row => validDay(row.day) && row.day <= today);
   // The window, every part and the shared monthly figure are ownership-only.
@@ -92,7 +94,7 @@ export function calculateTco({ ledger, docs, today, kmPerDay, incomplete = false
   const fixed = (id: 'mandatory' | 'coverage' | 'test', label: string, annual: number | null): TcoPart =>
     ({ id, label, value: annual === null ? null : annual / 12, knownValue: annual === null ? 0 : annual / 12, docKey: id });
   const parts = [
-    variable('fuel', 'דלק', row => row.kind === 'fuel'),
+    variable('fuel', ev ? 'חשמל' : 'דלק', row => row.kind === 'fuel'),
     variable('service', 'טיפולים ותיקונים', row => row.kind === 'service'),
     fixed('mandatory', 'ביטוח חובה', mandatory),
     fixed('coverage', coverageType === 'comprehensive' ? 'ביטוח מקיף' : coverageType === 'third' ? 'ביטוח צד ג׳' : 'ביטוח רכב', coverage),

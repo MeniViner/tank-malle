@@ -15,9 +15,14 @@ import { ChevronStart, RefreshIcon, WarningIcon } from '../components/icons';
 import { FUEL_TYPE_SHORT, formatPlate, parseDecimal } from '../lib/format';
 import { LOOKUP_MESSAGES, lookupPlate } from '../lib/plateLookup';
 import { fetchVehicleSpecs, type VehicleSpecs } from '../lib/vehicleSpecs';
-import { evRefreshPatch, isEv, readBattery, readMotorKw } from '../lib/vehicle/v3Fields';
+import { evRefreshPatch, isEv, readBattery, readMotorKw, readPowertrain } from '../lib/vehicle/v3Fields';
 import type { FuelType, Vehicle } from '../lib/types';
 import '../vehicle-page-design.css';
+
+/** Stage 7 D7: the fuel control also offers "חשמלי"; an EV is stored as `fuelType: 'other'` + `powertrain: 'ev'` (EV-AUDIT.md). */
+type DriveChoice = FuelType | 'ev';
+const DRIVE_CHOICES: readonly DriveChoice[] = ['95', '98', 'diesel', 'other', 'ev'];
+const driveLabel = (value: DriveChoice) => value === 'ev' ? 'חשמלי' : FUEL_TYPE_SHORT[value];
 
 function VehicleEditPage({ back, children }: { back: string; children: ReactNode }) {
   const navigate = useNavigate();
@@ -81,6 +86,22 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
   const yearError = year.trim() && (!/^\d{4}$/.test(year) || Number(year) < 1900 || Number(year) > 2100) ? 'שנה בין 1900 ל־2100' : null;
   const tankError = tank.trim() && (!Number.isFinite(parseDecimal(tank)) || parseDecimal(tank) <= 0 || parseDecimal(tank) > 500) ? 'נפח מיכל בין 0 ל־500 ליטר (ללא אפס)' : null;
   const declaredError = declared.trim() && (!Number.isFinite(parseDecimal(declared)) || parseDecimal(declared) <= 0) ? 'הצריכה חייבת להיות מספר חיובי' : null;
+  function chooseDrive(value: DriveChoice) {
+    if (value === 'ev') {
+      setEvPatch(current => ({ ...current, powertrain: 'ev' }));
+      if (fuelType !== 'other') setFuelType('other');
+      touch('ev', 'fuelType');
+      return;
+    }
+    if (electric) setEvPatch(current => {
+      const next = { ...current };
+      // Leaving EV: a stored EV becomes a combustion car; an unsaved switch is simply undone.
+      if (readPowertrain(vehicle.powertrain) === 'ev') next.powertrain = 'ice'; else delete next.powertrain;
+      return next;
+    });
+    setFuelType(value); touch('fuelType', 'ev');
+  }
+  const driveControl = <div className="tm-vehicle-field-group"><span className="tm-vehicle-field-label">{electric ? 'הנעה' : 'סוג דלק'}</span><Segmented<DriveChoice> value={electric ? 'ev' : fuelType} ariaLabel={electric ? 'הנעה' : 'סוג דלק'} options={DRIVE_CHOICES.map(value => ({ value, label: driveLabel(value) }))} onChange={chooseDrive}/></div>;
   const valid = make.trim().length > 0 && make.length <= 60 && model.length <= 80 && nickname.length <= 60 && !yearError && !tankError && !declaredError;
   const back = activeVehicle?.id === vehicle.id ? '/vehicle' : '/settings/vehicles';
 
@@ -175,14 +196,13 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
         <Field label="כינוי לרכב" dir="auto" maxLength={60} placeholder="למשל, המאזדה שלי" value={nickname} onChange={event => { setNickname(event.target.value); touch('nickname'); }}/>
         <div className="tm-vehicle-field-pair"><Field label="יצרן" required dir="auto" maxLength={60} value={make} onChange={event => { setMake(event.target.value); touch('make'); }}/><Field label="דגם" dir="auto" maxLength={80} value={model} onChange={event => { setModel(event.target.value); touch('model'); }}/></div>
         <Field label="שנת ייצור" inputMode="numeric" value={year} error={yearError ? <NumericText>{yearError}</NumericText> : null} maxLength={4} onChange={event => { setYear(event.target.value.replace(/\D/g, '').slice(0, 4)); touch('year'); }}/>
+        {driveControl}
         {electric ? <div className="tm-vehicle-field-group" data-testid="vehicle-edit-ev">
-          <span className="tm-vehicle-field-label">הנעה</span>
-          <p className="tm-vehicle-note">רכב חשמלי · אין מיכל דלק, נפח מנוע או צריכה בק״מ לליטר.
+          <p className="tm-vehicle-note">רכב חשמלי · בלי שדות של רכב בנזין או סולר.
             {electricBattery?.kwh ? <> סוללה <NumRun>{electricBattery.kwh}</NumRun> kWh.</> : null}
             {electricBattery?.wltp ? <> טווח WLTP <NumRun>{electricBattery.wltp}</NumRun> ק״מ.</> : null}
             {electricMotor ? <> מנוע <NumRun>{electricMotor}</NumRun> kW.</> : null}</p>
         </div> : <>
-        <div className="tm-vehicle-field-group"><span className="tm-vehicle-field-label">סוג דלק</span><Segmented<FuelType> value={fuelType} ariaLabel="סוג דלק" options={(['95', '98', 'diesel', 'other'] as const).map(value => ({ value, label: FUEL_TYPE_SHORT[value] }))} onChange={value => { setFuelType(value); touch('fuelType'); }}/></div>
         {fuelType !== '95' ? <p className="tm-vehicle-warning"><WarningIcon size={20}/><NumericText>רק לבנזין 95 יש מחיר מרבי בפיקוח. אם תועד מחיר קודם לדלק הזה, נציע אותו; אחרת יש להזין את המחיר ששילמתם.</NumericText></p> : null}
         <div className="tm-vehicle-field-pair tm-vehicle-edit-numbers">
           <div className="tm-vehicle-edit-tank">

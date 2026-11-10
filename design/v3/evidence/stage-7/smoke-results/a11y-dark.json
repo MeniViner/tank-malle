@@ -1,0 +1,189 @@
+{
+  "home": {
+    "texts": 140,
+    "contrast": [],
+    "interactive": 29,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 25,
+      "invisible": [
+        {
+          "where": "button[data-testid=tco-period].tm-tco-per",
+          "visible": false,
+          "style": "outline:none 3px rgb(169, 162, 146); shadow:none"
+        }
+      ]
+    }
+  },
+  "insights-cons": {
+    "texts": 131,
+    "contrast": [],
+    "interactive": 32,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": []
+    }
+  },
+  "insights-price": {
+    "texts": 175,
+    "contrast": [],
+    "interactive": 27,
+    "small": [],
+    "unnamed": [
+      "svg.recharts-surface",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action",
+      "a.insights-table-action"
+    ],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": []
+    }
+  },
+  "insights-spend": {
+    "texts": 183,
+    "contrast": [],
+    "interactive": 21,
+    "small": [],
+    "unnamed": [
+      "svg.recharts-surface"
+    ],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": [
+        {
+          "where": "button[data-testid=tco-period].tm-tco-per",
+          "visible": false,
+          "style": "outline:none 3px rgb(169, 162, 146); shadow:none"
+        }
+      ]
+    }
+  },
+  "insights-community": {
+    "texts": 27,
+    "contrast": [],
+    "interactive": 13,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": []
+    }
+  },
+  "vehicle": {
+    "texts": 92,
+    "contrast": [],
+    "interactive": 26,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 25,
+      "invisible": []
+    }
+  },
+  "vehicle-costs": {
+    "texts": 55,
+    "contrast": [],
+    "interactive": 13,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": []
+    }
+  },
+  "vehicle-details": {
+    "texts": 28,
+    "contrast": [],
+    "interactive": 12,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": []
+    }
+  },
+  "account": {
+    "texts": 51,
+    "contrast": [],
+    "interactive": 28,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 25,
+      "invisible": []
+    }
+  },
+  "fillup": {
+    "texts": 29,
+    "contrast": [],
+    "interactive": 13,
+    "small": [],
+    "unnamed": [],
+    "nonHebrew": [],
+    "focus": {
+      "tabbed": 24,
+      "invisible": [
+        {
+          "where": "input[data-testid=fillup-total]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-liters]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-price]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-odometer]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-total]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-liters]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-price]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        },
+        {
+          "where": "input[data-testid=fillup-odometer]",
+          "visible": false,
+          "style": "outline:none 3px rgb(221, 214, 199); shadow:none"
+        }
+      ]
+    }
+  }
+}

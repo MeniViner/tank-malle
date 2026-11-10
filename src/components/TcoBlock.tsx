@@ -7,7 +7,7 @@ import { tcoLegendParts, type TcoPart, type TcoPartId, type TcoResult } from '..
 import type { VehicleDocKey } from '../lib/vehicle/documents';
 import { journalRangeLink } from './insights/presentation';
 import { Money, NumericText, NumRun } from './Fmt';
-import { CoinIcon, DocumentIcon, PumpIcon, ShieldIcon, SwapIcon, WrenchIcon, ChevronStart } from './icons';
+import { BatteryIcon, CoinIcon, DocumentIcon, PumpIcon, ShieldIcon, SwapIcon, WrenchIcon, ChevronStart } from './icons';
 import { Segmented } from './Segmented';
 import { Sheet } from './Sheet';
 import { VehicleDocumentDialog } from './VehicleDocuments';
@@ -99,6 +99,8 @@ function TcoSheet({ tco, initialPeriod, onClose, returnFocus }: { tco: TcoResult
   const multiplier = period === 'month' ? 1 : 12;
   const total = period === 'month' ? tco.month : tco.year;
   const fuel = tco.parts[0];
+  // The energy part's own label ("דלק", or "חשמל" for an EV) names it in the share tile too.
+  const energy = fuel.label;
   const fuelShare = fuel.value !== null && tco.month !== null && tco.month > 0 ? fuel.value / tco.month * 100 : null;
   function openPart(part: TcoPart, button: HTMLButtonElement) {
     if (part.docKey) { docTrigger.current = button; setDocument(part.docKey); }
@@ -111,7 +113,7 @@ function TcoSheet({ tco, initialPeriod, onClose, returnFocus }: { tco: TcoResult
         <div className="tm-tco-number"><Amount value={total} className="tm-tco-value" /><span className="tm-tco-unit">{period === 'month' ? 'בחודש' : 'בשנה'}</span></div>
         <p className="tm-tco-note">ממוצע על {tco.window === 1 ? 'החודש האחרון' : <><NumRun>{tco.window}</NumRun> החודשים האחרונים</>}. ביטוח, טסט ואגרה מחולקים ל־<NumRun>12</NumRun> חודשים.</p>
         <div className="tm-tco-rows">{tco.parts.map(part => {
-          const Icon = ICONS[part.id];
+          const Icon = part.id === 'fuel' && part.label === 'חשמל' ? BatteryIcon : ICONS[part.id];
           return <button type="button" className="tm-tco-row" key={part.id} data-testid={`tco-part-${part.id}`}
             onClick={event => openPart(part, event.currentTarget)}>
             <span className="tm-tco-icon" style={{ background: COLORS[part.id], color: ON_COLORS[part.id] }} aria-hidden="true"><Icon size={18} /></span>
@@ -124,7 +126,7 @@ function TcoSheet({ tco, initialPeriod, onClose, returnFocus }: { tco: TcoResult
         })}</div>
         <div className="tm-tco-duo">
           <div><span>כל ק״מ עולה לך{tco.complete ? ' באמת' : tco.lowerBound ? ' לפחות' : ''}</span><strong><NumRun>{tco.perKm === null ? '—' : price(tco.perKm)}</NumRun></strong><small>{tco.perKm === null ? 'אחרי שתהיה נסועה יומית ידועה' : 'כולל העלויות המתועדות'}</small></div>
-          <div><span>{tco.complete ? 'מתוך זה דלק' : 'דלק מתוך הסכום הידוע'}</span><strong><NumRun>{fuelShare === null ? '—' : percentPlain(fuelShare)}</NumRun></strong><small>{fuel.value === null ? 'עלות הדלק עדיין אינה מלאה' : <><Money value={fuel.value * multiplier} /> {period === 'month' ? 'בחודש' : 'בשנה'}</>}</small></div>
+          <div><span>{tco.complete ? `מתוך זה ${energy}` : `${energy} מתוך הסכום הידוע`}</span><strong><NumRun>{fuelShare === null ? '—' : percentPlain(fuelShare)}</NumRun></strong><small>{fuel.value === null ? `עלות ה${energy} עדיין אינה מלאה` : <><Money value={fuel.value * multiplier} /> {period === 'month' ? 'בחודש' : 'בשנה'}</>}</small></div>
         </div>
         <CostCommunity tco={tco} />
       </div>

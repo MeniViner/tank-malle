@@ -86,7 +86,8 @@ test("Insights keeps complete-history segments, exact paid rankings and net spen
   await page.keyboard.press("Escape");
   await expect(tableEntry).toBeFocused();
   await selectInsight(page, "price");
-  const priceTicks = page.getByTestId("insights-price-chart").locator(".insights-price-axis-tick");
+  // Stage 7 D6: the v3 quiet chart has no value axis; the first and last paid prices are printed at their points with the same format.
+  const priceTicks = page.getByTestId("insights-price-chart").locator(".insights-price-point-label");
   await expect(priceTicks.first()).toBeVisible();
   const tickGeometry = await priceTicks.evaluateAll(ticks => ticks.map(tick => {
     const pieces = Array.from(tick.querySelectorAll("tspan"));

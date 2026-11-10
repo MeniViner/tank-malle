@@ -15,6 +15,7 @@ import { displayTankLevel } from "../lib/tank/display";
 import type { PassageResult } from "../lib/tank/types";
 import type { LedgerRow } from "../lib/vehicle/derived";
 import { isEv } from "../lib/vehicle/v3Fields";
+import { EV_MEASUREMENT_PENDING } from "../lib/vehicle/energyCopy";
 import { AppHeader } from "../components/AppHeader";
 import { Button } from "../components/Button";
 import { Skeleton } from "../components/Card";
@@ -121,7 +122,12 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
           : <HomeFuelPrice vehicle={active} now={vehicle.now} open={priceOpen} onOpen={() => setPriceOpen(true)} onClose={() => setPriceOpen(false)} />}
       </FactsStrip>
       <TcoBlock tco={tco} />
-      {hasFillups ? <section className="home-consumption" data-testid="consumption-summary">
+      {hasFillups && ev ? <section className="home-consumption" data-testid="consumption-summary" data-powertrain="ev">
+        {/* Stage 7 D2: an EV's records are litres-shaped; a km-per-litre reading would be meaningless. */}
+        <div className="home-consumption-heading"><span className="home-label">צריכה</span></div>
+        <span className="home-consumption-value"><NumRun>—</NumRun></span>
+        <p className="home-comparison" data-testid="home-ev-consumption-note">{EV_MEASUREMENT_PENDING}</p>
+      </section> : hasFillups ? <section className="home-consumption" data-testid="consumption-summary">
         <div className="home-consumption-heading">
           <span className="home-label">{stats.lastSegment ? "צריכה בתדלוק האחרון" : "צריכה"}</span>
           <button className="tm-icon-button home-info-button" type="button" data-testid="consumption-details-open" aria-label="פרטי מדידת הצריכה"
@@ -145,7 +151,7 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
       {hasFillups || data.observations.length ? <TankHero estimate={tank.estimate} onOpen={setTankEntry} /> : null}
       {recent.length ? <section data-testid="recent-fillups-timeline" className="home-recent">
         <div className="home-recent-heading"><h2 className="home-label">לאחרונה</h2><Link className="home-text-action home-journal-link" to="/history">היומן המלא ›</Link></div>
-        {recent.map(row => <JournalEntryRow key={row.key} row={row} units={units} kmPerLiter={segmentValues.get(row.id)}
+        {recent.map(row => <JournalEntryRow key={row.key} row={row} units={units} kmPerLiter={segmentValues.get(row.id)} ev={ev}
           pending={pendingPaths.has(`users/${vehicle.uid}/vehicles/${vehicle.vehicleId}/${row.collection}/${row.id}`)} flagged={row.kind === "fuel" ? flagged.has(row.id) : !!serviceMileageWarning(row, vehicle.mileage)}
           attention={attentionPaths.has(`users/${vehicle.uid}/vehicles/${vehicle.vehicleId}/${row.collection}/${row.id}`)}
           onOpen={() => openEntry(row)} />)}

@@ -23,6 +23,7 @@ import { vehicleDay, vehicleMoney } from "../lib/vehicle/format";
 import type { LedgerRow } from "../lib/vehicle/derived";
 import type { VehicleRecord } from "../lib/vehicle/model";
 import type { Fillup } from "../lib/types";
+import { isEv } from "../lib/vehicle/v3Fields";
 import "../journal-design.css";
 
 const KINDS = [
@@ -232,7 +233,7 @@ function HistorySession() {
           {financial > sum.unknown ? "סכום ידוע · " : ""}<NumRun>{int(sum.unknown)}</NumRun> {sum.unknown === 1 ? "עלות חסרה" : "עלויות חסרות"}
         </p> : null}
         <div data-testid={"journal-month-rows-" + month}>
-          {visible.map(row => <JournalEntryRow key={row.key} row={row} units={data.settings.units}
+          {visible.map(row => <JournalEntryRow key={row.key} row={row} units={data.settings.units} ev={isEv(data.activeVehicle)}
             kmPerLiter={row.kind === "fuel" ? segmentValues.get(row.id) : undefined}
             pending={pendingPaths.has(pathFor(row))} attention={attentionPaths.has(pathFor(row))}
             flagged={row.kind === "fuel" ? flagged.has(row.id) : !!serviceMileageWarning(row, vehicle.mileage)}

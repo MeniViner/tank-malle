@@ -22,6 +22,13 @@ const input = (patch: Partial<TcoInput> = {}): TcoInput => ({
 const part = (result: ReturnType<typeof calculateTco>, id: string) => result.parts.find(item => item.id === id)!;
 
 describe('true cost of ownership', () => {
+  it('labels the energy part "חשמל" for an EV without changing any value (Stage 7 D2)', () => {
+    const fuel = calculateTco(input()), ev = calculateTco(input({ ev: true }));
+    expect(part(fuel, 'fuel').label).toBe('דלק');
+    expect(part(ev, 'fuel').label).toBe('חשמל');
+    expect({ ...ev, parts: ev.parts.map(item => ({ ...item, label: '' })), missing: [] })
+      .toEqual({ ...fuel, parts: fuel.parts.map(item => ({ ...item, label: '' })), missing: [] });
+  });
   it('combines one recorded calendar month with amortised annual documents', () => {
     const result = calculateTco(input({ ledger: rows([fill('fuel')], [expense('parking', 500)], [service(3000)]) }));
     expect(result.window).toBe(1);

@@ -1,5 +1,7 @@
 import { useMemo, useRef } from "react";
 import { Line, LineChart, ReferenceLine, Tooltip, XAxis, YAxis } from "recharts";
+import { EV_MEASUREMENT_PENDING } from "../../lib/vehicle/energyCopy";
+import { isEv } from "../../lib/vehicle/v3Fields";
 import { consumptionComparison } from "../../lib/consumptionPresentation";
 import { consumption, dayMonthShort, int, num } from "../../lib/format";
 import type { DateRange } from "../../lib/periods";
@@ -7,12 +9,8 @@ import type { Segment, Stats, Vehicle } from "../../lib/stats";
 import { ConsumptionValue, Distance, NumericText, NumRun, Percent, Quantity } from "../Fmt";
 import { Fact, FactsStrip } from "../FactsStrip";
 import { InfoTip } from "../InfoTip";
-import { CHART_MARGIN, ChartLegend, InsightCard, InsightChart, InsightEmpty, InsightTable, InsightTooltip, TIME_AXIS, VALUE_AXIS } from "./InsightChart";
+import { CHART_MARGIN, ChartLegend, ChartValueLabel, InsightCard, InsightChart, InsightEmpty, InsightTable, InsightTooltip, QUIET_VALUE_AXIS, TIME_AXIS } from "./InsightChart";
 import { consumptionNumber, consumptionPoints, type ConsumptionPoint, type ConsumptionSummary, type ConsumptionUnits } from "./presentation";
-
-// Recharts treats formatter identity as axis settings. A fresh function would
-// rebuild its keyed point layer after modal cleanup and discard restored focus.
-const formatConsumptionTick = (value: number) => num(Number(value), 1);
 
 export function ConsumptionInsights({ stats, summary, vehicle, units, range, historyReady, onSelect }: {
   stats: Stats; summary: ConsumptionSummary; vehicle: Vehicle | null; units: ConsumptionUnits; range: DateRange;
@@ -29,6 +27,17 @@ export function ConsumptionInsights({ stats, summary, vehicle, units, range, his
       ? [...root.querySelectorAll<HTMLButtonElement>(".insights-point")].find(point => point.dataset.segmentEndId === endId) ?? null
       : null);
   };
+  if (isEv(vehicle)) return <div ref={rootRef} className="insights-stack" data-testid="insights-panel-cons" data-powertrain="ev">
+    {/* Stage 7 D2: EV records are litres-shaped (no charge model yet), so no km-per-litre figure is shown. */}
+    <InsightCard label={<>צריכה ממוצעת · <NumericText>{range.compactLabel}</NumericText></>}
+      title={<span data-testid="insights-consumption-average"><NumRun>—</NumRun></span>}>
+      <p className="insights-note" data-testid="insights-ev-pending">{EV_MEASUREMENT_PENDING}</p>
+    </InsightCard>
+    {summary.segments.length ? <FactsStrip label="מדדי הנסיעה בתקופה" testId="insights-consumption-facts">
+      <Fact testId="insights-measured-km" label="מרחק שנמדד" value={int(summary.km)} unit="ק״מ"
+        sub={<>ב־<NumRun>{int(summary.segments.length)}</NumRun> מקטעים סגורים</>} />
+    </FactsStrip> : null}
+  </div>;
   const unit = consumption(summary.average, units).unit;
   const declared = vehicle?.declaredKmPerLiter;
   const declaredComparison = consumptionComparison(summary.average, declared ?? null);
@@ -43,10 +52,12 @@ export function ConsumptionInsights({ stats, summary, vehicle, units, range, his
           <ConsumptionValue kmPerLiter={summary.average} units={units} long /></span>}>
         <InsightChart label={`צריכה · ${unit}`} testId="insights-consumption-chart" points={points.length} pointSpacing={44}>
           <LineChart data={points} margin={{ ...CHART_MARGIN, top: 26, left: 24, right: 24 }} accessibilityLayer={false}>
-            <XAxis {...TIME_AXIS} /><YAxis {...VALUE_AXIS} tickFormatter={formatConsumptionTick} domain={["auto", "auto"]} />
+            {/* v3 quiet chart (D6): straight segments, no value axis; the average is labelled on its dashed line. */}
+            <XAxis {...TIME_AXIS} /><YAxis {...QUIET_VALUE_AXIS} />
             <Tooltip content={<InsightTooltip suffix={unit} labels={{ value: "במקטע" }} />} />
-            <ReferenceLine y={consumptionNumber(summary.average, units)} stroke="var(--ink-2)" strokeDasharray="5 5" strokeWidth={1} />
-            <Line type="monotone" dataKey="value" stroke="var(--ink)" strokeWidth={2.5} connectNulls={false} isAnimationActive={false}
+            <ReferenceLine y={consumptionNumber(summary.average, units)} stroke="var(--ink-2)" strokeDasharray="5 5" strokeWidth={1}
+              label={<ReferenceValue text={consumption(summary.average, units).value} />} />
+            <Line type="linear" dataKey="value" stroke="var(--ink)" strokeWidth={2.5} connectNulls={false} isAnimationActive={false}
               activeDot={false} dot={props => <ConsumptionDot cx={props.cx} cy={props.cy} payload={props.payload} summary={summary} units={units} onSelect={selectPoint} />} />
           </LineChart>
         </InsightChart>
@@ -100,6 +111,7 @@ function ConsumptionDot({ cx, cy, payload, summary, units, onSelect }: {
   const shown = consumption(segment.kmPerLiter, units);
   return <g>
     <circle cx={cx} cy={cy} r={last ? 5.5 : 3.5} fill={last ? color : "var(--surface)"} stroke={color} strokeWidth={2} pointerEvents="none" />
+    {last ? <ChartValueLabel x={cx} y={cy - 12} fill={color} strong>{shown.value}</ChartValueLabel> : null}
     <foreignObject x={cx - 22} y={cy - 22} width={44} height={44}>
       <button type="button" className="insights-point" data-segment-end-id={payload.endId}
         aria-label={`מקטע עד ${payload.label}, ${shown.value} ${shown.unit}, פתיחת פרטים`}
@@ -124,4 +136,10 @@ function OpenSegment({ stats }: { stats: Stats }) {
     {open.hasBaseline ? <p><Quantity value={open.liters} digits={1} /> מ־<NumRun>{int(open.pendingFillups)}</NumRun> תדלוקים · <Distance value={open.km} /> מהתדלוק המלא האחרון</p>
       : <p>מחכים לתדלוק מלא שיפתח מדידה</p>}
   </div>;
+}
+
+/** The average's value on its dashed line, at the oldest (right) end so it never meets the highlighted newest point. */
+function ReferenceValue({ text, viewBox }: { text: string; viewBox?: { x?: number; y?: number; width?: number } }) {
+  if (viewBox?.x === undefined || viewBox.y === undefined) return null;
+  return <ChartValueLabel x={viewBox.x + (viewBox.width ?? 0)} y={viewBox.y - 6} anchor="end">{text}</ChartValueLabel>;
 }

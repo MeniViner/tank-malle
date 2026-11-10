@@ -48,8 +48,30 @@ export function NumRun({ children, className = "", block = false, align = "leadi
     className={`num tm-number${block ? " tm-number-block" : ""} ${className}`}>{content}</bdi>;
 }
 
+/**
+ * A Latin phrase that mixes letters and digits ("i20", "BYD ATTO 3", "ID.4")
+ * is one LTR word. Isolating only its digits would push them to the far end
+ * of the RTL line ("20i", "3 BYD ATTO"), so the whole phrase is isolated once.
+ */
+const LATIN_PHRASE = /(?<![\p{L}\p{N}.,])[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*(?: [A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*)*(?![\p{L}\p{N}])/gu;
+const isLatinAlnum = (phrase: string) => /[A-Za-z]/.test(phrase) && /\d/.test(phrase);
+
 /** Mixed labels keep numeric fragments isolated; this never formats their values. */
 export function NumericText({ children }: { children: string }) {
+  const parts: ReactNode[] = [];
+  let cursor = 0;
+  for (const match of children.matchAll(LATIN_PHRASE)) {
+    if (!isLatinAlnum(match[0])) continue;
+    if (match.index > cursor) parts.push(<NumericFragments key={cursor}>{children.slice(cursor, match.index)}</NumericFragments>);
+    parts.push(<bdi key={match.index} dir="ltr" className="tm-latin-run">{match[0]}</bdi>);
+    cursor = match.index + match[0].length;
+  }
+  if (!parts.length) return <NumericFragments>{children}</NumericFragments>;
+  if (cursor < children.length) parts.push(<NumericFragments key={cursor}>{children.slice(cursor)}</NumericFragments>);
+  return <>{parts}</>;
+}
+
+function NumericFragments({ children }: { children: string }) {
   return <>{children.split(/((?:[+−]|(?<![\p{L}\p{N}])-)?(?:₪\s*[+−-]?)?\d(?:[\d,.:/]*\d)?(?:%|[\u202F\u00A0 ]?₪)?)/gu)
     .map((part, index) => index % 2 ? <NumRun key={index}>{part}</NumRun>
       : !/[₪%]/.test(part) ? part : <Fragment key={index}>{part.split(/([₪%])/).map((text, symbolIndex) => text === "₪" || text === "%"

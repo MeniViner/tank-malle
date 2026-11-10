@@ -17,6 +17,8 @@ import { useBenchmark } from "../hooks/useBenchmark";
 import { int, monthYear, vehicleLabel, vehicleShort } from "../lib/format";
 import { inRange, rangeDates } from "../lib/periods";
 import { computeStats } from "../lib/stats";
+import { energyCopy } from "../lib/vehicle/energyCopy";
+import { isEv } from "../lib/vehicle/v3Fields";
 import "../insights-design.css";
 
 /** Scope changes discard local selections before another account or vehicle renders. */
@@ -79,7 +81,7 @@ function InsightsSession() {
           onClick={() => selectTab(tab.value)}>{tab.label}</button>)}</nav>
       <div className="insights-period-summary" data-testid="insights-period-summary">
         {section === "community" ? <span>ההשוואה מבוססת על כל ההיסטוריה</span> : <>
-          <span><NumRun>{int(selectedFillups)}</NumRun> תדלוקים · <NumRun>{int(consumption.segments.length)}</NumRun> מקטעים</span>
+          <span><NumRun>{int(selectedFillups)}</NumRun> {energyCopy(isEv(data.activeVehicle)).fills} · <NumRun>{int(consumption.segments.length)}</NumRun> מקטעים</span>
           <span><NumericText>{rangeDates(selected.range).replace("מהתדלוק הראשון", "מהרשומה הראשונה")}</NumericText></span>
         </>}
       </div>
