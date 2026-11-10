@@ -22,7 +22,13 @@ function smoothPath(points: Point[]) {
 }
 
 /** Presentation geometry only: the production stats engine supplies every segment and average. */
-export function consumptionSparklineModel(segments: Segment[], units: ConsumptionUnits, average: number | null) {
+export interface SparklineFrame { height: number; baseline: number }
+/** The quieter Home chart (v3 §2.6) is shorter; geometry rules are otherwise identical. */
+export const HOME_FRAME: SparklineFrame = { height: 124, baseline: 100 };
+
+export function consumptionSparklineModel(segments: Segment[], units: ConsumptionUnits, average: number | null,
+  frame: SparklineFrame = { height: HEIGHT, baseline: BASELINE }) {
+  const { baseline } = frame;
   const recent = segments.filter((segment) => Number.isFinite(segment.kmPerLiter) && segment.kmPerLiter > 0).slice(-6);
   const convert = (value: number) => units === "litersPer100" ? 100 / value : value;
   const knownAverage = average !== null && Number.isFinite(average) && average > 0;
@@ -36,7 +42,7 @@ export function consumptionSparklineModel(segments: Segment[], units: Consumptio
   const padding = Math.max((maximum - minimum) * .18, .6);
   const low = Math.max(0, minimum - padding);
   const high = maximum + padding;
-  const y = (value: number) => 28 + (1 - (value - low) / (high - low)) * (BASELINE - 28);
+  const y = (value: number) => 28 + (1 - (value - low) / (high - low)) * (baseline - 28);
   const points: Point[] = recent.map((segment, index) => ({
     segment, value: values[index],
     x: recent.length === 1 ? WIDTH / 2 : WIDTH - 22 - index * (WIDTH - 44) / (recent.length - 1),
@@ -51,11 +57,11 @@ export function consumptionSparklineModel(segments: Segment[], units: Consumptio
   const last = recent.at(-1);
   const tone = consumptionComparison(last?.kmPerLiter ?? null, average)?.tone ?? "neutral";
   return {
-    points, tone, averageValue,
+    points, tone, averageValue, height: frame.height, baseline,
     band: band ? { low: band[0], high: band[1], y: y(band[1]), height: y(band[0]) - y(band[1]) } : null,
     paths: islands.filter((island) => island.length > 1).map((island) => {
       const line = smoothPath(island);
-      return { key: island[0].segment.endId, line, area: `${line} L ${coordinate(island.at(-1)!.x)} ${BASELINE} L ${coordinate(island[0].x)} ${BASELINE} Z` };
+      return { key: island[0].segment.endId, line, area: `${line} L ${coordinate(island.at(-1)!.x)} ${baseline} L ${coordinate(island[0].x)} ${baseline} Z` };
     }),
   };
 }

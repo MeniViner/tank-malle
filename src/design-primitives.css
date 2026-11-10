@@ -264,6 +264,10 @@ button.tm-odometer { cursor: pointer; }
 .tm-sparkline-dot-swatch.tm-sparkline-worse { background: var(--worse); }
 .tm-sparkline-dot-swatch.tm-sparkline-better { background: var(--better); }
 
+/* v3 §2.6 Home sparkline caption: split to both ends, no legend. */
+.tm-sparkline-caption { display: flex; justify-content: space-between; gap: 12px; margin-top: 2px; color: var(--ink-2); font: 400 12px/1.5 var(--font-sans); }
+.tm-sparkline-caption b { font-weight: 600; color: var(--ink); }
+
 /* Design v3 §3 facts strip (shared: Home, Insights, Vehicle, Account, year screen, statement).
    Markup: .facts > button|div > .fl(+small) + .ld + .fv(.n + u). */
 .facts { display: grid; min-width: 0; border-block: 1px solid var(--line); }

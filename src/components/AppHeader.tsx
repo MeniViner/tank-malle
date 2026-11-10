@@ -36,7 +36,11 @@ export function AppHeader() {
       </button>
       <button type="button" className="tm-header-account" aria-label="חשבון" data-testid="open-account"
         onClick={() => navigate("/account")}>
-        <Avatar name={user?.displayName} photoURL={user?.photoURL} size={40} />
+        <Avatar name={user?.displayName} photoURL={user?.photoURL} size={38} surface />
+        {/* v3 §2.1: a 2.5px accent ring open at the bottom, like a small gauge arc. */}
+        <svg className="tm-header-ring" viewBox="0 0 44 44" aria-hidden="true" focusable="false" data-testid="avatar-ring">
+          <circle cx="22" cy="22" r="21" strokeDasharray="112 132" />
+        </svg>
       </button>
     </div>
     {switchOpen ? <CarSwitchSheet key={user?.uid} onClose={() => setSwitchOpen(false)} /> : null}

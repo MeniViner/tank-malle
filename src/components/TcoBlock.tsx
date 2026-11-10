@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useVehicleData } from '../context/VehicleDataContext';
 import { int, percentPlain, price } from '../lib/format';
-import type { TcoPart, TcoPartId, TcoResult } from '../lib/tco';
+import { tcoLegendParts, type TcoPart, type TcoPartId, type TcoResult } from '../lib/tco';
 import type { VehicleDocKey } from '../lib/vehicle/documents';
 import { journalRangeLink } from './insights/presentation';
 import { Money, NumericText, NumRun } from './Fmt';
-import { CoinIcon, DocumentIcon, PumpIcon, ShieldIcon, WrenchIcon, ChevronStart } from './icons';
+import { CoinIcon, DocumentIcon, PumpIcon, ShieldIcon, SwapIcon, WrenchIcon, ChevronStart } from './icons';
 import { Segmented } from './Segmented';
 import { Sheet } from './Sheet';
 import { VehicleDocumentDialog } from './VehicleDocuments';
@@ -32,41 +32,56 @@ function Amount({ value, className = '' }: { value: number | null; className?: s
   return value === null ? <NumRun block className={style}>—</NumRun> : <Money block value={value} className={style} />;
 }
 
+type Period = 'month' | 'year';
+const PERIOD_WORD: Record<Period, string> = { month: 'בחודש', year: 'בשנה' };
+
 export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: boolean }) {
   const data = useData();
   const [open, setOpen] = useState(false);
+  const [period, setPeriod] = useState<Period>('month');
   const trigger = useRef<HTMLButtonElement>(null);
   const summaryId = useId();
   if (!data.activeVehicle || !data.fillups.length) return null;
-  const parts = tco.parts.filter(part => part.knownValue > 0);
+  const parts = tcoLegendParts(tco);
   const total = parts.reduce((sum, part) => sum + part.knownValue, 0);
   const label = tco.complete ? 'הרכב עולה לך' : tco.lowerBound && tco.month !== null ? 'הרכב עולה לך, לפחות' : 'עלות הרכב לפי הרישומים';
   const missing = tco.missing.length === 1 ? `חסר ${tco.missing[0].label}` : `חסר ${int(tco.missing.length)} פריטים`;
+  const yearly = period === 'year';
+  const multiplier = yearly ? 12 : 1;
+  const shown = yearly ? tco.year : tco.month;
+  const other = yearly ? tco.month : tco.year;
+  const next: Period = yearly ? 'month' : 'year';
+  // The card is a container: one stretched button opens the sheet, the period chip is its own control.
   return <>
-    <button ref={trigger} type="button" className="tm-tco" data-testid="tco-card" data-compact={compact}
-      aria-label="כמה הרכב עולה לך" aria-describedby={summaryId} aria-haspopup="dialog" aria-expanded={open}
-      onClick={event => { event.currentTarget.focus(); setOpen(true); }}>
+    <div className="tm-tco" data-testid="tco-card" data-compact={compact} data-period={period}>
+      <button ref={trigger} type="button" className="tm-tco-open" aria-label="כמה הרכב עולה לך" aria-describedby={summaryId}
+        aria-haspopup="dialog" aria-expanded={open} onClick={event => { event.currentTarget.focus(); setOpen(true); }} />
       <span className="tm-tco-top"><span className="home-label">{label}</span>
         {tco.missing.length ? <span className="tm-tco-missing" data-testid="tco-missing"><NumericText>{missing}</NumericText></span> : null}
       </span>
-      <span id={summaryId} className="tm-tco-number"><Amount value={tco.month} className="tm-tco-value" /><span className="tm-tco-unit">בחודש</span></span>
-      <span className="tm-tco-sub">{tco.year === null ? 'ממתינים לעלות מתועדת' : <>כ־<Money value={tco.year} /> בשנה</>}
-        {tco.perKm !== null ? <> · <NumRun>{price(tco.perKm)}</NumRun> לק״מ</> : null}</span>
+      <span id={summaryId} className="tm-tco-summary">
+        <span className="tm-tco-number"><Amount value={shown} className="tm-tco-value" />
+          <button type="button" className="tm-tco-per" data-testid="tco-period" aria-label={`${PERIOD_WORD[period]}, החלפה לתצוגה ${PERIOD_WORD[next]}`}
+            onClick={() => setPeriod(next)}><span>{PERIOD_WORD[period]}<SwapIcon size={13} /></span></button>
+        </span>
+        <span className="tm-tco-sub" data-testid="tco-sub">{other === null ? 'ממתינים לעלות מתועדת' : <>כ־<Money value={other} /> {PERIOD_WORD[next]}</>}
+          {tco.perKm !== null ? <> · <NumRun>{price(tco.perKm)}</NumRun> לק״מ</> : null}</span>
+      </span>
       <span className="tm-tco-bar" data-testid="tco-bar" aria-hidden="true">
         {parts.map(part => <i key={part.id} data-tco-part={part.id} style={{ flexGrow: total ? part.knownValue / total : 0, background: COLORS[part.id] }} />)}
       </span>
-      {!compact ? <span className="tm-tco-legend">{parts.slice(0, 4).map(part => <span key={part.id}>
-        <i style={{ background: COLORS[part.id] }} aria-hidden="true" />{part.label}<strong><Money value={part.knownValue} /></strong>
+      {!compact ? <span className="tm-tco-legend" data-testid="tco-legend">{parts.map(part => <span key={part.id} data-tco-legend={part.id}>
+        <i style={{ background: COLORS[part.id] }} aria-hidden="true" />{part.label}<strong><Money value={part.knownValue * multiplier} /></strong>
       </span>)}</span> : null}
-    </button>
-    {open ? <TcoSheet tco={tco} onClose={() => setOpen(false)} returnFocus={() => trigger.current} /> : null}
+    </div>
+    {open ? <TcoSheet tco={tco} initialPeriod={period} onClose={() => setOpen(false)} returnFocus={() => trigger.current} /> : null}
   </>;
 }
 
-function TcoSheet({ tco, onClose, returnFocus }: { tco: TcoResult; onClose: () => void; returnFocus: () => HTMLElement | null }) {
+function TcoSheet({ tco, initialPeriod, onClose, returnFocus }: { tco: TcoResult; initialPeriod: Period; onClose: () => void; returnFocus: () => HTMLElement | null }) {
   const vehicle = useVehicleData(), navigate = useNavigate();
   const captureDocumentScope = useAccountScope(vehicle.scope);
-  const [period, setPeriod] = useState<'month' | 'year'>('month');
+  const [period, setPeriod] = useState<Period>(initialPeriod);
   const [document, setDocument] = useState<VehicleDocKey | null>(null);
   const docTrigger = useRef<HTMLButtonElement | null>(null);
   const multiplier = period === 'month' ? 1 : 12;
