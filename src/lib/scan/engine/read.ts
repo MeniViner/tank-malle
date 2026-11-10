@@ -40,7 +40,7 @@ export function wordsOf(cells: Cell[], dots: number[], line: LineProposal, flipp
       // A row of nothing but upright strokes is a grille or a barcode, not a number.
       if (inside.length <= 1 && [...digits].filter(d => d !== '1').length >= Math.min(2, digits.length - 1)) {
         // Segment displays keep an exact pitch; printed numerals (a speedometer scale) do not.
-        let drift = 0; for (let k = 1; k < part.length; k++) drift = Math.max(drift, Math.abs((part[k].x1 - part[k - 1].x1) / pitch - 1));
+        let drift = 0; for (let k = 1; k < part.length; k++) if (k - 1 !== dot) drift = Math.max(drift, Math.abs((part[k].x1 - part[k - 1].x1) / pitch - 1));
         const fit = Math.exp(part.reduce((s, c) => s + Math.log(c.fit), 0) / part.length) * (drift > .12 ? Math.max(.5, 1 - (drift - .12) * 2.5) : 1);
         out.push({ digits, dot, text: dot == null ? digits : `${digits.slice(0, dot + 1)}.${digits.slice(dot + 1)}`, fit, cells: part, line, flipped });
       }
@@ -48,7 +48,9 @@ export function wordsOf(cells: Cell[], dots: number[], line: LineProposal, flipp
   };
   for (let i = 0; i < cells.length; i++) {
     const bad = cells[i].fit < MIN_FIT;
-    const jump = i > start && pitch > 0 && (cells[i].x1 - cells[i - 1].x1 > pitch * 1.3 || cells[i].x1 - cells[i - 1].x1 < pitch * .72);
+    // A decimal point may take room of its own; any other change of pitch ends the number.
+    const step = i > start && pitch > 0 ? (cells[i].x1 - cells[i - 1].x1) / pitch : 1;
+    const jump = step > (dots.includes(i - 1) ? 1.55 : 1.3) || step < .72;
     if (bad) { flush(i); start = i + 1; } else if (jump) { flush(i); start = i; }
   }
   flush(cells.length);
@@ -94,7 +96,19 @@ export function readWords(levels: Gray[], options: ProposalOptions = {}): { word
     // A steep row may be upside down; a gently sloped one is read left to right only.
     for (const flipped of Math.abs(line.ux) < .5 ? [false, true] : [false]) {
       const strip = rectify(levels, line, STRIP_H, flipped, PAD, BAND), read = readStrip(strip, line.polarity);
-      if (read) for (const word of wordsOf(read.cells, read.dots, line, flipped)) first.push({ word, refined: refine(word, read, strip.width) });
+      if (!read) continue;
+      for (const word of wordsOf(read.cells, read.dots, line, flipped)) first.push({ word, refined: refine(word, read, strip.width) });
+      // The digits sit off-centre in the strip or are a different size than expected (so they may be
+      // cut, or sampled too small): cut again around the band that was measured.
+      const offCentre = Math.abs((read.top + read.bottom) / 2 - (STRIP_H - 1) / 2), size = (read.bottom - read.top + 1) / (STRIP_H / BAND);
+      if (offCentre > STRIP_H * .08 || size < .82 || size > 1.2 || Math.abs(read.slope) > .06) {
+        const dir = flipped ? -1 : 1, ux = line.ux * dir, uy = line.uy * dir, nx = -uy, ny = ux, step = line.height * BAND / STRIP_H;
+        const dv = ((read.top + read.bottom) / 2 - (STRIP_H - 1) / 2) * step;
+        let vx = ux + read.slope * nx, vy = uy + read.slope * ny; const norm = Math.hypot(vx, vy); vx /= norm; vy /= norm;
+        const again: LineProposal = { ...line, cx: line.cx + nx * dv, cy: line.cy + ny * dv, ux: vx, uy: vy, height: (read.bottom - read.top + 1) * step };
+        const strip2 = rectify(levels, again, STRIP_H, false, PAD, BAND), read2 = readStrip(strip2, again.polarity);
+        if (read2) for (const word of wordsOf(read2.cells, read2.dots, again, false)) first.push({ word, refined: refine(word, read2, strip2.width) });
+      }
     }
   }
   // Second look: each promising row is cut out again from its own measured geometry

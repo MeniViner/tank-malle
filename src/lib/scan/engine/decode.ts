@@ -198,11 +198,19 @@ export function readStrip(strip: Gray, polarity: Polarity): StripRead | null {
   for (let i = 1; i < anchors.length; i++) { const d = anchors[i] - anchors[i - 1]; if (d >= digitW * .95 && d <= digitW * 1.55) steps.push(d); }
   const pitch = steps.length ? median(steps) : digitW * 1.18;
   // Ink right edges (ink → gap) to snap the grid to as it is tracked along the row.
-  const edges: number[] = []; for (let x = 0; x < w; x++) if (column[x] && (x + 1 >= w || !column[x + 1])) edges.push(x + 1);
-  const snap = (x: number) => { let best = x, d = pitch * .16; for (const e of edges) if (Math.abs(e - x) < d) { d = Math.abs(e - x); best = e; } return best; };
+  const edges = runs.filter(r => r.y1 - r.y0 + 1 >= bandH * .45).map(r => r.x1 + 1);
+  // Decimal points: small marks low in the band.
+  const points = runs.filter(r => r.y1 - r.y0 + 1 <= bandH * .3 && r.x1 - r.x0 + 1 <= bandH * .3 && r.y0 >= top + bandH * .7).map(r => (r.x0 + r.x1) / 2);
+  // Next digit: an ink edge about one pitch on; failing that, one up to half a pitch further
+  // (some displays give the decimal point room of its own); failing that, where the pitch says.
+  const snap = (x: number, dir = 0) => {
+    let best = x, d = pitch * .16; for (const e of edges) if (Math.abs(e - x) < d) { d = Math.abs(e - x); best = e; }
+    if (best === x && dir && points.some(c => dir > 0 ? c > x - pitch - pitch * .1 && c < x - pitch + pitch * .6 : c > x - pitch * .55 && c < x + pitch * .15)) { let far = Infinity; for (const e of edges) { const over = (e - x) * dir; if (over >= pitch * .16 && over <= pitch * .5 && over < far) { far = over; best = e; } } }
+    return best;
+  };
   const rights: number[] = [anchors[anchors.length >> 1]];
-  for (let x = snap(rights[0] + pitch); x <= w + digitW * .3 && rights.length < 40; x = snap(x + pitch)) rights.push(x);
-  for (let x = snap(rights[0] - pitch); x - digitW >= -digitW * .3 && rights.length < 40; x = snap(x - pitch)) rights.unshift(x);
+  for (let x = snap(rights[0] + pitch, 1); x <= w + digitW * .3 && rights.length < 40; x = snap(x + pitch, 1)) rights.push(x);
+  for (let x = snap(rights[0] - pitch, -1); x - digitW >= -digitW * .3 && rights.length < 40; x = snap(x - pitch, -1)) rights.unshift(x);
   // Ink in a column range just above / below the band: a frame or a rule runs past the digits.
   const beyond = (x0: number, x1: number, above: boolean) => {
     const ya = above ? Math.round(top - bandH * .3) : Math.round(bottom + bandH * .12), yb = above ? Math.round(top - bandH * .12) : Math.round(bottom + bandH * .3);

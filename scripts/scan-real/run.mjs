@@ -34,7 +34,7 @@ if (!isMainThread) {
     else { const p = r.pump[0]; got = p ? `${p.total}|${p.liters}|${p.price ?? '?'}` : '—'; const same = q => q.total === item.total && Number(q.liters) === Number(item.liters); ok = !!p && same(p); inTop = r.pump.some(same); }
     pass += ok; top5 += inTop;
     table.push({ file: item.file, kind: item.kind, expected: item.kind === 'odometer' ? item.odometer : `${item.total}|${item.liters}|${item.price}`, got, ok, inTop, ms: r.ms });
-    console.log(`${ok ? 'PASS' : inTop ? 'top5' : 'FAIL'}  ${item.file.replace('Screenshot_', 'S_').replace('_Photos', '').padEnd(26)} ${item.kind.padEnd(8)} want ${table.at(-1).expected.padEnd(20)} got ${got.padEnd(22)} ${r.ms}ms`);
+    console.log(`${ok ? 'PASS' : inTop ? 'top5' : 'FAIL'}  ${item.file.replace('Screenshot_', 'S_').replace('_Photos', '').padEnd(26)} ${item.kind.padEnd(8)} want ${table.at(-1).expected.padEnd(20)} got ${got.padEnd(22)} c=${(item.kind === 'odometer' ? r.odometer[0]?.c : r.pump[0]?.c) ?? '-'} ${r.ms}ms`);
     if (args.verbose && !ok) console.log('      ', r.words.join('  '));
   }
   const byKind = k => { const t = table.filter(x => x.kind === k); return `${t.filter(x => x.ok).length}/${t.length}`; };
