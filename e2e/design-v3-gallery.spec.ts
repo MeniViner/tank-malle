@@ -172,6 +172,30 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
         await page.getByRole("button", { name: "הוספת הוצאה", exact: true }).click();
         await settle(page, page.getByTestId("care-entry"));
       });
+      /* ---------- Stage 4 additions (v3 sheets) ---------- */
+      await shot("sheet-expense-details", async () => {
+        await go("/vehicle", page.getByRole("region", { name: "הרכב שלי", exact: true }));
+        await page.getByRole("button", { name: "הוספת הוצאה", exact: true }).click();
+        await page.getByTestId("care-category-parking").click();
+        await settle(page, page.getByTestId("care-ownership"));
+      });
+      await shot("sheet-exclude-info", async () => {
+        await go("/vehicle", page.getByRole("region", { name: "הרכב שלי", exact: true }));
+        await page.getByRole("button", { name: "הוספת הוצאה", exact: true }).click();
+        await page.getByTestId("care-category-parking").click();
+        await page.getByTestId("care-ownership-info").click();
+        await settle(page, page.getByTestId("exclude-info-sheet"));
+      });
+      await shot("sheet-journal-info", async () => {
+        await go("/history", page.getByTestId("journal-summary-info"));
+        await page.getByTestId("journal-summary-info").click();
+        await settle(page, page.getByRole("dialog", { name: "על אילו נתונים הסיכום מבוסס?", exact: true }));
+      });
+      await shot("sheet-snooze", async () => {
+        await go("/notifications", page.getByRole("button", { name: "דחיית הופעה", exact: true }).first());
+        await page.getByRole("button", { name: "דחיית הופעה", exact: true }).first().click();
+        await settle(page, page.getByTestId("snooze-presets"));
+      });
       await shot("sheet-doc-test", async () => {
         await go("/vehicle", page.getByTestId("vehicle-doc-test"));
         await page.getByTestId("vehicle-doc-test").click();
