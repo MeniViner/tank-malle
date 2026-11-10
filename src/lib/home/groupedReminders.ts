@@ -53,7 +53,8 @@ export function groupedReminderSpotlights(input: {
     const suffix = days < 0 ? "המועד עבר" : days === 0 ? "היום" : days === 1 ? "מחר" : `בעוד ${int(days)} ימים`;
     const item: SpotlightItem = {
       id: reminder.occurrence, tone: urgent ? "danger" : "warn", icon: "wrench", sticky: urgent,
-      title: `${reminder.plan.title} · ${suffix}`,
+      // One line (v3 §2.3): "<plan> בעוד N ימים", "<plan>: המועד עבר".
+      title: days < 0 ? `${reminder.plan.title}: ${suffix}` : `${reminder.plan.title} ${suffix}`,
       body: `המועד שנקבע: ${vehicleDay(reminder.due.day)}${mileage ? ` · ${mileage.title}` : ""}`,
       target: { kind: "route", to: `/vehicle/reminders/${encodeURIComponent(reminder.plan.id)}` },
     };
