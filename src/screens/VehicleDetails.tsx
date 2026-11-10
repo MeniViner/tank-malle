@@ -14,13 +14,15 @@ import { observeVehicleRecordDeletion } from '../components/vehicleRecordDeletio
 import { careCalendar, downloadCareFile } from '../lib/maintenance/export';
 import { vehicleMoney, vehicleDay } from '../lib/vehicle/format';
 import type { VehicleIssue } from '../lib/vehicle/model';
+import { isEv } from '../lib/vehicle/v3Fields';
 
 export function VehicleYear() {
   const { year = '' } = useParams();
   const v = useVehicleData();
+  const data = useData();
   if (!/^\d{4}$/.test(year)) return <VehiclePage title="לא נמצאה שנה" back="/vehicle?tab=costs"><p>בחרו שנה מאזור הרכב.</p></VehiclePage>;
   const count = v.ledger.filter(row => row.day.startsWith(year)).length;
-  return <VehiclePage title={`שנת ${year}`} back="/vehicle?tab=costs"><CoverageNotice/><RunningCosts from={`${year}-01-01`} to={`${year}-12-31`} year={year}/><Link className="tm-vehicle-link tm-vehicle-links" to={`/history?year=${year}`}>כל הרשומות של השנה<ChevronStart size={18}/></Link><p className="tm-vehicle-note"><NumericText>{`${count} ${count === 1 ? 'רשומה' : 'רשומות'} בשנה זו.`}</NumericText></p></VehiclePage>;
+  return <VehiclePage title={`שנת ${year}`} back="/vehicle?tab=costs"><CoverageNotice/><RunningCosts ev={isEv(data.activeVehicle)} from={`${year}-01-01`} to={`${year}-12-31`} year={year}/><Link className="tm-vehicle-link tm-vehicle-links" to={`/history?year=${year}`}>כל הרשומות של השנה<ChevronStart size={18}/></Link><p className="tm-vehicle-note"><NumericText>{`${count} ${count === 1 ? 'רשומה' : 'רשומות'} בשנה זו.`}</NumericText></p></VehiclePage>;
 }
 
 export function ReminderDetail() {
