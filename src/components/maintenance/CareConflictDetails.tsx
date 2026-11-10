@@ -6,7 +6,7 @@ import { Num } from '../Num';
 const labels: Record<string, string> = {
   title: 'שם', day: 'תאריך ביצוע', odometer: 'קילומטראז׳', costAgorot: 'עלות', jobs: 'עבודות', garage: 'מוסך',
   notes: 'הערות', dueDay: 'תאריך יעד', dueOdometer: 'יעד ק״מ', intervalKm: 'מרווח ק״מ', intervalMonths: 'מרווח חודשים',
-  active: 'תזכורת פעילה', source: 'מקור', basis: 'חישוב מועד', category: 'סוג הוצאה', job: 'סוג טיפול',
+  active: 'תזכורת פעילה', source: 'מקור', basis: 'חישוב מועד', category: 'סוג הוצאה', excluded: 'לא בעלות הרכב', job: 'סוג טיפול',
   completedPlanIds: 'תזכורות שהושלמו', symptoms: 'תיאור התקלה', importance: 'חשיבות', status: 'מצב התקלה',
   serviceEventIds: 'טיפולים קשורים', history: 'היסטוריית התקלה', occurrence: 'התראה', read: 'נקראה', archived: 'בארכיון',
   snoozeUntilDay: 'דחייה עד', deleted: 'הוסרה', schemaVersion: 'גרסת המבנה', version: 'גרסת הרשומה',
