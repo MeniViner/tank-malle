@@ -920,7 +920,7 @@ function StationDataPanel() {
     >
       <Card className="flex flex-col gap-3 p-4">
         {!data ? (
-          <Skeleton className="h-[120px] rounded-[12px]" />
+          <Skeleton className="h-[120px] rounded-md" />
         ) : (
           <>
             <DiagnosticRow

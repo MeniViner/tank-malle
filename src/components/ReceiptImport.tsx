@@ -63,13 +63,13 @@ export function ReceiptImport({ fillups, hasAuthored, onClose, onApply }: {
   }
   return <Sheet open onClose={onClose} title={<h2 className="text-lg font-bold">ייבוא קבלה</h2>}><div className="flex flex-col gap-4">
     <p className="text-sm text-muted">PDF עם טקסט או טקסט שהעתקתם. חילוץ כללי וניסיוני; בדקו מול הקבלה. המסמך עצמו נשאר במכשיר ואינו נשמר.</p>
-    <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-accent p-3 font-semibold text-ink">בחירת PDF<input className="sr-only" aria-label="קובץ קבלה PDF" type="file" accept="application/pdf,.pdf" onChange={e=>{void file(e.target.files?.[0]);e.target.value='';}} /></label>
-    <label className="flex flex-col gap-2 text-sm">טקסט הקבלה<textarea dir="auto" maxLength={100000} value={text} className="min-h-28 rounded-xl border border-line bg-surface p-3 text-base" onChange={e=>{invalidate();setText(e.target.value);}} /></label>
+    <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-md border border-accent p-3 font-semibold text-ink">בחירת PDF<input className="sr-only" aria-label="קובץ קבלה PDF" type="file" accept="application/pdf,.pdf" onChange={e=>{void file(e.target.files?.[0]);e.target.value='';}} /></label>
+    <label className="flex flex-col gap-2 text-sm">טקסט הקבלה<textarea dir="auto" maxLength={100000} value={text} className="min-h-28 rounded-md border border-line bg-surface p-3 text-base" onChange={e=>{invalidate();setText(e.target.value);}} /></label>
     <Button variant="secondary" disabled={!text.trim()||busy} onClick={()=>{invalidate();try{extracted(parseReceiptText(text));}catch(e){setError((e as Error).message);}}}>חילוץ נתונים מהטקסט</Button>
     <Link to="/settings/import" onClick={onClose} className="min-h-11 py-2 text-sm text-ink">לייבוא CSV / XLSX הקיים</Link>
     {busy ? <p role="status">קוראים במכשיר…</p>:null}
     {candidate ? <>
-      <details className="rounded-xl bg-surface-2 p-3 text-sm"><summary className="min-h-11 cursor-pointer">פירוט השורות שזוהו</summary>{candidate.sections.map((line,i)=><p key={i} className="my-2 break-words"><b>{{fuel:'דלק',shop:'חנות',discount:'הנחה',fee:'עמלה',credit:'זיכוי',other:'לא מסווג'}[line.kind]}: </b><bdi>{line.text}</bdi></p>)}</details>
+      <details className="rounded-md bg-surface-2 p-3 text-sm"><summary className="min-h-11 cursor-pointer">פירוט השורות שזוהו</summary>{candidate.sections.map((line,i)=><p key={i} className="my-2 break-words"><b>{{fuel:'דלק',shop:'חנות',discount:'הנחה',fee:'עמלה',credit:'זיכוי',other:'לא מסווג'}[line.kind]}: </b><bdi>{line.text}</bdi></p>)}</details>
       {candidate.credit ? <p role="alert" className="text-danger">זהו מסמך זיכוי. אין להוסיף ממנו ליטרים. אפשר לרשום החזר ב״הרכב שלי״.</p> : <>
         <Field label="עלות הדלק ששולמה" value={candidate.total} inputMode="decimal" suffix="₪" onChange={e=>edit({total:e.target.value})} />
         <Field label="ליטרים בקבלה" value={candidate.liters} inputMode="decimal" onChange={e=>edit({liters:e.target.value})} />

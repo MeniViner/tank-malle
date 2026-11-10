@@ -20,7 +20,7 @@ import '../../care-entry-design.css';
 
 const TITLES: Record<CareCollection,string> = { serviceEvents: 'טיפול שבוצע', maintenancePlans: 'תזכורת לטיפול', vehicleExpenses: 'הוצאה לרכב', odometerReadings: 'עדכון קילומטראז׳' };
 export function SelectField({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
-  return <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted">{label}<select aria-label={label} className="min-h-12 w-full min-w-0 rounded-xl border border-line bg-surface p-3 text-base text-ink" value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>;
+  return <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted">{label}<select aria-label={label} className="min-h-12 w-full min-w-0 rounded-md border border-line bg-surface p-3 text-base text-ink" value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>;
 }
 export function CareEditor({ uid, vehicleId, collection, record: currentRecord, plans, completePlan, initialJob, currentOdometer, odometerIntent, completionDefaults, onClose, onSave }: {
   uid: string; vehicleId: string; collection: CareCollection; record?: CareRecord; plans: MaintenancePlan[]; completePlan?: MaintenancePlan;

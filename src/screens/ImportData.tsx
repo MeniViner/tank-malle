@@ -413,7 +413,7 @@ function AccountImportData() {
         </div> : null}
         {stage === "preview" && backupSources.length > 1 ? <div className="tm-secondary-group tm-secondary-stack pt-3">
           <label htmlFor="backup-source" className="tm-secondary-note font-semibold">רכב המקור בתוך הגיבוי</label>
-          <select id="backup-source" className="min-h-11 rounded-xl border border-line bg-surface p-3 text-ink" value={backupSourceId}
+          <select id="backup-source" className="min-h-11 rounded-md border border-line bg-surface p-3 text-ink" value={backupSourceId}
             onChange={event => { if (sourceFile.current) void onFile(sourceFile.current, event.target.value); }}>
             {backupSources.map(source => <option key={source.id} value={source.id}>{source.label}</option>)}
           </select>

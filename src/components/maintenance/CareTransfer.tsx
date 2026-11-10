@@ -41,13 +41,13 @@ export function CareTransfer({ vehicleId,label,data,incomplete,canImport,onSave,
   }
   return <Sheet open onClose={()=>{if(!busy)onClose();}} title="גיבוי וייצוא תחזוקה"><div className="flex flex-col gap-4">
     <p className="text-sm text-muted"><NumericText>{label}</NumericText> בלבד. הגיבוי כולל טיפולים, תזכורות, הוצאות ועדכוני ק״מ. תדלוקים מיוצאים בנפרד דרך החשבון.</p>
-    {incomplete?<p className="rounded-lg bg-warning-soft p-3 text-sm text-warning-ink">העותק במכשיר עשוי להיות חלקי או לכלול שינויים שטרם סונכרנו. הקובץ יסומן בהתאם.</p>:null}
+    {incomplete?<p className="rounded-sm bg-warning-soft p-3 text-sm text-warning-ink">העותק במכשיר עשוי להיות חלקי או לכלול שינויים שטרם סונכרנו. הקובץ יסומן בהתאם.</p>:null}
     <Button variant="secondary" onClick={()=>{const now=new Date();downloadCareFile(careBackup({id:vehicleId,label},data,incomplete,now),'tank-maleh-care.json','application/json;charset=utf-8',now);setMessage('הגיבוי הוכן להורדה.');}}>הורדת גיבוי</Button>
     <Button variant="secondary" onClick={()=>{downloadCareFile(careCostsCsv(data),'tank-maleh-care-costs.csv','text/csv;charset=utf-8');setMessage('דוח העלויות הוכן להורדה.');}}>ייצוא עלויות CSV</Button>
     <hr className="border-line" />
-    <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-xl border border-line p-3 font-semibold focus-within:ring-2 focus-within:ring-accent">בחירת גיבוי לשחזור<input className="sr-only" type="file" accept="application/json,.json" aria-label="בחירת גיבוי לשחזור, קובץ גיבוי תחזוקה" disabled={busy} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}} /></label>
+    <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-md border border-line p-3 font-semibold focus-within:ring-2 focus-within:ring-accent">בחירת גיבוי לשחזור<input className="sr-only" type="file" accept="application/json,.json" aria-label="בחירת גיבוי לשחזור, קובץ גיבוי תחזוקה" disabled={busy} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}} /></label>
     {!canImport?<p className="text-sm text-muted">ייבוא זמין אחרי קבלת נתוני הרכב מהשרת וסיום הפעולות הממתינות.</p>:null}
-    {backup && preview?<div className="flex flex-col gap-3 rounded-xl bg-surface-2 p-3 text-sm">
+    {backup && preview?<div className="flex flex-col gap-3 rounded-md bg-surface-2 p-3 text-sm">
       <p>רכב בקובץ: <b><NumericText>{backup.vehicle.label}</NumericText></b></p><p>רכב יעד: <b><NumericText>{label}</NumericText></b></p>
       <p><NumRun>{preview.additions.length}</NumRun> רשומות חדשות · <NumRun>{preview.duplicates}</NumRun> כבר קיימות · <NumRun>{preview.conflicts}</NumRun> עם תוכן שונה</p>
       {backup.incomplete?<p>הגיבוי סומן כחלקי; הוא אינו מבטיח היסטוריה מלאה.</p>:null}

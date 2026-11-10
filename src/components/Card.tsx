@@ -17,7 +17,7 @@ export function Card({
     <Tag
       id={id}
       style={style}
-      className={`rounded-card bg-surface ${className}`}
+      className={`rounded-card border border-line bg-surface shadow-card ${className}`}
     >
       {children}
     </Tag>
@@ -50,7 +50,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="flex items-center justify-between pt-1">
-      <h2 className="font-display text-[34px] font-bold leading-none text-ink">{children}</h2>
+      <h2 className="font-display text-[34px] font-normal leading-none text-ink">{children}</h2>
       {action}
     </div>
   );
@@ -142,7 +142,7 @@ export function Skeleton({
 }) {
   return (
     <div
-      className={`tm-skeleton rounded-[12px] ${className}`}
+      className={`tm-skeleton rounded-md ${className}`}
       style={delay ? { animationDelay: `${delay}ms` } : undefined}
     />
   );

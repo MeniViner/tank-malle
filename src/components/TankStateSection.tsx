@@ -344,7 +344,7 @@ function Reconciliation({
   onDiscard: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-2 rounded-[14px] border border-warning/40 bg-warning-soft p-3">
+    <div className="flex flex-col gap-2 rounded-md border border-warning/40 bg-warning-soft p-3">
       <span className="text-[13px] font-semibold text-warning-ink">
         {state === "capacitySuspect"
           ? "נראה שנפח המיכל גדול מההערכה"

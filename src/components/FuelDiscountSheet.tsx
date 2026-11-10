@@ -57,7 +57,7 @@ export function FuelDiscountSheet({ vehicle, official, onClose }: {
       {kind !== 'none' ? <Field label={kind === 'percent' ? 'שיעור ההנחה' : 'הנחה לליטר'} inputMode="decimal" value={value}
         onChange={event => setValue(event.target.value)} suffix={kind === 'percent' ? '%' : '₪'} placeholder="0"
         error={value.trim() && !valid ? 'הזינו הנחה חיובית הקטנה מהמחיר המלא' : undefined} /> : null}
-      <div className="flex items-center justify-between rounded-[14px] bg-surface-2 p-4">
+      <div className="flex items-center justify-between rounded-md bg-surface-2 p-4">
         <span className="text-[14px]">המחיר לתדלוק הבא</span><Num className="text-[24px] font-semibold">{next !== null ? price(next) : '—'}</Num>
       </div>
       <Button full onClick={() => void save()} disabled={!valid || saving} loading={saving}>שמירה</Button>

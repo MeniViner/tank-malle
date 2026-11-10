@@ -176,7 +176,7 @@ export function Profile() {
           <div className="flex items-center gap-3.5">
             <Avatar name={user?.displayName} photoURL={user?.photoURL} size={62} />
             <div className="flex min-w-0 flex-col items-start gap-1">
-              <span className="truncate font-display text-[28px] font-semibold leading-tight">
+              <span className="truncate font-display text-[28px] font-normal leading-tight">
                 {user?.displayName ?? "משתמש"}
               </span>
               <span dir="ltr" className="max-w-full truncate text-[13px] text-muted">
@@ -435,7 +435,7 @@ function MetricCard({
     <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-4 py-4">
       <Label>{label}</Label>
       <span className="flex items-baseline gap-1.5">
-        <Num className="font-display text-[26px] font-bold leading-tight text-ink">{value}</Num>
+        <Num className="font-display text-[26px] font-normal leading-tight text-ink">{value}</Num>
         {unit ? <span className="text-[12px] text-muted">{unit}</span> : null}
       </span>
       {meta ? <span className="truncate text-[12px] text-muted">{meta}</span> : null}

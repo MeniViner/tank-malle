@@ -197,7 +197,7 @@ function EditState({
   return (
     <main className="flex min-h-dvh flex-1 flex-col gap-3 px-5 pt-safe" data-edit-state={kind}>
       <header className="flex items-center justify-between py-3">
-        <h1 className="font-display text-[40px] font-bold text-ink">עריכת תדלוק</h1>
+        <h1 className="font-display text-[40px] font-normal text-ink">עריכת תדלוק</h1>
         {onBack ? (
           <button
             type="button"

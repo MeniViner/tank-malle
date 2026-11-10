@@ -188,7 +188,7 @@ export function StationSheet({
       title="תחנת דלק"
     >
       <div className="flex max-h-[64vh] flex-col gap-3">
-        <div className="flex min-h-[48px] items-center gap-2 rounded-[14px] border border-line bg-surface px-3.5">
+        <div className="flex min-h-[48px] items-center gap-2 rounded-md border border-line bg-surface px-3.5">
           <SearchIcon size={17} className="text-muted" />
           <input
             value={query}
@@ -257,7 +257,7 @@ export function StationSheet({
                   type="button"
                   onClick={() => void orderNearby()}
                   disabled={ordering}
-                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-ink"
+                  className="mb-1 min-h-[46px] rounded-md bg-surface-2 text-[14px] font-semibold text-ink"
                 >
                   {geoStatus === "denied"
                     ? "הרשאת מיקום נדחתה — נסו שוב"
@@ -272,7 +272,7 @@ export function StationSheet({
                   type="button"
                   onClick={() => void orderNearby()}
                   disabled={ordering}
-                  className="mb-1 min-h-[46px] rounded-[14px] bg-surface-2 text-[14px] font-semibold text-ink"
+                  className="mb-1 min-h-[46px] rounded-md bg-surface-2 text-[14px] font-semibold text-ink"
                 >
                   איתור תחנות בקרבת מקום
                 </button>

@@ -5,9 +5,9 @@
 }
 .tm-journal-row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
 .tm-journal-day { display: grid; justify-items: center; flex: none; width: 31px; gap: 2px; }
-.tm-journal-day > bdi { font: 700 30px/1 var(--font-display); }
+.tm-journal-day > bdi { font: 400 30px/1 var(--font-display); }
 .tm-journal-day > span { color: var(--ink-2); font-size: 12px; white-space: nowrap; }
-.tm-journal-badge { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-2); }
+.tm-journal-badge { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
 .tm-journal-badge-warning { color: var(--warning-ink); }
 .tm-journal-main { display: grid; flex: 1; min-width: 0; gap: 3px; }
 .tm-journal-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 1.3; font-weight: 600; }
@@ -15,7 +15,7 @@
 .tm-journal-state { display: flex; align-items: center; gap: 4px; }
 .tm-journal-flag { color: var(--warning-ink); }
 .tm-journal-money { display: grid; justify-items: end; flex: none; gap: 3px; text-align: left; }
-.tm-journal-money > bdi { font: 700 26px/1 var(--font-display); }
+.tm-journal-money > bdi { font: 400 26px/1 var(--font-display); }
 .tm-journal-money > span { font: 500 12px/1.3 var(--font-sans); }
 .tm-journal-refund { color: var(--success-ink); }
 .tm-journal-row.tm-journal-quiet { min-height: 44px; justify-content: space-between; padding-block: 10px; border-bottom-style: dashed; }

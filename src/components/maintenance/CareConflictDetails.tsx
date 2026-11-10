@@ -31,7 +31,7 @@ export function CareConflictDetails({ mine, server }: { mine: OutboxPayload | nu
   return <div className="flex flex-col gap-3 text-sm" data-testid="outbox-conflict-details">
     <p className="font-semibold">ההבדלים לבדיקה לפני בחירת הגרסה</p>
     {differences.length === 0 ? <p>לא נמצאו הבדלים בתמונות הרשומה השמורות.</p> : differences.map(row =>
-      <div className="rounded-lg bg-surface-2 p-3" key={row.key} data-testid={`outbox-conflict-${row.key}`} data-outbox-field={row.key}>
+      <div className="rounded-sm bg-surface-2 p-3" key={row.key} data-testid={`outbox-conflict-${row.key}`} data-outbox-field={row.key}>
         <b><NumericText>{labels[row.key] ?? row.key}</NumericText></b>
         <p className="break-words whitespace-pre-wrap" data-testid="outbox-value-mine">שלי: <Value field={row.key} input={row.mine} present={row.minePresent} /></p>
         <p className="break-words whitespace-pre-wrap" data-testid="outbox-value-server">בשרת: <Value field={row.key} input={row.server} present={row.serverPresent} /></p>
