@@ -71,7 +71,7 @@ import {
 } from "firebase/firestore";
 import { reauthenticateWithPopup } from "firebase/auth";
 import { db, googleProvider } from "../lib/firebase";
-import { accountDataDeletionSteps, clearAccountLocalStorage, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
+import { accountDataDeletionSteps, clearAccountLocalData, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
 import { withdrawBenchmark } from "../lib/benchmarks";
 import { withdrawVehicleCost } from "../lib/costBenchmarks";
 import { pruneOldCaches, readCache, writeCache } from "../lib/cache";
@@ -2879,7 +2879,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         outboxRef.current?.close();
         await terminate(db);
         await clearIndexedDbPersistence(db);
-        clearAccountLocalStorage(uid);
+        await clearAccountLocalData(uid);
       },
       identity: () => user.delete(),
     });
