@@ -183,6 +183,16 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
 
       /* ---------- account and secondary screens ---------- */
       await shot("account", () => go("/account", main), { fullPage: true });
+      await shot("sheet-account-identity", async () => {
+        await go("/account", main);
+        await page.getByTestId("account-identity").click();
+        await settle(page, page.getByTestId("account-summary"));
+      });
+      await shot("sheet-statement", async () => {
+        await go("/vehicle", page.getByRole("region", { name: "הרכב שלי", exact: true }));
+        await page.getByTestId("vehicle-business-statement").click();
+        await settle(page, page.getByTestId("business-statement"));
+      });
       await shot("notifications", () => go("/notifications", main), { fullPage: true });
       await shot("unsynced", () => go("/settings/unsynced", main), { fullPage: true });
       await shot("import", () => go("/settings/import", main), { fullPage: true });

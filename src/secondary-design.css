@@ -41,12 +41,12 @@
 .tm-import-vehicle > span { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .tm-import-vehicle > svg { flex: none; }
 .tm-import-vehicle:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-.tm-import-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--line); }
-.tm-import-stat { display: flex; min-width: 0; flex-direction: column; gap: 5px; border-bottom: 1px solid var(--line); padding: 14px 0; }
-.tm-import-stat:nth-child(even) { border-inline-start: 1px solid var(--line); padding-inline-start: 16px; }
-.tm-import-stat:nth-child(odd) { padding-inline-end: 16px; }
-.tm-import-stat > .tm-number { align-self: flex-start; font: 400 44px/1 var(--font-display); }
-.tm-import-stat > span { color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+/* v3 §3: the import counts read as a facts strip (label on the right, mono value on the left, dashed rules). */
+.tm-import-stats { display: grid; border-block: 1px solid var(--line); }
+.tm-import-stat { display: flex; min-width: 0; min-height: 52px; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
+.tm-import-stat + .tm-import-stat { border-top: 1px dashed var(--line); }
+.tm-import-stat > .tm-number { flex: none; font: 400 22px/1 var(--font-mono); }
+.tm-import-stat > span { color: var(--ink); font: 500 15px/1.35 var(--font-sans); }
 .tm-import-duplicate .tm-secondary-row-copy, .tm-import-duplicate .tm-secondary-row-value { color: var(--ink-2); }
 .tm-import-preview-money { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
 .tm-import-history-row { align-items: flex-start; flex-wrap: wrap; }

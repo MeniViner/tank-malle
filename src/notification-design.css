@@ -9,7 +9,7 @@
 .notes-plate .notes-group-head { display: flex; align-items: center; gap: 8px; padding-block: 12px 10px; border-top: 1px solid var(--line); }
 .notes-plate .notes-group-head h2 { margin: 0; font: 400 28px/1.15 var(--font-display); }
 .notes-plate .notes-group-head small { margin-inline-start: auto; color: var(--muted); font-size: 12px; }
-.notes-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); font-size: 12px; font-family: var(--font-mono); }
+.notes-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); font-size: 12px; font-family: var(--font-mono); }
 .notes-plate .notes-group { overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
 .notes-plate .notes-row { display: grid; grid-template-columns: 24px minmax(0, 1fr) 44px; align-items: start; gap: 9px; padding: 16px 12px; background: transparent; border: 0; border-radius: 0; }
 .notes-plate .notes-row + .notes-row { border-top: 1px solid var(--line); }

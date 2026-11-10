@@ -22,8 +22,8 @@ export function RunningCosts({from,to,year,ev=false}:{from:string;to:string;year
   const coverage=`${s.unknown?`${s.unknown} ${s.unknown===1?'עלות חסרה':'עלויות חסרות'}. `:''}${s.incomplete?'הנתונים עדיין חלקיים.':'סכומים ידועים בלבד, ללא ירידת ערך.'}`;
   return <section className="v-costs" aria-label="עלויות הרכב"><div className="v-section-head"><h2>כמה עלה</h2><Link to={year?`/history?year=${year}`:`/history?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`}>לרשומות ←</Link></div>
     <FactsStrip label="כמה עלה בתקופה" testId="running-facts">
-      <Fact label={<NumericText>{`הוצאות מתועדות · ${period}`}</NumericText>} valueTestId="running-total" value={vehicleMoney(s.total)}
-        sub={<NumericText>{`${s.count} ${s.count===1?'רשומה':'רשומות'} · ${coverage}`}</NumericText>} />
+      <Fact label="הוצאות מתועדות" valueTestId="running-total" value={vehicleMoney(s.total)}
+        sub={<NumericText>{`${period} · ${s.count} ${s.count===1?'רשומה':'רשומות'} · ${coverage}`}</NumericText>} />
       <Fact variant="minor" label={ev ? 'חשמל' : 'רכישות דלק'} value={vehicleMoney(s.fuel)} />
       <Fact variant="minor" label="טיפולים" value={vehicleMoney(s.maintenance)} />
       <Fact variant="minor" label="הוצאות נוספות" value={vehicleMoney(s.other)} />

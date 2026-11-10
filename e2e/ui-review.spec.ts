@@ -120,7 +120,8 @@ test('every setting uses the same compact accessible switch and quick entry pers
     const target=await sw.boundingBox();expect(target!.width).toBeCloseTo(52,3);expect(target!.height).toBeCloseTo(44,3);
     const track=await sw.locator('.tm-switch-track').boundingBox();expect(track!.width).toBeCloseTo(52,3);expect(track!.height).toBeCloseTo(32,3);
   }};
-  await checkSwitches(page.getByRole('switch'),5);
+  // 6: Stage 6 added the scan v2 A/B switch ("זיהוי ספרות משופר (ניסיוני)") right after quick entry.
+  await checkSwitches(page.getByRole('switch'),6);
   for(const label of ['טסט, ביטוח וטיפולים','שינוי במחיר הדלק','שיתוף סיכום דלק להשוואה','שיתוף סיכום עלות הרכב'])await expect(page.getByRole('switch',{name:label,exact:true})).toBeVisible();
   const quick=page.getByRole('switch',{name:'כפתור תדלקתי פותח מצלמה',exact:true});await quick.click();await expect(quick).toBeChecked();
   await expect(async()=>expect((await getDocument(`users/${uid}`))?.settings).toMatchObject({quickEntry:true})).toPass();await page.reload();await expect(quick).toBeChecked();
