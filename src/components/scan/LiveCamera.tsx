@@ -13,7 +13,7 @@ export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isAct
   useEffect(()=>{frame.current=onFrame;},[onFrame]);
   const [state,setState]=useState<'opening'|'ready'|'paused'|'error'>('opening');
   useEffect(()=>{
-    let samples=0,cancelled=false,ownedStream:MediaStream|null=null,timer:ReturnType<typeof setTimeout>|undefined;
+    let cancelled=false,ownedStream:MediaStream|null=null,timer:ReturnType<typeof setTimeout>|undefined;
     let zoomGeneration=0,settleUntil=0;
     const stop=()=>{cancelled=true;clearTimeout(timer);zoomControl.current?.dispose();zoomControl.current=null;ownedStream?.getTracks().forEach(track=>track.stop());ownedStream=null;};
     const background=()=>{if(document.visibilityState==='hidden'){stop();setState('paused');}};
@@ -25,7 +25,7 @@ export function LiveCamera({ onFrame,onClose }: { onFrame:(image:ImageData,isAct
       const currentZoom=zoomControl.current?.getState();
       if(input.readyState>=2 && input.videoWidth && !currentZoom?.busy && performance.now()>=settleUntil) {
         // The frame at the camera's own size: the display may be a small part of it.
-        samples++;const maximum=1920;
+        const maximum=1920;
         const crop=cameraFrameCrop(input.videoWidth,input.videoHeight,currentZoom?.mode==='digital'?currentZoom.value:1,maximum);
         canvas.width=crop.width;canvas.height=crop.height;
         context.drawImage(input,crop.sx,crop.sy,crop.sw,crop.sh,0,0,crop.width,crop.height);
