@@ -5,8 +5,8 @@
  * about the numbers (a pump's total = litres × price; an odometer only goes
  * up) choose among the rows. It only ever suggests: the person confirms.
  */
-import { luma, pyramid, type RGBA } from './image';
-import { proposeLines, rectify, type LineProposal } from './proposals';
+import { luma, pyramid, type Gray, type RGBA } from './image';
+import { proposeLines, rectify, type LineProposal, type ProposalOptions } from './proposals';
 import { readStrip, type Cell } from './decode';
 
 export type Word = {
@@ -68,8 +68,8 @@ function refine(word: Word, read: { top: number; bottom: number; slope: number }
     height: (read.bottom - read.top + 1) * step, length: (word.cells.at(-1)!.x1 - word.cells[0].x0) * step, count: word.cells.length };
 }
 
-export function readWords(image: RGBA): { words: Word[]; lines: number } {
-  const levels = pyramid(luma(image)), lines = proposeLines(levels), first: { word: Word; refined: LineProposal }[] = [], words: Word[] = [];
+export function readWords(levels: Gray[], options: ProposalOptions = {}): { words: Word[]; lines: number } {
+  const lines = proposeLines(levels, options), first: { word: Word; refined: LineProposal }[] = [], words: Word[] = [];
   for (const line of lines) {
     // A steep row may be upside down; a gently sloped one is read left to right only.
     for (const flipped of Math.abs(line.ux) < .5 ? [false, true] : [false]) {
@@ -163,7 +163,14 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
   return [...best.values()].sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
 
+/** Faint displays (glare, dusk, a dim backlight) need a lower ink threshold; it is slower and noisier, so it is the second try. */
+const FAINT: ProposalOptions = { offset: 6 };
+
 export function scanPhoto(image: RGBA, kind: ScanKind, context: ScanContext = {}): EngineResult {
-  const started = Date.now(), { words } = readWords(image);
-  return { kind, words, odometer: kind === 'odometer' ? chooseOdometer(words, context) : [], pump: kind === 'pump' ? choosePump(words, context) : [], ms: Date.now() - started };
+  const started = Date.now(), levels = pyramid(luma(image));
+  const choose = (words: Word[]) => ({ odometer: kind === 'odometer' ? chooseOdometer(words, context) : [], pump: kind === 'pump' ? choosePump(words, context) : [] });
+  let { words } = readWords(levels), chosen = choose(words);
+  const sure = kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
+  if (!sure) { words = [...words, ...readWords(levels, FAINT).words]; chosen = choose(words); }
+  return { kind, words, ...chosen, ms: Date.now() - started };
 }

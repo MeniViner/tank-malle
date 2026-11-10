@@ -20,7 +20,7 @@ const DEFAULTS: Required<ProposalOptions> = { minSize: 11, maxSize: 52, radius: 
 
 function levelLines(g: Gray, level: number, polarity: Polarity, table: Uint32Array, o: Required<ProposalOptions>): LineProposal[] {
   const mask = localInk(g, o.radius, o.offset, polarity, table);
-  const all = blobs(mask, g.width, g.height, 8, o.maxSize * o.maxSize);
+  const all = blobs(mask, g.width, g.height, 8, o.maxSize * o.maxSize * 4);
   // A digit is taller than wide and not a speck or a long rule.
   const marks = all.filter(b => b.major >= o.minSize && b.major <= o.maxSize && b.minor >= 1.5 && b.minor <= b.major * .95);
   const cell = o.maxSize * 2, grid = new Map<number, number[]>(), cols = Math.ceil(g.width / cell) + 1;
@@ -69,6 +69,17 @@ function levelLines(g: Gray, level: number, polarity: Polarity, table: Uint32Arr
       lines.push({ level, polarity, contrast, cx: (mx + vx * mid + .5) * scale - .5, cy: (my + vy * mid + .5) * scale - .5, ux: vx, uy: vy, height: height * scale, length: (t1 - t0 + height) * scale, count: run.length });
     }
   });
+  // A small or blurred display: its digits run together into one long blob, as tall as a digit.
+  const scale = 1 << level;
+  for (const b of all) {
+    if (b.minor < (level >= 2 ? 4.5 : o.minSize * .8) || b.minor > o.maxSize || b.major < b.minor * 2.2 || b.major > b.minor * 9 || b.area < b.major * b.minor * .25) continue;
+    let ux = Math.cos(b.angle), uy = Math.sin(b.angle); if (ux < 0) { ux = -ux; uy = -uy; }
+    const values: number[] = [];
+    for (const off of [-.25, .25]) for (let t = -b.major / 2; t <= b.major / 2; t += 1) values.push(sample(g, b.cx + ux * t - uy * off * b.minor, b.cy + uy * t + ux * off * b.minor));
+    values.sort((p, q) => p - q);
+    lines.push({ level, polarity, contrast: values[Math.floor(values.length * .92)] - values[Math.floor(values.length * .08)],
+      cx: (b.cx + .5) * scale - .5, cy: (b.cy + .5) * scale - .5, ux, uy, height: b.minor * scale, length: b.major * scale, count: Math.max(3, Math.round(b.major / (b.minor * .7))) });
+  }
   return lines;
 }
 
