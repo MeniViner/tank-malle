@@ -1200,6 +1200,7 @@ function FillupEditor({
       }} /></Suspense> : null}
     {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
+      context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),

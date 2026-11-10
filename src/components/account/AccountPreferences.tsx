@@ -16,6 +16,7 @@ import { Sheet } from "../Sheet";
 import { useCostSharing } from "../../context/CostCommunityContext";
 import { Button } from "../Button";
 import { useAccountScope } from "./useAccountScope";
+import { ScanV2Toggle } from "../scan/v2/ScanV2Toggle";
 
 const THEMES: { value: ThemeSetting; label: string }[] = [
   { value: "system", label: "לפי המכשיר" },
@@ -60,6 +61,7 @@ export function AccountPreferences() {
           <Toggle checked={settings.quickEntry === true} ariaLabel="כפתור תדלקתי פותח מצלמה"
             onChange={quickEntry => save({ quickEntry }, "העדפת התדלוק לא נשמרה")} />
         </GroupRow>
+        <ScanV2Toggle />
       </div>
     </section>
 
