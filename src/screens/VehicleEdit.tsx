@@ -15,6 +15,7 @@ import { ChevronStart, RefreshIcon, WarningIcon } from '../components/icons';
 import { FUEL_TYPE_SHORT, formatPlate, parseDecimal } from '../lib/format';
 import { LOOKUP_MESSAGES, lookupPlate } from '../lib/plateLookup';
 import { fetchVehicleSpecs, type VehicleSpecs } from '../lib/vehicleSpecs';
+import { evRefreshPatch } from '../lib/vehicle/v3Fields';
 import type { FuelType, Vehicle } from '../lib/types';
 import '../vehicle-page-design.css';
 
@@ -57,6 +58,8 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
   const [specUrl, setSpecUrl] = useState(vehicle.specSourceUrl);
   const [registryCodes, setRegistryCodes] = useState({ tozeretCd: vehicle.tozeretCd, degemCd: vehicle.degemCd });
   const [tankHint, setTankHint] = useState<number | null>(null);
+  // Design v3: EV registry fields found by "עדכון ממשרד התחבורה"; saved with the form.
+  const [evPatch, setEvPatch] = useState<Partial<Vehicle>>({});
   const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [refreshNote, setRefreshNote] = useState('');
@@ -76,7 +79,9 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
   const valid = make.trim().length > 0 && make.length <= 60 && model.length <= 80 && nickname.length <= 60 && !yearError && !tankError && !declaredError;
   const back = activeVehicle?.id === vehicle.id ? '/vehicle' : '/settings/vehicles';
 
-  function applySpecs(specs: VehicleSpecs) {
+  function applySpecs(specs: VehicleSpecs, powertrain?: Vehicle['powertrain']) {
+    const ev = evRefreshPatch(vehicle, { powertrain: specs.powertrain ?? powertrain, motorKw: specs.motorKw, battery: specs.battery });
+    if (Object.keys(ev).length) { setEvPatch(ev); touch('ev'); }
     // A deliberately cleared field is authored input, not a missing suggestion.
     if (!dirty.has('tank') && tankSource !== 'user' && !tank.trim() && specs.trustedTankLiters) {
       setTank(String(specs.trustedTankLiters)); setTankSource('trusted'); setTankUrl(specs.tankSourceUrl ?? null); touch('tank');
@@ -99,7 +104,7 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
       const digits = plate.replace(/\D/g, '');
       if (digits.length < 5) {
         const sameIdentity = make === original.make && model === original.model && Number(year) === original.year && fuelType === original.fuelType;
-        const specs = await fetchVehicleSpecs({ make, model, year: year ? Number(year) : null, fuelType, ...(sameIdentity ? registryCodes : {}) }, controller.signal);
+        const specs = await fetchVehicleSpecs({ make, model, year: year ? Number(year) : null, fuelType, ...(sameIdentity ? { ...registryCodes, powertrain: original.powertrain ?? null } : {}) }, controller.signal);
         if (current()) setRefreshNote(applySpecs(specs));
         return;
       }
@@ -115,8 +120,8 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
       setRegistryCodes({ tozeretCd: found.tozeretCd, degemCd: found.degemCd }); touch('registryCodes');
       const registryNote = outcome.status === 'unavailable' ? LOOKUP_MESSAGES.cachedFallback : 'הפרטים ממשרד התחבורה מוצגים לבדיקה. הם יישמרו בלחיצה על שמירה.';
       setRefreshNote(registryNote);
-      const specs = await fetchVehicleSpecs({ make: found.make, model: found.model, engineCc: found.engineVolume, tozeretCd: found.tozeretCd, degemCd: found.degemCd, year: found.year, fuelType: found.fuelType }, controller.signal);
-      if (current()) setRefreshNote(`${registryNote} ${applySpecs(specs)}`);
+      const specs = await fetchVehicleSpecs({ make: found.make, model: found.model, engineCc: found.engineVolume, tozeretCd: found.tozeretCd, degemCd: found.degemCd, year: found.year, fuelType: found.fuelType, powertrain: found.powertrain }, controller.signal);
+      if (current()) setRefreshNote(`${registryNote} ${applySpecs(specs, found.powertrain)}`);
     } catch {
       if (current()) setRefreshNote(LOOKUP_MESSAGES.unavailable);
     } finally {
@@ -136,6 +141,7 @@ function VehicleEditForm({ vehicle }: { vehicle: Vehicle }) {
     if (dirty.has('nickname')) patch.nickname = nickname.trim() || null;
     if (dirty.has('registryCodes')) { patch.tozeretCd = registryCodes.tozeretCd ?? null; patch.degemCd = registryCodes.degemCd ?? null; }
     if (dirty.has('tank')) { patch.tankLiters = tank.trim() ? parseDecimal(tank) : null; patch.tankLitersSource = tank.trim() ? tankSource ?? 'user' : 'user'; patch.tankSourceUrl = tank.trim() ? tankUrl ?? null : null; }
+    if (dirty.has('ev')) Object.assign(patch, evPatch);
     if (dirty.has('declared')) { patch.declaredKmPerLiter = declared.trim() ? parseDecimal(declared) : null; patch.declaredSource = declared.trim() ? declaredSource ?? 'user' : 'user'; patch.specSourceUrl = declared.trim() ? specUrl ?? null : null; }
     const isCurrent = captureScope();
     if (!isCurrent()) return;

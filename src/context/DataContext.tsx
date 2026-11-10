@@ -3,6 +3,7 @@ import { writeWithLocalAcceptance } from "../lib/localWriteAcceptance";
 import { receiptDocumentId } from "../lib/import/receiptText";
 import { subscribeResilient } from "../lib/subscribeResilient";
 import { carePayloadMatches, careReplacementPatch, conditionalCareWrite } from "../lib/maintenance/persistence";
+import { readBattery, readBiz, readMotorKw, readPowertrain } from "../lib/vehicle/v3Fields";
 import { VEHICLE_COLLECTIONS as CARE_COLLECTIONS, vehiclePayload as carePayload, type VehicleCollection as CareCollection, type VehicleRecord as CareRecord } from "../lib/vehicle/model";
 import { validFuelDiscount } from '../lib/prices/discount';
 import { cachedPublicPrices, refreshPublicPrices } from "../lib/prices/browserFetch";
@@ -1179,6 +1180,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
             tozeretCd: toNumberOrNull(data.tozeretCd),
             degemCd: toNumberOrNull(data.degemCd),
             tankPrefs: readTankPreferences(data.tankPrefs),
+            // Design v3 fields: present only when stored, so older vehicles keep their exact shape.
+            ...(Object.hasOwn(data, 'biz') ? { biz: readBiz(data.biz) } : {}),
+            ...(Object.hasOwn(data, 'powertrain') ? { powertrain: readPowertrain(data.powertrain) } : {}),
+            ...(Object.hasOwn(data, 'battery') ? { battery: readBattery(data.battery) } : {}),
+            ...(Object.hasOwn(data, 'motorKw') ? { motorKw: readMotorKw(data.motorKw) } : {}),
           } satisfies Vehicle;
         });
         list.sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));

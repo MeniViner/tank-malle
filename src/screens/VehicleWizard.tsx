@@ -106,6 +106,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     setLoadingSpecs(true);
     void fetchVehicleSpecs({ make: candidate.make, model: candidate.model, year: candidate.year ? Number(candidate.year) : null,
       fuelType: candidate.fuelType, engineCc: candidate.engineCc, tozeretCd: candidate.tozeretCd, degemCd: candidate.degemCd,
+      powertrain: candidate.powertrain ?? null,
     }, request.controller.signal).then(found => {
       if (!current()) return;
       request.status = "complete";
@@ -157,7 +158,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         make: result.make ?? "", model: result.model ?? "", year: result.year ? String(result.year) : "",
         fuelType: result.fuelType ?? "95", plateNumber: result.plateNumber,
         category: result.category, fromRegistry: true, tozeretCd: result.tozeretCd ?? null,
-        degemCd: result.degemCd ?? null, engineCc: result.engineVolume ?? null,
+        degemCd: result.degemCd ?? null, engineCc: result.engineVolume ?? null, powertrain: result.powertrain ?? null,
       };
       setDraft(next); setEditing(false); setErrors({}); setStep("confirm");
       startSpecs(next, nextGeneration, accountCurrent);
@@ -178,7 +179,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     if (wizardIdentity(next) !== wizardIdentity(draft) || patch.fromRegistry === false && draft.fromRegistry) {
       cancelRequests(true);
       setLookupNotice(null);
-      setDraft({ ...next, fromRegistry: false, tozeretCd: null, degemCd: null, engineCc: null, category: undefined });
+      setDraft({ ...next, fromRegistry: false, tozeretCd: null, degemCd: null, engineCc: null, category: undefined, powertrain: null });
     } else setDraft(next);
     setErrors({}); setEditing(true);
   }
