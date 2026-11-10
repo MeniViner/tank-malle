@@ -3,7 +3,7 @@
   "items": [
     { "file": "20260730_225200.jpg", "kind": "odometer", "odometer": "168053" },
     { "file": "20260730_225840.jpg", "kind": "pump", "total": "165.46", "liters": "22.120", "price": "7.48" },
-    { "file": "20260731_103901.jpg", "kind": "odometer", "odometer": "168055" },
+    { "file": "20260731_103901.jpg", "kind": "odometer", "odometer": "168056" },
     { "file": "20260806_203223.jpg", "kind": "odometer", "odometer": "168446" },
     { "file": "20260811_113258.jpg", "kind": "pump", "total": "64.32", "liters": "5.637", "price": "11.41" },
     { "file": "20260811_113519.jpg", "kind": "pump", "total": "528.51", "liters": "46.320", "price": "11.41" },
@@ -42,7 +42,7 @@
     { "file": "Screenshot_20260902_001856_Photos.png", "kind": "odometer", "odometer": "168818", "screenshot": true },
     { "file": "Screenshot_20260902_001911_Photos.png", "kind": "odometer", "odometer": "168702", "screenshot": true },
     { "file": "Screenshot_20260902_001941_Photos.png", "kind": "odometer", "odometer": "168446", "screenshot": true },
-    { "file": "Screenshot_20260902_002017_Photos.png", "kind": "odometer", "odometer": "168055", "screenshot": true },
+    { "file": "Screenshot_20260902_002017_Photos.png", "kind": "odometer", "odometer": "168056", "screenshot": true },
     { "file": "Screenshot_20261110_152326_Chrome.png", "kind": "pump", "total": "226.39", "liters": "29.174", "price": "7.76", "screenshot": true }
   ]
 }

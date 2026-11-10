@@ -11,10 +11,12 @@ export type LineProposal = {
   /** Centre of the row, reading direction (unit vector) and digit height, in level-0 pixels. */
   cx: number; cy: number; ux: number; uy: number; height: number; length: number;
   count: number;
+  /** Grey-level spread along the row (0..255): displays are crisp, surface texture is faint. */
+  contrast: number;
 };
 
-export type ProposalOptions = { minSize?: number; maxSize?: number; radius?: number; offset?: number };
-const DEFAULTS: Required<ProposalOptions> = { minSize: 11, maxSize: 52, radius: 14, offset: 14 };
+export type ProposalOptions = { minSize?: number; maxSize?: number; radius?: number; offset?: number; maxLines?: number };
+const DEFAULTS: Required<ProposalOptions> = { minSize: 11, maxSize: 52, radius: 14, offset: 14, maxLines: 600 };
 
 function levelLines(g: Gray, level: number, polarity: Polarity, table: Uint32Array, o: Required<ProposalOptions>): LineProposal[] {
   const mask = localInk(g, o.radius, o.offset, polarity, table);
@@ -59,7 +61,12 @@ function levelLines(g: Gray, level: number, polarity: Polarity, table: Uint32Arr
       const heights = run.map(m => marks[m.k].major).sort((p, q) => p - q), height = heights[heights.length >> 1];
       const ts = run.map(m => (marks[m.k].cx - mx) * vx + (marks[m.k].cy - my) * vy), t0 = Math.min(...ts), t1 = Math.max(...ts);
       const scale = 1 << level, mid = (t0 + t1) / 2;
-      lines.push({ level, polarity, cx: (mx + vx * mid + .5) * scale - .5, cy: (my + vy * mid + .5) * scale - .5, ux: vx, uy: vy, height: height * scale, length: (t1 - t0 + height) * scale, count: run.length });
+      // Grey spread along the row, through the upper and lower halves of the marks.
+      const values: number[] = [];
+      for (const off of [-.25, .25]) for (let t = t0 - height * .3; t <= t1 + height * .3; t += 1) values.push(sample(g, mx + vx * t - vy * off * height, my + vy * t + vx * off * height));
+      values.sort((p, q) => p - q);
+      const contrast = values[Math.floor(values.length * .92)] - values[Math.floor(values.length * .08)];
+      lines.push({ level, polarity, contrast, cx: (mx + vx * mid + .5) * scale - .5, cy: (my + vy * mid + .5) * scale - .5, ux: vx, uy: vy, height: height * scale, length: (t1 - t0 + height) * scale, count: run.length });
     }
   });
   return lines;
@@ -72,6 +79,10 @@ export function proposeLines(levels: Gray[], options: ProposalOptions = {}): Lin
     const table = integral(g);
     for (const polarity of ['light', 'dark'] as const) out.push(...levelLines(g, level, polarity, table, o));
   });
+  // A textured surface (leather grain, asphalt) throws up thousands of faint rows; keep the crispest.
+  const strength = (l: LineProposal) => l.contrast * Math.sqrt(Math.min(8, l.count));
+  out.sort((a, b) => strength(b) - strength(a));
+  out.length = Math.min(out.length, o.maxLines);
   // Keep the longest of near-identical rows (same place, direction and size).
   out.sort((a, b) => b.count - a.count);
   const kept: LineProposal[] = [];
