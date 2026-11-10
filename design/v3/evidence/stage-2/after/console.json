@@ -1,0 +1,38 @@
+{
+  "generatedAt": "2026-11-10T11:37:14.634Z",
+  "totals": {
+    "errors": 0,
+    "keyWarnings": 0,
+    "screenshots": 12,
+    "captureFailures": 0
+  },
+  "byRoute": {},
+  "runs": [
+    {
+      "tag": "390-dark",
+      "shots": [
+        "home-390-dark.png",
+        "home-viewport-390-dark.png",
+        "sheet-tank-390-dark.png",
+        "sheet-measurement-390-dark.png",
+        "sheet-tco-390-dark.png",
+        "sheet-car-switch-390-dark.png"
+      ],
+      "failures": [],
+      "entries": []
+    },
+    {
+      "tag": "390-light",
+      "shots": [
+        "home-390-light.png",
+        "home-viewport-390-light.png",
+        "sheet-tank-390-light.png",
+        "sheet-measurement-390-light.png",
+        "sheet-tco-390-light.png",
+        "sheet-car-switch-390-light.png"
+      ],
+      "failures": [],
+      "entries": []
+    }
+  ]
+}
