@@ -65,7 +65,7 @@
 .tm-vehicle-field-group{display:grid;gap:8px}
 .tm-vehicle-field-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .tm-civil-field{display:grid;gap:8px;min-width:0}
-.tm-civil-control{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface);padding:5px 7px 5px 13px;min-width:0}
+.tm-civil-control{display:flex;align-items:center;gap:8px;border:1px solid var(--line-control);border-radius:var(--r-md);background:var(--surface);padding:5px 7px 5px 13px;min-width:0}
 
 .tm-civil-control[data-invalid=true]{border-color:var(--danger-ink,var(--danger))}
 .tm-civil-control .tm-civil-input{width:100%;min-width:0;min-height:44px;padding:5px;border:0!important;box-shadow:none!important;outline:none!important;background:transparent;font-family:var(--font-mono);font-size:16px;font-weight:500;color:var(--ink);text-align:right}

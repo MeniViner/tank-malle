@@ -56,7 +56,7 @@ export function Field({
             ? "border-danger"
             : warning
               ? "border-warning"
-              : "border-line"
+              : "border-line-control"
         }`}
       >
         {icon}

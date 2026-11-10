@@ -64,7 +64,7 @@ export function ReceiptImport({ fillups, hasAuthored, onClose, onApply }: {
   return <Sheet open onClose={onClose} title={<h2 className="text-lg font-bold">ייבוא קבלה</h2>}><div className="flex flex-col gap-4">
     <p className="text-sm text-muted">PDF עם טקסט או טקסט שהעתקתם. חילוץ כללי וניסיוני; בדקו מול הקבלה. המסמך עצמו נשאר במכשיר ואינו נשמר.</p>
     <label className="flex min-h-12 cursor-pointer items-center justify-center rounded-md border border-accent p-3 font-semibold text-ink">בחירת PDF<input className="sr-only" aria-label="קובץ קבלה PDF" type="file" accept="application/pdf,.pdf" onChange={e=>{void file(e.target.files?.[0]);e.target.value='';}} /></label>
-    <label className="flex flex-col gap-2 text-sm">טקסט הקבלה<textarea dir="auto" maxLength={100000} value={text} className="min-h-28 rounded-md border border-line bg-surface p-3 text-base" onChange={e=>{invalidate();setText(e.target.value);}} /></label>
+    <label className="flex flex-col gap-2 text-sm">טקסט הקבלה<textarea dir="auto" maxLength={100000} value={text} className="min-h-28 rounded-md border border-line-control bg-surface p-3 text-base" onChange={e=>{invalidate();setText(e.target.value);}} /></label>
     <Button variant="secondary" disabled={!text.trim()||busy} onClick={()=>{invalidate();try{extracted(parseReceiptText(text));}catch(e){setError((e as Error).message);}}}>חילוץ נתונים מהטקסט</Button>
     <Link to="/settings/import" onClick={onClose} className="min-h-11 py-2 text-sm text-ink">לייבוא CSV / XLSX הקיים</Link>
     {busy ? <p role="status">קוראים במכשיר…</p>:null}
