@@ -94,6 +94,9 @@ export function readWords(levels: Gray[], options: ProposalOptions = {}): { word
   return { words, lines: lines.length };
 }
 
+/** Two words read from the same physical row of the display (found twice, at different scales). */
+const sameRow = (a: Word, b: Word) => a === b || Math.hypot(a.line.cx - b.line.cx, a.line.cy - b.line.cy) < Math.max(a.line.height, b.line.height) * .6;
+
 const ODOMETER_LENGTH: Record<number, number> = { 4: .5, 5: .85, 6: 1, 7: .8 };
 
 export function chooseOdometer(words: Word[], context: ScanContext = {}): OdometerRead[] {
@@ -111,7 +114,10 @@ export function chooseOdometer(words: Word[], context: ScanContext = {}): Odomet
       if (!prev || confidence > prev.confidence) best.set(text, { text, value, confidence, word });
     }
   }
-  return [...best.values()].sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+  const list = [...best.values()];
+  // A reading that is only part of a longer reading of the same row lost a digit at one end.
+  for (const a of list) if (list.some(b => b !== a && b.text.length > a.text.length && b.text.includes(a.text) && sameRow(a.word, b.word) && b.confidence >= a.confidence * .6)) a.confidence *= .6;
+  return list.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
 
 type Decimal = { word: Word; text: string; value: number; quality: number };
@@ -136,9 +142,6 @@ function decimals(word: Word, places: number[], maxInt: number, minInt = 1): Dec
   }
   return out;
 }
-
-/** Two words read from the same physical row of the display (found twice, at different scales). */
-const sameRow = (a: Word, b: Word) => a === b || Math.hypot(a.line.cx - b.line.cx, a.line.cy - b.line.cy) < Math.max(a.line.height, b.line.height) * .6;
 
 export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[] {
   const good = words.filter(w => w.fit >= .6);
