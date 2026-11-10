@@ -10,7 +10,7 @@ if (args.marks) globalThis.SCAN_DEBUG = true;
 const image = await readRGBA(join(args.dir, args.file));
 const levels = pyramid(luma(image));
 const manual = args.line ? args.line.split(',').map(Number) : null;
-const lines = manual ? ['light', 'dark'].map(polarity => ({ level: 0, polarity, cx: manual[0], cy: manual[1], ux: Math.cos(manual[2] / 57.2958), uy: Math.sin(manual[2] / 57.2958), height: manual[3], length: manual[4], count: 6, contrast: 99 })) : proposeLines(levels);
+const lines = manual ? ['light', 'dark'].map(polarity => ({ level: 0, polarity, cx: manual[0], cy: manual[1], ux: Math.cos(manual[2] / 57.2958), uy: Math.sin(manual[2] / 57.2958), height: manual[3], length: manual[4], count: 6, contrast: 99 })) : proposeLines(levels, args.offset ? { offset: Number(args.offset) } : {});
 const rows = [];
 const near = args.near ? args.near.split(',').map(Number) : null;
 for (const l of lines) {

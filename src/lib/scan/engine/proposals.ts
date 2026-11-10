@@ -91,7 +91,7 @@ export function proposeLines(levels: Gray[], options: ProposalOptions = {}): Lin
     for (const polarity of ['light', 'dark'] as const) out.push(...levelLines(g, level, polarity, table, o));
   });
   // A textured surface (leather grain, asphalt) throws up thousands of faint rows; keep the crispest.
-  const strength = (l: LineProposal) => l.contrast * Math.sqrt(Math.min(8, l.count));
+  const strength = (l: LineProposal) => Math.sqrt(l.contrast) * Math.min(8, l.count) ** 1.5;
   out.sort((a, b) => strength(b) - strength(a));
   out.length = Math.min(out.length, o.maxLines);
   // Keep the longest of near-identical rows (same place, direction and size).
