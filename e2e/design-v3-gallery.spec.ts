@@ -182,8 +182,10 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
       await shot("sheet-exclude-info", async () => {
         await go("/vehicle", page.getByRole("region", { name: "הרכב שלי", exact: true }));
         await page.getByRole("button", { name: "הוספת הוצאה", exact: true }).click();
-        await page.getByTestId("care-category-parking").click();
-        await page.getByTestId("care-ownership-info").click();
+        // The previous capture left a restored draft that reopens on step 2.
+        await page.getByTestId("care-entry").waitFor({ timeout: 10_000 });
+        if (!await page.getByTestId("care-ownership").isVisible().catch(() => false)) await page.getByTestId("care-category-parking").click({ timeout: 10_000 });
+        await page.getByTestId("care-ownership-info").click({ timeout: 10_000 });
         await settle(page, page.getByTestId("exclude-info-sheet"));
       });
       await shot("sheet-journal-info", async () => {
