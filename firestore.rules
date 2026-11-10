@@ -31,9 +31,11 @@ service cloud.firestore {
         && d.basis in ['completion','fixed','manual'] && d.source in ['manufacturer','garage','owner'] && d.active is bool;
     }
     function validCareExpense(d) {
-      return d.keys().hasOnly(['schemaVersion','version','day','category','title','costAgorot','notes'])
+      // `excluded` ("לכלול בעלות הרכב" switched off) is optional; missing = included.
+      return d.keys().hasOnly(['schemaVersion','version','day','category','title','costAgorot','notes','excluded'])
         && careBase(d) && careTitle(d) && careDay(d.day) && careOptionalInt(d.costAgorot,100000000)
-        && d.category in ['insurance','registration','parking','toll','wash','other','refund'];
+        && d.category in ['insurance','registration','parking','toll','wash','other','refund']
+        && d.get('excluded', false) is bool;
     }
     function validMileage(d) {
       return d.keys().hasOnly(['schemaVersion','version','day','odometer','notes'])
@@ -397,7 +399,14 @@ service cloud.firestore {
       // that latch and avoids evaluating it a second time.
       // Keep the common vehicle and document checks in one call frame: the
       // optional test-cost leaf must also fit the 1,000-expression limit.
-      return validVehicle(after) && (!changed ? (!before.get('deletionPending', false) || after.get('deletionPending', false) == true) : (
+      // Design v3 fields (biz, EV) are validated only on non-document writes,
+      // and only when one of them is written: the document branch has no
+      // expression budget left. Clients write documents as a separate patch,
+      // and every reader of these fields re-validates them (src/lib/vehicle/v3Fields.ts).
+      return validVehicle(after) && (!changed ? (
+        (!after.diff(before).affectedKeys().hasAny(['biz', 'powertrain', 'battery', 'motorKw']) || validVehicleV3(after))
+        && (!before.get('deletionPending', false) || after.get('deletionPending', false) == true)
+      ) : (
         before.get('deletionPending', false) == false
         && after.get('deletionPending', false) == false
         && (next == null || (next is map && validVehicleDocumentMap(before.get('docs', null), next)))
@@ -434,6 +443,26 @@ service cloud.firestore {
     function vehicleEpochOrNull(value) {
       return value == null || (value is number && value > 0 && value < 4102444800000);
     }
+    // Design v3: optional business-statement metadata. Plain owner text and a
+    // business-use share; never read by anyone but the owner.
+    function vehicleBizOrNull(value) {
+      return value == null || (value is map
+        && value.keys().hasOnly(['company', 'driver', 'usagePct'])
+        && stringOrNull(value.get('company', null), 120)
+        && stringOrNull(value.get('driver', null), 80)
+        && vehicleBoundedOrNull(value.get('usagePct', null), 0, 100));
+    }
+    // Design v3: EV registry fields. Absent/null = unknown (treated as a
+    // combustion car, exactly as before the fields existed).
+    function vehicleBatteryOrNull(value) {
+      return value == null || (value is map
+        && value.keys().hasOnly(['kwh', 'wltp'])
+        && vehicleBoundedOrNull(value.get('kwh', null), 0.1, 500)
+        && vehicleBoundedOrNull(value.get('wltp', null), 1, 2000));
+    }
+    function vehicleBoundedOrNull(value, low, high) {
+      return value == null || (value is number && value >= low && value <= high);
+    }
     function vehicleReserve(value) {
       return value is number && value >= 0.05 && value <= 0.9;
     }
@@ -455,6 +484,14 @@ service cloud.firestore {
         && stringOrNull(data.get('plateNumber', null), 12)
         && stringOrNull(data.get('nickname', null), 60)
         && vehicleTankPrefsOrNull(data.get('tankPrefs', null));
+    }
+    // Design v3 vehicle fields, checked only when one of them is written (see
+    // validVehicleWrite) so existing vehicles pay no expression budget for them.
+    function validVehicleV3(data) {
+      return vehicleBizOrNull(data.get('biz', null))
+        && data.get('powertrain', null) in [null, 'ice', 'phev', 'ev']
+        && vehicleBatteryOrNull(data.get('battery', null))
+        && vehicleBoundedOrNull(data.get('motorKw', null), 1, 2000);
     }
     /**
      * Tank preferences.
