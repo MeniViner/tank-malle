@@ -31,8 +31,8 @@ export function SignIn() {
 
   return <main className="entry-page entry-signin" data-testid="signin">
     <div className="entry-brand"><span className="entry-brand-mark"><TabPumpIcon size={22}/></span><span>טנק מלא</span></div>
-    <h1 className="entry-signin-title">כל תדלוק, כל שקל, כל ק״מ.</h1>
-    <p className="entry-intro">צריכה אמיתית, הוצאה חודשית, ומתי לתדלק. במקום אחד, גם בלי קליטה.</p>
+    <h1 className="entry-signin-title" data-testid="signin-title">כל מה שהרכב עולה. במקום אחד.</h1>
+    <p className="entry-intro">דלק או חשמל, טיפולים, ביטוח וטסט; צריכה אמיתית ותזכורות. לרכב פרטי ולרכב של העסק, גם בלי קליטה.</p>
     <div className="entry-signin-space"/>
     <form className="entry-signin-form" noValidate onSubmit={event => { event.preventDefault(); submit(); }}>
       <div className={"entry-consent" + (shake ? " entry-consent-shake" : "")}

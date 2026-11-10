@@ -7,7 +7,7 @@ import { TankHabitLevel, TankLevel, TankPassage, TankSource } from "./TankPresen
 import type { TankHeroProps } from "./types";
 import "../../tank-design.css";
 
-export type { TankHeroProps, TankSheetEntry } from "./types";
+export type { TankHeroEstimate, TankHeroProps, TankSheetEntry } from "./types";
 
 /** A view of the one Home estimate, never another hook or a second forecast. v3: a light card (§2.7). */
 export function TankHero({ estimate, loading = false, onOpen }: TankHeroProps) {

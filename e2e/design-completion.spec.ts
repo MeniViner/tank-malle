@@ -19,6 +19,9 @@ test('entry previews, editable plate and registry confirmation remain usable at 
   await page.getByTestId('onboarding-next').click();
   await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','3');
   await page.getByTestId('onboarding-next').click();
+  // Design v3 §7.3: a fourth slide (nothing falls through).
+  await expect(page.getByTestId('onboarding-slide')).toHaveAttribute('data-slide','4');
+  await page.getByTestId('onboarding-next').click();
   await expect(page.getByTestId('signin-consent')).not.toBeChecked();
   await signIn(page, ALICE);
   let registryRequests = 0;

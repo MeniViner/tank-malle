@@ -624,11 +624,12 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     const suffix = `${theme}-${accent}`;
     const controls = [];
     const geometry = [];
-    for (let slide = 1; slide <= 3; slide++) {
+    // Design v3 §7.3: four slides; the pump display moved to slide 2.
+    for (let slide = 1; slide <= 4; slide++) {
       await expect(page.getByTestId("onboarding-slide")).toHaveAttribute("data-slide", String(slide));
       await vehicleTarget(page.getByTestId("onboarding-next"));
       await captureJournal(page, `onboarding-${slide}-${suffix}`);
-      if (slide === 1) {
+      if (slide === 2) {
         const rows = await page.locator(".entry-pump-art .tm-pump-line").evaluateAll(lines => lines.map(line => {
           const value = line.querySelector(".entry-pump-value")!, label = line.querySelector(".tm-pump-label")!;
           const range = document.createRange(); range.selectNodeContents(value);
