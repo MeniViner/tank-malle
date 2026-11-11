@@ -11,8 +11,15 @@ import { EXTRA_COLLECTIONS, decodeVehicleRecord, validVehicleRecord, type Notifi
 import { advanceNotificationBaseline, notificationBaseline } from '../lib/vehicle/notificationBaseline';
 import { emptyExtraSources, recordExtraSourceError, type ExtraSourceState } from '../lib/vehicle/sourceState';
 import { buildLedger, currentMileage, mileageEvidence, periodSummary, reminderRows } from '../lib/vehicle/derived';
+import type { PlanDefaults } from '../lib/maintenance/nextReminder';
 import { notificationPreferences } from '../lib/vehicle/notificationPreferences';
-export interface EditingRecord { collection: VehicleCollection; record?: VehicleRecord; completePlan?: MaintenancePlan; initialJob?: Job; odometerIntent?: 'current' }
+export interface EditingRecord {
+  collection: VehicleCollection; record?: VehicleRecord; completePlan?: MaintenancePlan; initialJob?: Job; odometerIntent?: 'current';
+  /** A new reminder prefilled from the service just saved. */
+  planDefaults?: PlanDefaults;
+  /** Right after a service: ask whether to set a reminder for the next one (with these defaults). */
+  offerPlan?: PlanDefaults;
+}
 function useVehicleSources() {
   const {user}=useAuth();const data=useData();const uid=user?.uid??'',vehicleId=data.activeVehicle?.id??'';const scope=`${uid}/${vehicleId}`;
   const care=useMaintenance(uid,vehicleId);

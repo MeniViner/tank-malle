@@ -1,0 +1,57 @@
+name: Phone notifications
+
+# Daily Web Push for test, insurance and maintenance reminders, sent to every
+# device a user turned on in the app (העדפות התראות → התראות לטלפון).
+# Runs here instead of a Cloud Function because the project is on Spark.
+# GitHub schedules may be delayed by a few minutes to an hour.
+#
+# ONE-TIME SETUP
+#   1. FIREBASE_SERVICE_ACCOUNT: the same secret the fuel-price job uses.
+#   2. WEB_PUSH_PRIVATE_KEY: the private half of the VAPID key whose public half
+#      is in src/lib/push/config.ts. Settings → Secrets and variables → Actions.
+#   3. Actions → Phone notifications → Run workflow (optionally with dry run).
+
+on:
+  schedule:
+    # 06:00 UTC = 08:00 or 09:00 in Israel.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Count only; send nothing"
+        type: boolean
+        default: false
+
+concurrency:
+  group: push-notifications
+  cancel-in-progress: false
+
+jobs:
+  send:
+    name: Send due reminders
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Bundle the shared app logic with esbuild, outside the app package, so npm
+      # does not install the browser tests, Firebase CLI and frontend toolchain.
+      - name: Build the sender
+        run: |
+          runtime_dir="$RUNNER_TEMP/tank-push"
+          mkdir -p "$runtime_dir"
+          npm install --prefix "$runtime_dir" --no-save --no-audit --no-fund firebase-admin@14 web-push@3 esbuild@0.25
+          "$runtime_dir/node_modules/.bin/esbuild" scripts/push/sendPushNotifications.ts --bundle --platform=node --format=esm \
+            --external:firebase-admin --external:web-push --outfile="$runtime_dir/push.mjs"
+
+      - name: Send
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          WEB_PUSH_PRIVATE_KEY: ${{ secrets.WEB_PUSH_PRIVATE_KEY }}
+          TZ: Asia/Jerusalem
+        run: node "$RUNNER_TEMP/tank-push/push.mjs" ${{ inputs.dry_run && '--dry-run' || '' }}

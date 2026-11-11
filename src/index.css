@@ -559,7 +559,7 @@
 .care-toggle b { display:block;font-size:15px;font-weight:650; }
 .care-toggle small { display:block;font-size:13px;color:var(--muted);margin-top:3px; }
 .care-repeat { display:flex;flex-direction:column;gap:16px;border-radius:var(--r-lg);padding:16px;background:var(--surface-2); }
-.care-editor-footer { position:sticky;bottom:-20px;z-index:1;padding:14px 0 max(8px,env(safe-area-inset-bottom));background:var(--surface);box-shadow:0 -12px 16px -12px #00000015; }
+.care-editor-footer { position:sticky;bottom:-20px;z-index:1;padding:14px 0 max(8px,env(safe-area-inset-bottom));background:linear-gradient(to top,var(--bg) 80%,transparent); }
 .care-draft-status { display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted); }
 .care-draft-status button { min-height:44px;padding:0 4px;font-size:12px; }
 .care-restored { display:flex;align-items:center;gap:8px;background:var(--accent-soft);color:var(--ink);padding:12px;border-radius:var(--r-md);font-size:13px; }

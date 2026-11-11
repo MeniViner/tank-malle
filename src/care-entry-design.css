@@ -157,3 +157,20 @@
   .tm-sheet-panel.care-entry-sheet { animation: none; }
   .care-v2-editor .care-choice { transition: none; }
 }
+
+/* A service can hold several jobs: say so up front, and show check boxes rather than single-choice marks. */
+.care-multi-hint { margin: 4px 0 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.care-v2-editor .care-choice-box {
+  display: grid; place-items: center; flex: none; width: 20px; height: 20px; margin-inline-start: auto;
+  border: 1.5px solid var(--ink-2); border-radius: 5px; background: var(--surface);
+}
+.care-v2-editor .care-choice[aria-pressed=true] .care-choice-box { border-color: #111; background: #111; color: var(--accent); }
+.care-v2-editor .care-choice[aria-pressed=true] .care-choice-box > svg { color: var(--accent); }
+
+/* Next-service reminder offered after saving a service. */
+.tm-next-reminder { display: grid; gap: 14px; padding-bottom: 8px; }
+.tm-next-reminder-lead { margin: 0; font-size: 16px; line-height: 1.5; color: var(--ink); }
+.tm-next-reminder-card { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.tm-next-reminder-card > span:last-child { display: grid; gap: 3px; min-width: 0; }
+.tm-next-reminder-card small { color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
+.tm-next-reminder-card b { font-size: 16px; font-weight: 600; line-height: 1.4; }

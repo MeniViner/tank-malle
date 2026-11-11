@@ -35,6 +35,8 @@ export default defineConfig(({ mode, command }) => {
       workbox: {
         maximumFileSizeToCacheInBytes: 5_000_000,
         globPatterns: ["**/*.{js,mjs,css,html,svg,png,woff2,ttf}"],
+        // Phone notifications (Web Push): show the message and open its page on tap.
+        importScripts: ["push-handler.js"],
       },
       manifest: {
         id: "/",

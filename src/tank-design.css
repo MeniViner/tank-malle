@@ -46,7 +46,8 @@
 .tm-tank-section-title { margin: 0; font-size: 14px; font-weight: 600; color: var(--ink-2); }
 .tm-tank-warning { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--warning-ink); border-radius: var(--r-md); color: var(--warning-ink); background: var(--warning-soft); }
 .tm-tank-details { border-top: 1px solid var(--line); }
-.tm-tank-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); font-size: 14px; font-weight: 600; }
+.tm-tank-details > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); font-size: 14px; font-weight: 600;
+  text-decoration: underline dashed; text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .tm-tank-details > .tm-tank-stack { padding: 0 0 10px; gap: 10px; }
 .tm-tank-plan-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
 .tm-tank-plan-row + .tm-tank-plan-row { border-top: 1px solid var(--line); }

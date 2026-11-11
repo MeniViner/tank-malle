@@ -13,6 +13,7 @@ import { Toggle } from '../Segmented';
 import { Sheet, ConfirmDialog } from '../Sheet';
 import { useAccountScope } from '../account/useAccountScope';
 import { JOBS, EXPENSES, localDay, validCareRecord, type CareCollection, type CareRecord, type Job, type MaintenancePlan } from '../../lib/maintenance/model';
+import type { PlanDefaults } from '../../lib/maintenance/nextReminder';
 import { parseNumberInput } from '../../lib/numeric';
 import { vehicleDay } from '../../lib/vehicle/format';
 import { int } from '../../lib/format';
@@ -23,10 +24,12 @@ const TITLES: Record<CareCollection,string> = { serviceEvents: 'טיפול שב�
 export function SelectField({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
   return <label className="flex flex-col gap-1.5 text-sm font-semibold text-muted">{label}<select aria-label={label} className="min-h-12 w-full min-w-0 rounded-md border border-line-control bg-surface p-3 text-base text-ink" value={value} onChange={e=>onChange(e.target.value)}>{children}</select></label>;
 }
-export function CareEditor({ uid, vehicleId, collection, record: currentRecord, plans, completePlan, initialJob, currentOdometer, odometerIntent, completionDefaults, onClose, onSave }: {
+export function CareEditor({ uid, vehicleId, collection, record: currentRecord, plans, completePlan, initialJob, currentOdometer, odometerIntent, completionDefaults, planDefaults, onClose, onSave }: {
   uid: string; vehicleId: string; collection: CareCollection; record?: CareRecord; plans: MaintenancePlan[]; completePlan?: MaintenancePlan;
   completionDefaults?: {costAgorot:number|null;garage:string;odometer:number|null;previousDay:string|null};
   initialJob?: Job; odometerIntent?: 'current';
+  /** A reminder offered right after a service: title, next date and km, and the repeat it implies. */
+  planDefaults?: PlanDefaults;
   currentOdometer?: {day:string;odometer:number;ambiguous:boolean;minimum:number;maximum:number} | null;
   onClose: () => void; onSave: (record: CareRecord, base?: CareRecord, onAccepted?: () => void) => Promise<void>;
 }) {
@@ -42,14 +45,15 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const plan = record && 'dueDay' in record ? record : null;
   const [id] = useState(() => restore('id', record?.id ?? crypto.randomUUID()));
   const captureEditor = useAccountScope(`${uid}/${vehicleId}/${collection}/${id}`);
-  const [title,setTitle] = useState(() => restore('title', record && 'title' in record ? record.title : completePlan?.title ?? (initialJob ? JOBS[initialJob] : '')));
+  const [title,setTitle] = useState(() => restore('title', record && 'title' in record ? record.title : completePlan?.title ?? planDefaults?.title ?? (initialJob ? JOBS[initialJob] : '')));
   const [titleAuthored,setTitleAuthored] = useState(() => restore('titleAuthored',!!record || !!completePlan || !!restored?.fields.title));
   const [day,setDay] = useState(() => {
     const draft = restore('day', record && 'day' in record ? record.day : localDay());
     return formatCivilDay(draft) || draft;
   });
   // The last known reading, greyed behind an empty odometer field (never words or a dash).
-  const odoPlaceholder = currentOdometer ? String(currentOdometer.ambiguous ? currentOdometer.maximum : currentOdometer.odometer) : '0';
+  const latestOdometer = currentOdometer ? currentOdometer.ambiguous ? currentOdometer.maximum : currentOdometer.odometer : null;
+  const odoPlaceholder = latestOdometer !== null ? String(latestOdometer) : '0';
   const [odo,setOdo] = useState(() => restore('odo', record && 'odometer' in record ? record.odometer === null ? '' : String(record.odometer) : completionDefaults?.odometer != null ? String(completionDefaults.odometer) : ''));
   const [cost,setCost] = useState(() => restore('cost', record && 'costAgorot' in record ? record.costAgorot === null ? '' : String(record.costAgorot / 100) : completionDefaults?.costAgorot != null ? String(completionDefaults.costAgorot / 100) : ''));
   const [notes,setNotes] = useState(() => restore('notes', record?.notes ?? ''));
@@ -58,13 +62,13 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   const [completed,setCompleted] = useState(() => restore('completed', service?.completedPlanIds ?? (completePlan ? [completePlan.id] : [])));
   const [job,setJob] = useState<Job>(() => restore('job', plan?.job ?? initialJob ?? 'periodic'));
   const [dueDay,setDueDay] = useState(() => {
-    const draft = restore('dueDay', plan?.dueDay ?? '');
+    const draft = restore('dueDay', plan?.dueDay ?? planDefaults?.dueDay ?? '');
     return formatCivilDay(draft) || draft;
   });
-  const [dueOdo,setDueOdo] = useState(() => restore('dueOdo', plan?.dueOdometer !== null && plan?.dueOdometer !== undefined ? String(plan.dueOdometer) : ''));
-  const [months,setMonths] = useState(() => restore('months', plan?.intervalMonths ? String(plan.intervalMonths) : ''));
-  const [km,setKm] = useState(() => restore('km', plan?.intervalKm ? String(plan.intervalKm) : ''));
-  const [basis,setBasis] = useState<MaintenancePlan['basis']>(() => restore('basis', plan?.basis ?? 'manual'));
+  const [dueOdo,setDueOdo] = useState(() => restore('dueOdo', plan?.dueOdometer !== null && plan?.dueOdometer !== undefined ? String(plan.dueOdometer) : planDefaults?.dueOdometer != null ? String(planDefaults.dueOdometer) : ''));
+  const [months,setMonths] = useState(() => restore('months', plan?.intervalMonths ? String(plan.intervalMonths) : planDefaults?.intervalMonths ? String(planDefaults.intervalMonths) : ''));
+  const [km,setKm] = useState(() => restore('km', plan?.intervalKm ? String(plan.intervalKm) : planDefaults?.intervalKm ? String(planDefaults.intervalKm) : ''));
+  const [basis,setBasis] = useState<MaintenancePlan['basis']>(() => restore('basis', plan?.basis ?? (planDefaults ? 'completion' : 'manual')));
   const [source,setSource] = useState<MaintenancePlan['source']>(() => restore('source', plan?.source ?? 'owner'));
   const [active,setActive] = useState(() => restore('active', plan?.active ?? true));
   const [category,setCategory] = useState(() => restore('category', record && 'category' in record ? record.category : 'other'));
@@ -190,6 +194,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
           {!odometerMode?<div className={'care-step-heading'+(fullHeight?' care-entry-heading':'')}>
             {!fullHeight&&step===0?<span><NumRun>1 / 2</NumRun></span>:null}
             <h3 ref={heading} tabIndex={-1}><NumericText>{entryHeading}</NumericText></h3>
+            {serviceMode&&step===0?<p className="care-multi-hint" data-testid="care-multi-hint">אפשר לסמן כמה עבודות יחד. כולן נרשמות כטיפול אחד</p>:null}
             {fullHeight&&step===1&&entryHeading!==selectedLabel?<p className="care-entry-category" data-testid="care-selected-label">
               <CareGlyph kind={expenseMode?category:jobs[0]}/><NumericText>{selectedLabel}</NumericText>
             </p>:null}
@@ -199,16 +204,17 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
             <div className="care-choice-grid" role="group" aria-label={serviceMode?'מה עשו ברכב?':expenseMode?'סוג הוצאה':'סוג טיפול'}>
               {Object.entries(expenseMode?EXPENSES:JOBS).map(([key,label])=>{
                 const selected=serviceMode?jobs.includes(key as Job):expenseMode?category===key:job===key;
-                return <button key={key} type="button" className="care-choice" aria-pressed={selected}
+                return <button key={key} type="button" className={'care-choice'+(serviceMode?' care-choice-multi':'')} aria-pressed={selected}
                   data-testid={(expenseMode?'care-category-':'care-job-')+key} onClick={()=>choice(key)}>
                   <CareGlyph kind={key}/><span>{label}</span>
-                  {selected?<CheckIcon size={16}/>:<span className="care-choice-dot" aria-hidden="true"/>}
+                  {serviceMode?<span className="care-choice-box" aria-hidden="true">{selected?<CheckIcon size={14}/>:null}</span>
+                    :selected?<CheckIcon size={16}/>:<span className="care-choice-dot" aria-hidden="true"/>}
                 </button>;
               })}
             </div>
             {serviceMode?<p className="care-quiet-note">
               {jobs.length?<><NumericText>{jobs.length===1?'עבודה אחת בחשבונית':jobs.length+' עבודות בחשבונית אחת'}</NumericText> · סכום כולל אחד</>
-                :'אפשר לבחור כמה עבודות. העלות נרשמת פעם אחת.'}
+                :'העלות נרשמת פעם אחת, על כל העבודות יחד.'}
             </p>:expenseMode?<p className="care-quiet-note">גם כסף שהוחזר לכם נכנס לכאן.</p>
               :<p className="care-quiet-note">בוחרים טיפול, ואז קובעים מועד לפי ההנחיות שלכם.</p>}
           </>:<>
@@ -259,7 +265,7 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
                 <div className="border-b border-line px-4 py-3.5">
                   <CivilDateField label="תאריך יעד" data-testid="care-due-day" draftText={dueDay} onDraftTextChange={setDueDay}/>
                 </div>
-                <Field row label="יעד קילומטראז׳" inputMode="numeric" value={dueOdo} onChange={e=>setDueOdo(e.target.value)} suffix="ק״מ" placeholder="למשל 180000"/>
+                <Field row label="יעד קילומטראז׳" inputMode="numeric" value={dueOdo} onChange={e=>setDueOdo(e.target.value)} suffix="ק״מ" placeholder={latestOdometer !== null ? String(latestOdometer + 10_000) : undefined}/>
               </div>
               <p className="care-quiet-note">אפשר תאריך, קילומטרים או שניהם — המוקדם מביניהם. לפי הוראות היצרן או המוסך שלכם.</p>
               <div className="care-toggle"><span><b>תזכורת חוזרת</b><small>לקבוע גם את הטיפול הבא</small></span>

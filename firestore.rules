@@ -616,6 +616,31 @@ service cloud.firestore {
           && optionalBool(request.resource.data, 'reviewed');
       }
 
+      /**
+       * Phone notifications (Web Push), one document per device, written by the
+       * owner's own browser. The scheduled sender reads them with the Admin SDK.
+       * Endpoints are push-service URLs only (https), and the keys are the
+       * browser's public encryption keys: nothing here is a credential to the account.
+       */
+      match /pushSubscriptions/{subscriptionId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && accountWritable(uid)
+          && request.resource.data.keys().hasOnly(['endpoint', 'p256dh', 'auth', 'platform', 'createdAt'])
+          && isString(request.resource.data.endpoint, 1000)
+          && request.resource.data.endpoint.matches('https://.+')
+          && isString(request.resource.data.p256dh, 200)
+          && isString(request.resource.data.auth, 100)
+          && request.resource.data.platform in ['ios', 'android', 'desktop']
+          && optionalEpochMillis(request.resource.data, 'createdAt');
+      }
+
+      // What the scheduled sender already pushed, so an occurrence is sent once.
+      // Written only by the server; the owner may read it and erase it with the account.
+      match /pushSent/{sentId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if false;
+      }
+
       match /importBatches/{batchId} {
         allow read, delete: if isOwner(uid);
         allow create, update: if isOwner(uid) && accountWritable(uid)

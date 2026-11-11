@@ -135,6 +135,11 @@ test("Journal Add records one multi-job invoice, keeps its draft across steps an
   await page.getByTestId("care-day").fill(formatCivilDay(scope.day(-1, 26)));
   await page.getByTestId("care-save").click();
   await expect(page.getByTestId("care-entry")).toHaveCount(0);
+  // A new service with no reminder for its job offers to set the next one; "לא עכשיו" just closes.
+  await expect(page.getByTestId("next-reminder-offer")).toContainText("לקבוע כבר עכשיו תזכורת לצמיגים?");
+  await page.getByTestId("next-reminder-skip").click();
+  await expect(page.getByTestId("next-reminder-offer")).toHaveCount(0);
+  expect(await listDocuments(`${scope.base}/maintenancePlans`)).toHaveLength(0);
   await expect.poll(() => listDocuments(`${scope.base}/serviceEvents`)).toHaveLength(1);
   const [service] = await listDocuments(`${scope.base}/serviceEvents`);
   expect(service.data).toMatchObject({ jobs: ["tires", "brakes"], day: scope.day(-1, 26), costAgorot: 85025, odometer: 101900, notes: "חשבונית 88: צמיגים ובלמים", version: 1 });
