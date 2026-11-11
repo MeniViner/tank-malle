@@ -22,7 +22,7 @@ export type ScanKind = 'odometer' | 'pump';
 export type ScanContext = { lastOdometer?: number | null; pricePerLiter?: number | null; tankCapacity?: number | null };
 export type OdometerRead = { text: string; value: number; confidence: number; word: Word };
 export type PumpRead = { total: string; liters: string; price: string | null; confidence: number; words: { total: Word; liters: Word; price: Word | null } };
-export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number };
+export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number; levels: Gray[] };
 
 const MIN_FIT = .55, PRICE_MIN = 4.5, PRICE_MAX = 14;
 
@@ -128,8 +128,27 @@ export function readWords(levels: Gray[], options: ProposalOptions = {}): { word
   return { words, lines: lines.length };
 }
 
+/** The upright strip a word was read from, as the decoder saw it (at most `maxWidth` wide, around the word). */
+export function stripOf(levels: Gray[], word: Word, maxWidth = 640): Gray {
+  const strip = rectify(levels, word.line, STRIP_H, word.flipped, PAD, BAND);
+  if (strip.width <= maxWidth) return strip;
+  const x0 = Math.floor((strip.width - maxWidth) / 2), data = new Uint8Array(maxWidth * strip.height);
+  for (let y = 0; y < strip.height; y++) data.set(strip.data.subarray(y * strip.width + x0, y * strip.width + x0 + maxWidth), y * maxWidth);
+  return { width: maxWidth, height: strip.height, data };
+}
+
+/** Whether two words come from one physical row; exported for sampling. */
+export const sameRowOf = (a: Word, b: Word) => sameRow(a, b);
+
 /** Two words read from the same physical row of the display (found twice, at different scales). */
 const sameRow = (a: Word, b: Word) => a === b || Math.hypot(a.line.cx - b.line.cx, a.line.cy - b.line.cy) < Math.max(a.line.height, b.line.height) * .6;
+
+/** Same length and one digit different, or the same digits with one more at either end. */
+export function oneApart(a: string, b: string): boolean {
+  if (a.length === b.length) { let d = 0; for (let i = 0; i < a.length; i++) d += +(a[i] !== b[i]); return d === 1; }
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  return long.length === short.length + 1 && (long.slice(1) === short || long.slice(0, -1) === short);
+}
 
 const ODOMETER_LENGTH: Record<number, number> = { 4: .5, 5: .85, 6: 1, 7: .8 };
 
@@ -153,6 +172,11 @@ export function chooseOdometer(words: Word[], context: ScanContext = {}): Odomet
   const list = [...best.values()];
   // A reading that is only part of a longer reading of the same row lost a digit at one end.
   for (const a of list) if (list.some(b => b !== a && b.text.length > a.text.length && b.text.includes(a.text) && sameRow(a.word, b.word) && b.confidence >= a.confidence * .6)) a.confidence *= .6;
+  // Two close readings (one digit apart, or one with an extra digit at an end) that are both
+  // plausible mean one segment or one narrow "1" decided between them: doubt both. On public odometer
+  // photos (scripts/scan-real/trodo.mjs) this halves the wrong readings shown for a few right ones.
+  const before = new Map(list.map(a => [a, a.confidence]));
+  for (const a of list) if (list.some(b => b !== a && oneApart(a.text, b.text) && before.get(b)! >= before.get(a)! * .5)) a.confidence *= .7;
   return list.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
 
@@ -220,5 +244,5 @@ export function scanPhoto(image: RGBA, kind: ScanKind, context: ScanContext = {}
   const sureNow = () => kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
   if (!sure && kind === 'pump') { words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
   if (!sureNow()) { words = [...words, ...readWords(levels, FAINT).words]; if (kind === 'pump') words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
-  return { kind, words, ...chosen, ms: Date.now() - started };
+  return { kind, words, ...chosen, ms: Date.now() - started, levels };
 }

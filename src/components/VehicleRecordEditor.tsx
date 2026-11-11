@@ -7,6 +7,8 @@ import { Field } from './Field';
 import { Button } from './Button';
 import { Sheet } from './Sheet';
 import { localDay, mileageIssue, type CareCollection, type CareRecord } from '../lib/maintenance/model';
+import { suggestNextReminder, type PlanDefaults } from '../lib/maintenance/nextReminder';
+import { CalendarIcon } from './icons';
 import { careCollection } from '../lib/vehicle/derived';
 import { validVehicleRecord, type VehicleIssue } from '../lib/vehicle/model';
 import { useAccountScope } from './account/useAccountScope';
@@ -25,14 +27,33 @@ export function VehicleRecordEditor() {
     if('odometer' in record&&record.odometer!==null){const issue=mileageIssue({day:record.day,odometer:record.odometer},state.mileage.filter(r=>r.source!==edit.collection||r.id!==record.id));if(issue)throw new Error(issue);}
     try {
       const receipt=await saveCareRecord(state.vehicleId,edit.collection,record,base);
-      if(!isCurrent())return;onAccepted?.();state.edit(null);
+      if(!isCurrent())return;onAccepted?.();
+      // A new service that did not advance a reminder: offer to set the next one straight away.
+      const latest=state.currentMileage?state.currentMileage.ambiguous?state.currentMileage.maximum:state.currentMileage.odometer:null;
+      const offer=edit.collection==='serviceEvents'&&!base&&'jobs' in record?suggestNextReminder(record,state.care.data.maintenancePlans,latest):null;
+      state.edit(offer?{collection:'maintenancePlans',offerPlan:offer}:null);
       void receipt.settled.then(ok=>{if(isCurrent()&&!ok)showToast({tone:'error',title:'הסנכרון לא הושלם — בדקו שינויים שעוד לא עלו לענן'});});
     } catch(error) { if(isCurrent())throw error; }
   };
-  if(careCollection(edit.collection))return <CareEditor key={`${bound}/${edit.collection}/${edit.record?.id??edit.completePlan?.id??'new'}`} uid={state.uid} vehicleId={state.vehicleId} collection={edit.collection as CareCollection} record={edit.record as CareRecord|undefined} completePlan={edit.completePlan} initialJob={edit.initialJob} odometerIntent={edit.odometerIntent} currentOdometer={state.currentMileage} completionDefaults={completionDefaults} plans={state.care.data.maintenancePlans} onClose={()=>state.edit(null)} onSave={onSave}/>;
+  if(edit.offerPlan)return <NextReminderOffer key={`${bound}/offer`} defaults={edit.offerPlan} onAccept={()=>state.edit({collection:'maintenancePlans',initialJob:edit.offerPlan!.job,planDefaults:edit.offerPlan})} onClose={()=>state.edit(null)}/>;
+  if(careCollection(edit.collection))return <CareEditor key={`${bound}/${edit.collection}/${edit.record?.id??edit.completePlan?.id??'new'}`} uid={state.uid} vehicleId={state.vehicleId} collection={edit.collection as CareCollection} record={edit.record as CareRecord|undefined} completePlan={edit.completePlan} initialJob={edit.initialJob} odometerIntent={edit.odometerIntent} currentOdometer={state.currentMileage} completionDefaults={completionDefaults} planDefaults={edit.planDefaults} plans={state.care.data.maintenancePlans} onClose={()=>state.edit(null)} onSave={onSave}/>;
   if(edit.collection==='vehicleIssues')return <IssueEditor key={`${bound}/${edit.record?.id??'new'}`} original={edit.record as VehicleIssue|undefined} captureParentScope={captureScope} onClose={()=>state.edit(null)}/>;
   return null;
 }
+/** Shown once, right after a new service: one tap opens a reminder already filled in for the next one. */
+function NextReminderOffer({defaults,onAccept,onClose}:{defaults:PlanDefaults;onAccept:()=>void;onClose:()=>void}) {
+  const when=[vehicleDay(defaults.dueDay),defaults.dueOdometer!==null?`${defaults.dueOdometer.toLocaleString('he-IL')} ק״מ`:null].filter(Boolean).join(' או ');
+  return <Sheet open title="הטיפול נשמר" atmosphereRoute="/vehicle" onClose={onClose}>
+    <div className="tm-next-reminder" data-testid="next-reminder-offer">
+      <p className="tm-next-reminder-lead">לקבוע כבר עכשיו תזכורת ל{defaults.title}?</p>
+      <div className="tm-next-reminder-card"><span className="tm-vehicle-row-icon"><CalendarIcon size={20}/></span>
+        <span><small>הצעה למועד הבא</small><b><NumericText>{when}</NumericText></b><small>המוקדם מביניהם · אפשר לשנות לפני השמירה</small></span></div>
+      <Button full data-testid="next-reminder-accept" onClick={onAccept}>קביעת תזכורת</Button>
+      <Button full variant="ghost" data-testid="next-reminder-skip" onClick={onClose}>לא עכשיו</Button>
+    </div>
+  </Sheet>;
+}
+
 function IssueEditor({original,onClose,captureParentScope}:{original?:VehicleIssue;onClose:()=>void;captureParentScope:()=>()=>boolean}) {
   const {scope,vehicleId,care,extra,today,currentMileage}=useVehicleData();const {saveCareRecord}=useData();const {showToast}=useToast();
   const [value,setValue]=useState<VehicleIssue>(()=>original??{id:crypto.randomUUID(),schemaVersion:1,version:1,day:localDay(),title:'',symptoms:'',odometer:null,importance:'normal',status:'open',notes:'',serviceEventIds:[],history:[]});

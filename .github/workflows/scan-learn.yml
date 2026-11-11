@@ -1,0 +1,54 @@
+name: Scan learning
+
+# Once a day: when 10 or more new scans were saved since the last tuning (or a
+# week has passed), re-tune the photo reader's confidence thresholds from the scan
+# attempts people made and the numbers they finally saved, and delete scan
+# pictures older than a year. No model and no Cloud Function: plain statistics
+# in scripts/scan-learn/learn.mjs, written to appConfig/scanTuning, which every
+# device reads on its next scan.
+#
+# Uses the same FIREBASE_SERVICE_ACCOUNT secret as the Fuel price workflow
+# (setup steps are in fuel-prices.yml).
+
+on:
+  schedule:
+    # 02:41 UTC, early morning in Israel. The job exits after one count when little is new.
+    - cron: "41 2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only print what would change"
+        type: boolean
+        default: false
+      force:
+        description: "Re-tune even with fewer than 10 new scans"
+        type: boolean
+        default: false
+
+concurrency:
+  group: scan-learn
+  cancel-in-progress: false
+
+jobs:
+  learn:
+    name: Tune thresholds from labelled scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Outside the app package, so npm installs only the Admin SDK.
+      - name: Install the Admin SDK
+        run: |
+          runtime_dir="$RUNNER_TEMP/tank-scan"
+          mkdir -p "$runtime_dir/scripts/scan-learn" "$runtime_dir/src/lib/scan/engine"
+          cp scripts/scan-learn/learn.mjs "$runtime_dir/scripts/scan-learn/"
+          cp src/lib/scan/sampleStats.ts "$runtime_dir/src/lib/scan/"
+          cp src/lib/scan/engine/accept.ts src/lib/scan/engine/version.ts "$runtime_dir/src/lib/scan/engine/"
+          npm install --prefix "$runtime_dir" --no-save --no-audit --no-fund firebase-admin@14
+      - name: Learn
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node "$RUNNER_TEMP/tank-scan/scripts/scan-learn/learn.mjs" ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.force && '--force' || '' }}

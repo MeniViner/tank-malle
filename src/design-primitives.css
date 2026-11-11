@@ -6,7 +6,8 @@
   --tm-readout-line: #34302A;
   --tm-gauge-empty: #3A362E;
   --tm-sparkline-band-opacity: 42%;
-  --tm-atmosphere-text-shadow: -2px -2px 0 var(--bg), 2px -2px 0 var(--bg), -2px 2px 0 var(--bg), 2px 2px 0 var(--bg), 0 -2px 0 var(--bg), 0 2px 0 var(--bg), -2px 0 0 var(--bg), 2px 0 0 var(--bg);
+  /* No halo behind text: a --bg outline showed as a white rim wherever the glow or wash tints the page. The dial is faint enough to read through. */
+  --tm-atmosphere-text-shadow: none;
 }
 [data-theme="dark"] {
   --tm-readout-bg: #282520;

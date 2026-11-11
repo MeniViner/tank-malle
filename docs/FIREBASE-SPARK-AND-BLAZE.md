@@ -27,6 +27,19 @@ an honest empty state, never a fabricated result.
 | Account deletion | client-driven, reauthenticated first, reports what failed |
 | Admin dashboard | paginated + count aggregations |
 
+### Phone notifications (Web Push)
+
+Works on Spark: no Cloud Function and no Firebase Cloud Messaging setup. A device
+that turns on "התראות לטלפון" saves its standard Web Push subscription to
+`users/{uid}/pushSubscriptions/{id}`. `.github/workflows/push-notifications.yml`
+runs every morning, works out the due test/insurance dates and maintenance reminders
+with the same pure code as the in-app list (`src/lib/push/run.ts`), sends each
+occurrence once (logged in `users/{uid}/pushSent`), and removes expired devices.
+It needs two repository secrets: `FIREBASE_SERVICE_ACCOUNT` and
+`WEB_PUSH_PRIVATE_KEY` (the private half of the VAPID key in `src/lib/push/config.ts`).
+Android, desktop browsers and iPhone/iPad (iOS 16.4+, only when the app was added
+to the home screen) are supported.
+
 ### The benchmark caveat
 
 `benchmarks/{uid}__{vehicleId}` is world-readable to signed-in users and its id

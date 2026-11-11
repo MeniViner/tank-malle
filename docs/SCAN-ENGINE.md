@@ -23,14 +23,18 @@ proposes; the person checks the numbers in the fill-up form and saves there.
    "1"; a small low mark is a decimal point.
 4. **Choose by what the numbers mean** (`read.ts`). Odometer: a 4–7 digit
    integer row, preferring the longer reading of a row, the journal's last
-   reading only re-weighting (it may be stale). Pump: amount and litres must be
+   reading only re-weighting (it may be stale); when two close readings (one
+   digit apart, or one with an extra digit at an end, typically a missed
+   segment or a narrow "1") are both plausible, both are doubted. Pump: amount and litres must be
    stacked, the litres row under the amount; litres × price must equal the
    amount to the agora — the price row when one is read, otherwise some
    whole-agora price. If the first pass is not confident, a lower ink threshold
    is tried for faint displays, and the rows just above and below a well-read
    pump row are cut out directly.
 5. **Answer only when confident** (`index.ts`): below `ACCEPT` the app says the
-   digits were not clear and the person types them.
+   digits were not clear and the person types them. An odometer reading with no
+   previous reading in the journal to check it against needs more confidence
+   (`ACCEPT.odometerFirst`).
 
 ## Measured on the owner's photos (2026-11-11)
 
@@ -53,10 +57,82 @@ app runs it in a worker with a 45 s limit for files.
 
 Raw per-photo results: `docs/releases/2026-11-11-scan-engine/real-photos.json`.
 
+## Measured on other cars: TRODO (2026-11-11)
+
+TRODO is a public set of odometer photos from a Turkish delivery fleet, taken
+with phones by drivers (Mouheb, Yürekli, Yılmazel, *Data in Brief* 38, 2021;
+[Mendeley Data, doi:10.17632/6y8m379mkt.2](https://data.mendeley.com/datasets/6y8m379mkt/2),
+CC BY 4.0). Many makes and display styles, night and day, glare, tilt. It is not
+in the repository; `scripts/scan-real/trodo.mjs` reads the unzipped folder.
+The 1,274 digital odometers with a usable label, whole photos, no crop:
+
+| | shown right | shown wrong | not read |
+|---|---|---|---|
+| no journal (first fill-up of a car) | 792 (62.2%) | 13 (1.0%) | 469 |
+| journal reading a few hundred km back | 864 (67.8%) | 4 (0.3%) | 406 |
+
+Before the two rules above (close-rival doubt, stricter first reading) the
+same set showed 57 wrong readings without a journal and 14 with one; right
+readings fell from 867 to 792 and from 880 to 864. The owner's photos are
+unchanged with a journal (36 of 43 read, none wrong); without one, two
+odometer photos fall below `odometerFirst`. At least one remaining
+"wrong" reading looks like a TRODO label error (a digit after the mileage left
+out of the label).
+
+For comparison, [ssocr](https://www.unix-ag.uni-kl.de/~auerswal/ssocr/), the
+established code-only seven-segment reader, given a hand-made crop of exactly
+the mileage digits (which our engine never gets) and the best of four settings
+per photo, read 11 of 242 sampled photos: it expects a fixed camera, level
+digits and closed segments. 858 TRODO photos are mechanical (analog) odometers,
+which this engine does not read.
+
+## Learning from use (since 1.9.0)
+
+No model and no Cloud Function. Three pieces:
+
+1. **Collection** (`src/lib/scan/samples.ts`). Every attempt — one camera session or
+   one chosen file — writes a small record to `scanSamples` (kind, source, attempt
+   number in the session, shown or not, best guess and its confidence, timing,
+   platform, app and engine version) and, under the same id in `scanImages`, the
+   rows the engine cut out (64 px high, grey JPEG, at most three) or, when nothing
+   was read, a grey copy of the picture at most 320 px wide. The full photo never
+   leaves the device. When the fill-up is saved, the saved numbers are attached
+   once as the label (`final`, `result`: match / corrected / manual). Writes are
+   fire-and-forget and queue offline. Rules: `firestore.rules` (`scanSamples`,
+   `scanImages`), tests in `tests/rules/scan-samples.rules.test.ts`; account
+   deletion erases both. The privacy policy (§6) and terms (§3) describe it.
+2. **Measurement** (Admin → סריקה, `src/components/admin/ScanAccuracy.tsx`, figures in
+   `src/lib/scan/sampleStats.ts`): share shown, share right and share wrong of the
+   labelled attempts, by day, by attempt number, by display, source, platform and
+   version; how many tries each display needed; the failed attempts with the rows
+   the engine saw.
+3. **Tuning** (`scripts/scan-learn/learn.mjs`, daily in
+   `.github/workflows/scan-learn.yml`, same service-account secret as the fuel
+   price job). For each threshold it takes the labelled attempts of the current
+   engine and picks the lowest value that would have kept wrong readings at or
+   under 1% of those shown; at most 0.05 per run, always inside `ACCEPT_RANGE`.
+   Lowering a threshold needs 200+ labelled attempts; raising it needs 20 and
+   two wrong readings shown. A run stops after one count query unless 10 scans
+   were labelled since the last tuning (or a week passed), and reads at most
+   the 1,500 newest samples: GitHub minutes are free for this public
+   repository, the Firestore free read quota is the real limit. The result goes to
+   `appConfig/scanTuning`; devices read it on their next scan and the engine
+   clamps it again. It also deletes scan pictures older than a year.
+   `scripts/scan-learn/selftest.mjs` checks it against the emulator.
+
+What this loop can and cannot do: it tunes *when to answer*, automatically. It
+does not teach the engine a display it cannot decode; for that,
+`scripts/scan-learn/pull.mjs --only problems` downloads the failed attempts with
+their true numbers, and a rule is written against them (bump `ENGINE_VERSION`
+when one is). A label is what the person saved: a wrong reading nobody
+corrected counts as right.
+
 ## Developer tools
 
 - `node scripts/scan-real/run.mjs --dir <photos> [--history] [--verbose]` — the
   benchmark above.
+- `node scripts/scan-real/trodo.mjs --dir <trodo-v01> [--journal] [--fails] [--out file.json]`
+  — the TRODO benchmark.
 - `node scripts/scan-real/debug-read.mjs --dir <photos> --file <name> [--near x,y,r] [--want digits] [--ascii 1] [--out strips.png]` — every row the engine saw, its reading and the ink mask.
 - `node scripts/scan-real/debug-mask.mjs` — the ink mask of one pyramid level.
 - `src/lib/scan/engine/engine.test.ts` — synthetic displays (`src/lib/scan/fixtures.ts`).

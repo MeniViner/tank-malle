@@ -36,6 +36,7 @@ import { DateSheet } from "../components/fillup/DateSheet";
 import { savedFillupResult } from "../components/fillup/savedResult";
 import { resolveEditedTank, selectTankDraft, selectTankOriginal } from "../components/fillup/tankEdit";
 const ReceiptImport = lazy(() => import("../components/ReceiptImport").then(module => ({ default: module.ReceiptImport })));
+import { labelScanSamples } from "../lib/scan/samples";
 const ScanWizard = lazy(() => import("../components/scan/ScanWizard").then(module => ({ default: module.ScanWizard })));
 type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
 
@@ -429,6 +430,8 @@ function FillupEditor({
   const [shaking, setShaking] = useState(false);
   const totalInput = useRef<HTMLInputElement>(null);
   const saveLock = useRef(false);
+  /** Ids of this form's scan attempts; the saved numbers become their label. */
+  const scanSamples = useRef<string[]>([]);
   const [saved, setSaved] = useState<SavedSession | null>(null);
   const committedSaved = useRef<SavedSession | null>(null);
   useLayoutEffect(() => { committedSaved.current = saved; }, [saved]);
@@ -593,9 +596,13 @@ function FillupEditor({
       setGeo((current) => ({ ...current, status: "locating" }));
 
       const result = await locateStations();
-      // The account or vehicle changed while locating (the form was opened before the
-      // vehicle finished loading): discard this answer, but let the next run ask again.
-      if (!stillMounted()) { if (!manual && request === geoRequest.current) geoRequested.current = false; return; }
+      // The account or vehicle changed while locating, or React re-ran the effects of a
+      // form that opened with its vehicle already loaded: discard this answer and, when
+      // the form is still on screen, ask again for the scope it has now.
+      if (!stillMounted()) {
+        if (!manual && request === geoRequest.current) { geoRequested.current = false; if (captureUi()()) void detectStation(); }
+        return;
+      }
       if (request !== geoRequest.current) return;
       setGeo(result);
       if (selection !== stationSelection.current) return;
@@ -921,12 +928,14 @@ function FillupEditor({
     const history = others.map(fill => ({ ...fill, station: fill.station ? { ...fill.station } : null }));
     const submitted: { current: FillupSubmission | null; at: number } = { current: null, at: 0 };
     const onSubmitted = (entry: FillupSubmission) => { submitted.current = entry; submitted.at = Date.now(); };
+    const labelScans = () => { labelScanSamples(scanSamples.current.splice(0), { total: String(nextRecord.totalCost), liters: String(nextRecord.liters), odometer: String(nextRecord.odometer) }); };
     try {
       if (editing && (!operation || operation.opType === "update" || operation.kind === "fillup.update")) {
         const previous: Fillup = { ...(editBase ?? editing), station: (editBase ?? editing).station ? { ...(editBase ?? editing).station! } : null };
         await updateFillup(editing.id, nextRecord, previous, {
           replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion, vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted,
         });
+        labelScans();
         const submission = submitted.current;
         clearDraft();
         if (!stillMounted() || !submission?.isCurrent()) return;
@@ -962,6 +971,7 @@ function FillupEditor({
       } else {
         await addFillup(nextRecord, { replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion,
           vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted });
+        labelScans();
         const submission = submitted.current;
         clearDraft();
         if (!stillMounted() || !submission?.isCurrent()) return;
@@ -1212,6 +1222,7 @@ function FillupEditor({
     {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
       context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
+      onSample={id => { scanSamples.current.push(id); }}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),
