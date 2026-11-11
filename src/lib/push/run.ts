@@ -1,7 +1,7 @@
 import { CARE_COLLECTIONS, EMPTY_CARE, validCareRecord, type CareData } from '../maintenance/model';
 import type { UserSettings } from '../types';
 import { notificationId, validVehicleRecord, type NotificationState } from '../vehicle/model';
-import { pushDigest, type PushItem } from './digest';
+import { pushDigest, pushKey, type PushItem } from './digest';
 
 /** Raw documents as the scheduled sender reads them (Firestore Admin SDK, `id` added). */
 export type RawDoc = Record<string, unknown> & { id: string };
@@ -46,16 +46,20 @@ async function vehicleItems(store: PushStore, uid: string, vehicle: RawDoc, sett
     model: vehicle.model as string | undefined, docs: vehicle.docs }, care, fillups, observations, states, settings, today, nameVehicle });
 }
 
-function messagesFor(items: PushItem[]): PushMessage[] {
-  if (items.length <= MAX_SEPARATE_PUSHES) return items.map(item => ({ title: item.title, body: item.body, url: item.url, tag: notificationId(item.occurrence), urgent: item.urgent }));
-  return [{ title: `${items.length} התראות חדשות`, body: items.slice(0, 3).map(item => item.title).join(' · '), url: '/notifications', tag: 'digest', urgent: items.some(item => item.urgent) }];
+const sentId = (item: PushItem): string => notificationId(pushKey(item));
+
+/** Each message with the items it stands for: one per item, or one summary for all of them. */
+function messagesFor(items: PushItem[]): { message: PushMessage; items: PushItem[] }[] {
+  if (items.length <= MAX_SEPARATE_PUSHES) return items.map(item => ({ message: { title: item.title, body: item.body, url: item.url, tag: sentId(item), urgent: item.urgent }, items: [item] }));
+  return [{ message: { title: `${items.length} התראות חדשות`, body: items.slice(0, 3).map(item => item.title).join(' · '), url: '/notifications', tag: 'digest', urgent: items.some(item => item.urgent) }, items }];
 }
 
 /**
  * One scheduled run: for each account with a registered device, work out the time-driven
  * notifications (pushDigest), drop what was already pushed, and send the rest to every
- * device. An occurrence is recorded as sent once any device accepted it; if every device
- * failed it stays unsent and the next run tries again. Expired devices are removed.
+ * device. A notification is recorded as sent once any device accepted its own message; one
+ * that every device failed stays unsent and the next run tries it again, whatever happened
+ * to the others. Expired devices are removed.
  */
 export async function runPush(store: PushStore, send: PushSender, { today, now, dryRun = false }: { today: string; now: number; dryRun?: boolean }): Promise<PushRunReport> {
   const report: PushRunReport = { users: 0, devices: 0, messages: 0, occurrences: 0, removed: 0, failed: 0 };
@@ -70,23 +74,23 @@ export async function runPush(store: PushStore, send: PushSender, { today, now, 
     const sent = await store.sentIds(uid);
     const fresh: PushItem[] = [];
     for (const vehicle of vehicles) for (const item of await vehicleItems(store, uid, vehicle, settings, today, vehicles.length > 1))
-      if (!sent.has(notificationId(item.occurrence)) && !fresh.some(other => other.occurrence === item.occurrence)) fresh.push(item);
+      if (!sent.has(sentId(item)) && !fresh.some(other => pushKey(other) === pushKey(item))) fresh.push(item);
     if (!fresh.length) continue;
     const messages = messagesFor(fresh);
     if (dryRun) { report.messages += messages.length * devices.length; report.occurrences += fresh.length; continue; }
-    let delivered = false;
+    const delivered = new Set<PushItem>();
     for (const device of devices) {
       let gone = false;
-      for (const message of messages) {
+      for (const { message, items } of messages) {
         const result = await send(device, message);
         if (result === 'gone') { gone = true; break; }
-        if (result === 'sent') { delivered = true; report.messages += 1; } else report.failed += 1;
+        if (result === 'sent') { for (const item of items) delivered.add(item); report.messages += 1; } else report.failed += 1;
       }
       if (gone) { await store.removeSubscription(uid, device.id); report.removed += 1; }
     }
-    if (delivered) {
-      await store.markSent(uid, fresh.map(item => ({ id: notificationId(item.occurrence), occurrence: item.occurrence })), now);
-      report.occurrences += fresh.length;
+    if (delivered.size) {
+      await store.markSent(uid, [...delivered].map(item => ({ id: sentId(item), occurrence: pushKey(item) })), now);
+      report.occurrences += delivered.size;
     }
   }
   return report;

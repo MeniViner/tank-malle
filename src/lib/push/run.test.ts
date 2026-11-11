@@ -20,9 +20,10 @@ function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Reco
   };
   return { store, sent, removed };
 }
-const sender = (results: Record<string, SendResult> = {}) => {
+const sender = (results: Record<string, SendResult> | ((device: string, message: PushMessage) => SendResult) = {}) => {
   const calls: { device: string; message: PushMessage }[] = [];
-  return { calls, send: async (device: PushSubscriptionRow, message: PushMessage) => { calls.push({ device: device.id, message }); return results[device.id] ?? 'sent'; } };
+  return { calls, send: async (device: PushSubscriptionRow, message: PushMessage) => { calls.push({ device: device.id, message });
+    return typeof results === 'function' ? results(device.id, message) : results[device.id] ?? 'sent'; } };
 };
 const at = { today: '2026-11-11', now: 1 };
 
@@ -31,7 +32,7 @@ describe('runPush', () => {
     const { store, sent } = fakeStore({ devices: ['d1', 'd2'] }), s = sender();
     expect(await runPush(store, s.send, at)).toMatchObject({ users: 1, devices: 2, messages: 2, occurrences: 1 });
     expect(s.calls.map(c => c.device)).toEqual(['d1', 'd2']);
-    expect(s.calls[0].message).toMatchObject({ title: 'טיפול a', body: 'הטיפול מתקרב', url: '/vehicle/reminders/a' });
+    expect(s.calls[0].message).toMatchObject({ title: 'טיפול a', body: 'הטיפול מתקרב', url: '/open?vehicle=v1&to=%2Fvehicle%2Freminders%2Fa' });
     expect(sent.size).toBe(1);
     const again = sender();
     expect(await runPush(store, again.send, at)).toMatchObject({ messages: 0 });
@@ -64,6 +65,33 @@ describe('runPush', () => {
     expect(await runPush(store, s.send, { ...at, dryRun: true })).toMatchObject({ messages: 1, occurrences: 1 });
     expect(s.calls).toHaveLength(0);
     expect(sent.size).toBe(0);
+  });
+  it('records only the notifications a device accepted; one that failed everywhere is sent again next run', async () => {
+    const { store, sent } = fakeStore({ plans: [plan('a', '2026-11-12'), plan('b', '2026-11-12')] });
+    const first = await runPush(store, sender((_device, message) => message.title === 'טיפול b' ? 'failed' : 'sent').send, at);
+    expect(first).toMatchObject({ messages: 1, failed: 1, occurrences: 1 });
+    expect(sent.size).toBe(1);
+    const retry = sender();
+    expect(await runPush(store, retry.send, at)).toMatchObject({ messages: 1, occurrences: 1 });
+    expect(retry.calls.map(c => c.message.title)).toEqual(['טיפול b']);
+    expect(sent.size).toBe(2);
+  });
+  it('a notification one device refused counts as sent when another device took it', async () => {
+    const { store, sent } = fakeStore({ devices: ['d1', 'd2'], plans: [plan('a', '2026-11-12'), plan('b', '2026-11-12')] });
+    await runPush(store, sender((device, message) => device === 'd1' && message.title === 'טיפול b' ? 'failed' : 'sent').send, at);
+    expect(sent.size).toBe(2);
+  });
+  it('two vehicles with the same test date each get their own notification, opened on their own vehicle', async () => {
+    const docs = { test: { due: '2026-11-20' } };
+    const { store, sent } = fakeStore({ plans: [], vehicles: [{ id: 'v1', nickname: 'המשפחתית', docs }, { id: 'v2', nickname: 'השנייה', docs }] }), s = sender();
+    expect(await runPush(store, s.send, at)).toMatchObject({ messages: 2, occurrences: 2 });
+    expect(s.calls.map(c => c.message.body.split(' · ')[0])).toEqual(['המשפחתית', 'השנייה']);
+    expect(s.calls.map(c => c.message.url)).toEqual(['/open?vehicle=v1&to=%2Fvehicle%3Fdoc%3Dtest%26vehicle%3Dv1', '/open?vehicle=v2&to=%2Fvehicle%3Fdoc%3Dtest%26vehicle%3Dv2']);
+    expect(new Set(s.calls.map(c => c.message.tag)).size).toBe(2);
+    expect(sent.size).toBe(2);
+    const again = sender();
+    await runPush(store, again.send, at);
+    expect(again.calls).toHaveLength(0);
   });
   it('names the car when the account has several', async () => {
     const { store } = fakeStore({ vehicles: [{ id: 'v1', nickname: 'המשפחתית' }, { id: 'v2', nickname: 'השנייה' }] }), s = sender();

@@ -17,7 +17,8 @@ describe('pushDigest', () => {
   it('pushes a near test date and a reminder inside the lead time, with their in-app occurrences', () => {
     const items = pushDigest(input());
     expect(items.map(i => i.title)).toEqual(['טסט שנתי · בעוד 9 ימים', 'טיפול תקופתי']);
-    expect(items[1]).toMatchObject({ body: 'הטיפול מתקרב', url: '/vehicle/reminders/p1', urgent: false });
+    expect(items[1]).toMatchObject({ body: 'הטיפול מתקרב', url: '/open?vehicle=v1&to=%2Fvehicle%2Freminders%2Fp1', urgent: false });
+    expect(items[0].url).toBe('/open?vehicle=v1&to=%2Fvehicle%3Fdoc%3Dtest%26vehicle%3Dv1');
     expect(items[0].occurrence).toMatch(/^doc:test:2026-11-20:/);
   });
   it('names the car only when the account has several', () => {
