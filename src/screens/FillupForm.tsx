@@ -593,7 +593,10 @@ function FillupEditor({
       setGeo((current) => ({ ...current, status: "locating" }));
 
       const result = await locateStations();
-      if (!stillMounted() || request !== geoRequest.current) return;
+      // The account or vehicle changed while locating (the form was opened before the
+      // vehicle finished loading): discard this answer, but let the next run ask again.
+      if (!stillMounted()) { if (!manual && request === geoRequest.current) geoRequested.current = false; return; }
+      if (request !== geoRequest.current) return;
       setGeo(result);
       if (selection !== stationSelection.current) return;
       if (result.status !== "ok" || result.position === null) return;
@@ -636,10 +639,12 @@ function FillupEditor({
     return result;
   }, [captureUi]);
 
+  // A new fill-up picks the station right next to you (it can be changed). Wait for the
+  // vehicle: its scope is what keeps a late answer from landing in another car's form.
   useEffect(() => {
-    if (isEdit || station || operation) return;
+    if (isEdit || station || operation || !activeVehicle) return;
     void detectStation();
-  }, [isEdit, station, operation, detectStation]);
+  }, [isEdit, station, operation, detectStation, activeVehicle]);
 
   /* ---------- validation ---------- */
 

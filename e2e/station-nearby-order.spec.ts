@@ -80,9 +80,13 @@ test("nearby orders every matching station beyond 400 m, preserves selection and
   await expect(rows.first().getByText("פז בדיקה 2", { exact: true })).toBeVisible();
   await expect(rows).toHaveCount(30);
   const requests = await page.evaluate(() => (window as Window & { stationLocation?: StationLocationFixture }).stationLocation!.requests);
-  expect(requests).toHaveLength(5);
-  expect(requests[0].maximumAge).toBe(60_000);
-  expect(requests.slice(1).every(options => options.maximumAge === 0)).toBe(true);
+  // The automatic look-up may ask twice when the form opens before the vehicle has loaded
+  // (the first answer is discarded as stale); every "בקרבתי" asks once, for a fresh fix.
+  const automatic = requests.filter(options => options.maximumAge === 60_000), manual = requests.filter(options => options.maximumAge === 0);
+  expect(automatic.length).toBeGreaterThanOrEqual(1);
+  expect(automatic.length).toBeLessThanOrEqual(2);
+  expect(manual).toHaveLength(4);
+  expect(requests.slice(automatic.length).every(options => options.maximumAge === 0)).toBe(true);
   await page.keyboard.press("Escape");
   await expect(trigger).toContainText(chosen);
   await expect(trigger).toBeFocused();
