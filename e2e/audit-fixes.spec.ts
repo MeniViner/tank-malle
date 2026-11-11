@@ -97,7 +97,7 @@ test("F04/F05: backup retains measurements and repeated import targets the secon
   expect(await listDocuments(ownRows(uid))).toHaveLength(0);
 });
 
-test("F06: both tank editors preserve grouped odometers and reject a backward reading", async ({ page }) => {
+test("F06: the odometer sheet preserves grouped odometers and rejects a backward reading", async ({ page }) => {
   const { uid } = await signedInWithData(page, { vehicle: { make: "מאזדה", model: "3", tankLiters: 50, tankLitersSource: "user" }, fillups: [{ id: "base", date: new Date(Date.UTC(2026, 9, 1)), odometer: 100000, liters: 40, pricePerLiter: 7 }] });
   await setDocument(`users/${uid}/vehicles/v1/observations/seed`, { observedAt: new Date(Date.now() - 60000), recordedAt: new Date(), kind: "level", level: 0.5, confirmed: true, levelSource: "direct-gauge" });
   await page.reload();
@@ -107,10 +107,14 @@ test("F06: both tank editors preserve grouped odometers and reject a backward re
   await dialog.getByLabel("קילומטראז׳ נוכחי").fill("123,456");
   await dialog.getByRole("button", { name: "שמירה", exact: true }).click();
   await expect.poll(async () => (await listDocuments(`users/${uid}/vehicles/v1/observations`)).find((record) => record.id !== "seed")?.data.odometer).toBe(123456);
-  dialog = page.getByRole("dialog", { name: "מה יש במיכל", exact: true });
-  await dialog.getByLabel("קילומטראז׳ (לא חובה)").fill("123,455");
+  // The tank sheet has no odometer field of its own: the reading lives only in the odometer sheet.
+  await expect(page.getByRole("dialog", { name: "מה יש במיכל", exact: true }).getByLabel(/^קילומטראז׳/)).toHaveCount(0);
+  await page.getByTestId("tank-open-odometer").click();
+  dialog = page.getByRole("dialog", { name: "עדכון קילומטראז׳", exact: true });
+  await expect(dialog.getByLabel("קילומטראז׳ נוכחי")).toHaveAttribute("placeholder", "123456");
+  await dialog.getByLabel("קילומטראז׳ נוכחי").fill("123,455");
   await expect(dialog.getByText("הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה")).toBeVisible();
-  await expect(dialog.getByTestId("tank-save-gauge")).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "שמירה", exact: true })).toBeDisabled();
 });
 
 test("F07: invalid vehicle edits stay open, rejected valid edits never report success", async ({ page }) => {

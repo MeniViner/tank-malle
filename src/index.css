@@ -32,8 +32,8 @@
   --warning-soft: #FBEFC8;
   --danger: #B3261E;
   --danger-soft: #FBE5E2;
-  /* v3 §1: the dial is atmosphere, not an object (prototype --do: .04; ×1.5 in dark). */
-  --dial-opacity: .04;
+  /* The background dial at the v2 prototype strength (--do: .085; ×1.5 in dark): v3's .04 made it disappear. */
+  --dial-opacity: .085;
   /* v3 §1: one radius scale. */
   --r-lg: 20px;
   --r-md: 14px;
@@ -96,7 +96,7 @@
   --warning-soft: #3A311C;
   --danger: #EE8F86;
   --danger-soft: #422621;
-  --dial-opacity: .06;
+  --dial-opacity: .13;
   --cat-service: #D9D2C3;
   --cat-ins1: #6E9ED4;
   --cat-ins2: #A9C6E4;
@@ -132,7 +132,7 @@
   --warning-soft: #3A311C;
   --danger: #EE8F86;
   --danger-soft: #422621;
-  --dial-opacity: .06;
+  --dial-opacity: .13;
   --cat-service: #D9D2C3;
   --cat-ins1: #6E9ED4;
   --cat-ins2: #A9C6E4;

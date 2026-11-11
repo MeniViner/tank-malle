@@ -31,7 +31,12 @@ export function TankSheets(props: TankSheetsProps) {
   return <TankSheetSession key={`${user?.uid ?? ""}/${activeVehicle.id}`} {...props} />;
 }
 
-function TankSheetSession({ handle, entry, enriching, onClose }: TankSheetsProps) {
+function TankSheetSession(props: TankSheetsProps) {
+  if (props.entry === "odometer") return <TankOdometerSheet estimate={props.handle.estimate} onClose={props.onClose} />;
+  return <TankSummarySession {...props} />;
+}
+
+function TankSummarySession({ handle, entry, enriching, onClose }: TankSheetsProps) {
   const { user } = useAuth();
   const { activeVehicle, plans, deletePlan, settings } = useData();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);

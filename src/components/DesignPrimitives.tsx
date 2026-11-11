@@ -106,10 +106,8 @@ export function Odometer({ value, onClick, className = "" }: {
   const digits = known ? String(Math.round(value)).padStart(6, "0") : "——————";
   const label = known ? `קילומטראז׳ ${int(value)} ק״מ` : "עדכון הקילומטראז׳";
   const readout = <bdi className="tm-odometer-digits" dir="ltr" aria-hidden="true">
-    {[...digits].map((digit, index) => <span key={index} className="tm-odometer-slot">
-      {known && index > 0 && (digits.length - index) % 3 === 0 ? <span className="tm-odometer-comma">,</span> : null}
-      <span className={`tm-odometer-digit${index === digits.length - 1 ? " tm-odometer-last" : ""}`}>{digit}</span>
-    </span>)}
+    {[...digits].map((digit, index) => <span key={index}
+      className={`tm-odometer-digit${index === digits.length - 1 ? " tm-odometer-last" : ""}`}>{digit}</span>)}
   </bdi>;
   return onClick ? <button type="button" className={`tm-odometer ${className}`} aria-label={label} onClick={onClick}>{readout}</button>
     : <div className={`tm-odometer ${className}`} role="img" aria-label={label}>{readout}</div>;

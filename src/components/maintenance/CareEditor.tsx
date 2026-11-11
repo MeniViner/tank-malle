@@ -48,6 +48,8 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
     const draft = restore('day', record && 'day' in record ? record.day : localDay());
     return formatCivilDay(draft) || draft;
   });
+  // The last known reading, greyed behind an empty odometer field (never words or a dash).
+  const odoPlaceholder = currentOdometer ? String(currentOdometer.ambiguous ? currentOdometer.maximum : currentOdometer.odometer) : '0';
   const [odo,setOdo] = useState(() => restore('odo', record && 'odometer' in record ? record.odometer === null ? '' : String(record.odometer) : completionDefaults?.odometer != null ? String(completionDefaults.odometer) : ''));
   const [cost,setCost] = useState(() => restore('cost', record && 'costAgorot' in record ? record.costAgorot === null ? '' : String(record.costAgorot / 100) : completionDefaults?.costAgorot != null ? String(completionDefaults.costAgorot / 100) : ''));
   const [notes,setNotes] = useState(() => restore('notes', record?.notes ?? ''));
@@ -242,10 +244,10 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
               </div>
               {serviceMode?<Field row={!fullHeight} label="קילומטראז׳ בזמן הטיפול"
                 data-testid="care-odo" inputMode="numeric" value={odo} onChange={e=>setOdo(e.target.value)}
-                suffix="ק״מ" placeholder="הקריאה בלוח הקילומטרים"/>:null}
+                suffix="ק״מ" placeholder={odoPlaceholder}/>:null}
               {odometerMode?<PumpDisplay className="care-odometer-pump">
                 <PumpDisplayRow label="קילומטראז׳" data-testid="care-odo" inputMode="numeric" value={odo}
-                  onChange={e=>setOdo(e.target.value)} unit="ק״מ" placeholder="הקריאה בלוח הקילומטרים"
+                  onChange={e=>setOdo(e.target.value)} unit="ק״מ" placeholder={odoPlaceholder}
                   caption={!record&&odometerIntent==='current'&&currentOdometer?currentOdometer.ambiguous
                     ? <>באותו יום תועדו <NumRun>{`${int(currentOdometer.minimum)}–${int(currentOdometer.maximum)}`}</NumRun> ק״מ. סדר הקריאות אינו ידוע.</>
                     : <NumericText>{`הקריאה האחרונה: ${int(currentOdometer.odometer)} ק״מ · ${vehicleDay(currentOdometer.day)}`}</NumericText>:undefined}/>

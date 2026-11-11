@@ -25,7 +25,16 @@
 .tm-tank-gauge-caption { display: block; min-width: 0; direction: rtl; text-align: center; color: var(--ink-2); font: 400 12px/18px var(--font-sans); }
 .tm-tank-hero-note { font-size: 13px; line-height: 1.5; color: var(--ink-2); }
 .tm-tank-hero-footer { display: flex; justify-content: space-between; gap: 12px; margin-top: 2px; color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
-.tm-tank-hero-footer > :last-child { flex: none; }
+.tm-tank-hero-wrap { position: relative; }
+/* Room for the separate "עדכון" button that sits over the footer's end. */
+.tm-tank-hero-footer { padding-inline-end: 60px; }
+.tm-tank-hero-update {
+  position: absolute; inset-inline-end: 8px; bottom: 6px; display: inline-flex; align-items: center;
+  min-height: 44px; padding: 0 12px; border-radius: var(--r-sm); background: transparent;
+  color: var(--ink-2); font-size: 12.5px; line-height: 1.45; cursor: pointer;
+}
+.tm-tank-hero-update:hover { color: var(--ink); }
+.tm-tank-hero-update:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .tm-tank-stack { display: grid; gap: 16px; min-width: 0; }
 .tm-tank-stack .tm-group-row-value { max-width: 48%; overflow-wrap: anywhere; }
 .tm-tank-note { margin: 0; color: var(--ink-2); font-size: 13px; line-height: 1.6; }

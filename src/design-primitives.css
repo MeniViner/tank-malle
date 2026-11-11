@@ -125,6 +125,8 @@ button.tm-group-row { cursor: pointer; }
 /* Physical alignment is intentional: direction:ltr must not pull a hero to the left. */
 .tm-number { direction: ltr; unicode-bidi: isolate; text-align: right; font-family: inherit; font-weight: inherit; font-variant-numeric: tabular-nums; }
 bdi.tm-number { display: inline-block; }
+/* A Latin word in a Hebrew title (i20 Inspire) keeps the title's font; the global bdi rule would set it in the number font. */
+bdi.tm-latin-run { font-family: inherit; font-weight: inherit; font-variant-numeric: inherit; }
 .tm-number.block, .tm-number.tm-number-block, .tm-number-with-unit.tm-number-block { display: block; width: 100%; }
 .tm-number-with-unit { display: inline-flex; direction: rtl; align-items: baseline; gap: .25em; text-align: right; }
 .tm-number[data-number-align="trailing"], .tm-number-with-unit[data-number-align="trailing"] { text-align: left; }
@@ -206,10 +208,8 @@ bdi.tm-number { display: inline-block; }
 .tm-odometer { display: block; width: 100%; padding: 0; border: 0; background: transparent; color: var(--ink); }
 button.tm-odometer { cursor: pointer; }
 .tm-odometer-digits { display: flex; gap: 4px; width: 100%; direction: ltr; unicode-bidi: isolate; }
-.tm-odometer-slot { display: flex; flex: 1; min-width: 0; gap: 2px; align-items: end; }
-.tm-odometer-digit { display: grid; place-items: center; flex: 1; height: 56px; min-width: 0; border-radius: var(--r-sm); background: var(--tm-readout-bg); color: var(--tm-readout-ink); font: 600 30px/1 var(--font-mono); box-shadow: inset 0 0 0 1px var(--tm-readout-line); }
+.tm-odometer-digit { display: grid; place-items: center; flex: 1 1 0; height: 56px; min-width: 0; border-radius: var(--r-sm); background: var(--tm-readout-bg); color: var(--tm-readout-ink); font: 600 30px/1 var(--font-mono); box-shadow: inset 0 0 0 1px var(--tm-readout-line); }
 .tm-odometer-last { background: var(--accent); color: #111; box-shadow: none; }
-.tm-odometer-comma { font: 600 22px/1 var(--font-mono); padding-bottom: 10px; margin-inline-start: -2px; }
 .tm-pump-display { display: grid; border-radius: var(--r-lg); padding: 4px 18px; background: var(--tm-readout-bg); color: var(--tm-readout-ink); box-shadow: inset 0 0 0 1px var(--tm-readout-line); }
 .tm-pump-row { display: grid; gap: 2px; padding: 12px 0; }
 .tm-pump-row + .tm-pump-row { border-top: 1px solid var(--tm-readout-line); }

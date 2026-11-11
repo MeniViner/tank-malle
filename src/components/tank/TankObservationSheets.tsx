@@ -22,7 +22,7 @@ interface GaugeEditorProps {
   controlRef?: Ref<HTMLDivElement>;
 }
 
-/** An estimate is a starting position, never evidence until the user selects it. */
+/** An estimate is a starting position, never evidence until the user selects it. The odometer has its own sheet. */
 export function GaugeObservationEditor({ estimate, onSaved, children, controlRef }: GaugeEditorProps) {
   const { user } = useAuth();
   const { activeVehicle, addObservation } = useData();
@@ -32,14 +32,9 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
     return displayed === null ? null : snapLevel(displayed, null);
   });
   const [userInteracted, setUserInteracted] = useState(false);
-  const [odometer, setOdometer] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const busy = useRef(false);
-  const parsedOdometer = parseNumber(odometer, "odometer");
-  const hasOdometer = odometer.trim().length > 0;
-  const odometerValid = !hasOdometer || Number.isInteger(parsedOdometer) && parsedOdometer > 0
-    && parsedOdometer < 3_000_000 && (!estimate.lastOdometer || parsedOdometer >= estimate.lastOdometer.value);
 
   function chooseLevel(next: number) {
     if (busy.current) return;
@@ -49,7 +44,7 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
   }
 
   async function save() {
-    if (busy.current || !user || !activeVehicle || !userInteracted || level === null || !odometerValid) return;
+    if (busy.current || !user || !activeVehicle || !userInteracted || level === null) return;
     const current = captureScope();
     busy.current = true;
     setSaving(true);
@@ -57,8 +52,8 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
     try {
       await addObservation({
         observedAt: Date.now(),
-        kind: hasOdometer ? "both" : "level",
-        odometer: hasOdometer ? parsedOdometer : null,
+        kind: "level",
+        odometer: null,
         level,
         levelUncertainty: GAUGE_SD_BY_SOURCE["direct-gauge"],
         levelSource: "direct-gauge",
@@ -82,11 +77,8 @@ export function GaugeObservationEditor({ estimate, onSaved, children, controlRef
       <span className="tm-tank-gauge-reading"><TankLevel level={level} />
         {estimate.capacityLiters !== null && level !== null ? <span className="tm-tank-note"> · כ־<Quantity value={level * estimate.capacityLiters} digits={0} long />{estimate.capacityTrusted ? "" : " לפי נפח משוער"}</span> : null}</span>
     </div>
-    <Field row className="tm-field-row-fit" label={<>קילומטראז׳ <small className="tm-field-optional">(לא חובה)</small></>} inputMode="numeric" suffix="ק״מ" value={odometer}
-      disabled={saving} onChange={event => setOdometer(event.target.value)} placeholder="—"
-      error={!odometerValid ? "הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה" : undefined} />
     {error ? <p role="alert" className="tm-tank-error">{error}</p> : null}
-    <Button full data-testid="tank-save-gauge" disabled={!user || !activeVehicle || !userInteracted || level === null || !odometerValid}
+    <Button full data-testid="tank-save-gauge" disabled={!user || !activeVehicle || !userInteracted || level === null}
       loading={saving} onClick={() => void save()}>עדכון המחוון</Button>
     {children}
   </div>;
@@ -126,7 +118,8 @@ export function TankOdometerSheet({ estimate, onClose }: { estimate: TankEstimat
   return <Sheet open onClose={onClose} title="עדכון קילומטראז׳">
     <div className="tm-tank-stack" data-testid="tank-odometer-sheet">
       <Field big label="קילומטראז׳ נוכחי" inputMode="numeric" suffix="ק״מ" value={value} disabled={saving}
-        onChange={event => setValue(event.target.value)} placeholder="0"
+        onChange={event => setValue(event.target.value)}
+        placeholder={estimate.lastOdometer ? String(Math.round(estimate.lastOdometer.value)) : "0"}
         error={value.trim() && !valid ? "הזינו קילומטראז׳ שלם שאינו נמוך מהקריאה האחרונה" : undefined}
         hint={estimate.lastOdometer ? <>אחרון: <NumRun>{num(estimate.lastOdometer.value, 0)}</NumRun> · <NumericText>{timeAgo(estimate.lastOdometer.at)}</NumericText></>
           : "המספר שמופיע בלוח הקילומטרים. העדכון אינו תדלוק."} />
