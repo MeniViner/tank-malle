@@ -5,9 +5,17 @@ import { mileageEvidence, reminderRows } from '../vehicle/derived';
 import { vehicleDocumentOccurrences } from '../vehicle/documentNotifications';
 import { notificationId, type NotificationState } from '../vehicle/model';
 import { notificationPreferences } from '../vehicle/notificationPreferences';
+import { notificationLink } from './link';
 
-/** One phone notification. `occurrence` is the same identity the in-app list uses, so a push is sent once per occurrence. */
+/**
+ * One phone notification. `occurrence` is the identity the in-app list uses inside one vehicle;
+ * across an account the identity is the vehicle and the occurrence together (`pushKey`).
+ * `url` selects that vehicle before opening the screen.
+ */
 export interface PushItem { occurrence: string; vehicleId: string; title: string; body: string; url: string; urgent: boolean }
+
+/** What a push is sent once for: two vehicles can share an occurrence (the same test date), and each gets its own push. */
+export const pushKey = (item: Pick<PushItem, 'vehicleId' | 'occurrence'>): string => `${item.vehicleId}:${item.occurrence}`;
 
 export interface PushDigestInput {
   vehicle: { id: string; nickname?: string | null; make?: string | null; model?: string | null; docs?: unknown };
@@ -35,13 +43,13 @@ export function pushDigest(input: PushDigestInput): PushItem[] {
   const prefix = input.nameVehicle && name ? `${name} · ` : '';
   const items: PushItem[] = [];
   for (const doc of vehicleDocumentOccurrences(vehicle, today))
-    items.push({ occurrence: doc.occurrence, vehicleId: vehicle.id, title: doc.title, body: prefix + doc.detail, url: doc.to, urgent: doc.urgent });
+    items.push({ occurrence: doc.occurrence, vehicleId: vehicle.id, title: doc.title, body: prefix + doc.detail, url: notificationLink(vehicle.id, doc.to), urgent: doc.urgent });
   const evidence = mileageEvidence(input.fillups as Fillup[], input.observations as TankObservation[], input.care);
   for (const row of reminderRows(input.care, evidence, today, { days: prefs.leadDays, km: prefs.leadKm })) {
     if (!row.plan.active || (row.status !== 'due' && row.status !== 'soon')) continue;
     items.push({ occurrence: row.occurrence, vehicleId: vehicle.id, title: row.plan.title,
       body: prefix + (row.status === 'due' ? 'הגיע מועד הטיפול' : 'הטיפול מתקרב'),
-      url: `/vehicle/reminders/${encodeURIComponent(row.plan.id)}`, urgent: row.status === 'due' });
+      url: notificationLink(vehicle.id, `/vehicle/reminders/${encodeURIComponent(row.plan.id)}`), urgent: row.status === 'due' });
   }
   return items.filter(item => {
     const state = input.states.find(s => s.id === notificationId(item.occurrence) && s.occurrence === item.occurrence);

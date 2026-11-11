@@ -13,6 +13,7 @@ import { Toaster } from "./components/Toaster";
 import { TabBar } from "./components/TabBar";
 import { UpdatePrompt } from "./components/UpdatePrompt";
 import { Skeleton } from "./components/Card";
+import OpenNotification from "./screens/OpenNotification";
 import { Splash } from "./screens/Splash";
 import { Onboarding } from "./screens/Onboarding";
 import { SignIn } from "./screens/SignIn";
@@ -140,6 +141,7 @@ function Shell() {
         <Route path="/vehicle/reminders/:planId" element={<ReminderDetail />} />
         <Route path="/vehicle/issues/:issueId" element={<IssueDetail />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/open" element={<OpenNotification />} />
         <Route path="/history" element={<History />} />
         <Route
           path="/stats"
