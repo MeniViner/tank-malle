@@ -1,0 +1,11 @@
+import { join } from 'node:path';
+import { args, load, readRGBA } from './lib.mjs';
+const { luma, pyramid } = await load('src/lib/scan/engine/image.ts');
+const { proposeLines } = await load('src/lib/scan/engine/proposals.ts');
+const { readWords } = await load('src/lib/scan/engine/read.ts');
+const image = await readRGBA(join(args.dir, args.file));
+let t = performance.now(); const levels = pyramid(luma(image)); const t1 = performance.now() - t;
+t = performance.now(); const lines = proposeLines(levels); const t2 = performance.now() - t;
+t = performance.now(); readWords(levels); const t3 = performance.now() - t;
+const by = {}; for (const l of lines) by['L' + l.level + l.polarity[0]] = (by['L' + l.level + l.polarity[0]] ?? 0) + 1;
+console.log(args.file, 'pyramid', Math.round(t1), 'propose', Math.round(t2), 'all', Math.round(t3), 'lines', lines.length, JSON.stringify(by));

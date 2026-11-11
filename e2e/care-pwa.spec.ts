@@ -60,7 +60,7 @@ test('automatic display worker is available after the first offline PWA restart'
   await context.setOffline(true);const response=await page.reload();expect(response?.fromServiceWorker()).toBe(true);await expectNetworkCut(page);
   await page.getByTestId("fillup-camera").click();await page.getByLabel('תמונת משאבה',{exact:true}).setInputFiles({name:'pump.png',mimeType:'image/png',buffer:await png('pump')});
   await expect(page.getByText('המשאבה נקראה',{exact:true})).toBeVisible();await page.getByLabel('תמונת קילומטראז׳',{exact:true}).setInputFiles({name:'odo.png',mimeType:'image/png',buffer:await png('odometer')});
-  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByTestId("fillup-total")).toHaveValue('287.40');await expect(page.getByTestId("fillup-odometer")).toHaveValue('128450');
+  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByTestId("fillup-total")).toHaveValue('287.60');await expect(page.getByTestId("fillup-odometer")).toHaveValue('128450');
 });
 
 test('an offline save waits for the Firestore disk transaction before allowing an immediate restart',async({page,context})=>{

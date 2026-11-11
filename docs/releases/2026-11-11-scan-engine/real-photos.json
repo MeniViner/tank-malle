@@ -1,0 +1,395 @@
+{
+ "at": "2026-11-10T23:06:50.120Z",
+ "history": false,
+ "pass": 36,
+ "total": 43,
+ "table": [
+  {
+   "file": "20260730_225200.jpg",
+   "kind": "odometer",
+   "expected": "168053",
+   "got": "168053",
+   "ok": true,
+   "inTop": true,
+   "ms": 3345
+  },
+  {
+   "file": "20260730_225840.jpg",
+   "kind": "pump",
+   "expected": "165.46|22.120|7.48",
+   "got": "165.46|22.120|7.48",
+   "ok": true,
+   "inTop": true,
+   "ms": 2559
+  },
+  {
+   "file": "20260731_103901.jpg",
+   "kind": "odometer",
+   "expected": "168056",
+   "got": "168056",
+   "ok": true,
+   "inTop": true,
+   "ms": 12736
+  },
+  {
+   "file": "20260806_203223.jpg",
+   "kind": "odometer",
+   "expected": "168446",
+   "got": "168446",
+   "ok": true,
+   "inTop": true,
+   "ms": 2921
+  },
+  {
+   "file": "20260811_113258.jpg",
+   "kind": "pump",
+   "expected": "64.32|5.637|11.41",
+   "got": "7.99|1.09|7.33",
+   "ok": false,
+   "inTop": false,
+   "ms": 6010
+  },
+  {
+   "file": "20260811_113519.jpg",
+   "kind": "pump",
+   "expected": "528.51|46.320|11.41",
+   "got": "31.31|3.03|10.33",
+   "ok": false,
+   "inTop": false,
+   "ms": 6585
+  },
+  {
+   "file": "20260814_105831.jpg",
+   "kind": "odometer",
+   "expected": "168702",
+   "got": "888888",
+   "ok": false,
+   "inTop": false,
+   "ms": 13636
+  },
+  {
+   "file": "20260820_165114.jpg",
+   "kind": "odometer",
+   "expected": "169148",
+   "got": "169148",
+   "ok": true,
+   "inTop": true,
+   "ms": 3536
+  },
+  {
+   "file": "20260822_233655.jpg",
+   "kind": "pump",
+   "expected": "226.44|27.990|8.09",
+   "got": "226.44|27.990|8.09",
+   "ok": true,
+   "inTop": true,
+   "ms": 2313
+  },
+  {
+   "file": "20260824_101412.jpg",
+   "kind": "odometer",
+   "expected": "169358",
+   "got": "52663",
+   "ok": false,
+   "inTop": false,
+   "ms": 11017
+  },
+  {
+   "file": "20260826_140134.jpg",
+   "kind": "odometer",
+   "expected": "169440",
+   "got": "169440",
+   "ok": true,
+   "inTop": true,
+   "ms": 1599
+  },
+  {
+   "file": "20260831_171045.jpg",
+   "kind": "odometer",
+   "expected": "169594",
+   "got": "169594",
+   "ok": true,
+   "inTop": true,
+   "ms": 2055
+  },
+  {
+   "file": "20260910_191030.jpg",
+   "kind": "pump",
+   "expected": "236.86|30.562|7.75",
+   "got": "236.86|30.562|7.75",
+   "ok": true,
+   "inTop": true,
+   "ms": 5709
+  },
+  {
+   "file": "20260917_164229.jpg",
+   "kind": "pump",
+   "expected": "218.40|28.181|7.75",
+   "got": "218.40|28.181|?",
+   "ok": true,
+   "inTop": true,
+   "ms": 6688
+  },
+  {
+   "file": "20260917_164317.jpg",
+   "kind": "odometer",
+   "expected": "170164",
+   "got": "170164",
+   "ok": true,
+   "inTop": true,
+   "ms": 3427
+  },
+  {
+   "file": "20260925_005700.jpg",
+   "kind": "pump",
+   "expected": "207.00|26.710|7.75",
+   "got": "207.00|26.710|7.75",
+   "ok": true,
+   "inTop": true,
+   "ms": 2407
+  },
+  {
+   "file": "20260927_202316.jpg",
+   "kind": "pump",
+   "expected": "94.06|12.137|7.75",
+   "got": "94.06|12.137|7.75",
+   "ok": true,
+   "inTop": true,
+   "ms": 2779
+  },
+  {
+   "file": "20260927_202336.jpg",
+   "kind": "odometer",
+   "expected": "170549",
+   "got": "170549",
+   "ok": true,
+   "inTop": true,
+   "ms": 1861
+  },
+  {
+   "file": "20260929_020021.jpg",
+   "kind": "odometer",
+   "expected": "170582",
+   "got": "170582",
+   "ok": true,
+   "inTop": true,
+   "ms": 4027
+  },
+  {
+   "file": "20260930_001346.jpg",
+   "kind": "odometer",
+   "expected": "170599",
+   "got": "170599",
+   "ok": true,
+   "inTop": true,
+   "ms": 4365
+  },
+  {
+   "file": "20260930_001807.jpg",
+   "kind": "pump",
+   "expected": "100.09|12.915|7.75",
+   "got": "100.09|12.915|7.75",
+   "ok": true,
+   "inTop": true,
+   "ms": 6743
+  },
+  {
+   "file": "20260930_005141.jpg",
+   "kind": "odometer",
+   "expected": "170606",
+   "got": "170606",
+   "ok": true,
+   "inTop": true,
+   "ms": 1898
+  },
+  {
+   "file": "20260930_231156.jpg",
+   "kind": "odometer",
+   "expected": "170618",
+   "got": "170618",
+   "ok": true,
+   "inTop": true,
+   "ms": 1424
+  },
+  {
+   "file": "20261010_210603.jpg",
+   "kind": "odometer",
+   "expected": "170945",
+   "got": "170945",
+   "ok": true,
+   "inTop": true,
+   "ms": 2932
+  },
+  {
+   "file": "20261016_144921.jpg",
+   "kind": "pump",
+   "expected": "202.73|26.092|7.77",
+   "got": "81.00|7.00|?",
+   "ok": false,
+   "inTop": false,
+   "ms": 8126
+  },
+  {
+   "file": "20261016_145020.jpg",
+   "kind": "odometer",
+   "expected": "171272",
+   "got": "171272",
+   "ok": true,
+   "inTop": true,
+   "ms": 1462
+  },
+  {
+   "file": "20261017_193450.jpg",
+   "kind": "odometer",
+   "expected": "171312",
+   "got": "171312",
+   "ok": true,
+   "inTop": true,
+   "ms": 1209
+  },
+  {
+   "file": "20261019_022905.jpg",
+   "kind": "odometer",
+   "expected": "171473",
+   "got": "171473",
+   "ok": true,
+   "inTop": true,
+   "ms": 2135
+  },
+  {
+   "file": "20261021_151043.jpg",
+   "kind": "odometer",
+   "expected": "171503",
+   "got": "171503",
+   "ok": true,
+   "inTop": true,
+   "ms": 4960
+  },
+  {
+   "file": "20261021_151335.jpg",
+   "kind": "pump",
+   "expected": "140.36|18.276|7.68",
+   "got": "140.36|18.276|7.68",
+   "ok": true,
+   "inTop": true,
+   "ms": 2099
+  },
+  {
+   "file": "20261110_152108.jpg",
+   "kind": "odometer",
+   "expected": "172242",
+   "got": "172242",
+   "ok": true,
+   "inTop": true,
+   "ms": 2145
+  },
+  {
+   "file": "20261110_152345.jpg",
+   "kind": "pump",
+   "expected": "226.39|29.174|7.76",
+   "got": "226.39|29.174|7.76",
+   "ok": true,
+   "inTop": true,
+   "ms": 1808
+  },
+  {
+   "file": "20261110_203846.jpg",
+   "kind": "odometer",
+   "expected": "172258",
+   "got": "172258",
+   "ok": true,
+   "inTop": true,
+   "ms": 1799
+  },
+  {
+   "file": "Screenshot_20260902_001657_Photos.png",
+   "kind": "odometer",
+   "expected": "169594",
+   "got": "169594",
+   "ok": true,
+   "inTop": true,
+   "ms": 1053
+  },
+  {
+   "file": "Screenshot_20260902_001711_Photos.png",
+   "kind": "odometer",
+   "expected": "169440",
+   "got": "169440",
+   "ok": true,
+   "inTop": true,
+   "ms": 1124
+  },
+  {
+   "file": "Screenshot_20260902_001726_Photos.png",
+   "kind": "odometer",
+   "expected": "169358",
+   "got": "88888",
+   "ok": false,
+   "inTop": false,
+   "ms": 4369
+  },
+  {
+   "file": "Screenshot_20260902_001738_Photos.png",
+   "kind": "pump",
+   "expected": "226.44|27.990|8.09",
+   "got": "226.44|27.990|8.09",
+   "ok": true,
+   "inTop": true,
+   "ms": 751
+  },
+  {
+   "file": "Screenshot_20260902_001745_Photos.png",
+   "kind": "odometer",
+   "expected": "169148",
+   "got": "169148",
+   "ok": true,
+   "inTop": true,
+   "ms": 1115
+  },
+  {
+   "file": "Screenshot_20260902_001856_Photos.png",
+   "kind": "odometer",
+   "expected": "168818",
+   "got": "168818",
+   "ok": true,
+   "inTop": true,
+   "ms": 712
+  },
+  {
+   "file": "Screenshot_20260902_001911_Photos.png",
+   "kind": "odometer",
+   "expected": "168702",
+   "got": "235364",
+   "ok": false,
+   "inTop": false,
+   "ms": 4826
+  },
+  {
+   "file": "Screenshot_20260902_001941_Photos.png",
+   "kind": "odometer",
+   "expected": "168446",
+   "got": "168446",
+   "ok": true,
+   "inTop": true,
+   "ms": 924
+  },
+  {
+   "file": "Screenshot_20260902_002017_Photos.png",
+   "kind": "odometer",
+   "expected": "168056",
+   "got": "168056",
+   "ok": true,
+   "inTop": true,
+   "ms": 947
+  },
+  {
+   "file": "Screenshot_20261110_152326_Chrome.png",
+   "kind": "pump",
+   "expected": "226.39|29.174|7.76",
+   "got": "226.39|29.174|?",
+   "ok": true,
+   "inTop": true,
+   "ms": 1987
+  }
+ ]
+}

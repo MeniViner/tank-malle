@@ -1,5 +1,5 @@
-import { recognizeDisplay, type DisplayKind } from './automaticDisplay';
-self.onmessage = (event: MessageEvent<{width:number;height:number;data:Uint8ClampedArray;kind:DisplayKind}>) => {
-  try { self.postMessage(recognizeDisplay(event.data,event.data.kind)); }
-  catch { self.postMessage({status:'unreadable'}); }
+import { recognizeDisplay, type DisplayKind, type ScanContext } from './engine';
+self.onmessage = (event: MessageEvent<{ width: number; height: number; data: Uint8ClampedArray; kind: DisplayKind; context?: ScanContext }>) => {
+  try { self.postMessage(recognizeDisplay(event.data, event.data.kind, event.data.context ?? {})); }
+  catch { self.postMessage({ status: 'unreadable' }); }
 };

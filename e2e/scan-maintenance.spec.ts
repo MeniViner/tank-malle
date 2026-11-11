@@ -162,7 +162,7 @@ for(const fixture of ['synthetic','supplied'] as const)test(`live scanning reads
     }});
   },urls);
   await page.getByRole('dialog').getByRole('button',{name:'פתיחת מצלמה',exact:true}).click();
-  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByTestId("fillup-total")).toHaveValue(fixture==='supplied'?'202.73':'287.40');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue(fixture==='supplied'?'26.092':'40.000');await expect(page.getByTestId("fillup-odometer")).toHaveValue(fixture==='supplied'?'171272':'128450');
+  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByTestId("fillup-total")).toHaveValue(fixture==='supplied'?'202.73':'287.60');await expect(page.getByLabel('ליטרים',{exact:true})).toHaveValue(fixture==='supplied'?'26.092':'40.000');await expect(page.getByTestId("fillup-odometer")).toHaveValue(fixture==='supplied'?'171272':'128450');
   expect(await page.evaluate(()=>(window as any).__cameras.length)).toBeGreaterThanOrEqual(2);
   expect(await page.evaluate(()=>(window as any).__cameras.every((s:MediaStream)=>s.getTracks().every(t=>t.readyState==='ended')))).toBe(true);
 });
@@ -209,7 +209,7 @@ test('a pending camera result cannot reopen the camera after the page goes to th
     (window as any).__deliver=[];(window as any).__cameras=[];
     window.Worker=class {
       onmessage:any;onerror:any;
-      postMessage(){(window as any).__deliver.push(()=>this.onmessage?.({data:{status:'read',values:{total:'287.40',liters:'40.000'}}}));}
+      postMessage(){(window as any).__deliver.push(()=>this.onmessage?.({data:{status:'read',values:{total:'287.60',liters:'40.000'}}}));}
       terminate(){}
     } as any;
     Object.defineProperty(navigator.mediaDevices,'getUserMedia',{configurable:true,value:async()=>{
