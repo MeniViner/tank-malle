@@ -106,12 +106,16 @@ No model and no Cloud Function. Three pieces:
    labelled attempts, by day, by attempt number, by display, source, platform and
    version; how many tries each display needed; the failed attempts with the rows
    the engine saw.
-3. **Tuning** (`scripts/scan-learn/learn.mjs`, weekly in
+3. **Tuning** (`scripts/scan-learn/learn.mjs`, daily in
    `.github/workflows/scan-learn.yml`, same service-account secret as the fuel
    price job). For each threshold it takes the labelled attempts of the current
    engine and picks the lowest value that would have kept wrong readings at or
-   under 1% of those shown; at most 0.05 per run, only with 200+ labelled
-   attempts, always inside `ACCEPT_RANGE`. The result goes to
+   under 1% of those shown; at most 0.05 per run, always inside `ACCEPT_RANGE`.
+   Lowering a threshold needs 200+ labelled attempts; raising it needs 20 and
+   two wrong readings shown. A run stops after one count query unless 10 scans
+   were labelled since the last tuning (or a week passed), and reads at most
+   the 1,500 newest samples: GitHub minutes are free for this public
+   repository, the Firestore free read quota is the real limit. The result goes to
    `appConfig/scanTuning`; devices read it on their next scan and the engine
    clamps it again. It also deletes scan pictures older than a year.
    `scripts/scan-learn/selftest.mjs` checks it against the emulator.

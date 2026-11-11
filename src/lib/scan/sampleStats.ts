@@ -95,12 +95,18 @@ export const acceptKeyOf = (row: Pick<ScanSampleRow, 'kind' | 'journal'>): Accep
  * on labelled attempts (each carries the engine's best guess and its confidence, shown or not).
  * Returns null without enough evidence; never moves more than `maxStep` from `current`, inside `range`.
  */
-export function tuneThreshold(rows: readonly ScanSampleRow[], current: number, range: readonly [number, number], options: { maxWrong?: number; minLabeled?: number; maxStep?: number } = {}):
+export function tuneThreshold(rows: readonly ScanSampleRow[], current: number, range: readonly [number, number], options: { maxWrong?: number; minLabeled?: number; minTighten?: number; maxStep?: number } = {}):
   { value: number; labeled: number; right: number; wrong: number } | null {
-  const { maxWrong = .01, minLabeled = 200, maxStep = .05 } = options;
+  const { maxWrong = .01, minLabeled = 200, minTighten = 20, maxStep = .05 } = options;
   const known = rows.filter(r => r.final && r.guess && r.confidence != null);
-  if (known.length < minLabeled) return null;
-  const lo = Math.max(range[0], current - maxStep), hi = Math.min(range[1], current + maxStep);
+  // Few attempts cannot show that a lower threshold is safe, but two wrong readings shown are
+  // reason enough to raise it: with little evidence the threshold only moves up.
+  const few = known.length < minLabeled;
+  if (few) {
+    const shown = known.filter(r => r.confidence! >= current), wrong = shown.filter(r => r.guess !== r.final).length;
+    if (known.length < minTighten || wrong < 2 || wrong / shown.length <= maxWrong) return null;
+  }
+  const lo = few ? current : Math.max(range[0], current - maxStep), hi = Math.min(range[1], current + maxStep);
   let best: { value: number; labeled: number; right: number; wrong: number } | null = null;
   for (let t = hi; t >= lo - 1e-9; t -= .01) {
     const value = Math.round(t * 100) / 100, shown = known.filter(r => r.confidence! >= value), wrong = shown.filter(r => r.guess !== r.final).length;

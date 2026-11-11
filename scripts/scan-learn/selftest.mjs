@@ -3,7 +3,7 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { learn } from './learn.mjs';
 initializeApp({ projectId: 'demo-scan-learn' });
 const db = getFirestore(), now = Date.now();
-const base = { uid: 'u', createdAt: now - 86_400_000, day: '2026-11-10', appVersion: '1.9.0', engine: 2, kind: 'odometer', source: 'camera', session: 's', attempt: 1, ms: 1, frames: 1, seconds: 1, width: 1, height: 1, journal: true, platform: 'android' };
+const base = { uid: 'u', createdAt: now - 86_400_000, day: '2026-11-10', appVersion: '1.9.0', engine: 2, kind: 'odometer', source: 'camera', session: 's', attempt: 1, ms: 1, frames: 1, seconds: 1, width: 1, height: 1, journal: true, platform: 'android', labeledAt: now - 3_600_000 };
 let batch = db.batch(), n = 0;
 const add = async d => { batch.set(db.collection('scanSamples').doc(), { ...base, ...d }); if (++n % 400 === 0) { await batch.commit(); batch = db.batch(); } };
 for (let i = 0; i < 300; i++) await add({ outcome: 'read', guess: '100', confidence: .7, final: '100', result: 'match' });
@@ -17,7 +17,9 @@ const dry = await learn(db, { write: false });
 console.assert(!(await db.doc('appConfig/scanTuning').get()).exists, 'dry run wrote');
 const out = await learn(db);
 const saved = (await db.doc('appConfig/scanTuning').get()).data();
-const ok = out.accept.odometer === .48 && out.accept.pump === .2 && out.accept.odometerFirst === .55 && saved.engine === 2 && saved.accept.odometer === .48 && out.expired === 1
+// A second run with nothing new labelled stops after the count.
+const again = await learn(db);
+const ok = again.skipped === true && out.accept.odometer === .48 && out.accept.pump === .2 && out.accept.odometerFirst === .55 && saved.engine === 2 && saved.accept.odometer === .48 && out.expired === 1
   && !(await db.doc('scanImages/old').get()).exists && (await db.doc('scanImages/new').get()).exists && dry.accept.odometer === .48;
 console.log(ok ? 'SELFTEST PASS' : 'SELFTEST FAIL', JSON.stringify(out));
 process.exit(ok ? 0 : 1);

@@ -1,6 +1,7 @@
 name: Scan learning
 
-# Once a week: re-tune the photo reader's confidence thresholds from the scan
+# Once a day: when 10 or more new scans were saved since the last tuning (or a
+# week has passed), re-tune the photo reader's confidence thresholds from the scan
 # attempts people made and the numbers they finally saved, and delete scan
 # pictures older than a year. No model and no Cloud Function: plain statistics
 # in scripts/scan-learn/learn.mjs, written to appConfig/scanTuning, which every
@@ -11,11 +12,16 @@ name: Scan learning
 
 on:
   schedule:
-    - cron: "41 2 * * 1"
+    # 02:41 UTC, early morning in Israel. The job exits after one count when little is new.
+    - cron: "41 2 * * *"
   workflow_dispatch:
     inputs:
       dry_run:
         description: "Only print what would change"
+        type: boolean
+        default: false
+      force:
+        description: "Re-tune even with fewer than 10 new scans"
         type: boolean
         default: false
 
@@ -45,4 +51,4 @@ jobs:
       - name: Learn
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node "$RUNNER_TEMP/tank-scan/scripts/scan-learn/learn.mjs" ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: node "$RUNNER_TEMP/tank-scan/scripts/scan-learn/learn.mjs" ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.force && '--force' || '' }}

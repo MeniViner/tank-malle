@@ -596,9 +596,13 @@ function FillupEditor({
       setGeo((current) => ({ ...current, status: "locating" }));
 
       const result = await locateStations();
-      // The account or vehicle changed while locating (the form was opened before the
-      // vehicle finished loading): discard this answer, but let the next run ask again.
-      if (!stillMounted()) { if (!manual && request === geoRequest.current) geoRequested.current = false; return; }
+      // The account or vehicle changed while locating, or React re-ran the effects of a
+      // form that opened with its vehicle already loaded: discard this answer and, when
+      // the form is still on screen, ask again for the scope it has now.
+      if (!stillMounted()) {
+        if (!manual && request === geoRequest.current) { geoRequested.current = false; if (captureUi()()) void detectStation(); }
+        return;
+      }
       if (request !== geoRequest.current) return;
       setGeo(result);
       if (selection !== stationSelection.current) return;

@@ -54,6 +54,14 @@ describe('threshold tuning from labelled attempts', () => {
     expect(tuneThreshold(rows, .45, [.4, .8])).toMatchObject({ value: .48, wrong: 0, right: 300 });
     expect(tuneThreshold(rows, .45, [.4, .46])!.value).toBe(.46);
   });
+  it('with few attempts only tightens, and only after two wrong readings were shown', () => {
+    const wrong = (n: number) => many(n, { confidence: .47, final: '168058', result: 'corrected' });
+    expect(tuneThreshold([...many(30, { confidence: .7 }), ...wrong(1)], .45, [.4, .8])).toBeNull();
+    expect(tuneThreshold([...many(10, { confidence: .7 }), ...wrong(2)], .45, [.4, .8])).toBeNull();
+    expect(tuneThreshold([...many(30, { confidence: .7 }), ...wrong(2)], .45, [.4, .8])).toMatchObject({ value: .48, wrong: 0, right: 30 });
+    // Right guesses under the threshold are not enough to lower it yet.
+    expect(tuneThreshold([...many(30, { confidence: .7 }), ...many(100, { confidence: .42, outcome: 'unreadable' })], .5, [.4, .8])).toBeNull();
+  });
 });
 
 describe('labels', () => {

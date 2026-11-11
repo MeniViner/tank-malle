@@ -3,9 +3,12 @@
  * (.github/workflows/scan-learn.yml) runs this with the Admin SDK.
  *
  * 1. Reads the labelled scan attempts (`scanSamples` whose fill-up was saved) of the current engine.
+ * 0. Runs once a day, and stops after one cheap count unless 10 or more scans were labelled
+ *    since the last tuning (or a week has passed). GitHub minutes are free for a public repository;
+ *    the limit that matters is Firestore's free daily read quota, hence the count and the cap below.
  * 2. For each threshold (odometer with / without a previous reading, pump) finds the lowest value
- *    that would have kept wrong readings at or under 1% of those shown, moving at most 0.05 per run
- *    and only with 200+ labelled attempts (`tuneThreshold`).
+ *    that would have kept wrong readings at or under 1% of those shown, moving at most 0.05 per run.
+ *    Tightening needs 20 labelled attempts and two wrong readings; loosening needs 200 (`tuneThreshold`).
  * 3. Writes `appConfig/scanTuning`; every device reads it on its next scan (the engine clamps it).
  * 4. Deletes scan pictures older than a year (the privacy policy promises this).
  *
@@ -19,17 +22,23 @@ import { acceptKeyOf, tally, toSampleRow, tuneThreshold, wrongRate, rightRate, r
 const args = process.argv.slice(2), dryRun = args.includes('--dry-run');
 const days = Number(args[args.indexOf('--days') + 1]) > 0 && args.includes('--days') ? Number(args[args.indexOf('--days') + 1]) : 180;
 const RETENTION_DAYS = 365;
+/** New labelled scans that make a re-tune worth its reads, the longest wait without one, and the most samples one run reads. */
+const MIN_NEW = 10, MAX_WAIT_MS = 7 * 86_400_000, MAX_SAMPLES = 1500;
 
-export async function learn(db, { now = Date.now(), write = true, log = console.log } = {}) {
-  const snapshot = await db.collection('scanSamples').where('createdAt', '>=', now - days * 86_400_000).get();
-  const rows = snapshot.docs.flatMap(d => { const r = toSampleRow(d.id, d.data()); return r && r.engine === ENGINE_VERSION ? [r] : []; });
+export async function learn(db, { now = Date.now(), write = true, force = false, log = console.log } = {}) {
   const previous = (await db.doc('appConfig/scanTuning').get()).data();
+  if (write && !force && previous?.engine === ENGINE_VERSION && now - previous.updatedAt < MAX_WAIT_MS) {
+    const fresh = (await db.collection('scanSamples').where('labeledAt', '>', previous.updatedAt).count().get()).data().count;
+    if (fresh < MIN_NEW) { log(`${fresh} scans labelled since the last tuning; waiting for ${MIN_NEW}`); return { skipped: true, fresh }; }
+  }
+  const snapshot = await db.collection('scanSamples').where('createdAt', '>=', now - days * 86_400_000).orderBy('createdAt', 'desc').limit(MAX_SAMPLES).get();
+  const rows = snapshot.docs.flatMap(d => { const r = toSampleRow(d.id, d.data()); return r && r.engine === ENGINE_VERSION ? [r] : []; });
   const current = tunedAccept(previous?.engine === ENGINE_VERSION ? previous.accept : null);
   const accept = { ...current }, labeled = {}, notes = [];
   for (const key of Object.keys(ACCEPT)) {
     const mine = rows.filter(r => acceptKeyOf(r) === key), tuned = tuneThreshold(mine, current[key], ACCEPT_RANGE[key]);
     labeled[key] = mine.filter(r => r.final).length;
-    if (!tuned) { notes.push(`${key}: ${labeled[key]} labelled attempts, not enough to tune; stays ${current[key]}`); continue; }
+    if (!tuned) { notes.push(`${key}: ${labeled[key]} labelled attempts, nothing to change; stays ${current[key]}`); continue; }
     accept[key] = tuned.value;
     notes.push(`${key}: ${current[key]} -> ${tuned.value} (${tuned.labeled} with a guess; at the new value ${tuned.right} right, ${tuned.wrong} wrong shown)`);
   }
@@ -51,5 +60,5 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   const key = process.env.FIREBASE_SERVICE_ACCOUNT;
   if (!key && !process.env.FIRESTORE_EMULATOR_HOST) { console.error('FIREBASE_SERVICE_ACCOUNT is not set (see .github/workflows/fuel-prices.yml for the one-time setup).'); process.exit(1); }
   initializeApp(key ? { credential: cert(JSON.parse(key)) } : { credential: applicationDefault(), projectId: process.env.GCLOUD_PROJECT });
-  await learn(getFirestore(), { write: !dryRun });
+  await learn(getFirestore(), { write: !dryRun, force: args.includes('--force') });
 }
