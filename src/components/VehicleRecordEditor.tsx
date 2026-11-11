@@ -34,7 +34,7 @@ export function VehicleRecordEditor() {
   return null;
 }
 function IssueEditor({original,onClose,captureParentScope}:{original?:VehicleIssue;onClose:()=>void;captureParentScope:()=>()=>boolean}) {
-  const {scope,vehicleId,care,extra,today}=useVehicleData();const {saveCareRecord}=useData();const {showToast}=useToast();
+  const {scope,vehicleId,care,extra,today,currentMileage}=useVehicleData();const {saveCareRecord}=useData();const {showToast}=useToast();
   const [value,setValue]=useState<VehicleIssue>(()=>original??{id:crypto.randomUUID(),schemaVersion:1,version:1,day:localDay(),title:'',symptoms:'',odometer:null,importance:'normal',status:'open',notes:'',serviceEventIds:[],history:[]});
   const [dayDraft,setDayDraft]=useState(()=>formatCivilDay(value.day)||value.day);
   const [error,setError]=useState(''),[busy,setBusy]=useState(false);
@@ -55,7 +55,7 @@ function IssueEditor({original,onClose,captureParentScope}:{original?:VehicleIss
     <Field label="שם התקלה" dir="auto" required maxLength={120} value={value.title} onChange={e=>patch({title:e.target.value})} placeholder="למשל, רעש בזמן בלימה"/>
     <label className="field-label">מה שמתם לב?<textarea maxLength={2000} value={value.symptoms} onChange={e=>patch({symptoms:e.target.value})} rows={3}/></label>
     <CivilDateField label="יום הגילוי" data-testid="issue-day" required draftText={dayDraft} onDraftTextChange={setDayDraft}/>
-    <Field label="קילומטראז׳ בגילוי (רשות)" type="number" min={0} max={9999999} step={1} value={value.odometer??''} onChange={e=>patch({odometer:e.target.value===''?null:Number(e.target.value)})}/>
+    <Field label="קילומטראז׳ בגילוי (רשות)" type="number" min={0} max={9999999} step={1} value={value.odometer??''} placeholder={currentMileage?String(currentMileage.ambiguous?currentMileage.maximum:currentMileage.odometer):'0'} onChange={e=>patch({odometer:e.target.value===''?null:Number(e.target.value)})}/>
     <label className="field-label">חשיבות<select aria-label="חשיבות" value={value.importance} onChange={e=>patch({importance:e.target.value as VehicleIssue['importance']})}><option value="normal">למעקב רגיל</option><option value="important">חשוב לי לטפל בקרוב</option></select></label>
     <label className="field-label">מצב<select aria-label="מצב" value={value.status} onChange={e=>patch({status:e.target.value as VehicleIssue['status']})}><option value="open">פתוחה</option><option value="watching">במעקב</option><option value="resolved">נפתרה</option></select></label>
     <details><summary>טיפולים שקשורים לתקלה</summary><p className="helper">עלויות נספרות דרך הטיפול בלבד. סימון קישור אינו יוצר הוצאה נוספת.</p>{care.data.serviceEvents.length?care.data.serviceEvents.map(r=><label className="v-row" key={r.id}><input type="checkbox" disabled={!value.serviceEventIds.includes(r.id)&&value.serviceEventIds.length>=8} checked={value.serviceEventIds.includes(r.id)} onChange={e=>patch({serviceEventIds:e.target.checked?[...value.serviceEventIds,r.id]:value.serviceEventIds.filter(id=>id!==r.id)})}/><span><NumericText>{r.title}</NumericText><small><NumericText>{vehicleDay(r.day)}</NumericText></small></span></label>):<p className="helper">אחרי רישום הטיפול ביומן אפשר לקשר אותו כאן.</p>}</details>

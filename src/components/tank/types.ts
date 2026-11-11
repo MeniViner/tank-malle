@@ -1,7 +1,8 @@
 import type { TankEstimateHandle } from "../../hooks/useTankEstimate";
 import type { TankEstimate } from "../../lib/tank";
 
-export type TankSheetEntry = "summary" | "gauge";
+/** "odometer" opens only the odometer sheet (the card's "עדכון"), without the tank sheet behind it. */
+export type TankSheetEntry = "summary" | "gauge" | "odometer";
 
 /**
  * The parts of the one Home estimate that the hero card reads. A full

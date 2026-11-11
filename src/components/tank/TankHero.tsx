@@ -9,7 +9,10 @@ import "../../tank-design.css";
 
 export type { TankHeroEstimate, TankHeroProps, TankSheetEntry } from "./types";
 
-/** A view of the one Home estimate, never another hook or a second forecast. v3: a light card (§2.7). */
+/**
+ * A view of the one Home estimate, never another hook or a second forecast. v3: a light card (§2.7).
+ * The card opens the tank sheet; its "עדכון" is a separate button that opens the odometer sheet directly.
+ */
 export function TankHero({ estimate, loading = false, onOpen }: TankHeroProps) {
   const labelId = useId();
   const headlineId = useId();
@@ -23,7 +26,7 @@ export function TankHero({ estimate, loading = false, onOpen }: TankHeroProps) {
   const qualifiedHabit = estimate.habit.canClaim || estimate.habit.overridden;
   const uncertainDate = estimate.expectedRefuel.status === "unknown" || estimate.expectedRefuel.status === "beyondHorizon";
 
-  return <button type="button" data-testid="tank-hero" className="tm-tank-hero"
+  return <div className="tm-tank-hero-wrap"><button type="button" data-testid="tank-hero" className="tm-tank-hero"
     aria-labelledby={`${labelId} ${headlineId}`}
     aria-describedby={`${descriptionId}-level ${descriptionId}-habit ${descriptionId}-source`}
     aria-haspopup="dialog" onClick={() => onOpen(known ? "summary" : "gauge")}>
@@ -47,6 +50,8 @@ export function TankHero({ estimate, loading = false, onOpen }: TankHeroProps) {
           : estimate.habit.canClaim ? <>בדרך כלל אתה מתדלק כשנשארים <TankHabitLevel habit={estimate.habit} />.</>
             : "אחרי עוד כמה תדלוקים נלמד את ההרגל שלך."}
     </span>
-    <span className="tm-tank-hero-footer"><span id={`${descriptionId}-source`}><TankSource estimate={estimate} level={level} /></span><span>עדכון ›</span></span>
-  </button>;
+    <span className="tm-tank-hero-footer"><span id={`${descriptionId}-source`}><TankSource estimate={estimate} level={level} /></span></span>
+  </button>
+  <button type="button" data-testid="tank-hero-update" className="tm-tank-hero-update" aria-haspopup="dialog"
+    aria-label="עדכון קילומטראז׳" onClick={() => onOpen("odometer")}>עדכון ›</button></div>;
 }

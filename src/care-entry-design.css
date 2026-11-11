@@ -140,7 +140,7 @@
 .care-odometer-details { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .care-odometer-details > .tm-field-row { padding-inline: 0; }
 .care-odometer-pump .tm-pump-value input { min-height: 44px; font: 600 32px/1.15 var(--font-mono); font-variant-numeric: tabular-nums; text-align: left; }
-.care-odometer-pump .tm-pump-value input::placeholder { font-family: var(--font-sans); font-size: 14px; }
+.care-odometer-pump .tm-pump-value input::placeholder { font: inherit; }
 .care-odometer-pump .tm-pump-caption { text-shadow: none; }
 @media (max-width: 350px) {
   .care-entry-top { padding-inline: 16px; }

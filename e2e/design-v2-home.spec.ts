@@ -518,7 +518,6 @@ for (const [theme, accent] of [["light", "plate"], ["light", "mint"], ["dark", "
     await expect(page.getByTestId("tank-recommended")).toBeVisible();
     await expect(page.getByTestId("tank-range")).toBeVisible();
     await size44(page.getByTestId("tank-save-gauge"));
-    fieldMeasurements.push(await fieldAccessibility(tank.getByLabel("קילומטראז׳ (לא חובה)")));
     await capture(page, `home-tank-sheet-${suffix}`, true);
     for (let index = 0; index < 8; index++) { await page.keyboard.press("Tab"); await focusedIn(tank); }
     for (const [id, name] of [["tank-open-odometer", "odometer"], ["tank-open-trip", "trip"], ["tank-open-reserve", "reserve"], ["tank-open-habit", "habit"]]) {

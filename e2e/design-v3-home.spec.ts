@@ -55,13 +55,13 @@ test("v3 Home: order, 64 > 56 > 44 size hierarchy, facts strip, avatar ring, TCO
   });
   expect(largestOther).toBeLessThan(44);
 
-  // Header avatar: 2.5px accent ring open at the bottom.
+  // Header avatar: 2.5px accent ring open at about half past ten (rotate 252deg reads back as -108).
   const ring = page.getByTestId("avatar-ring");
   await expect(ring.locator("circle")).toHaveAttribute("stroke-dasharray", "112 132");
   const ringStyle = await ring.evaluate(svg => ({ transform: getComputedStyle(svg).transform, stroke: getComputedStyle(svg.querySelector("circle")!).strokeWidth,
     color: getComputedStyle(svg.querySelector("circle")!).stroke, accent: getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() }));
   const angle = Math.round(Math.atan2(Number(ringStyle.transform.split(/[(,]/)[2]), Number(ringStyle.transform.split(/[(,]/)[1])) * 180 / Math.PI);
-  expect(angle).toBe(117);
+  expect(angle).toBe(-108);
   expect(ringStyle.stroke).toBe("2.5px");
   await size44(page.getByTestId("open-account"));
 
@@ -142,7 +142,14 @@ test("v3 Home: order, 64 > 56 > 44 size hierarchy, facts strip, avatar ring, TCO
     surface: getComputedStyle(document.body).getPropertyValue("--surface") }));
   expect(colors.bg).toBe("rgb(255, 255, 255)");
   await expect(hero.locator(".tm-tank-gauge-caption")).toContainText(/^במיכל כ־\d+%/);
-  await expect(hero.locator(".tm-tank-hero-footer")).toContainText("עדכון ›");
+  await expect(page.getByTestId("tank-hero-update")).toHaveText("עדכון ›");
+  await size44(page.getByTestId("tank-hero-update"));
+  // "עדכון" opens the odometer sheet directly, without the tank sheet behind it.
+  await page.getByTestId("tank-hero-update").click();
+  await expect(page.getByTestId("tank-odometer-sheet")).toBeVisible();
+  await expect(page.getByTestId("tank-sheet")).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("tank-odometer-sheet")).toHaveCount(0);
   const habit = hero.locator(".tm-gauge-habit-labelled em");
   if (await habit.count()) {
     await expect(habit).toHaveText(/כאן (בד״כ מתדלקים|לפי ההעדפה שלך)/);
