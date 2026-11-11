@@ -13,8 +13,14 @@ export type DisplayResult = { status: 'read'; values: DisplayReading; confidence
 /**
  * Below these the engine's best guess is wrong more often than right on the
  * owner's photo set (scripts/scan-real); above them it was never wrong there.
+ * Without a previous reading in the journal nothing checks an odometer reading,
+ * so it needs more confidence (`odometerFirst`, set on public photos of other cars).
  */
-export const ACCEPT = { odometer: .45, pump: .2 } as const;
+export const ACCEPT = { odometer: .45, odometerFirst: .55, pump: .2 } as const;
+
+/** Whether an odometer reading is confident enough to offer. */
+export const acceptOdometer = (confidence: number, context: ScanContext = {}) =>
+  confidence >= (context.lastOdometer != null && context.lastOdometer > 0 ? ACCEPT.odometer : ACCEPT.odometerFirst);
 /** Largest picture the engine is given, in pixels. */
 export const MAX_PIXELS = 16_000_000;
 
@@ -24,7 +30,7 @@ export function recognizeDisplay(image: RGBA, kind: DisplayKind, context: ScanCo
   const result = scanPhoto(image, kind, context);
   if (kind === 'odometer') {
     const best = result.odometer[0];
-    return best && best.confidence >= ACCEPT.odometer ? { status: 'read', values: { odometer: best.text }, confidence: best.confidence } : { status: 'unreadable' };
+    return best && acceptOdometer(best.confidence, context) ? { status: 'read', values: { odometer: best.text }, confidence: best.confidence } : { status: 'unreadable' };
   }
   const best = result.pump[0];
   return best && best.confidence >= ACCEPT.pump ? { status: 'read', values: { total: best.total, liters: best.liters }, confidence: best.confidence } : { status: 'unreadable' };

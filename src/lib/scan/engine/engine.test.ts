@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { demoPhoto, lineFixture } from '../fixtures';
-import { ACCEPT, recognizeDisplay } from './index';
-import { scanPhoto } from './read';
+import { ACCEPT, acceptOdometer, recognizeDisplay } from './index';
+import { oneApart, scanPhoto } from './read';
 
 describe('scan engine on synthetic displays', () => {
   it('reads the demo pump (amount, litres and the price row that proves them)', () => {
@@ -32,5 +32,21 @@ describe('scan engine on synthetic displays', () => {
     const r = recognizeDisplay(lineFixture('170549'), 'pump');
     expect(r.status).toBe('unreadable');
     expect(ACCEPT.pump).toBeGreaterThan(0);
+  });
+  it('treats readings one segment or one edge digit apart as rivals', () => {
+    expect(oneApart('120273', '120279')).toBe(true);
+    expect(oneApart('119462', '1119462')).toBe(true);
+    expect(oneApart('186351', '18635')).toBe(true);
+    expect(oneApart('186351', '86351')).toBe(true);
+    expect(oneApart('186351', '186351')).toBe(false);
+    expect(oneApart('120273', '120299')).toBe(false);
+    expect(oneApart('186351', '8635')).toBe(false);
+  });
+  it('asks more of an odometer reading when the journal has nothing to check it against', () => {
+    const c = (ACCEPT.odometer + ACCEPT.odometerFirst) / 2;
+    expect(acceptOdometer(c, { lastOdometer: 120000 })).toBe(true);
+    expect(acceptOdometer(c)).toBe(false);
+    expect(acceptOdometer(c, { lastOdometer: null })).toBe(false);
+    expect(acceptOdometer(ACCEPT.odometerFirst)).toBe(true);
   });
 });

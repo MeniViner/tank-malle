@@ -131,6 +131,13 @@ export function readWords(levels: Gray[], options: ProposalOptions = {}): { word
 /** Two words read from the same physical row of the display (found twice, at different scales). */
 const sameRow = (a: Word, b: Word) => a === b || Math.hypot(a.line.cx - b.line.cx, a.line.cy - b.line.cy) < Math.max(a.line.height, b.line.height) * .6;
 
+/** Same length and one digit different, or the same digits with one more at either end. */
+export function oneApart(a: string, b: string): boolean {
+  if (a.length === b.length) { let d = 0; for (let i = 0; i < a.length; i++) d += +(a[i] !== b[i]); return d === 1; }
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  return long.length === short.length + 1 && (long.slice(1) === short || long.slice(0, -1) === short);
+}
+
 const ODOMETER_LENGTH: Record<number, number> = { 4: .5, 5: .85, 6: 1, 7: .8 };
 
 export function chooseOdometer(words: Word[], context: ScanContext = {}): OdometerRead[] {
@@ -153,6 +160,11 @@ export function chooseOdometer(words: Word[], context: ScanContext = {}): Odomet
   const list = [...best.values()];
   // A reading that is only part of a longer reading of the same row lost a digit at one end.
   for (const a of list) if (list.some(b => b !== a && b.text.length > a.text.length && b.text.includes(a.text) && sameRow(a.word, b.word) && b.confidence >= a.confidence * .6)) a.confidence *= .6;
+  // Two close readings (one digit apart, or one with an extra digit at an end) that are both
+  // plausible mean one segment or one narrow "1" decided between them: doubt both. On public odometer
+  // photos (scripts/scan-real/trodo.mjs) this halves the wrong readings shown for a few right ones.
+  const before = new Map(list.map(a => [a, a.confidence]));
+  for (const a of list) if (list.some(b => b !== a && oneApart(a.text, b.text) && before.get(b)! >= before.get(a)! * .5)) a.confidence *= .7;
   return list.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
 

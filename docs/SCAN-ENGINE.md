@@ -23,14 +23,18 @@ proposes; the person checks the numbers in the fill-up form and saves there.
    "1"; a small low mark is a decimal point.
 4. **Choose by what the numbers mean** (`read.ts`). Odometer: a 4–7 digit
    integer row, preferring the longer reading of a row, the journal's last
-   reading only re-weighting (it may be stale). Pump: amount and litres must be
+   reading only re-weighting (it may be stale); when two close readings (one
+   digit apart, or one with an extra digit at an end, typically a missed
+   segment or a narrow "1") are both plausible, both are doubted. Pump: amount and litres must be
    stacked, the litres row under the amount; litres × price must equal the
    amount to the agora — the price row when one is read, otherwise some
    whole-agora price. If the first pass is not confident, a lower ink threshold
    is tried for faint displays, and the rows just above and below a well-read
    pump row are cut out directly.
 5. **Answer only when confident** (`index.ts`): below `ACCEPT` the app says the
-   digits were not clear and the person types them.
+   digits were not clear and the person types them. An odometer reading with no
+   previous reading in the journal to check it against needs more confidence
+   (`ACCEPT.odometerFirst`).
 
 ## Measured on the owner's photos (2026-11-11)
 
@@ -53,10 +57,41 @@ app runs it in a worker with a 45 s limit for files.
 
 Raw per-photo results: `docs/releases/2026-11-11-scan-engine/real-photos.json`.
 
+## Measured on other cars: TRODO (2026-11-11)
+
+TRODO is a public set of odometer photos from a Turkish delivery fleet, taken
+with phones by drivers (Mouheb, Yürekli, Yılmazel, *Data in Brief* 38, 2021;
+[Mendeley Data, doi:10.17632/6y8m379mkt.2](https://data.mendeley.com/datasets/6y8m379mkt/2),
+CC BY 4.0). Many makes and display styles, night and day, glare, tilt. It is not
+in the repository; `scripts/scan-real/trodo.mjs` reads the unzipped folder.
+The 1,274 digital odometers with a usable label, whole photos, no crop:
+
+| | shown right | shown wrong | not read |
+|---|---|---|---|
+| no journal (first fill-up of a car) | 792 (62.2%) | 13 (1.0%) | 469 |
+| journal reading a few hundred km back | 864 (67.8%) | 4 (0.3%) | 406 |
+
+Before the two rules above (close-rival doubt, stricter first reading) the
+same set showed 57 wrong readings without a journal and 14 with one; right
+readings fell from 867 to 792 and from 880 to 864. The owner's photos are
+unchanged with a journal (36 of 43 read, none wrong); without one, two
+odometer photos fall below `odometerFirst`. At least one remaining
+"wrong" reading looks like a TRODO label error (a digit after the mileage left
+out of the label).
+
+For comparison, [ssocr](https://www.unix-ag.uni-kl.de/~auerswal/ssocr/), the
+established code-only seven-segment reader, given a hand-made crop of exactly
+the mileage digits (which our engine never gets) and the best of four settings
+per photo, read 11 of 242 sampled photos: it expects a fixed camera, level
+digits and closed segments. 858 TRODO photos are mechanical (analog) odometers,
+which this engine does not read.
+
 ## Developer tools
 
 - `node scripts/scan-real/run.mjs --dir <photos> [--history] [--verbose]` — the
   benchmark above.
+- `node scripts/scan-real/trodo.mjs --dir <trodo-v01> [--journal] [--fails] [--out file.json]`
+  — the TRODO benchmark.
 - `node scripts/scan-real/debug-read.mjs --dir <photos> --file <name> [--near x,y,r] [--want digits] [--ascii 1] [--out strips.png]` — every row the engine saw, its reading and the ink mask.
 - `node scripts/scan-real/debug-mask.mjs` — the ink mask of one pyramid level.
 - `src/lib/scan/engine/engine.test.ts` — synthetic displays (`src/lib/scan/fixtures.ts`).
