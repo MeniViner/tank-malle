@@ -86,6 +86,43 @@ per photo, read 11 of 242 sampled photos: it expects a fixed camera, level
 digits and closed segments. 858 TRODO photos are mechanical (analog) odometers,
 which this engine does not read.
 
+## Learning from use (since 1.9.0)
+
+No model and no Cloud Function. Three pieces:
+
+1. **Collection** (`src/lib/scan/samples.ts`). Every attempt — one camera session or
+   one chosen file — writes a small record to `scanSamples` (kind, source, attempt
+   number in the session, shown or not, best guess and its confidence, timing,
+   platform, app and engine version) and, under the same id in `scanImages`, the
+   rows the engine cut out (64 px high, grey JPEG, at most three) or, when nothing
+   was read, a grey copy of the picture at most 320 px wide. The full photo never
+   leaves the device. When the fill-up is saved, the saved numbers are attached
+   once as the label (`final`, `result`: match / corrected / manual). Writes are
+   fire-and-forget and queue offline. Rules: `firestore.rules` (`scanSamples`,
+   `scanImages`), tests in `tests/rules/scan-samples.rules.test.ts`; account
+   deletion erases both. The privacy policy (§6) and terms (§3) describe it.
+2. **Measurement** (Admin → סריקה, `src/components/admin/ScanAccuracy.tsx`, figures in
+   `src/lib/scan/sampleStats.ts`): share shown, share right and share wrong of the
+   labelled attempts, by day, by attempt number, by display, source, platform and
+   version; how many tries each display needed; the failed attempts with the rows
+   the engine saw.
+3. **Tuning** (`scripts/scan-learn/learn.mjs`, weekly in
+   `.github/workflows/scan-learn.yml`, same service-account secret as the fuel
+   price job). For each threshold it takes the labelled attempts of the current
+   engine and picks the lowest value that would have kept wrong readings at or
+   under 1% of those shown; at most 0.05 per run, only with 200+ labelled
+   attempts, always inside `ACCEPT_RANGE`. The result goes to
+   `appConfig/scanTuning`; devices read it on their next scan and the engine
+   clamps it again. It also deletes scan pictures older than a year.
+   `scripts/scan-learn/selftest.mjs` checks it against the emulator.
+
+What this loop can and cannot do: it tunes *when to answer*, automatically. It
+does not teach the engine a display it cannot decode; for that,
+`scripts/scan-learn/pull.mjs --only problems` downloads the failed attempts with
+their true numbers, and a rule is written against them (bump `ENGINE_VERSION`
+when one is). A label is what the person saved: a wrong reading nobody
+corrected counts as right.
+
 ## Developer tools
 
 - `node scripts/scan-real/run.mjs --dir <photos> [--history] [--verbose]` — the

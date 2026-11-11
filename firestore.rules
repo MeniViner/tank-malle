@@ -894,6 +894,60 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
     }
 
+    // Scan samples: one record per reading attempt (camera session or chosen file), plus the
+    // rows the engine cut out, in `scanImages` under the same id. The owner creates them and may
+    // attach, once, what was finally saved; nothing else is ever editable. Admins read them to
+    // measure the reader; scripts/scan-learn (Admin SDK) re-tunes its thresholds from them.
+    function scanKey(value) { return value == null || (value is string && value.size() <= 40 && value.matches('^[0-9.|]+$')); }
+    function validScanSample(d) {
+      return d.keys().hasOnly(['uid','createdAt','day','appVersion','engine','kind','source','session','attempt','outcome','guess',
+                               'confidence','ms','frames','seconds','width','height','journal','platform','final','result','labeledAt'])
+        && d.uid == request.auth.uid
+        && d.createdAt is number && d.createdAt > 1700000000000 && d.createdAt < 4102444800000
+        && careDay(d.day) && isString(d.appVersion, 20) && careInt(d.engine, 100000)
+        && d.kind in ['pump','odometer'] && d.source in ['camera','file']
+        && isString(d.session, 64) && d.session.size() > 0 && d.attempt is int && d.attempt >= 1 && d.attempt <= 99
+        && d.outcome in ['read','unreadable'] && scanKey(d.guess)
+        && (d.confidence == null || (isNonNaNNumber(d.confidence) && d.confidence >= 0 && d.confidence <= 1))
+        && careInt(d.ms, 600000) && careInt(d.frames, 100000)
+        && isNonNaNNumber(d.seconds) && d.seconds >= 0 && d.seconds <= 3600
+        && careInt(d.width, 20000) && careInt(d.height, 20000)
+        && d.journal is bool && d.platform in ['android','ios','other']
+        && d.final == null && d.result == null && d.labeledAt == null;
+    }
+    function validScanPicture(p) {
+      return p is map && p.keys().hasOnly(['role','text','confidence','w','h','jpeg'])
+        && careInt(p.w, 2000) && careInt(p.h, 2000) && p.jpeg is string && p.jpeg.size() > 0 && p.jpeg.size() <= 60000
+        && (!('role' in p) || p.role in ['odometer','total','liters','price'])
+        && (!('text' in p) || isString(p.text, 16))
+        && (!('confidence' in p) || (isNonNaNNumber(p.confidence) && p.confidence >= 0 && p.confidence <= 1));
+    }
+    function scanStripAt(strips, n) { return strips.size() <= n || validScanPicture(strips[n]); }
+    function validScanImages(d) {
+      return d.keys().hasOnly(['uid','createdAt','strips','thumb'])
+        && d.uid == request.auth.uid && d.createdAt is number
+        && d.strips is list && d.strips.size() <= 3
+        && scanStripAt(d.strips, 0) && scanStripAt(d.strips, 1) && scanStripAt(d.strips, 2)
+        && (d.thumb == null || validScanPicture(d.thumb));
+    }
+
+    match /scanSamples/{sampleId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn() && accountWritable(request.auth.uid) && validScanSample(request.resource.data);
+      allow update: if isSignedIn() && resource.data.uid == request.auth.uid && resource.data.final == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['final','result','labeledAt'])
+        && request.resource.data.final is string && scanKey(request.resource.data.final)
+        && request.resource.data.result in ['match','corrected','manual']
+        && request.resource.data.labeledAt is number;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+    match /scanImages/{sampleId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn() && accountWritable(request.auth.uid) && validScanImages(request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+
     // Global config: readable by any signed-in user; written by the scheduled
     // function, the admin seed script (both bypass rules), or a signed-in admin.
     match /appConfig/{document=**} {

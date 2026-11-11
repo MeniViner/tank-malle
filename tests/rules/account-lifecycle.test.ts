@@ -25,7 +25,7 @@ describe("privacy lifecycle server readback", () => {
     await assertFails(setDoc(doc(db, "benchmarks/alice__active"), summary));
   });
   it("erases every personal collection and refuses concurrent new writes during deletion", async () => {
-    const paths = ["users/alice/vehicles/v1", "users/alice/vehicles/v1/fillups/f1", "users/alice/vehicles/v1/observations/o1", "users/alice/vehicles/v1/tankPlans/p1", "users/alice/personalPriceRules/r1", "users/alice/importBatches/i1", "users/alice/stationPriceReports/s1", "benchmarks/alice__orphan", "benchmarks/alice", "costBenchmarks/alice__orphan", "userSummaries/alice", "feedback/f1"];
+    const paths = ["users/alice/vehicles/v1", "users/alice/vehicles/v1/fillups/f1", "users/alice/vehicles/v1/observations/o1", "users/alice/vehicles/v1/tankPlans/p1", "users/alice/personalPriceRules/r1", "users/alice/importBatches/i1", "users/alice/stationPriceReports/s1", "benchmarks/alice__orphan", "benchmarks/alice", "costBenchmarks/alice__orphan", "userSummaries/alice", "feedback/f1", "scanSamples/s1", "scanImages/s1"];
     await env.withSecurityRulesDisabled(async (context) => {
       await setDoc(doc(context.firestore(), "users/alice"), { settings: { shareTcoBenchmarks: true }, costSharingUsed: true });
       for (const path of paths) await setDoc(doc(context.firestore(), path), { uid: "alice", ...summary, ...(path.startsWith("costBenchmarks/") ? { vehicleId: "orphan" } : {}) });

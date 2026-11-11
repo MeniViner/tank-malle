@@ -107,5 +107,8 @@ export function accountDataDeletionSteps(db: Firestore, uid: string) {
       if ((await getDocFromServer(ref)).exists()) throw new Error("summary-remains");
     } },
     { label: "feedback", run: () => eraseQuery(db, query(collection(db, "feedback"), where("uid", "==", uid))) },
+    ...["scanImages", "scanSamples"].map((name) => ({
+      label: name, run: () => eraseQuery(db, query(collection(db, name), where("uid", "==", uid))),
+    })),
   ];
 }

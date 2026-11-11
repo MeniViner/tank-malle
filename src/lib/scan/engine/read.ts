@@ -22,7 +22,7 @@ export type ScanKind = 'odometer' | 'pump';
 export type ScanContext = { lastOdometer?: number | null; pricePerLiter?: number | null; tankCapacity?: number | null };
 export type OdometerRead = { text: string; value: number; confidence: number; word: Word };
 export type PumpRead = { total: string; liters: string; price: string | null; confidence: number; words: { total: Word; liters: Word; price: Word | null } };
-export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number };
+export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number; levels: Gray[] };
 
 const MIN_FIT = .55, PRICE_MIN = 4.5, PRICE_MAX = 14;
 
@@ -128,6 +128,18 @@ export function readWords(levels: Gray[], options: ProposalOptions = {}): { word
   return { words, lines: lines.length };
 }
 
+/** The upright strip a word was read from, as the decoder saw it (at most `maxWidth` wide, around the word). */
+export function stripOf(levels: Gray[], word: Word, maxWidth = 640): Gray {
+  const strip = rectify(levels, word.line, STRIP_H, word.flipped, PAD, BAND);
+  if (strip.width <= maxWidth) return strip;
+  const x0 = Math.floor((strip.width - maxWidth) / 2), data = new Uint8Array(maxWidth * strip.height);
+  for (let y = 0; y < strip.height; y++) data.set(strip.data.subarray(y * strip.width + x0, y * strip.width + x0 + maxWidth), y * maxWidth);
+  return { width: maxWidth, height: strip.height, data };
+}
+
+/** Whether two words come from one physical row; exported for sampling. */
+export const sameRowOf = (a: Word, b: Word) => sameRow(a, b);
+
 /** Two words read from the same physical row of the display (found twice, at different scales). */
 const sameRow = (a: Word, b: Word) => a === b || Math.hypot(a.line.cx - b.line.cx, a.line.cy - b.line.cy) < Math.max(a.line.height, b.line.height) * .6;
 
@@ -232,5 +244,5 @@ export function scanPhoto(image: RGBA, kind: ScanKind, context: ScanContext = {}
   const sureNow = () => kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
   if (!sure && kind === 'pump') { words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
   if (!sureNow()) { words = [...words, ...readWords(levels, FAINT).words]; if (kind === 'pump') words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
-  return { kind, words, ...chosen, ms: Date.now() - started };
+  return { kind, words, ...chosen, ms: Date.now() - started, levels };
 }

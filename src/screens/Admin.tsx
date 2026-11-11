@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ScanAccuracy } from "../components/admin/ScanAccuracy";
 import { useNavigate } from "react-router-dom";
 import {
   collection,
@@ -108,12 +109,13 @@ const PAGE_SIZE = 25;
  * pool — so nothing could be found and each block invented its own header.
  * They are tabs now, and every block is a Panel with the same chrome.
  */
-type AdminTab = "overview" | "users" | "data" | "feedback";
+type AdminTab = "overview" | "users" | "data" | "scan" | "feedback";
 
 const ADMIN_TABS: { value: AdminTab; label: string }[] = [
   { value: "overview", label: "סקירה" },
   { value: "users", label: "משתמשים" },
   { value: "data", label: "נתונים" },
+  { value: "scan", label: "סריקה" },
   { value: "feedback", label: "משוב" },
 ];
 
@@ -316,6 +318,7 @@ function AdminSession() {
             <p className="helper"><NumericText>{`החיפוש והמיון חלים על ${users.length} החשבונות שנטענו. נתוני משתמשים הם לקריאה בלבד.`}</NumericText></p>
           </> : null}
           {tab === 'data' ? <><FuelPriceEditor key={user?.uid} /><StationDataPanel /></> : null}
+          {tab === 'scan' ? <ScanAccuracy /> : null}
           {tab === 'feedback' && user ? <FeedbackInbox key={user.uid} uid={user.uid} /> : null}
         </>}
       </div>
