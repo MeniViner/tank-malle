@@ -49,7 +49,18 @@ async function main() {
     profile: async uid => (await db.doc(`users/${uid}`).get()).data() ?? null,
     vehicles: async uid => rows(await db.collection(`users/${uid}/vehicles`).get()),
     collection: async (uid, vehicleId, name) => rows(await db.collection(`users/${uid}/vehicles/${vehicleId}/${name}`).get()),
-    latest: async (uid, vehicleId, name, field, limit) => rows(await db.collection(`users/${uid}/vehicles/${vehicleId}/${name}`).orderBy(field, 'desc').limit(limit).get()),
+    // Pages back until `limit` rows pass `keep`, or 500 documents were looked at.
+    async latest(uid, vehicleId, name, field, limit, keep) {
+      const found: RawDoc[] = [];
+      let query = db.collection(`users/${uid}/vehicles/${vehicleId}/${name}`).orderBy(field, 'desc').limit(50), seen = 0;
+      for (;;) {
+        const page = await query.get();
+        for (const row of rows(page)) if (keep(row) && found.push(row) >= limit) return found;
+        seen += page.size;
+        if (page.size < 50 || seen >= 500) return found;
+        query = query.startAfter(page.docs[page.docs.length - 1]);
+      }
+    },
     async sentIds(uid, ids) {
       if (!ids.length) return new Set();
       const found = await db.getAll(...ids.map(id => db.doc(`users/${uid}/pushSent/${id}`)), { fieldMask: [] });

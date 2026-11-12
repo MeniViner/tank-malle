@@ -13,8 +13,12 @@ export interface PushStore {
   profile(uid: string): Promise<Record<string, unknown> | null>;
   vehicles(uid: string): Promise<RawDoc[]>;
   collection(uid: string, vehicleId: string, name: string): Promise<RawDoc[]>;
-  /** The newest documents of a collection by a time field: the current odometer needs only the last day's readings. */
-  latest(uid: string, vehicleId: string, name: string, field: string, limit: number): Promise<RawDoc[]>;
+  /**
+   * The newest documents of a collection by a time field that `keep` accepts, up to `limit`: the
+   * current odometer needs only the last readings. Rows `keep` rejects (a tank level without an
+   * odometer) do not count toward the limit, so they cannot hide an older reading.
+   */
+  latest(uid: string, vehicleId: string, name: string, field: string, limit: number, keep: (row: RawDoc) => boolean): Promise<RawDoc[]>;
   /** Which of these ids were already pushed. */
   sentIds(uid: string, ids: string[]): Promise<Set<string>>;
   markSent(uid: string, items: { id: string; occurrence: string }[], sentAt: number): Promise<void>;
@@ -54,14 +58,11 @@ async function vehicleItems(store: PushStore, uid: string, vehicle: RawDoc, sett
   let fillups: { id: string; date: number; odometer: number }[] = [], observations: { id: string; observedAt: number; odometer: number }[] = [];
   if (reminders) {
     await read('serviceEvents'); await read('odometerReadings');
-    fillups = (await store.latest(uid, vehicle.id, 'fillups', 'date', LATEST_READINGS)).flatMap(row => {
-      const date = millis(row.date), odometer = row.odometer;
-      return date !== null && typeof odometer === 'number' && Number.isFinite(odometer) ? [{ id: row.id, date, odometer }] : [];
-    });
-    observations = (await store.latest(uid, vehicle.id, 'observations', 'observedAt', LATEST_READINGS)).flatMap(row => {
-      const observedAt = millis(row.observedAt), odometer = row.odometer;
-      return observedAt !== null && typeof odometer === 'number' && Number.isFinite(odometer) ? [{ id: row.id, observedAt, odometer }] : [];
-    });
+    const reading = (field: string) => (row: RawDoc) => millis(row[field]) !== null && typeof row.odometer === 'number' && Number.isFinite(row.odometer);
+    fillups = (await store.latest(uid, vehicle.id, 'fillups', 'date', LATEST_READINGS, reading('date'))).filter(reading('date'))
+      .map(row => ({ id: row.id, date: millis(row.date)!, odometer: row.odometer as number }));
+    observations = (await store.latest(uid, vehicle.id, 'observations', 'observedAt', LATEST_READINGS, reading('observedAt'))).filter(reading('observedAt'))
+      .map(row => ({ id: row.id, observedAt: millis(row.observedAt)!, odometer: row.odometer as number }));
   }
   const states = (await store.collection(uid, vehicle.id, 'notificationStates')).filter(row => validVehicleRecord('notificationStates', row)) as unknown as NotificationState[];
   return pushDigest({ vehicle: shape, care, fillups, observations, states, settings, today, nameVehicle });

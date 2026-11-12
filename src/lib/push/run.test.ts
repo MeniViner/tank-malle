@@ -5,7 +5,7 @@ import { runPush, type PushMessage, type PushStore, type PushSubscriptionRow, ty
 const plan = (id: string, dueDay: string): RawDoc => ({ id, schemaVersion: 1, version: 1, title: `טיפול ${id}`, job: 'periodic', dueDay, dueOdometer: null,
   intervalMonths: null, intervalKm: null, basis: 'manual', source: 'owner', notes: '', active: true });
 
-function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[]; fillups?: RawDoc[]; users?: string[]; broken?: string } = {}) {
+function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[]; fillups?: RawDoc[]; observations?: RawDoc[]; users?: string[]; broken?: string } = {}) {
   const sent = new Map<string, string>(), removed: string[] = [], reads: string[] = [];
   const subs: PushSubscriptionRow[] = (over.users ?? ['alice']).flatMap(uid => (over.devices ?? ['d1']).map(id => ({ uid, id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a' })));
   const store: PushStore = {
@@ -14,7 +14,9 @@ function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Reco
     vehicles: async () => over.vehicles ?? [{ id: 'v1', nickname: 'המשפחתית', archived: false }],
     collection: async (_uid, vehicleId, name) => { reads.push(name); return vehicleId !== 'v1' ? [] : name === 'maintenancePlans' ? over.plans ?? [plan('a', '2026-11-12')]
       : name === 'notificationStates' ? over.states ?? [] : []; },
-    latest: async (_uid, _vehicleId, name, _field, limit) => { reads.push(`latest ${name}`); return name === 'fillups' ? (over.fillups ?? []).slice(0, limit) : []; },
+    latest: async (_uid, _vehicleId, name, field, limit, keep) => { reads.push(`latest ${name}`);
+      const all = (name === 'fillups' ? over.fillups : name === 'observations' ? over.observations : null) ?? [];
+      return [...all].sort((a, b) => Number(b[field]) - Number(a[field])).filter(keep).slice(0, limit); },
     sentIds: async (uid, ids) => new Set(ids.filter(id => sent.has(`${uid}/${id}`))),
     markSent: async (uid, items) => { for (const item of items) sent.set(`${uid}/${item.id}`, item.occurrence); },
     removeSubscription: async (_uid, id) => { removed.push(id); },
@@ -126,6 +128,15 @@ describe('runPush', () => {
     const none = sender();
     await runPush(fakeStore({ vehicles: [{ id: 'v1', deletionPending: true }] }).store, none.send, at);
     expect(none.calls).toHaveLength(0);
+  });
+  it('tank-level updates without an odometer do not hide the latest real reading', async () => {
+    const byKm = { ...plan('km', '2026-11-12'), dueDay: null, dueOdometer: 180_000 };
+    const day = (d: number) => Date.UTC(2026, 10, d, 10);
+    const observations = [{ id: 'reading', observedAt: day(1), odometer: 179_800 },
+      ...Array.from({ length: 15 }, (_, i) => ({ id: `level-${i}`, observedAt: day(2) + i, odometer: null }))];
+    const s = sender();
+    await runPush(fakeStore({ plans: [byKm], fillups: [{ id: 'f', date: Date.UTC(2026, 9, 1, 10), odometer: 170_000 }], observations }).store, s.send, at);
+    expect(s.calls.map(c => c.message.title)).toEqual(['טיפול km']);
   });
   it('names the car when the account has several', async () => {
     const { store } = fakeStore({ vehicles: [{ id: 'v1', nickname: 'המשפחתית' }, { id: 'v2', nickname: 'השנייה' }] }), s = sender();
