@@ -47,6 +47,7 @@ it('schedules once, replaces an edited deadline and cancels on logout', async ()
   await reconcileNativeReminders('alice', [item], () => true);
   await reconcileNativeReminders('alice', [item], () => true);
   expect(LocalNotifications.schedule).toHaveBeenCalledTimes(1);
+  expect(pending[0].isExactNotification).toBe(false);
   const revised = { ...item, day: '2026-11-14', at: item.at + 86_400_000 };
   await reconcileNativeReminders('alice', [revised], () => true);
   expect(pending).toHaveLength(1);

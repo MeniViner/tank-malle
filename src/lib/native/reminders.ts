@@ -104,6 +104,7 @@ export function reconcileNativeReminders(uid: string, candidates: ReminderCandid
       records.push(record);
       schedule.push({
         id: record.id, title: 'טנק מלא', body: 'יש תזכורת חדשה לרכב שלך',
+        isExactNotification: false,
         schedule: { at: new Date(Math.max(record.at, Date.now() + 500)) },
         extra: { uid, ...candidate },
       });
