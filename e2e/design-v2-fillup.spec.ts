@@ -106,7 +106,7 @@ async function importedEditFixture(page: Page, overrides: Record<string, unknown
   // this external fixture update in the live Home row before opening it.
   const row = page.getByTestId("journal-entry-fillups/fillup-baseline");
   await expect(row.locator(".tm-journal-title")).toHaveText("תחנה היסטורית");
-  await expect(row.locator(".tm-journal-money")).toHaveText(shekel(Number(original.totalCost)));
+  await expect(row.locator(".tm-journal-money > bdi")).toHaveText(shekel(Number(original.totalCost)));
   await page.goto("/fillup/fillup-baseline");
   await expect(page.getByTestId("fillup-total")).toHaveValue(String(original.totalCost));
   return { scope, path, original };
@@ -205,7 +205,7 @@ for (const amount of [
   await setDocument(path, { ...original, date: new Date(Number(original.date)), createdAt: new Date(Number(original.createdAt)) });
   const row = page.getByTestId("journal-entry-fillups/fillup-baseline");
   await expect(row.locator(".tm-journal-title")).toHaveText("תחנה היסטורית");
-  await expect(row.locator(".tm-journal-money")).toHaveText(shekel(amount.total));
+  await expect(row.locator(".tm-journal-money > bdi")).toHaveText(shekel(amount.total));
   await page.goto("/fillup/fillup-baseline");
   await expect(page.getByTestId("fillup-total")).toHaveValue(String(amount.total));
   await expect(page.getByTestId("fillup-price")).toHaveValue(String(amount.price));

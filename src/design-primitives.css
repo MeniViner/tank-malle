@@ -302,7 +302,7 @@ button.tm-odometer { cursor: pointer; }
 .facts.facts-tiles .fv { order: 2; flex-wrap: wrap; gap: 2px 4px; }
 .facts.facts-tiles .fv > .tm-number.n { font-size: 19px; }
 .facts.facts-tiles .fv > u { font-size: 11px; }
-.facts.facts-tiles .fl > small { order: 3; font-size: 11px; line-height: 1.35; color: var(--ink-3); }
+.facts.facts-tiles .fl > small { order: 3; font-size: 11px; line-height: 1.35; color: var(--ink-2); }
 @media (max-width: 359px) { .facts.facts-tiles > .fact { padding: 10px 9px; } .facts.facts-tiles .fv > .tm-number.n { font-size: 17px; } }
 
 @media (prefers-reduced-motion: reduce) {

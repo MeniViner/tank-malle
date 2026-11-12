@@ -70,7 +70,7 @@ test("v3 Home: order, 64 > 56 > 44 size hierarchy, facts strip, avatar ring, TCO
   await expect(page.getByTestId("home-status")).toHaveText(/^הכל תקין/);
   expect(await fontSize(page.getByTestId("home-status"))).toBe(15);
 
-  // Facts strip (§3): three receipt rows, buttons ≥44px, Plex Mono 22 values with 12px units.
+  // Facts (density pass): three tiles, buttons ≥44px, Plex Sans 19 values with 11px units.
   const facts = page.getByTestId("home-facts");
   await expect(facts.locator(":scope > .fact")).toHaveCount(3);
   await expect(facts.locator(":scope > button.fact")).toHaveCount(3);
@@ -82,12 +82,12 @@ test("v3 Home: order, 64 > 56 > 44 size hierarchy, facts strip, avatar ring, TCO
   for (const row of await facts.locator(":scope > .fact").all()) {
     await size44(row);
     const value = row.locator(".fv > .n");
-    expect(await value.evaluate(element => getComputedStyle(element).fontFamily)).toContain("IBM Plex Mono");
-    expect(await fontSize(value)).toBe(22);
+    expect(await value.evaluate(element => getComputedStyle(element).fontFamily)).toContain("IBM Plex Sans");
+    expect(await fontSize(value)).toBe(19);
+    expect(await row.evaluate(element => getComputedStyle(element).borderTopStyle)).toBe("solid");
   }
-  expect(await fontSize(facts.locator(".fv > u").first())).toBe(12);
-  expect(await facts.evaluate(element => [getComputedStyle(element).borderTopStyle, getComputedStyle(element).borderBottomStyle])).toEqual(["solid", "solid"]);
-  expect(await facts.locator(":scope > .fact").nth(1).evaluate(element => getComputedStyle(element).borderTopStyle)).toBe("dashed");
+  expect(await fontSize(facts.locator(".fv > u").first())).toBe(11);
+  await expect(facts).toHaveClass(/facts-tiles/);
 
   // TCO: chip flips number, legend and sub-line; card opens the sheet on the chosen period.
   const card = page.getByTestId("tco-card");
