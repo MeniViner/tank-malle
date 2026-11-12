@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const updates: { id: string; data: Record<string, unknown> }[] = [];
-vi.mock('../firebase', () => ({ db: {} }));
+const auth = { currentUser: { uid: 'alice' } as { uid: string } | null };
+vi.mock('../firebase', () => ({ db: {}, auth }));
 vi.mock('../version', () => ({ APP_VERSION: 'test' }));
 vi.mock('firebase/firestore', () => ({
   doc: (_db: unknown, _c: string, id: string) => ({ id }),
@@ -15,7 +16,7 @@ const entries = [{ id: 'a1', kind: 'pump' as const, outcome: 'read' as const, gu
 const saved = { total: '287.6', liters: '40', odometer: '128450' };
 
 beforeEach(() => {
-  vi.useFakeTimers(); updates.length = 0; store.clear();
+  vi.useFakeTimers(); updates.length = 0; store.clear(); auth.currentUser = { uid: 'alice' };
   vi.stubGlobal('localStorage', { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => { store.set(k, v); }, removeItem: (k: string) => { store.delete(k); } });
 });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -32,7 +33,9 @@ describe('scan labels after a save', () => {
     vi.clearAllTimers(); // the page went away
     vi.advanceTimersByTime(60_000);
     expect(updates).toHaveLength(0);
+    auth.currentUser = { uid: 'bob' };
     flushScanLabels('bob'); vi.runOnlyPendingTimers(); expect(updates).toHaveLength(0); // another account's start leaves them
+    auth.currentUser = { uid: 'alice' };
     flushScanLabels('alice'); vi.runOnlyPendingTimers();
     expect(updates.map(u => u.id)).toEqual(['a1']);
     flushScanLabels('alice'); vi.runOnlyPendingTimers();
@@ -44,6 +47,14 @@ describe('scan labels after a save', () => {
     flushScanLabels('alice');
     vi.advanceTimersByTime(3_999); expect(updates).toHaveLength(0);
     vi.advanceTimersByTime(1); expect(updates).toHaveLength(1);
+  });
+  it('signing out or switching accounts inside the window keeps them for the owner\'s next start', () => {
+    scheduleScanLabels('alice', entries, saved);
+    auth.currentUser = null;
+    vi.advanceTimersByTime(6_000); expect(updates).toHaveLength(0);
+    auth.currentUser = { uid: 'bob' }; flushScanLabels('bob'); vi.runOnlyPendingTimers(); expect(updates).toHaveLength(0);
+    auth.currentUser = { uid: 'alice' }; flushScanLabels('alice'); vi.runOnlyPendingTimers();
+    expect(updates.map(u => u.id)).toEqual(['a1']);
   });
   it('an undo withdraws them, also after a reload; an undo that failed writes them', () => {
     const undone = scheduleScanLabels('alice', entries, saved);

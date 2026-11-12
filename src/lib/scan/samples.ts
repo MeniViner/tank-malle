@@ -8,7 +8,7 @@
  * Nothing here may block or fail a scan: every write is fire-and-forget.
  */
 import { doc, collection, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { APP_VERSION } from '../version';
 import { ENGINE_VERSION } from './engine/version';
 import type { Accept, DisplayKind, DisplayResult } from './engine';
@@ -125,6 +125,9 @@ function runJob(job: LabelJob): void {
   clearTimeout(timers.get(job.id)); timers.delete(job.id);
   // Only a job still on the device runs: one cancelled (undo) or already run elsewhere is gone.
   if (!readJobs().some(j => j.id === job.id)) return;
+  // Only its own account may write it (the rules allow nothing else). Signed out or switched in
+  // the meantime: it stays on the device until that account signs in here again.
+  if (auth.currentUser?.uid !== job.uid) return;
   dropJob(job.id);
   labelScanSamples(job.entries, job.saved);
 }
@@ -147,7 +150,7 @@ export function scheduleScanLabels(uid: string, entries: readonly ScanSampleEntr
   let held: LabelJob | null = null;
   return {
     cancel: () => { clearTimeout(timers.get(job.id)); timers.delete(job.id); if (readJobs().some(j => j.id === job.id)) { held = job; dropJob(job.id); } },
-    flush: () => { if (held) { const again = held; held = null; labelScanSamples(again.entries, again.saved); } else runJob(job); },
+    flush: () => { if (held) { const again = held; held = null; writeJobs([...readJobs(), again]); runJob(again); } else runJob(job); },
   };
 }
 
