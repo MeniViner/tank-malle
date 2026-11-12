@@ -98,7 +98,10 @@ export const acceptKeyOf = (row: Pick<ScanSampleRow, 'kind' | 'journal'>): Accep
 export function tuneThreshold(rows: readonly ScanSampleRow[], current: number, range: readonly [number, number], options: { maxWrong?: number; minLabeled?: number; minTighten?: number; maxStep?: number } = {}):
   { value: number; labeled: number; right: number; wrong: number } | null {
   const { maxWrong = .01, minLabeled = 200, minTighten = 20, maxStep = .05 } = options;
-  const known = rows.filter(r => r.final && r.guess && r.confidence != null);
+  // Evidence is a guess the threshold alone decided on: one that was shown, or one from a single
+  // picture. A camera session that ended without a reading keeps the guess of its most confident
+  // frame, which was never shown (the camera needs two frames that agree) and is often a stray misread.
+  const known = rows.filter(r => r.final && r.guess && r.confidence != null && (r.outcome === 'read' || r.source === 'file'));
   // Few attempts cannot show that a lower threshold is safe, but two wrong readings shown are
   // reason enough to raise it: with little evidence the threshold only moves up.
   const few = known.length < minLabeled;
@@ -114,7 +117,9 @@ export function tuneThreshold(rows: readonly ScanSampleRow[], current: number, r
     if (shown.length && wrong / shown.length > maxWrong) break;
     best = { value, labeled: known.length, right: shown.length - wrong, wrong };
   }
-  return best ?? { value: Math.round(hi * 100) / 100, labeled: known.length, right: 0, wrong: 0 };
+  if (best) return best;
+  const value = Math.round(hi * 100) / 100, shown = known.filter(r => r.confidence! >= value), wrong = shown.filter(r => r.guess !== r.final).length;
+  return { value, labeled: known.length, right: shown.length - wrong, wrong };
 }
 
 export type ScanFinal = { total: string; liters: string; odometer: string };

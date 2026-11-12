@@ -5,20 +5,21 @@ import { runPush, type PushMessage, type PushStore, type PushSubscriptionRow, ty
 const plan = (id: string, dueDay: string): RawDoc => ({ id, schemaVersion: 1, version: 1, title: `טיפול ${id}`, job: 'periodic', dueDay, dueOdometer: null,
   intervalMonths: null, intervalKm: null, basis: 'manual', source: 'owner', notes: '', active: true });
 
-function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[] } = {}) {
-  const sent = new Map<string, string>(), removed: string[] = [];
-  const subs: PushSubscriptionRow[] = (over.devices ?? ['d1']).map(id => ({ uid: 'alice', id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a' }));
+function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[]; fillups?: RawDoc[]; users?: string[]; broken?: string } = {}) {
+  const sent = new Map<string, string>(), removed: string[] = [], reads: string[] = [];
+  const subs: PushSubscriptionRow[] = (over.users ?? ['alice']).flatMap(uid => (over.devices ?? ['d1']).map(id => ({ uid, id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a' })));
   const store: PushStore = {
     subscriptions: async () => subs.filter(s => !removed.includes(s.id)),
-    profile: async () => over.profile === undefined ? { settings: {} } : over.profile,
+    profile: async uid => { if (uid === over.broken) throw new Error('quota'); return over.profile === undefined ? { settings: {} } : over.profile; },
     vehicles: async () => over.vehicles ?? [{ id: 'v1', nickname: 'המשפחתית', archived: false }],
-    collection: async (_uid, vehicleId, name) => vehicleId !== 'v1' ? [] : name === 'maintenancePlans' ? over.plans ?? [plan('a', '2026-11-12')]
-      : name === 'notificationStates' ? over.states ?? [] : [],
-    sentIds: async () => new Set(sent.keys()),
-    markSent: async (_uid, items) => { for (const item of items) sent.set(item.id, item.occurrence); },
+    collection: async (_uid, vehicleId, name) => { reads.push(name); return vehicleId !== 'v1' ? [] : name === 'maintenancePlans' ? over.plans ?? [plan('a', '2026-11-12')]
+      : name === 'notificationStates' ? over.states ?? [] : []; },
+    latest: async (_uid, _vehicleId, name, _field, limit) => { reads.push(`latest ${name}`); return name === 'fillups' ? (over.fillups ?? []).slice(0, limit) : []; },
+    sentIds: async (uid, ids) => new Set(ids.filter(id => sent.has(`${uid}/${id}`))),
+    markSent: async (uid, items) => { for (const item of items) sent.set(`${uid}/${item.id}`, item.occurrence); },
     removeSubscription: async (_uid, id) => { removed.push(id); },
   };
-  return { store, sent, removed };
+  return { store, sent, removed, reads };
 }
 const sender = (results: Record<string, SendResult> | ((device: string, message: PushMessage) => SendResult) = {}) => {
   const calls: { device: string; message: PushMessage }[] = [];
@@ -92,6 +93,39 @@ describe('runPush', () => {
     const again = sender();
     await runPush(store, again.send, at);
     expect(again.calls).toHaveLength(0);
+  });
+  it('an account whose data cannot be read does not stop the accounts after it', async () => {
+    const { store, sent } = fakeStore({ users: ['alice', 'bob', 'carol'], broken: 'bob' }), s = sender(), warnings: string[] = [];
+    const report = await runPush(store, s.send, { ...at, warn: message => warnings.push(message) });
+    expect(report).toMatchObject({ users: 2, messages: 2, occurrences: 2, errors: 1 });
+    expect([...sent.keys()].map(key => key.split('/')[0])).toEqual(['alice', 'carol']);
+    expect(warnings).toEqual(['push run failed for one account: quota']);
+  });
+  it('what a device accepted is recorded even when a later step throws, so it is not pushed twice', async () => {
+    const { store, sent } = fakeStore({ devices: ['d1', 'd2'] });
+    const report = await runPush(store, async device => { if (device.id === 'd2') throw new Error('socket'); return 'sent'; }, at);
+    expect(report).toMatchObject({ messages: 1, occurrences: 1, errors: 1 });
+    expect(sent.size).toBe(1);
+  });
+  it('reads only what the answer needs', async () => {
+    const quiet = fakeStore({ plans: [] });
+    await runPush(quiet.store, sender().send, at);
+    expect(quiet.reads).toEqual(['maintenancePlans']);
+    const active = fakeStore();
+    await runPush(active.store, sender().send, at);
+    expect(active.reads).toEqual(['maintenancePlans', 'serviceEvents', 'odometerReadings', 'latest fillups', 'latest observations', 'notificationStates']);
+    const off = fakeStore({ profile: { settings: { reminderNotifications: false } } });
+    await runPush(off.store, sender().send, at);
+    expect(off.reads).toEqual([]);
+  });
+  it('a reminder by km is judged by the newest fill-up, and vehicles being deleted are skipped', async () => {
+    const byKm = { ...plan('km', '2026-11-12'), dueDay: null, dueOdometer: 180_000 };
+    const s = sender();
+    await runPush(fakeStore({ plans: [byKm], fillups: [{ id: 'f', date: Date.UTC(2026, 10, 10, 10), odometer: 179_500 }] }).store, s.send, at);
+    expect(s.calls.map(c => c.message.title)).toEqual(['טיפול km']);
+    const none = sender();
+    await runPush(fakeStore({ vehicles: [{ id: 'v1', deletionPending: true }] }).store, none.send, at);
+    expect(none.calls).toHaveLength(0);
   });
   it('names the car when the account has several', async () => {
     const { store } = fakeStore({ vehicles: [{ id: 'v1', nickname: 'המשפחתית' }, { id: 'v2', nickname: 'השנייה' }] }), s = sender();

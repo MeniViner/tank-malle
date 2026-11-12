@@ -1,6 +1,8 @@
-import { CARE_COLLECTIONS, EMPTY_CARE, validCareRecord, type CareData } from '../maintenance/model';
+import { EMPTY_CARE, validCareRecord, type CareCollection, type CareData } from '../maintenance/model';
 import type { UserSettings } from '../types';
+import { vehicleDocumentOccurrences } from '../vehicle/documentNotifications';
 import { notificationId, validVehicleRecord, type NotificationState } from '../vehicle/model';
+import { notificationPreferences } from '../vehicle/notificationPreferences';
 import { pushDigest, pushKey, type PushItem } from './digest';
 
 /** Raw documents as the scheduled sender reads them (Firestore Admin SDK, `id` added). */
@@ -11,14 +13,18 @@ export interface PushStore {
   profile(uid: string): Promise<Record<string, unknown> | null>;
   vehicles(uid: string): Promise<RawDoc[]>;
   collection(uid: string, vehicleId: string, name: string): Promise<RawDoc[]>;
-  sentIds(uid: string): Promise<Set<string>>;
+  /** The newest documents of a collection by a time field: the current odometer needs only the last day's readings. */
+  latest(uid: string, vehicleId: string, name: string, field: string, limit: number): Promise<RawDoc[]>;
+  /** Which of these ids were already pushed. */
+  sentIds(uid: string, ids: string[]): Promise<Set<string>>;
   markSent(uid: string, items: { id: string; occurrence: string }[], sentAt: number): Promise<void>;
   removeSubscription(uid: string, id: string): Promise<void>;
 }
 export interface PushMessage { title: string; body: string; url: string; tag: string; urgent: boolean }
 export type SendResult = 'sent' | 'gone' | 'failed';
 export type PushSender = (subscription: PushSubscriptionRow, message: PushMessage) => Promise<SendResult>;
-export interface PushRunReport { users: number; devices: number; messages: number; occurrences: number; removed: number; failed: number }
+/** `errors`: accounts whose run stopped on an unexpected error; the others were still served. */
+export interface PushRunReport { users: number; devices: number; messages: number; occurrences: number; removed: number; failed: number; errors: number }
 
 /** More new items than this in one run become one summary notification. */
 export const MAX_SEPARATE_PUSHES = 3;
@@ -30,20 +36,35 @@ const millis = (value: unknown): number | null => {
   return null;
 };
 
+/** Readings kept per vehicle for the current odometer. */
+const LATEST_READINGS = 10;
+
+/**
+ * One vehicle's notifications, reading as little as the answer needs: every read here is
+ * repeated daily for every subscribed account, against a free quota the live app shares.
+ * Documents come from the vehicle itself; history is read only when an active reminder exists.
+ */
 async function vehicleItems(store: PushStore, uid: string, vehicle: RawDoc, settings: Partial<UserSettings>, today: string, nameVehicle: boolean): Promise<PushItem[]> {
   const care: CareData = { ...EMPTY_CARE };
-  for (const name of CARE_COLLECTIONS) (care as Record<string, unknown>)[name] = (await store.collection(uid, vehicle.id, name)).filter(row => validCareRecord(name, row));
-  const fillups = (await store.collection(uid, vehicle.id, 'fillups')).flatMap(row => {
-    const date = millis(row.date), odometer = row.odometer;
-    return date !== null && typeof odometer === 'number' && Number.isFinite(odometer) ? [{ id: row.id, date, odometer }] : [];
-  });
-  const observations = (await store.collection(uid, vehicle.id, 'observations')).flatMap(row => {
-    const observedAt = millis(row.observedAt), odometer = row.odometer;
-    return observedAt !== null && typeof odometer === 'number' && Number.isFinite(odometer) ? [{ id: row.id, observedAt, odometer }] : [];
-  });
+  const read = async (name: CareCollection) => { (care as Record<string, unknown>)[name] = (await store.collection(uid, vehicle.id, name)).filter(row => validCareRecord(name, row)); };
+  await read('maintenancePlans');
+  const reminders = care.maintenancePlans.some(plan => plan.active);
+  const shape = { id: vehicle.id, nickname: vehicle.nickname as string | undefined, make: vehicle.make as string | undefined, model: vehicle.model as string | undefined, docs: vehicle.docs };
+  if (!reminders && !vehicleDocumentOccurrences(shape, today).length) return [];
+  let fillups: { id: string; date: number; odometer: number }[] = [], observations: { id: string; observedAt: number; odometer: number }[] = [];
+  if (reminders) {
+    await read('serviceEvents'); await read('odometerReadings');
+    fillups = (await store.latest(uid, vehicle.id, 'fillups', 'date', LATEST_READINGS)).flatMap(row => {
+      const date = millis(row.date), odometer = row.odometer;
+      return date !== null && typeof odometer === 'number' && Number.isFinite(odometer) ? [{ id: row.id, date, odometer }] : [];
+    });
+    observations = (await store.latest(uid, vehicle.id, 'observations', 'observedAt', LATEST_READINGS)).flatMap(row => {
+      const observedAt = millis(row.observedAt), odometer = row.odometer;
+      return observedAt !== null && typeof odometer === 'number' && Number.isFinite(odometer) ? [{ id: row.id, observedAt, odometer }] : [];
+    });
+  }
   const states = (await store.collection(uid, vehicle.id, 'notificationStates')).filter(row => validVehicleRecord('notificationStates', row)) as unknown as NotificationState[];
-  return pushDigest({ vehicle: { id: vehicle.id, nickname: vehicle.nickname as string | undefined, make: vehicle.make as string | undefined,
-    model: vehicle.model as string | undefined, docs: vehicle.docs }, care, fillups, observations, states, settings, today, nameVehicle });
+  return pushDigest({ vehicle: shape, care, fillups, observations, states, settings, today, nameVehicle });
 }
 
 const sentId = (item: PushItem): string => notificationId(pushKey(item));
@@ -61,24 +82,34 @@ function messagesFor(items: PushItem[]): { message: PushMessage; items: PushItem
  * that every device failed stays unsent and the next run tries it again, whatever happened
  * to the others. Expired devices are removed.
  */
-export async function runPush(store: PushStore, send: PushSender, { today, now, dryRun = false }: { today: string; now: number; dryRun?: boolean }): Promise<PushRunReport> {
-  const report: PushRunReport = { users: 0, devices: 0, messages: 0, occurrences: 0, removed: 0, failed: 0 };
+export async function runPush(store: PushStore, send: PushSender, { today, now, dryRun = false, warn = () => {} }: { today: string; now: number; dryRun?: boolean; warn?: (message: string) => void }): Promise<PushRunReport> {
+  const report: PushRunReport = { users: 0, devices: 0, messages: 0, occurrences: 0, removed: 0, failed: 0, errors: 0 };
   const byUser = new Map<string, PushSubscriptionRow[]>();
   for (const sub of await store.subscriptions()) byUser.set(sub.uid, [...byUser.get(sub.uid) ?? [], sub]);
-  for (const [uid, devices] of byUser) {
-    const profile = await store.profile(uid);
-    if (!profile || profile.deletionPending === true) continue;
-    report.users += 1; report.devices += devices.length;
-    const settings = (profile.settings && typeof profile.settings === 'object' ? profile.settings : {}) as Partial<UserSettings>;
-    const vehicles = (await store.vehicles(uid)).filter(vehicle => vehicle.archived !== true);
-    const sent = await store.sentIds(uid);
-    const fresh: PushItem[] = [];
-    for (const vehicle of vehicles) for (const item of await vehicleItems(store, uid, vehicle, settings, today, vehicles.length > 1))
-      if (!sent.has(sentId(item)) && !fresh.some(other => pushKey(other) === pushKey(item))) fresh.push(item);
-    if (!fresh.length) continue;
-    const messages = messagesFor(fresh);
-    if (dryRun) { report.messages += messages.length * devices.length; report.occurrences += fresh.length; continue; }
-    const delivered = new Set<PushItem>();
+  // One account's failure (a refused read, a quota error) must not cost the others their reminders.
+  for (const [uid, devices] of byUser) try { await runUser(store, send, uid, devices, report, { today, now, dryRun }); }
+    catch (error) { report.errors += 1; warn(`push run failed for one account: ${error instanceof Error ? error.message : String(error)}`); }
+  return report;
+}
+
+async function runUser(store: PushStore, send: PushSender, uid: string, devices: PushSubscriptionRow[], report: PushRunReport, { today, now, dryRun }: { today: string; now: number; dryRun: boolean }): Promise<void> {
+  const profile = await store.profile(uid);
+  if (!profile || profile.deletionPending === true) return;
+  report.users += 1; report.devices += devices.length;
+  const settings = (profile.settings && typeof profile.settings === 'object' ? profile.settings : {}) as Partial<UserSettings>;
+  if (!notificationPreferences(settings).reminders) return;
+  const vehicles = (await store.vehicles(uid)).filter(vehicle => vehicle.archived !== true && vehicle.deletionPending !== true);
+  const candidates: PushItem[] = [];
+  for (const vehicle of vehicles) for (const item of await vehicleItems(store, uid, vehicle, settings, today, vehicles.length > 1))
+    if (!candidates.some(other => pushKey(other) === pushKey(item))) candidates.push(item);
+  if (!candidates.length) return;
+  const sent = await store.sentIds(uid, candidates.map(sentId));
+  const fresh = candidates.filter(item => !sent.has(sentId(item)));
+  if (!fresh.length) return;
+  const messages = messagesFor(fresh);
+  if (dryRun) { report.messages += messages.length * devices.length; report.occurrences += fresh.length; return; }
+  const delivered = new Set<PushItem>();
+  try {
     for (const device of devices) {
       let gone = false;
       for (const { message, items } of messages) {
@@ -88,10 +119,11 @@ export async function runPush(store: PushStore, send: PushSender, { today, now, 
       }
       if (gone) { await store.removeSubscription(uid, device.id); report.removed += 1; }
     }
+  } finally {
+    // Whatever interrupted the loop, record what a device already accepted, so it is not pushed twice.
     if (delivered.size) {
       await store.markSent(uid, [...delivered].map(item => ({ id: sentId(item), occurrence: pushKey(item) })), now);
       report.occurrences += delivered.size;
     }
   }
-  return report;
 }

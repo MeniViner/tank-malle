@@ -27,6 +27,7 @@ import {
 } from "firebase/firestore";
 import { auth, db, googleProvider } from "../lib/firebase";
 import { unacknowledgedState } from "../lib/outbox";
+import { releasePush } from "../lib/push/client";
 import { authErrorMessage, REDIRECT_MARKER } from "../lib/authFlow";
 import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
 
@@ -215,6 +216,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    // While still signed in: this device stops receiving the account's phone notifications.
+    const leaving = auth.currentUser?.uid;
+    if (leaving) await releasePush(leaving).catch(() => {});
     await signOut(auth);
 
     if (options.clearLocalData && !refused) {

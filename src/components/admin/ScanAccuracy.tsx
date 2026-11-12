@@ -101,7 +101,7 @@ export function ScanAccuracy() {
       <Breakdown title="לפי גרסה" groups={stats.byVersion.map(g => ({ label: g.key, tally: g.tally }))} />
 
       <section className="flex min-w-0 flex-col gap-2" aria-label="ספי הביטחון">
-        <div className="admin-group-head"><h2>ספי הביטחון</h2><InfoTip label="על הכיוונון האוטומטי"><p>פעם בשבוע סקריפט ב־GitHub עובר על הניסיונות שנשמרו ומכוונן את הסף שמעליו מוצגת קריאה, כך שקריאות שגויות יישארו עד אחוז אחד. הוא זז צעד קטן בכל פעם ורק כשיש מספיק דוגמאות.</p></InfoTip></div>
+        <div className="admin-group-head"><h2>ספי הביטחון</h2><InfoTip label="על הכיוונון האוטומטי"><p>פעם ביום סקריפט ב־GitHub עובר על הניסיונות שנשמרו ומכוונן את הסף שמעליו מוצגת קריאה, כך שקריאות שגויות יישארו עד אחוז אחד. הוא זז צעד קטן בכל פעם ורק כשיש מספיק דוגמאות.</p></InfoTip></div>
         <div className="admin-group">
           <Row label="קילומטראז׳ · יש קריאה קודמת" value={num(active.odometer, 2)} detail={active.odometer === ACCEPT.odometer ? 'מובנה' : 'מכוונן'} />
           <Row label="קילומטראז׳ · קריאה ראשונה" value={num(active.odometerFirst, 2)} detail={active.odometerFirst === ACCEPT.odometerFirst ? 'מובנה' : 'מכוונן'} />
