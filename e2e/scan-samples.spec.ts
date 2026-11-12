@@ -74,3 +74,62 @@ test('scan attempts are recorded, labelled by the saved fill-up, and measured in
   expect(await corrected.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalHeight === 64)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('one fill-up is one scan session; labels survive a reload, skip an undone save and hand-typed amounts', async ({ page }) => {
+  const sharp = (await import('sharp')).default, { demoPhoto } = await import('../src/lib/scan/fixtures');
+  const png = async (kind: 'pump' | 'odometer') => { const raw = demoPhoto(kind); return sharp(Buffer.from(raw.data), { raw: { width: raw.width, height: raw.height, channels: 4 } }).png().toBuffer(); };
+  const blank = await sharp({ create: { width: 640, height: 480, channels: 3, background: '#777' } }).png().toBuffer();
+  const scope = await signedInWithData(page, { fillups: [] });
+  const mine = async () => (await listDocuments('scanSamples')).filter(d => d.data.uid === scope.uid).map(d => d.data);
+  const dialog = page.getByRole('dialog', { name: 'תדלוק בשני צילומים', exact: true });
+
+  // Opened twice for one fill-up: the second opening continues the same session (attempt 2, not 1 again).
+  await page.goto('/fillup/new'); await page.getByTestId('fillup-camera').click();
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'blank.png', mimeType: 'image/png', buffer: blank });
+  await expect(dialog.getByText('הספרות עדיין לא ברורות מספיק', { exact: false })).toBeVisible();
+  await dialog.getByRole('button', { name: 'סגירה', exact: true }).click();
+  await page.getByTestId('fillup-camera').click();
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.png', mimeType: 'image/png', buffer: await png('pump') });
+  await dialog.locator('input[aria-label="תמונת קילומטראז׳"]').setInputFiles({ name: 'odometer.png', mimeType: 'image/png', buffer: await png('odometer') });
+  await expect(page.getByTestId('fillup-total')).toHaveValue('287.60');
+  await expect(async () => expect(await mine()).toHaveLength(3)).toPass();
+  let samples = await mine();
+  expect(new Set(samples.map(s => s.session)).size).toBe(1);
+  expect(samples.filter(s => s.kind === 'pump').map(s => s.attempt).sort()).toEqual([1, 2]);
+
+  // A reload before saving: the draft brings the attempts back, and saving labels them.
+  await page.reload();
+  await expect(page.getByTestId('fillup-total')).toHaveValue('287.60');
+  await page.getByRole('button', { name: /שמירת תדלוק/ }).click();
+  // Reloaded right after saving, inside the undo window: the labels still arrive.
+  await expect(page.getByTestId('fillup-saved-undo')).toBeVisible();
+  await page.reload();
+  await expect(async () => { samples = await mine(); expect(samples.filter(s => s.final !== null)).toHaveLength(3); }).toPass({ timeout: 20_000 });
+  expect(samples.map(s => s.result).sort()).toEqual(['manual', 'match', 'match']);
+
+  // Saved, then undone within the five seconds: those attempts are never labelled.
+  await page.goto('/fillup/new'); await page.getByTestId('fillup-camera').click();
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.png', mimeType: 'image/png', buffer: await png('pump') });
+  await dialog.locator('input[aria-label="תמונת קילומטראז׳"]').setInputFiles({ name: 'odometer.png', mimeType: 'image/png', buffer: await png('odometer') });
+  await expect(page.getByTestId('fillup-odometer')).toHaveValue('128450');
+  await page.getByTestId('fillup-odometer').fill('128460');
+  await page.getByRole('button', { name: /שמירת תדלוק/ }).click();
+  await page.getByTestId('fillup-saved-undo').click();
+  await expect(async () => expect(await mine()).toHaveLength(5)).toPass();
+  await page.waitForTimeout(7_000);
+  samples = await mine();
+  expect(samples.filter(s => s.final === null)).toHaveLength(2);
+
+  // The amount was typed before scanning: the pump reading is not applied, so it is not labelled.
+  await page.goto('/fillup/new');
+  await page.getByTestId('fillup-total').fill('285');
+  await page.getByTestId('fillup-camera').click();
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.png', mimeType: 'image/png', buffer: await png('pump') });
+  await dialog.locator('input[aria-label="תמונת קילומטראז׳"]').setInputFiles({ name: 'odometer.png', mimeType: 'image/png', buffer: await png('odometer') });
+  await expect(page.getByTestId('fillup-total')).toHaveValue('285');
+  await expect(async () => expect(await mine()).toHaveLength(7)).toPass();
+  await page.getByRole('button', { name: /שמירת תדלוק/ }).click();
+  await expect(async () => { samples = await mine(); expect(samples.filter(s => s.final !== null)).toHaveLength(4); }).toPass({ timeout: 15_000 });
+  const latestSession = samples.find(s => s.kind === 'pump' && s.final === null && s.attempt === 1 && samples.filter(o => o.session === s.session).length === 2 && samples.some(o => o.session === s.session && o.kind === 'odometer' && o.final !== null));
+  expect(latestSession).toBeTruthy();
+});

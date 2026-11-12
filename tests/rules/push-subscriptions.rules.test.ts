@@ -4,7 +4,7 @@ import { assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestE
 import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
-const sub = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', p256dh: 'BKey', auth: 'secret', platform: 'android', createdAt: 1_794_000_000_000 };
+const sub = { endpoint: 'https://fcm.googleapis.com/fcm/send/abc', p256dh: 'B' + 'k'.repeat(86), auth: 'a'.repeat(22), platform: 'android', createdAt: 1_794_000_000_000 };
 const as = (uid: string) => env.authenticatedContext(uid).firestore();
 beforeAll(async () => {
   env = await initializeTestEnvironment({ projectId: 'demo-push-rules', firestore: {
@@ -31,6 +31,15 @@ describe('push subscriptions', () => {
     const ref = doc(as('alice'), 'users/alice/pushSubscriptions/d1');
     for (const bad of [{ ...sub, extra: 1 }, { ...sub, endpoint: 'http://push.example/1' }, { ...sub, endpoint: 'x'.repeat(1001) },
       { ...sub, platform: 'watch' }, { ...sub, auth: 5 }, { endpoint: sub.endpoint }]) await assertFails(setDoc(ref, bad));
+  });
+  it('accepts the browsers\' push services and nothing else', async () => {
+    const ref = doc(as('alice'), 'users/alice/pushSubscriptions/d1');
+    for (const endpoint of ['https://fcm.googleapis.com/fcm/send/x', 'https://web.push.apple.com/QK1', 'https://updates.push.services.mozilla.com/wpush/v2/x', 'https://wns2-db5p.notify.windows.com/w/?token=x'])
+      await assertSucceeds(setDoc(ref, { ...sub, endpoint }));
+    for (const endpoint of ['https://attacker.example/hang', 'https://fcm.googleapis.com.attacker.example/x', 'https://notify.windows.com.evil.example/x', 'https://fcm.googleapis.com/'])
+      await assertFails(setDoc(ref, { ...sub, endpoint }));
+    for (const bad of [{ ...sub, p256dh: 'short' }, { ...sub, p256dh: 'k'.repeat(87) + '!' }, { ...sub, auth: 'x' }])
+      await assertFails(setDoc(ref, bad));
   });
   it('is closed while the account is being deleted', async () => {
     await env.withSecurityRulesDisabled(ctx => setDoc(doc(ctx.firestore(), 'users/alice'), { deletionPending: true }));

@@ -8,7 +8,7 @@
  * Nothing here may block or fail a scan: every write is fire-and-forget.
  */
 import { doc, collection, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { APP_VERSION } from '../version';
 import { ENGINE_VERSION } from './engine/version';
 import type { Accept, DisplayKind, DisplayResult } from './engine';
@@ -24,9 +24,27 @@ export type ScanAttempt = {
   frames: number; seconds: number; journal: boolean;
 };
 export type ScanSampleMeta = { uid: string; session: string; attempt: number };
+/** What labelling an attempt needs later. Plain data, so a fill-up draft can keep it across a reload. */
+export type ScanSampleEntry = { id: string; kind: DisplayKind; outcome: 'read' | 'unreadable'; guess: string | null };
+/**
+ * One fill-up form's scanning: the session that groups its attempts (however often the scanner is
+ * opened), the attempt counts per display, and the attempts to label when the fill-up is saved.
+ */
+export type ScanBook = { session: string; pump: number; odometer: number; samples: ScanSampleEntry[] };
+
+export const newScanBook = (): ScanBook => ({ session: crypto.randomUUID(), pump: 0, odometer: 0, samples: [] });
+
+/** A book restored from a draft, or null when it is not one. */
+export function readScanBook(value: unknown): ScanBook | null {
+  const b = value as Partial<ScanBook> | null;
+  const count = (n: unknown) => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 99;
+  if (!b || typeof b !== 'object' || typeof b.session !== 'string' || !b.session || b.session.length > 64 || !count(b.pump) || !count(b.odometer) || !Array.isArray(b.samples)) return null;
+  const samples = b.samples.filter((e): e is ScanSampleEntry => !!e && typeof e === 'object' && typeof e.id === 'string' && /^[A-Za-z0-9]{1,40}$/.test(e.id)
+    && (e.kind === 'pump' || e.kind === 'odometer') && (e.outcome === 'read' || e.outcome === 'unreadable') && (e.guess === null || typeof e.guess === 'string')).slice(0, 50);
+  return { session: b.session, pump: b.pump!, odometer: b.odometer!, samples };
+}
 
 type Gray = { width: number; height: number; data: Uint8Array };
-const pending = new Map<string, { kind: DisplayKind; outcome: 'read' | 'unreadable'; guess: string | null }>();
 
 function jpeg(image: Gray, quality: number): string | null {
   try {
@@ -43,9 +61,12 @@ function jpeg(image: Gray, quality: number): string | null {
 
 const platform = () => { const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent; return /android/i.test(ua) ? 'android' : /iphone|ipad|ipod/i.test(ua) ? 'ios' : 'other'; };
 const round = (n: number, places: number) => Math.round(n * 10 ** places) / 10 ** places;
+/** The record is one write with its pictures: a value the rules refuse (NaN, a panorama's width) would lose the whole attempt. */
+const unit = (n: number) => Number.isFinite(n) ? round(Math.min(1, Math.max(0, n)), 3) : 0;
+const size = (n: number | undefined) => Number.isFinite(n) ? Math.min(20_000, Math.max(0, Math.round(n!))) : 0;
 
-/** Writes the record and returns its id (null when it could not even be queued). */
-export function recordScanSample(meta: ScanSampleMeta, attempt: ScanAttempt): string | null {
+/** Writes the record and returns what labelling it needs (null when it could not even be queued). */
+export function recordScanSample(meta: ScanSampleMeta, attempt: ScanAttempt): ScanSampleEntry | null {
   try {
     const ref = doc(collection(db, 'scanSamples')), sample = attempt.result?.sample, now = Date.now();
     const outcome = attempt.result?.status === 'read' ? 'read' as const : 'unreadable' as const;
@@ -57,27 +78,87 @@ export function recordScanSample(meta: ScanSampleMeta, attempt: ScanAttempt): st
       kind: attempt.kind, source: attempt.source, session: meta.session, attempt: Math.min(99, Math.max(1, Math.round(meta.attempt))),
       outcome, guess, confidence: confidence == null || !Number.isFinite(confidence) ? null : round(Math.min(1, Math.max(0, confidence)), 3),
       ms: Math.min(600_000, Math.max(0, Math.round(sample?.ms ?? 0))), frames: Math.min(100_000, Math.max(0, Math.round(attempt.frames))),
-      seconds: round(Math.min(3600, Math.max(0, attempt.seconds)), 1), width: sample?.width ?? 0, height: sample?.height ?? 0,
+      seconds: round(Math.min(3600, Math.max(0, Number.isFinite(attempt.seconds) ? attempt.seconds : 0)), 1), width: size(sample?.width), height: size(sample?.height),
       journal: attempt.journal, platform: platform(), final: null, result: null, labeledAt: null,
     });
-    const strips = (sample?.strips ?? []).slice(0, 3).flatMap(s => { const data = jpeg(s, .82); return data ? [{ role: s.role, text: s.text.slice(0, 16), confidence: round(Math.min(1, Math.max(0, s.confidence)), 3), w: s.width, h: s.height, jpeg: data }] : []; });
+    const strips = (sample?.strips ?? []).slice(0, 3).flatMap(s => { const data = jpeg(s, .82); return data ? [{ role: s.role, text: s.text.slice(0, 16), confidence: unit(s.confidence), w: s.width, h: s.height, jpeg: data }] : []; });
     const thumbData = sample?.thumb ? jpeg(sample.thumb, .6) : null;
     const thumb = thumbData && sample?.thumb ? { w: sample.thumb.width, h: sample.thumb.height, jpeg: thumbData } : null;
     if (strips.length || thumb) batch.set(doc(db, 'scanImages', ref.id), { uid: meta.uid, createdAt: now, strips, thumb });
     void batch.commit().catch(() => {});
-    pending.set(ref.id, { kind: attempt.kind, outcome, guess });
-    return ref.id;
+    return { id: ref.id, kind: attempt.kind, outcome, guess };
   } catch { return null; }
 }
 
-/** Attaches the saved numbers to this form's attempts. Called once, after the fill-up is saved. */
-export function labelScanSamples(ids: readonly string[], saved: Partial<ScanFinal>): void {
-  for (const id of ids) {
-    const entry = pending.get(id); if (!entry) continue;
-    pending.delete(id);
+/** Attaches the saved numbers to this form's attempts. A label is written once and never changes. */
+export function labelScanSamples(entries: readonly ScanSampleEntry[], saved: Partial<ScanFinal>): void {
+  for (const entry of entries) {
     const final = readingKey(entry.kind, saved); if (!final) continue;
-    try { void updateDoc(doc(db, 'scanSamples', id), { final, result: labelOf(entry.outcome, entry.guess, final), labeledAt: Date.now() }).catch(() => {}); } catch { /* never blocks a save */ }
+    try { void updateDoc(doc(db, 'scanSamples', entry.id), { final, result: labelOf(entry.outcome, entry.guess, final), labeledAt: Date.now() }).catch(() => {}); } catch { /* never blocks a save */ }
   }
+}
+
+/** Time from saving to labelling: past the five seconds in which the save can still be undone. */
+export const LABEL_AFTER_MS = 6_000;
+
+/**
+ * Labels waiting for the undo window, kept on the device: closing or reloading the app within
+ * those seconds must not lose them. The next start labels whatever is due (flushScanLabels).
+ */
+type LabelJob = { id: string; uid: string; dueAt: number; entries: ScanSampleEntry[]; saved: Partial<ScanFinal> };
+const JOBS_KEY = 'tm.scan-labels.v1';
+const readJobs = (): LabelJob[] => {
+  try {
+    const list = JSON.parse(localStorage.getItem(JOBS_KEY) ?? '[]');
+    return Array.isArray(list) ? list.filter((j): j is LabelJob => !!j && typeof j.id === 'string' && typeof j.uid === 'string' && Number.isFinite(j.dueAt)
+      && Array.isArray(j.entries) && !!j.saved && typeof j.saved === 'object')
+      .map(j => ({ ...j, entries: readScanBook({ session: 'stored', pump: 0, odometer: 0, samples: j.entries })?.samples ?? [] })) : [];
+  } catch { return []; }
+};
+const writeJobs = (jobs: LabelJob[]) => {
+  try { if (jobs.length) localStorage.setItem(JOBS_KEY, JSON.stringify(jobs.slice(-50))); else localStorage.removeItem(JOBS_KEY); } catch { /* labels are best effort */ }
+};
+const dropJob = (id: string) => writeJobs(readJobs().filter(j => j.id !== id));
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function runJob(job: LabelJob): void {
+  clearTimeout(timers.get(job.id)); timers.delete(job.id);
+  // Only a job still on the device runs: one cancelled (undo) or already run elsewhere is gone.
+  if (!readJobs().some(j => j.id === job.id)) return;
+  // Only its own account may write it (the rules allow nothing else). Signed out or switched in
+  // the meantime: it stays on the device until that account signs in here again.
+  if (auth.currentUser?.uid !== job.uid) return;
+  dropJob(job.id);
+  labelScanSamples(job.entries, job.saved);
+}
+function arm(job: LabelJob, now: number): void {
+  clearTimeout(timers.get(job.id));
+  timers.set(job.id, setTimeout(() => runJob(job), Math.max(0, job.dueAt - now)));
+}
+
+/**
+ * Labels once the save can no longer be undone. `cancel` (an undo started) withdraws the label;
+ * `flush` labels now, for an undo that failed. An undone save is never labelled: its numbers were
+ * not what the person kept.
+ */
+export function scheduleScanLabels(uid: string, entries: readonly ScanSampleEntry[], saved: Partial<ScanFinal>, delayMs = LABEL_AFTER_MS): { cancel: () => void; flush: () => void } {
+  if (!entries.length) return { cancel: () => {}, flush: () => {} };
+  const now = Date.now();
+  const job: LabelJob = { id: crypto.randomUUID(), uid, dueAt: now + delayMs, entries: [...entries], saved: { ...saved } };
+  writeJobs([...readJobs(), job]);
+  arm(job, now);
+  let held: LabelJob | null = null;
+  return {
+    cancel: () => { clearTimeout(timers.get(job.id)); timers.delete(job.id); if (readJobs().some(j => j.id === job.id)) { held = job; dropJob(job.id); } },
+    flush: () => { if (held) { const again = held; held = null; writeJobs([...readJobs(), again]); runJob(again); } else runJob(job); },
+  };
+}
+
+/** At start, for the signed-in account: label what is due, wait for the rest. Jobs older than 30 days are dropped. */
+export function flushScanLabels(uid: string, now = Date.now()): void {
+  const jobs = readJobs(), fresh = jobs.filter(j => now - j.dueAt < 30 * 86_400_000);
+  if (fresh.length !== jobs.length) writeJobs(fresh);
+  for (const job of fresh) if (job.uid === uid) arm(job, now);
 }
 
 let tuning: Promise<Partial<Accept> | null> | null = null;

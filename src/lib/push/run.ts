@@ -4,10 +4,11 @@ import { vehicleDocumentOccurrences } from '../vehicle/documentNotifications';
 import { notificationId, validVehicleRecord, type NotificationState } from '../vehicle/model';
 import { notificationPreferences } from '../vehicle/notificationPreferences';
 import { pushDigest, pushKey, type PushItem } from './digest';
+import { notificationLink } from './link';
 
 /** Raw documents as the scheduled sender reads them (Firestore Admin SDK, `id` added). */
 export type RawDoc = Record<string, unknown> & { id: string };
-export interface PushSubscriptionRow { uid: string; id: string; endpoint: string; p256dh: string; auth: string }
+export interface PushSubscriptionRow { uid: string; id: string; endpoint: string; p256dh: string; auth: string; createdAt?: number | null }
 export interface PushStore {
   subscriptions(): Promise<PushSubscriptionRow[]>;
   profile(uid: string): Promise<Record<string, unknown> | null>;
@@ -30,8 +31,10 @@ export type PushSender = (subscription: PushSubscriptionRow, message: PushMessag
 /** `errors`: accounts whose run stopped on an unexpected error; the others were still served. */
 export interface PushRunReport { users: number; devices: number; messages: number; occurrences: number; removed: number; failed: number; errors: number }
 
-/** More new items than this in one run become one summary notification. */
+/** More new items than this in one run become a summary notification per vehicle. */
 export const MAX_SEPARATE_PUSHES = 3;
+/** Devices served per account, newest first: a phone, a tablet, a computer or two. More is not a real account's use. */
+export const MAX_DEVICES = 10;
 
 const millis = (value: unknown): number | null => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -70,10 +73,24 @@ async function vehicleItems(store: PushStore, uid: string, vehicle: RawDoc, sett
 
 const sentId = (item: PushItem): string => notificationId(pushKey(item));
 
-/** Each message with the items it stands for: one per item, or one summary for all of them. */
+const single = (item: PushItem) => ({ message: { title: item.title, body: item.body, url: item.url, tag: sentId(item), urgent: item.urgent }, items: [item] });
+
+/**
+ * Each message with the items it stands for: one per item, or, when there are many, one summary
+ * per vehicle. The app's list shows one vehicle at a time, so a summary opens that vehicle's list.
+ */
 function messagesFor(items: PushItem[]): { message: PushMessage; items: PushItem[] }[] {
-  if (items.length <= MAX_SEPARATE_PUSHES) return items.map(item => ({ message: { title: item.title, body: item.body, url: item.url, tag: sentId(item), urgent: item.urgent }, items: [item] }));
-  return [{ message: { title: `${items.length} התראות חדשות`, body: items.slice(0, 3).map(item => item.title).join(' · '), url: '/notifications', tag: 'digest', urgent: items.some(item => item.urgent) }, items }];
+  if (items.length <= MAX_SEPARATE_PUSHES) return items.map(single);
+  const byVehicle = new Map<string, PushItem[]>();
+  for (const item of items) byVehicle.set(item.vehicleId, [...byVehicle.get(item.vehicleId) ?? [], item]);
+  return [...byVehicle].map(([vehicleId, group]) => group.length === 1 ? single(group[0]) : {
+    message: {
+      title: `${group.length} התראות חדשות${group[0].vehicleName ? ` · ${group[0].vehicleName}` : ''}`,
+      body: group.slice(0, 3).map(item => item.title).join(' · '),
+      url: notificationLink(vehicleId, '/notifications'), tag: `digest:${vehicleId}`, urgent: group.some(item => item.urgent),
+    },
+    items: group,
+  });
 }
 
 /**
@@ -88,8 +105,11 @@ export async function runPush(store: PushStore, send: PushSender, { today, now, 
   const byUser = new Map<string, PushSubscriptionRow[]>();
   for (const sub of await store.subscriptions()) byUser.set(sub.uid, [...byUser.get(sub.uid) ?? [], sub]);
   // One account's failure (a refused read, a quota error) must not cost the others their reminders.
-  for (const [uid, devices] of byUser) try { await runUser(store, send, uid, devices, report, { today, now, dryRun }); }
-    catch (error) { report.errors += 1; warn(`push run failed for one account: ${error instanceof Error ? error.message : String(error)}`); }
+  for (const [uid, all] of byUser) {
+    // Newest devices first, capped: a flood of registrations cannot stretch the run for everyone else.
+    const devices = [...all].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0)).slice(0, MAX_DEVICES);
+    try { await runUser(store, send, uid, devices, report, { today, now, dryRun }); } catch (error) { report.errors += 1; warn(`push run failed for one account: ${error instanceof Error ? error.message : String(error)}`); }
+  }
   return report;
 }
 

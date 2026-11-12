@@ -9,6 +9,7 @@ import { Sheet } from './Sheet';
 import { localDay, mileageIssue, type CareCollection, type CareRecord } from '../lib/maintenance/model';
 import { suggestNextReminder, type PlanDefaults } from '../lib/maintenance/nextReminder';
 import { CalendarIcon } from './icons';
+import { isEv } from '../lib/vehicle/v3Fields';
 import { careCollection } from '../lib/vehicle/derived';
 import { validVehicleRecord, type VehicleIssue } from '../lib/vehicle/model';
 import { useAccountScope } from './account/useAccountScope';
@@ -17,7 +18,7 @@ import { vehicleDay } from '../lib/vehicle/format';
 import { CivilDateField } from './CivilDateField';
 import { formatCivilDay, parseCivilDay } from '../lib/civilDate';
 export function VehicleRecordEditor() {
-  const state=useVehicleData();const {saveCareRecord}=useData();const {showToast}=useToast();const captureScope=useAccountScope(state.scope);
+  const state=useVehicleData();const {saveCareRecord,activeVehicle}=useData();const {showToast}=useToast();const captureScope=useAccountScope(state.scope);
   const edit=state.editing;if(!edit)return null;const bound=state.scope;
   const previous=edit.completePlan?state.care.data.serviceEvents.filter(event=>event.day<=state.today&&event.completedPlanIds.includes(edit.completePlan!.id)).sort((a,b)=>b.day.localeCompare(a.day)||(b.odometer??-1)-(a.odometer??-1)||a.id.localeCompare(b.id))[0]:undefined;
   const completionDefaults=edit.completePlan&&!edit.record?{costAgorot:previous?.costAgorot??null,garage:previous?.garage??'',odometer:state.currentMileage&&!state.currentMileage.ambiguous?state.currentMileage.odometer:null,previousDay:previous?.day??null}:undefined;
@@ -29,8 +30,10 @@ export function VehicleRecordEditor() {
       const receipt=await saveCareRecord(state.vehicleId,edit.collection,record,base);
       if(!isCurrent())return;onAccepted?.();
       // A new service that did not advance a reminder: offer to set the next one straight away.
-      const latest=state.currentMileage?state.currentMileage.ambiguous?state.currentMileage.maximum:state.currentMileage.odometer:null;
-      const offer=edit.collection==='serviceEvents'&&!base&&'jobs' in record?suggestNextReminder(record,state.care.data.maintenancePlans,latest):null;
+      const latest=state.currentMileage?{odometer:state.currentMileage.ambiguous?state.currentMileage.maximum:state.currentMileage.odometer,day:state.currentMileage.day}:null;
+      // Only against a reminder list that actually arrived: an empty list while loading would offer a duplicate.
+      const plansKnown=state.care.loaded.includes('maintenancePlans')&&!state.care.errors.includes('maintenancePlans');
+      const offer=edit.collection==='serviceEvents'&&!base&&'jobs' in record&&plansKnown?suggestNextReminder(record,state.care.data.maintenancePlans,{services:state.care.data.serviceEvents,latest,today:state.today,ev:isEv(activeVehicle)}):null;
       state.edit(offer?{collection:'maintenancePlans',offerPlan:offer}:null);
       void receipt.settled.then(ok=>{if(isCurrent()&&!ok)showToast({tone:'error',title:'הסנכרון לא הושלם — בדקו שינויים שעוד לא עלו לענן'});});
     } catch(error) { if(isCurrent())throw error; }

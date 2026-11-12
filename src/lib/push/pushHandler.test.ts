@@ -3,11 +3,11 @@ import { runInNewContext } from 'node:vm';
 import { describe, expect, it } from 'vitest';
 
 /** Loads public/push-handler.js (imported by the generated service worker) against a fake worker scope. */
-function worker(clients: { url: string }[] = []) {
+function worker(clients: { url: string; refuse?: boolean }[] = []) {
   const listeners: Record<string, (event: unknown) => void> = {};
   const shown: { title: string; options: Record<string, unknown> }[] = [];
   const actions: string[] = [];
-  const windows = clients.map(client => ({ ...client, focus: async () => { actions.push(`focus ${client.url}`); }, navigate: async (url: string) => { actions.push(`navigate ${url}`); } }));
+  const windows = clients.map(client => ({ ...client, focus: async () => { actions.push(`focus ${client.url}`); }, navigate: async (url: string) => { if (client.refuse) throw new TypeError('not controlled'); actions.push(`navigate ${url}`); } }));
   const self = {
     location: { origin: 'https://tank-malle.web.app' },
     addEventListener: (type: string, fn: (event: unknown) => void) => { listeners[type] = fn; },
@@ -45,5 +45,10 @@ describe('push-handler.js', () => {
     const none = worker();
     await none.dispatch('notificationclick', { notification: { close, data: { url: '/notifications' } } });
     expect(none.actions).toEqual(['open https://tank-malle.web.app/notifications']);
+  });
+  it('a window the worker does not control cannot be navigated: the page opens instead', async () => {
+    const w = worker([{ url: 'https://tank-malle.web.app/', refuse: true }]);
+    await w.dispatch('notificationclick', { notification: { close: () => undefined, data: { url: '/notifications' } } });
+    expect(w.actions).toEqual(['focus https://tank-malle.web.app/', 'open https://tank-malle.web.app/notifications']);
   });
 });

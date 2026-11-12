@@ -5,14 +5,15 @@ import { runPush, type PushMessage, type PushStore, type PushSubscriptionRow, ty
 const plan = (id: string, dueDay: string): RawDoc => ({ id, schemaVersion: 1, version: 1, title: `טיפול ${id}`, job: 'periodic', dueDay, dueOdometer: null,
   intervalMonths: null, intervalKm: null, basis: 'manual', source: 'owner', notes: '', active: true });
 
-function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[]; fillups?: RawDoc[]; observations?: RawDoc[]; users?: string[]; broken?: string } = {}) {
+function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[]; fillups?: RawDoc[]; observations?: RawDoc[]; users?: string[]; broken?: string; plansByVehicle?: Record<string, RawDoc[]>; createdAt?: Record<string, number> } = {}) {
   const sent = new Map<string, string>(), removed: string[] = [], reads: string[] = [];
-  const subs: PushSubscriptionRow[] = (over.users ?? ['alice']).flatMap(uid => (over.devices ?? ['d1']).map(id => ({ uid, id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a' })));
+  const subs: PushSubscriptionRow[] = (over.users ?? ['alice']).flatMap(uid => (over.devices ?? ['d1']).map(id => ({ uid, id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a', createdAt: over.createdAt?.[id] ?? null })));
   const store: PushStore = {
     subscriptions: async () => subs.filter(s => !removed.includes(s.id)),
     profile: async uid => { if (uid === over.broken) throw new Error('quota'); return over.profile === undefined ? { settings: {} } : over.profile; },
     vehicles: async () => over.vehicles ?? [{ id: 'v1', nickname: 'המשפחתית', archived: false }],
-    collection: async (_uid, vehicleId, name) => { reads.push(name); return vehicleId !== 'v1' ? [] : name === 'maintenancePlans' ? over.plans ?? [plan('a', '2026-11-12')]
+    collection: async (_uid, vehicleId, name) => { reads.push(name); if (name === 'maintenancePlans' && over.plansByVehicle) return over.plansByVehicle[vehicleId] ?? [];
+      return vehicleId !== 'v1' ? [] : name === 'maintenancePlans' ? over.plans ?? [plan('a', '2026-11-12')]
       : name === 'notificationStates' ? over.states ?? [] : []; },
     latest: async (_uid, _vehicleId, name, field, limit, keep) => { reads.push(`latest ${name}`);
       const all = (name === 'fillups' ? over.fillups : name === 'observations' ? over.observations : null) ?? [];
@@ -41,12 +42,50 @@ describe('runPush', () => {
     expect(await runPush(store, again.send, at)).toMatchObject({ messages: 0 });
     expect(again.calls).toHaveLength(0);
   });
-  it('more than three new items become one summary pointing at the notifications list', async () => {
+  it('more than three new items become one summary that opens that vehicle\'s list', async () => {
     const { store, sent } = fakeStore({ plans: ['a', 'b', 'c', 'd'].map(id => plan(id, '2026-11-12')) }), s = sender();
     await runPush(store, s.send, at);
     expect(s.calls).toHaveLength(1);
-    expect(s.calls[0].message).toMatchObject({ title: '4 התראות חדשות', url: '/notifications', tag: 'digest' });
+    expect(s.calls[0].message).toMatchObject({ title: '4 התראות חדשות', url: '/open?vehicle=v1&to=%2Fnotifications', tag: 'digest:v1' });
     expect(sent.size).toBe(4);
+  });
+  it('with two cars, each summary names its car and opens its list; a car with one item gets it on its own', async () => {
+    const { store, sent } = fakeStore({
+      vehicles: [{ id: 'v1', nickname: 'המשפחתית' }, { id: 'v2', nickname: 'הקטנה' }, { id: 'v3', nickname: 'הטנדר' }],
+      plansByVehicle: { v1: [plan('a', '2026-11-12')], v2: ['b', 'c', 'd'].map(id => plan(id, '2026-11-12')), v3: [] },
+    }), s = sender();
+    await runPush(store, s.send, at);
+    expect(s.calls.map(c => c.message)).toEqual([
+      expect.objectContaining({ title: 'טיפול a', body: 'המשפחתית · הטיפול מתקרב' }),
+      expect.objectContaining({ title: '3 התראות חדשות · הקטנה', body: 'טיפול b · טיפול c · טיפול d', url: '/open?vehicle=v2&to=%2Fnotifications', tag: 'digest:v2' }),
+    ]);
+    expect(sent.size).toBe(4);
+  });
+  it('a reminder pushed as approaching is pushed again on the day it is due, even if read in the app', async () => {
+    const occurrence = 'reminder:a:2026-11-12:-:initial';
+    const { store, sent } = fakeStore({ states: [{ id: notificationId(occurrence), schemaVersion: 1, version: 1, occurrence, read: true, archived: false, snoozeUntilDay: null }] });
+    const early = sender();
+    await runPush(store, early.send, at);
+    expect(early.calls).toHaveLength(0); // read while approaching: no push
+    const due = sender();
+    await runPush(store, due.send, { today: '2026-11-12', now: 2 });
+    expect(due.calls.map(c => c.message)).toEqual([expect.objectContaining({ body: 'הגיע מועד הטיפול', urgent: true })]);
+    const again = sender();
+    await runPush(store, again.send, { today: '2026-11-13', now: 3 });
+    expect(again.calls).toHaveLength(0);
+    expect(sent.size).toBe(1);
+  });
+  it('approaching then due: two pushes, one per stage', async () => {
+    const { store } = fakeStore(), s = sender();
+    await runPush(store, s.send, at);
+    await runPush(store, s.send, { today: '2026-11-12', now: 2 });
+    expect(s.calls.map(c => c.message.body)).toEqual(['הטיפול מתקרב', 'הגיע מועד הטיפול']);
+  });
+  it('serves only the newest devices of an account', async () => {
+    const devices = Array.from({ length: 14 }, (_, i) => `d${i}`);
+    const { store } = fakeStore({ devices, createdAt: Object.fromEntries(devices.map((id, i) => [id, i])) }), s = sender();
+    expect(await runPush(store, s.send, at)).toMatchObject({ devices: 10 });
+    expect(s.calls.map(c => c.device)).toEqual(devices.slice(4).reverse());
   });
   it('removes an expired device and keeps the occurrence unsent when no device accepted it', async () => {
     const { store, sent, removed } = fakeStore({ devices: ['gone', 'flaky'] });
