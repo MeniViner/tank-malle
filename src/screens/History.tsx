@@ -194,16 +194,15 @@ function HistorySession() {
     {needsAttention ? <Link data-history-unsynced className="journal-unsynced" to="/settings/unsynced">יש שינויים שעוד לא עלו לענן · בדיקה ותיקון ←</Link> : null}
     {rows.length ? <section className="journal-summary" aria-label="סיכום היומן המסונן" data-testid="journal-summary">
       <div className="journal-summary-main">
-        <span className="journal-summary-label"><span>{total.unknown || vehicle.incomplete ? "סכום ידוע בתקופה" : "סך הכול בתקופה"}</span>
-          <small data-testid="ledger-range"><NumRun>{int(rows.length)}</NumRun> {rows.length === 1 ? "רשומה" : "רשומות"} · <NumRun>{int(fuelCount)}</NumRun> {fuelCount === 1 ? "תדלוק" : "תדלוקים"} · <NumericText>{rangeLabel}</NumericText></small></span>
-        <i className="journal-summary-leader" aria-hidden="true" />
-        <strong data-testid="ledger-total"><NumRun align="trailing">{financialCount > total.unknown ? vehicleMoney(total.total) : "—"}</NumRun></strong>
+        <span className="journal-summary-label">{total.unknown || vehicle.incomplete ? "סכום ידוע בתקופה" : "סך הכול בתקופה"}</span>
+        <strong data-testid="ledger-total"><NumRun>{financialCount > total.unknown ? vehicleMoney(total.total) : "—"}</NumRun></strong>
+        <small data-testid="ledger-range"><NumRun>{int(rows.length)}</NumRun> {rows.length === 1 ? "רשומה" : "רשומות"} · <NumRun>{int(fuelCount)}</NumRun> {fuelCount === 1 ? "תדלוק" : "תדלוקים"}{periodFiltered ? <> · <NumericText>{rangeLabel}</NumericText></> : null}</small>
+        {total.unknown > 0 ? <p><NumRun>{int(total.unknown)}</NumRun> {total.unknown === 1 ? "עלות חסרה" : "עלויות חסרות"}</p> : null}
+        {total.excludedCount > 0 ? <p data-testid="ledger-excluded">כולל <NumRun>{vehicleMoney(total.excludedAgorot)}</NumRun> שלא בעלות הרכב · <NumRun>{int(total.excludedCount)}</NumRun> {total.excludedCount === 1 ? "הוצאה" : "הוצאות"}</p> : null}
+        {rows.length > limit ? <p>מוצגות <NumRun>{int(limit)}</NumRun> מתוך <NumRun>{int(rows.length)}</NumRun> רשומות</p> : null}
       </div>
-      {total.unknown > 0 ? <p><NumRun>{int(total.unknown)}</NumRun> {total.unknown === 1 ? "עלות חסרה" : "עלויות חסרות"}</p> : null}
-      {total.excludedCount > 0 ? <p data-testid="ledger-excluded">כולל <NumRun>{vehicleMoney(total.excludedAgorot)}</NumRun> שלא בעלות הרכב · <NumRun>{int(total.excludedCount)}</NumRun> {total.excludedCount === 1 ? "הוצאה" : "הוצאות"}</p> : null}
-      {rows.length > limit ? <p>מוצגות <NumRun>{int(limit)}</NumRun> מתוך <NumRun>{int(rows.length)}</NumRun> רשומות</p> : null}
-      <button type="button" className="journal-summary-info" data-testid="journal-summary-info" aria-haspopup="dialog"
-        onClick={() => setCoverageOpen(true)}>על מה הסכום מבוסס?</button>
+      <button type="button" className="tm-icon-button journal-summary-info" data-testid="journal-summary-info" aria-haspopup="dialog"
+        aria-label="על מה הסכום מבוסס?" onClick={() => setCoverageOpen(true)}><InfoIcon size={18} /></button>
     </section> : null}
     {!rows.length ? <section className="journal-empty" role={loading ? "status" : undefined}>
       <h2>{loading ? "טוענים את היומן" : filtered ? "לא נמצאו רשומות" : vehicle.incomplete ? "עדיין אין רשומות זמינות" : "אין כאן עדיין רשומות"}</h2>
@@ -218,21 +217,18 @@ function HistorySession() {
       const visible = group.filter(row => visibleKeys.has(row.key));
       if (!visible.length) return null;
       const sum = financialTotals(group), financial = group.filter(row => row.financial).length;
-      const fills = group.filter(row => row.kind === "fuel").length;
       const label = heMonthName(Number(month.slice(5, 7))) + (month.slice(0, 4) === vehicle.today.slice(0, 4) ? "" : " " + month.slice(0, 4));
       return <section className="journal-month" data-testid={"journal-month-" + month} key={month}>
         <header className="journal-month-heading">
           <h2><NumericText>{label}</NumericText></h2>
           <span className="journal-month-summary">
             {financial > 0 ? <span data-testid={"journal-month-total-" + month}><NumRun align="trailing">{financial > sum.unknown ? vehicleMoney(sum.total) : "—"}</NumRun></span> : null}
-            {financial > 0 && fills > 0 ? " · " : null}
-            {fills > 0 ? <span><NumRun>{int(fills)}</NumRun> {fills === 1 ? "תדלוק" : "תדלוקים"}</span> : null}
           </span>
         </header>
         {sum.unknown > 0 ? <p className="journal-month-coverage" data-testid={"journal-month-coverage-" + month}>
           {financial > sum.unknown ? "סכום ידוע · " : ""}<NumRun>{int(sum.unknown)}</NumRun> {sum.unknown === 1 ? "עלות חסרה" : "עלויות חסרות"}
         </p> : null}
-        <div data-testid={"journal-month-rows-" + month}>
+        <div className="journal-month-rows" data-testid={"journal-month-rows-" + month}>
           {visible.map(row => <JournalEntryRow key={row.key} row={row} units={data.settings.units} ev={isEv(data.activeVehicle)}
             kmPerLiter={row.kind === "fuel" ? segmentValues.get(row.id) : undefined}
             pending={pendingPaths.has(pathFor(row))} attention={attentionPaths.has(pathFor(row))}

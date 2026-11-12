@@ -1,12 +1,13 @@
 import { Link } from "react-router-dom";
-import { heMonthShort, int } from "../lib/format";
+import { dayMonthShort, int } from "../lib/format";
 import { fillupEndLabel, observationLevelLabel } from "../lib/journal/presentation";
+import { resolveEndState } from "../lib/tank/observations";
 import type { TankObservation } from "../lib/tank/types";
 import type { Fillup } from "../lib/types";
 import type { LedgerRow } from "../lib/vehicle/derived";
 import { vehicleDay } from "../lib/vehicle/format";
 import { ConsumptionValue, Distance, Money, NumericText, NumRun, Percent, Quantity, SignedMoney } from "./Fmt";
-import { ChevronStart, WarningIcon } from "./icons";
+import { GaugeIcon, WarningIcon } from "./icons";
 import { CareGlyph } from "./maintenance/CareGlyph";
 import { EXCLUDED_LABEL } from "../lib/vehicle/ownership";
 import { StationBrandMark } from "./StationBrand";
@@ -27,27 +28,25 @@ export function JournalEntryRow({ row, units, kmPerLiter, ev = false, pending = 
   const category = "category" in row.record ? row.record.category : "other";
   const classes = `tm-journal-row ledger-row${quiet ? " tm-journal-quiet" : ""}`;
   const state = attention ? "דורש בדיקה" : pending ? "ממתין לאישור" : "";
+  // Density pass: the quiet rows (odometer, tank mark) read as a small tag, not a full entry.
   const content = quiet ? <>
     <span className="tm-journal-quiet-copy">
-      {row.kind === "odometer" && row.odometer !== null ? <>קילומטראז׳ עודכן ל־<NumRun>{int(row.odometer)}</NumRun></>
-        : observation?.level != null ? <>{observationLevelLabel(observation)}: <Percent value={observation.level * 100} /></>
+      <GaugeIcon size={14} />
+      {row.kind === "odometer" && row.odometer !== null ? <>ק״מ <NumRun>{int(row.odometer)}</NumRun></>
+        : observation?.level != null ? <>{observationLevelLabel(observation)} <Percent value={observation.level * 100} /></>
           : <NumericText>{row.title}</NumericText>}
-      <span className="tm-journal-meta"> · <NumericText>{vehicleDay(row.day)}</NumericText>{state ? ` · ${state}` : ""}</span>
-    </span><ChevronStart size={17} />
+      <span className="tm-journal-meta"> · <NumericText>{dayMonthShort(date)}</NumericText>{state ? ` · ${state}` : ""}</span>
+    </span>
   </> : <>
-    <time className="tm-journal-day" dateTime={row.day} aria-label={vehicleDay(row.day)}>
-      <NumRun>{date.getDate()}</NumRun><span>{heMonthShort(date.getMonth() + 1)}</span>
-    </time>
-    {fuel ? <StationBrandMark brand={fuel.station?.brand} name={fuel.station?.name} size={36} />
-      : <span className={`tm-journal-badge${row.kind === "issue" ? " tm-journal-badge-warning" : ""}`} aria-hidden="true">
+    {fuel ? <StationBrandMark brand={fuel.station?.brand} name={fuel.station?.name} size={40} />
+      : <span className={`tm-journal-badge${row.kind === "issue" ? " tm-journal-badge-warning" : refund ? " tm-journal-badge-refund" : ""}`} aria-hidden="true">
         {row.kind === "issue" ? <WarningIcon size={20} /> : <CareGlyph kind={row.kind === "service" ? job : category} size={20} />}
       </span>}
     <span className="tm-journal-main">
       <strong className="tm-journal-title"><NumericText>{row.title}</NumericText></strong>
-      <span className="tm-journal-meta">{fuel ? ev ? <>טעינה · {fillupEndLabel(fuel)}</> : <FuelMeta fillup={fuel} value={kmPerLiter} units={units} /> : <>
+      <span className="tm-journal-meta">{fuel ? ev ? <>טעינה{fuelEndNote(fuel)}</> : <FuelMeta fillup={fuel} value={kmPerLiter} units={units} /> : <>
         {row.kind === "service" ? "טיפול" : row.kind === "issue" ? "תקלה" : refund ? "החזר" : "הוצאה"}
         {row.odometer !== null ? <> · <Distance value={row.odometer} /></> : null}
-        {row.at === null ? " · יום בלבד" : null}
       </>}</span>
       {fuel?.continuityBreakBefore ? <span className="tm-journal-state">אחרי תדלוקים שלא נרשמו</span> : null}
       {state ? <span className="tm-journal-state">{state}</span> : null}
@@ -57,16 +56,21 @@ export function JournalEntryRow({ row, units, kmPerLiter, ev = false, pending = 
     <span className={`tm-journal-money${refund ? " tm-journal-refund" : ""}`}>
       {row.financial ? row.amountAgorot === null ? <NumRun align="trailing">—</NumRun>
         : refund ? <SignedMoney value={Math.abs(row.amountAgorot) / 100} align="trailing" /> : <Money value={row.amountAgorot / 100} align="trailing" />
-        : <ChevronStart size={19} />}
-      {refund ? <span>חזר אליכם</span> : null}
+        : null}
+      <time className="tm-journal-day" dateTime={row.day} aria-label={vehicleDay(row.day)}><NumericText>{dayMonthShort(date)}</NumericText></time>
     </span>
   </>;
   const shared = { className: classes, "data-collection": row.collection, "data-testid": `journal-entry-${row.key}` };
   return to ? <Link {...shared} to={to}>{content}</Link> : <button {...shared} type="button" onClick={onOpen}>{content}</button>;
 }
 
+/** A full tank is the normal case and is not repeated on every row; only a partial or unknown end is named. */
+function fuelEndNote(fillup: Fillup) {
+  const state = resolveEndState(fillup).state;
+  return state === "full" ? "" : ` · ${fillupEndLabel(fillup)}`;
+}
+
 function FuelMeta({ fillup, value, units }: { fillup: Fillup; value?: number; units: "kmPerLiter" | "litersPer100" }) {
-  const label = fillupEndLabel(fillup);
-  return <><Quantity value={fillup.liters} digits={1} /> · {label}
+  return <><Quantity value={fillup.liters} digits={1} />{fuelEndNote(fillup)}
     {value !== undefined ? <> · <ConsumptionValue kmPerLiter={value} units={units} /></> : null}</>;
 }

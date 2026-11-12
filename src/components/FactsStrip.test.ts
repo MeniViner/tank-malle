@@ -50,11 +50,19 @@ describe("FactsStrip (Design v3 §3)", () => {
     expect(markup).toMatch(/^<div class="facts">/);
   });
 
-  it("the shared stylesheet holds the §3 typography and rules", () => {
+  it('layout="tiles" adds the tiles class and keeps the same row markup', () => {
+    const markup = render(createElement(FactsStrip, { layout: "tiles", rows: [{ id: "a", label: "א", value: "1" }] }));
+    expect(markup).toMatch(/^<div class="facts facts-tiles">/);
+    expect(markup).toContain('<span class="fl"><span class="fl-text">א</span></span><i class="ld" aria-hidden="true"></i>');
+  });
+
+  it("the shared stylesheet holds the §3 typography and rules (density pass: no leader dots, body-face numbers)", () => {
     const css = readFileSync(resolve(__dirname, "../design-primitives.css"), "utf8");
     expect(css).toMatch(/\.facts \{[^}]*border-block: 1px solid var\(--line\)/);
-    expect(css).toMatch(/\.facts > \.fact \+ \.fact \{ border-top: 1px dashed var\(--line\)/);
-    expect(css).toMatch(/\.facts \.fv > \.tm-number\.n \{ font: 400 22px\/1 var\(--font-mono\)/);
+    expect(css).toMatch(/\.facts > \.fact \+ \.fact \{ border-top: 1px solid /);
+    expect(css).toMatch(/\.facts \.ld \{ flex: 1; min-width: 12px; height: 0; \}/);
+    expect(css).toMatch(/\.facts \.fv > \.tm-number\.n \{ font: 600 19px\/1\.1 var\(--font-sans\)/);
+    expect(css).toMatch(/\.facts\.facts-tiles \{[^}]*grid-template-columns/);
     expect(css).toMatch(/\.facts \.fv > u \{[^}]*font: 400 12px/);
     expect(css).toMatch(/\.facts \.fl \{[^}]*font: 500 15px/);
     expect(css).toMatch(/\.facts > \.fact \{[^}]*min-height: 58px/);

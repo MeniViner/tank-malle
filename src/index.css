@@ -56,7 +56,8 @@
   --font-sans: "IBM Plex Sans Hebrew", system-ui, -apple-system, sans-serif;
   --font-display: "Karantina", "IBM Plex Sans Hebrew", sans-serif;
   --font-mono: "IBM Plex Mono", "IBM Plex Sans Hebrew", monospace;
-  --font-num: var(--font-mono);
+  /* Density pass: numbers use the body face with tabular digits; Mono stays only on the plate and odometer/pump readouts. */
+  --font-num: var(--font-sans);
   --success: var(--better);
   --success-soft: var(--better-soft);
   --success-ink: var(--better);

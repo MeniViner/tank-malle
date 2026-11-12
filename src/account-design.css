@@ -1,7 +1,7 @@
 .account-page { display: flex; flex: 1; flex-direction: column; min-width: 0; }
 .account-body { display: flex; flex-direction: column; gap: 22px; padding: 4px 20px calc(32px + env(safe-area-inset-bottom)); }
 .account-section { display: grid; gap: 8px; min-width: 0; }
-.account-section-title { color: var(--ink); font: 400 26px/1 var(--font-display); }
+.account-section-title { color: var(--ink); font: 700 18px/1.3 var(--font-sans); }
 .tm-group { display: grid; min-width: 0; border-top: 1px solid var(--line); }
 .account-identity { display: flex; width: 100%; min-height: 76px; align-items: center; gap: 14px; border: 0; background: transparent; padding: 0; color: var(--ink); text-align: right; cursor: pointer; }
 .account-avatar { display: grid; width: 64px; height: 64px; flex: none; place-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); }

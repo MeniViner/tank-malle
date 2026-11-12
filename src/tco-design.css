@@ -40,7 +40,7 @@
 .tm-tco-duo>div{display:grid;align-content:start;gap:5px;padding-block:12px;min-width:0}
 .tm-tco-duo>div+div{border-inline-start:1px solid var(--line);padding-inline-start:16px}
 .tm-tco-duo :is(span,small){font-size:12px;line-height:1.6;color:var(--ink-2)}
-.tm-tco-duo strong{font-family:var(--font-display);font-size:38px;font-weight: 400;line-height:1.1;text-align:right}
+.tm-tco-duo strong{font-family:var(--font-sans);font-size:22px;font-weight:600;line-height:1.2;text-align:right}
 .tm-tco-duo strong>.tm-number{font-family:inherit}
 @media(max-width:350px){.tm-tco{padding-inline:12px}.tm-tco-sheet .tm-tco-value{font-size:72px}.tm-tco-unit{font-size:13px}.tm-tco-row{gap:8px}.tm-tco-icon{width:28px;height:28px}.tm-tco-row-value{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.tm-tco,.tm-tco-open,.tm-tco-per,.tm-tco-row{animation:none!important;transition:none!important;transform:none!important;scale:1!important}}

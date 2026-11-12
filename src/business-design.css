@@ -14,7 +14,7 @@
 .biz-rows ul { display: grid; margin: 0; padding: 0; list-style: none; }
 .biz-rows li { display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px dashed var(--line); font-size: 13px; }
 .biz-rows li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
-.biz-rows li > .tm-number { flex: none; font: 400 14px/1 var(--font-mono); }
+.biz-rows li > .tm-number { flex: none; font: 600 14px/1.2 var(--font-sans); }
 .biz-outside { color: var(--ink-2); }
 .biz-fields { display: grid; gap: 12px; padding-block: 4px 16px; }
 .biz-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
