@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { disablePush, enablePush, pushPlatform, pushStatus, type PushStatus } from '../lib/push/client';
+import { nativeBuild } from '../lib/native/platform';
+import { useAccountScope } from './account/useAccountScope';
 import { GroupRow } from './DesignPrimitives';
 import { Toggle } from './Segmented';
 
@@ -19,12 +21,34 @@ export function PushNotificationsSection() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const uid = user?.uid ?? null;
-  useEffect(() => { let live = true; void pushStatus(uid).then(next => { if (live) setStatus(next); }, () => { if (live) setStatus('unsupported'); }); return () => { live = false; }; }, [uid]);
+  const capture = useAccountScope(uid);
+  useEffect(() => {
+    let live = true;
+    const refresh = () => {
+      const next = nativeBuild
+        ? import('../lib/native/reminders').then(module => module.nativeReminderStatus(uid))
+        : pushStatus(uid);
+      void next.then(value => { if (live) setStatus(value); }, () => { if (live) setStatus('unsupported'); });
+    };
+    refresh();
+    if (nativeBuild) document.addEventListener('visibilitychange', refresh);
+    return () => { live = false; document.removeEventListener('visibilitychange', refresh); };
+  }, [uid]);
   if (status === null) return null;
   const toggle = async (on: boolean) => {
     if (!user || busy) return;
     setBusy(true); setError('');
-    try { setStatus(on ? await enablePush(user.uid) : await disablePush(user.uid)); }
+    const current = capture();
+    try {
+      let next: PushStatus;
+      if (nativeBuild) {
+        const { enableNativeReminders, clearNativeReminders } = await import('../lib/native/reminders');
+        if (!current()) return;
+        if (on) next = await enableNativeReminders(user.uid, current);
+        else { await clearNativeReminders(); next = 'off'; }
+      } else next = on ? await enablePush(user.uid) : await disablePush(user.uid);
+      if (current()) setStatus(next);
+    }
     catch { setError(on ? 'לא הצלחנו להפעיל התראות במכשיר הזה. נסו שוב כשיש חיבור.' : 'לא הצלחנו לכבות את ההתראות. נסו שוב כשיש חיבור.'); }
     finally { setBusy(false); }
   };
@@ -34,7 +58,9 @@ export function PushNotificationsSection() {
       {canToggle ? <Toggle ariaLabel="התראות לטלפון" checked={status === 'on'} disabled={busy || !user} onChange={value => void toggle(value)} />
         : <span className="text-[13px] text-ink-2">{status === 'needsInstall' ? 'דורש הוספה למסך הבית' : status === 'denied' ? 'חסום' : 'לא נתמך'}</span>}
     </GroupRow></div>
-    <p className="helper">{NOTE[status]}</p>
+    <p className="helper">{nativeBuild && (status === 'on' || status === 'off')
+      ? 'תזכורות מקומיות לטסט, ביטוח וטיפולים לפי הנתונים שסונכרנו למכשיר.'
+      : NOTE[status]}</p>
     {error ? <p role="alert" className="text-[14px] text-danger">{error}</p> : null}
   </section>;
 }

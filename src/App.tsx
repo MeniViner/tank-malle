@@ -12,6 +12,7 @@ import { useData } from "./context/DataContext";
 import { Toaster } from "./components/Toaster";
 import { TabBar } from "./components/TabBar";
 import { UpdatePrompt } from "./components/UpdatePrompt";
+import { nativeBuild } from "./lib/native/platform";
 import { Skeleton } from "./components/Card";
 import OpenNotification from "./screens/OpenNotification";
 import { Splash } from "./screens/Splash";
@@ -39,6 +40,7 @@ const Statistics = lazy(() =>
 // Admin is a rarely used, read-heavy screen — no reason to ship it to
 // everyone's first paint.
 const Admin = lazy(() => import("./screens/Admin").then((m) => ({ default: m.Admin })));
+const NativeShell = lazy(() => import("./components/NativeShell"));
 
 const ONBOARDING_KEY = "tm.onboarded";
 const ALWAYS_REACHABLE = ["/vehicles/new", "/admin", "/legal", "/account", "/settings", "/feedback", "/notifications"];
@@ -61,11 +63,12 @@ export default function App() {
     <>
       <AppAtmosphere />
       {import.meta.env.VITE_LOCAL_CARE === "1" ? <div className="mx-auto max-w-[430px] bg-warning-soft px-3 py-1.5 text-center text-xs text-warning-ink">תצוגה מקומית · נתוני הדגמה</div> : null}
+      {import.meta.env.MODE === 'native-qa' ? <div className="pt-safe bg-warning-soft text-center text-xs text-warning-ink">סביבת בדיקה</div> : null}
       <RouteScroll />
       <Suspense fallback={<Splash />}><Shell /></Suspense>
       {/* Mounted unconditionally: this is what registers the service worker,
           so the app is installable and offline-capable before sign-in too. */}
-      <UpdatePrompt />
+      {nativeBuild ? <Suspense fallback={null}><NativeShell /></Suspense> : <UpdatePrompt />}
       <VehicleRecordEditor />
       <Toaster />
     </>

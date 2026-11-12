@@ -87,22 +87,32 @@ export function Profile() {
       }
       // One file per explicit gesture: browsers can block a second automatic
       // download even though both CSV files were generated successfully.
-      if (kind === "fillups") downloadAllVehiclesCsv(data.rows);
-      else downloadTankUpdatesCsv(data.observations, data.plans);
+      const current = () => uidRef.current === exportUid;
+      const exported = kind === "fillups"
+        ? await downloadAllVehiclesCsv(data.rows, current)
+        : await downloadTankUpdatesCsv(data.observations, data.plans, current);
+      if (!exported || !current()) return;
       showToast({ tone: "success", title: "הקובץ הוכן להורדה", detail: "כולל רכבים בארכיון. בדקו שהקובץ נשמר בהורדות הדפדפן." });
     } catch { setExportError("הייצוא לא הושלם. בדקו את החיבור ונסו שוב."); }
     finally { setExporting(false); }
   }
 
-  function exportSelected(kind: "fillups" | "tank") {
+  async function exportSelected(kind: "fillups" | "tank") {
     if (exportScope === "account") { void exportAll(kind); return; }
     if (!activeVehicle || exporting) return;
     if (kind === "fillups" ? !fillups.length : !observations.length && !plans.length) {
       showToast({ tone: "info", title: "אין עדיין נתונים מהסוג הזה לייצוא" }); return;
     }
-    if (kind === "fillups") downloadFillupsCsv(fillups, activeVehicle);
-    else downloadTankUpdatesCsv(observations, plans);
-    showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
+    const exportUid = user?.uid;
+    const current = () => !!exportUid && uidRef.current === exportUid;
+    try {
+      const exported = kind === "fillups"
+        ? await downloadFillupsCsv(fillups, activeVehicle, current)
+        : await downloadTankUpdatesCsv(observations, plans, current);
+      if (exported && current()) showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
+    } catch {
+      if (current()) setExportError("הייצוא לא הושלם.");
+    }
   }
   const scopeLabel = exportScope === "account" ? "כל הרכבים, כולל הארכיון" : "הרכב הפעיל";
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { nativeBuild } from "../lib/native/platform";
 
 /**
  * Chrome fires this instead of showing its own install banner, and only when
@@ -19,7 +20,7 @@ export type InstallState =
 
 function isStandalone(): boolean {
   return (
-    window.matchMedia("(display-mode: standalone)").matches ||
+    nativeBuild || window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as { standalone?: boolean }).standalone === true
   );
 }
@@ -39,6 +40,7 @@ export function useInstallPrompt(): {
   const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
+    if (nativeBuild) return;
     const onPrompt = (event: Event) => {
       event.preventDefault();
       setDeferred(event as BeforeInstallPromptEvent);

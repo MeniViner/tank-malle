@@ -69,7 +69,8 @@ import {
   type DocumentSnapshot,
   type QuerySnapshot,
 } from "firebase/firestore";
-import { reauthenticateWithPopup } from "firebase/auth";
+import { reauthenticateWithCredential, reauthenticateWithPopup } from "firebase/auth";
+import { nativeBuild } from "../lib/native/platform";
 import { db, googleProvider } from "../lib/firebase";
 import { accountDataDeletionSteps, clearAccountLocalData, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
 import { withdrawBenchmark } from "../lib/benchmarks";
@@ -2864,7 +2865,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const deleteAccount = useCallback(async (): Promise<DeletionResult> => {
     if (!user || !uid) return { ok: false, deleted: [], failed: ["no-session"] };
     const result = await runAccountDeletion({
-      reauthenticate: async () => { await reauthenticateWithPopup(user, googleProvider); return true; },
+      reauthenticate: async () => {
+        if (nativeBuild) {
+          const { nativeGoogleCredential } = await import("../lib/native/google");
+          await reauthenticateWithCredential(user, await nativeGoogleCredential());
+        } else await reauthenticateWithPopup(user, googleProvider);
+        return true;
+      },
       preflight: async () => {
         if (await unacknowledgedState() !== "none" || writes.pending.length > 0) throw new Error("pending-writes");
         markAccountDeleting(uid);
@@ -2880,6 +2887,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       local: async () => {
         // Recheck immediately before clearing the device's shared SDK cache.
         if (await unacknowledgedState() !== "none") throw new Error("pending-writes");
+        if (nativeBuild) {
+          const { clearNativeReminders } = await import("../lib/native/reminders");
+          await clearNativeReminders();
+          const { clearNativeExports } = await import("../lib/native/files");
+          await clearNativeExports();
+        }
         generationRef.current += 1;
         outboxRef.current?.close();
         await terminate(db);
@@ -2890,6 +2903,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
     if (result.ok) {
       finishAccountDeletion(uid);
+      if (nativeBuild) {
+        const { clearNativeGoogle } = await import("../lib/native/google");
+        await clearNativeGoogle().catch(() => {});
+      }
       // The shared SDK was terminated for verified erasure. Start a fresh
       // instance before the next person tries to sign in on this device.
       setTimeout(() => window.location.replace("/"), 0);

@@ -1,5 +1,5 @@
 import { CARE_COLLECTIONS, EXPENSES, JOBS, nextDue, validCareRecord, type CareCollection, type CareData, type CareRecord, type MaintenancePlan } from './model';
-import { exportFilename } from '../exportFilename';
+import { downloadTextFile } from '../downloadFile';
 import { isExcludedRecord } from '../vehicle/ownership';
 export const EXCLUDED_CSV_COLUMN = 'excluded_from_tco';
 /** Import side of the column: "yes"/"true"/"1"/"כן" mean excluded; anything else (or no column) means included. */
@@ -69,6 +69,6 @@ export function careCalendar(vehicleId:string,plan:MaintenancePlan,data:CareData
     parts.push(current);return parts.join('\r\n');
   }).join('\r\n')+'\r\n';
 }
-export function downloadCareFile(text:string,filename:string,type:string,now=new Date()): void {
-  const url=URL.createObjectURL(new Blob([text],{type}));const anchor=document.createElement('a');anchor.href=url;anchor.download=exportFilename(filename,now);document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+export function downloadCareFile(text: string, filename: string, type: string, now = new Date(), current?: () => boolean) {
+  return downloadTextFile(text, filename, type, now, current);
 }

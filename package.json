@@ -20,9 +20,22 @@
     "test:care": "playwright test --config playwright.care.config.ts",
     "test:care:pwa": "playwright test --config playwright.care-pwa.config.ts",
     "dev:care:device": "node scripts/care-device.mjs",
-    "test:unified": "playwright test --config playwright.unified.config.ts"
+    "test:unified": "playwright test --config playwright.unified.config.ts",
+    "native:prepare": "node scripts/prepare-native.mjs",
+    "native:android": "node scripts/build-android.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/camera": "8.2.6",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/geolocation": "8.2.4",
+    "@capacitor/ios": "8.6.0",
+    "@capacitor/local-notifications": "8.3.1",
+    "@capacitor/share": "8.0.3",
+    "@capgo/capacitor-printer": "8.1.10",
+    "@capgo/capacitor-social-login": "8.7.9",
     "firebase": "^11.10.0",
     "pdfjs-dist": "6.4.299",
     "react": "^18.3.1",
@@ -31,6 +44,7 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.6.0",
     "@firebase/rules-unit-testing": "^4.0.1",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",

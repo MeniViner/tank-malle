@@ -1,0 +1,5 @@
+PRODUCT_BUNDLE_IDENTIFIER = com.meniviner.tankmalle
+TANK_MALLE_DISPLAY_NAME = טנק מלא
+MARKETING_VERSION = 1.10.0
+CURRENT_PROJECT_VERSION = 1
+#include? "TankMalle.generated.xcconfig"
