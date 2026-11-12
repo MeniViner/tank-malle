@@ -1,29 +1,42 @@
+/* Density pass (2026-11): one slim row. Icon, title + one short meta line, amount with the date under it.
+   Rows sit inside a month card (`.journal-month-rows`, `.home-recent-rows`) with an inset divider that starts at the text. */
 .tm-journal-row {
-  display: flex; align-items: center; gap: 11px; width: 100%; min-height: 78px;
-  padding: 14px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0;
+  position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 66px;
+  padding: 12px 14px; border: 0; border-radius: 0;
   background: transparent; color: var(--ink); text-align: right; text-decoration: none; cursor: pointer;
 }
-.tm-journal-row:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
-.tm-journal-day { display: grid; justify-items: center; flex: none; width: 31px; gap: 2px; }
-.tm-journal-day > bdi { font: 400 30px/1 var(--font-display); }
-.tm-journal-day > span { color: var(--ink-2); font-size: 12px; white-space: nowrap; }
-.tm-journal-badge { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); }
-.tm-journal-badge-warning { color: var(--warning-ink); }
+.tm-journal-row + .tm-journal-row::before {
+  content: ""; position: absolute; top: 0; inset-inline-start: 66px; inset-inline-end: 14px;
+  border-top: 1px solid var(--line); pointer-events: none;
+}
+.tm-journal-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; border-radius: var(--r-md); }
+.tm-journal-row:active { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.tm-journal-badge { display: grid; place-items: center; flex: none; width: 40px; height: 40px; border-radius: 12px; background: var(--surface-2); }
+.tm-journal-badge-warning { background: var(--warning-soft); color: var(--warning-ink); }
+.tm-journal-badge-refund { background: var(--better-soft); color: var(--better); }
 .tm-journal-main { display: grid; flex: 1; min-width: 0; gap: 3px; }
-.tm-journal-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 1.3; font-weight: 600; }
-.tm-journal-meta, .tm-journal-state { color: var(--ink-2); font-size: 12.5px; line-height: 1.45; }
-.tm-journal-state { display: flex; align-items: center; gap: 4px; }
+.tm-journal-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15.5px; line-height: 1.3; font-weight: 600; }
+.tm-journal-meta, .tm-journal-state { color: var(--ink-2); font-size: 13px; line-height: 1.4; }
+.tm-journal-state { display: flex; align-items: center; gap: 4px; font-size: 12.5px; }
 .tm-journal-flag { color: var(--warning-ink); }
-.tm-journal-money { display: grid; justify-items: end; flex: none; gap: 3px; text-align: left; }
-.tm-journal-money > bdi { font: 400 26px/1 var(--font-display); }
-.tm-journal-money > span { font: 500 12px/1.3 var(--font-sans); }
-.tm-journal-refund { color: var(--success-ink); }
-.tm-journal-row.tm-journal-quiet { min-height: 44px; justify-content: space-between; padding-block: 10px; border-bottom-style: dashed; }
-.tm-journal-quiet-copy { font-size: 13px; line-height: 1.5; }
-.tm-journal-meta, .tm-journal-state, .tm-journal-day > span, .tm-journal-money > span, .tm-journal-quiet-copy {
+.tm-journal-money { display: grid; justify-items: end; align-content: center; flex: none; gap: 3px; text-align: left; }
+.tm-journal-money > bdi { font: 600 15.5px/1.2 var(--font-sans); font-variant-numeric: tabular-nums; }
+.tm-journal-day { color: var(--ink-3); font-size: 12px; line-height: 1.3; white-space: nowrap; }
+.tm-journal-refund > bdi { color: var(--success-ink); }
+
+/* Odometer updates and tank marks are not spending: a small tag instead of a full-height row. */
+.tm-journal-row.tm-journal-quiet { min-height: 44px; padding-block: 6px; }
+.tm-journal-row.tm-journal-quiet + .tm-journal-row::before, .tm-journal-row + .tm-journal-row.tm-journal-quiet::before { inset-inline-start: 14px; }
+.tm-journal-quiet-copy {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0;
+  padding: 4px 12px; border-radius: 99px; background: var(--surface-2);
+  color: var(--ink-2); font-size: 12.5px; font-weight: 500; line-height: 1.4;
+}
+.tm-journal-quiet-copy > svg { flex: none; }
+.tm-journal-quiet-copy .tm-journal-meta { font-size: inherit; }
+.tm-journal-meta, .tm-journal-state, .tm-journal-day, .tm-journal-quiet-copy {
   text-shadow: var(--tm-atmosphere-text-shadow);
 }
 .v-ledger-month .v-group:has(> .tm-journal-row) { border-radius: 0; background: transparent; }
 /* v3 §7.1: an expense left out of ownership keeps its row and amount, with a quiet tag. */
 .tm-journal-excluded { justify-self: start; width: fit-content; padding: 0 7px; border: 1px solid var(--line-control); border-radius: var(--r-sm); font-size: 11.5px; font-weight: 500; }
-.tm-journal-title { font-weight: 500; }

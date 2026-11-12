@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { NumRun } from "./Fmt";
 
 /**
- * Design v3 §3 facts strip: a receipt-style list that replaces KPI tiles.
+ * Design v3 §3 facts strip. Density pass (2026-11): no dotted leaders; Home lays it out as tiles.
  *
  * Markup is fixed so every screen reads the same:
  * `.facts > button|div > .fl(.fl-text + small) + .ld + .fv(.n + u)` (the label sits in
@@ -50,6 +50,8 @@ export interface FactsStripProps {
   label?: string;
   className?: string;
   testId?: string;
+  /** "tiles": up to three short facts side by side as small cards (Home). Same markup, laid out by CSS. */
+  layout?: "tiles";
 }
 
 /** One row. Use inside `<FactsStrip>`. */
@@ -71,9 +73,9 @@ export function Fact({ label, sub, value, unit, onClick, ariaLabel, hasPopup, te
     : <div className={className} data-testid={testId} {...data}>{content}</div>;
 }
 
-/** The strip. Rows are separated by dashed hairlines, the strip has top and bottom rules. */
-export function FactsStrip({ rows = [], children, label, className = "", testId }: FactsStripProps) {
-  return <div className={`facts ${className}`.trim()} role={label ? "group" : undefined} aria-label={label} data-testid={testId}>
+/** The strip: rows separated by quiet hairlines, or `layout="tiles"` for a row of small cards. */
+export function FactsStrip({ rows = [], children, label, className = "", testId, layout }: FactsStripProps) {
+  return <div className={`facts${layout === "tiles" ? " facts-tiles" : ""} ${className}`.trim()} role={label ? "group" : undefined} aria-label={label} data-testid={testId}>
     {rows.map(({ id, ...row }) => <Fact key={id} {...row} />)}
     {children}
   </div>;

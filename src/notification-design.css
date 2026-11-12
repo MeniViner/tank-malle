@@ -7,7 +7,7 @@
 .notes-plate .notes-mark-read { display: flex; align-items: center; gap: 6px; min-height: 44px; margin-top: 8px; padding: 8px 0; font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
 .notes-plate .notes-section { margin-top: 22px; }
 .notes-plate .notes-group-head { display: flex; align-items: center; gap: 8px; padding-block: 12px 10px; border-top: 1px solid var(--line); }
-.notes-plate .notes-group-head h2 { margin: 0; font: 400 28px/1.15 var(--font-display); }
+.notes-plate .notes-group-head h2 { margin: 0; font: 700 18px/1.3 var(--font-sans); }
 .notes-plate .notes-group-head small { margin-inline-start: auto; color: var(--muted); font-size: 12px; }
 .notes-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); font-size: 12px; font-family: var(--font-mono); }
 .notes-plate .notes-group { overflow: hidden; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }

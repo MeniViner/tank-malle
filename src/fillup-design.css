@@ -82,7 +82,7 @@
 .fillup-saved-comparisons { margin: 0; display: grid; border-top: 1px solid rgb(17 17 17 / .25); }
 .fillup-saved-comparisons > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid rgb(17 17 17 / 35%); }
 .fillup-saved-comparisons dt { font-size: 15px; }
-.fillup-saved-comparisons dd { margin: 0; text-align: left; font: 400 26px/1.1 var(--font-display); }
+.fillup-saved-comparisons dd { margin: 0; text-align: left; font: 600 18px/1.2 var(--font-sans); }
 .fillup-saved-comparisons dd .unit { font: 500 13px/1.4 var(--font-sans); }
 .fillup-saved-note { margin: -8px 0 0; font-size: 12.5px; }
 .fillup-pump-question { display: grid; gap: 10px; min-width: 0; border: 1px solid rgb(17 17 17 / .25); border-radius: var(--r-lg); padding: 14px 16px; background: #FFFDF4; color: #111; }

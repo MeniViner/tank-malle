@@ -4,7 +4,7 @@
 .home-status { margin: 4px 0 -8px; color: var(--ink); font: 400 15px/1.45 var(--font-sans); }
 .home-label { margin: 0; font-size: 13px; font-weight: 500; line-height: 1.5; letter-spacing: .01em; color: var(--ink-2); }
 .home-history-status { margin: 0; color: var(--warning); font-size: 14px; line-height: 1.5; }
-.home-group-title { font: 400 30px/1 var(--font-display); color: var(--ink); margin: 0; }
+.home-group-title { font: 700 18px/1.3 var(--font-sans); color: var(--ink); margin: 0; }
 .home-text-action { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; width: fit-content; border: 0; background: transparent; color: var(--ink); font: 600 14px/1.4 var(--font-sans); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 :is(.home-text-action, .home-consumption-reading):focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; border-radius: 5px; }
 .home-spotlight { min-width: 0; }
@@ -38,9 +38,9 @@
 .home-recent { display: grid; min-width: 0; }
 .home-recent-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: -4px; }
 .home-journal-link { margin-inline-end: -6px; padding-inline: 6px; text-decoration: underline dotted; }
-.home-recent > .ledger-row:last-child { border-bottom: 0; }
+.home-recent-rows { display: grid; min-width: 0; margin-top: 10px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-card); overflow: hidden; }
 /* Spotlight titles read on one line (v3 §2.3); the full title stays in the accessible name. */
-.home-spotlight .tm-spotlight-title { -webkit-line-clamp: 1; line-clamp: 1; font-size: 22px; line-height: 1.1; }
+.home-spotlight .tm-spotlight-title { -webkit-line-clamp: 1; line-clamp: 1; }
 .home-sheet-stack { display: grid; gap: 16px; }
 .home-sheet-note { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.6; }
 .home-sheet-consumption, .home-sheet-price { display: flex; align-items: flex-end; justify-content: flex-start; gap: 10px; color: var(--ink); text-align: right; }

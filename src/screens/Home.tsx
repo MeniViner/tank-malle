@@ -109,7 +109,7 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
         <Button full data-testid="first-fillup" onClick={() => navigate("/fillup/new")}><PumpIcon size={22} />רישום התדלוק הראשון</Button>
         {tank.estimate.available ? <button type="button" className="home-text-action" onClick={() => setTankEntry("gauge")}>עדכון המחוון</button> : null}
       </section> : null}
-      <FactsStrip label="הרכב במספרים" testId="home-facts">
+      <FactsStrip label="הרכב במספרים" testId="home-facts" layout="tiles">
         <Fact testId="home-km-day" label="נוסע ביום" onClick={() => navigate("/vehicle")}
           sub={kmPerDay !== null && kmPerDay > 0 ? kmPerDay < .5 ? "פחות מקילומטר ביום" : <>כ־<NumRun>{int(kmPerDay * 30)}</NumRun> ק״מ בחודש</> : "אחרי כמה רישומים"}
           value={kmPerDay !== null && kmPerDay >= .5 ? int(kmPerDay) : null} unit="ק״מ" />
@@ -151,10 +151,10 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
       {hasFillups || data.observations.length ? <TankHero estimate={tank.estimate} onOpen={setTankEntry} /> : null}
       {recent.length ? <section data-testid="recent-fillups-timeline" className="home-recent">
         <div className="home-recent-heading"><h2 className="home-label">לאחרונה</h2><Link className="home-text-action home-journal-link" to="/history">היומן המלא ›</Link></div>
-        {recent.map(row => <JournalEntryRow key={row.key} row={row} units={units} kmPerLiter={segmentValues.get(row.id)} ev={ev}
+        <div className="home-recent-rows">{recent.map(row => <JournalEntryRow key={row.key} row={row} units={units} kmPerLiter={segmentValues.get(row.id)} ev={ev}
           pending={pendingPaths.has(`users/${vehicle.uid}/vehicles/${vehicle.vehicleId}/${row.collection}/${row.id}`)} flagged={row.kind === "fuel" ? flagged.has(row.id) : !!serviceMileageWarning(row, vehicle.mileage)}
           attention={attentionPaths.has(`users/${vehicle.uid}/vehicles/${vehicle.vehicleId}/${row.collection}/${row.id}`)}
-          onOpen={() => openEntry(row)} />)}
+          onOpen={() => openEntry(row)} />)}</div>
       </section> : null}
       <TankSheets handle={tank} entry={tankEntry} enriching={enriching} onClose={() => setTankEntry(null)} />
       {segmentId ? <SegmentSheet endId={segmentId} stats={stats} units={units} onClose={() => setSegmentId(null)} /> : null}

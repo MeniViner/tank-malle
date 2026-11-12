@@ -235,7 +235,7 @@ button.tm-odometer { cursor: pointer; }
 .tm-spotlight-info .tm-spotlight-icon { color: #111; }
 .tm-spotlight-icon svg { width: 24px; height: 24px; }
 .tm-spotlight-copy { display: grid; gap: 5px; flex: 1; min-width: 0; }
-.tm-spotlight-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 400 23px/1 var(--font-display); }
+.tm-spotlight-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font: 600 15.5px/1.35 var(--font-sans); }
 .tm-spotlight-body { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
 .tm-spotlight-dismiss { align-self: start; margin: 3px 0 0 3px; }
 .tm-spotlight-open > svg { flex: none; }
@@ -273,15 +273,16 @@ button.tm-odometer { cursor: pointer; }
    Markup: .facts > button|div > .fl(+small) + .ld + .fv(.n + u). */
 .facts { display: grid; min-width: 0; border-block: 1px solid var(--line); }
 .facts > .fact { display: flex; align-items: center; gap: 10px; width: 100%; min-width: 0; min-height: 58px; padding: 9px 0; border: 0; background: none; color: var(--ink); text-align: right; font: inherit; }
-.facts > * + *, .facts > .fact + .fact { border-top: 1px dashed var(--line); }
+.facts > * + *, .facts > .fact + .fact { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
 .facts > button.fact { cursor: pointer; }
 .facts > button.fact:active { opacity: .6; }
 .facts > button.fact:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: var(--r-sm); }
 .facts .fl { display: grid; gap: 1px; flex: none; max-width: 60%; min-width: 0; font: 500 15px/1.35 var(--font-sans); color: var(--ink); }
 .facts .fl > small { font: 400 12px/1.35 var(--font-sans); color: var(--ink-2); overflow-wrap: anywhere; }
-.facts .ld { flex: 1; min-width: 12px; height: 0; margin-top: 2px; border-top: 1.5px dotted color-mix(in srgb, var(--ink-3) 55%, transparent); }
+/* Density pass: the leader keeps the spacing but no longer draws dots (it read as a receipt). */
+.facts .ld { flex: 1; min-width: 12px; height: 0; }
 .facts .fv { display: flex; align-items: baseline; gap: 5px; flex: none; direction: rtl; }
-.facts .fv > .tm-number.n { font: 400 22px/1 var(--font-mono); letter-spacing: -.01em; color: var(--ink); }
+.facts .fv > .tm-number.n { font: 600 19px/1.1 var(--font-sans); font-variant-numeric: tabular-nums; color: var(--ink); }
 .facts .fv > .tm-number.n.muted { color: var(--ink-2); }
 .facts .fv > u { text-decoration: none; font: 400 12px/1.2 var(--font-sans); color: var(--ink-2); }
 .facts .fv:has(> .t) { flex: 0 1 auto; min-width: 0; }
@@ -289,7 +290,20 @@ button.tm-odometer { cursor: pointer; }
 .facts .fv > .t.muted { color: var(--ink-2); }
 .facts > .fact.minor { min-height: 44px; padding: 6px 0; }
 .facts > .fact.minor .fl { font: 400 13px/1.35 var(--font-sans); color: var(--ink-2); }
-.facts > .fact.minor .fv > .tm-number.n { font-size: 16px; }
+.facts > .fact.minor .fv > .tm-number.n { font-size: 15.5px; }
+
+/* layout="tiles" (Home): the same markup as up to three small cards. Label, value, then the support line. */
+.facts.facts-tiles { grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 8px; border: 0; }
+.facts.facts-tiles > * + * { border-top: 0; }
+.facts.facts-tiles > .fact { display: grid; align-content: start; justify-items: start; gap: 6px; min-height: 0; padding: 12px 11px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--shadow-card); }
+.facts.facts-tiles .fl { display: contents; }
+.facts.facts-tiles .fl-text { order: 1; font-size: 12.5px; font-weight: 500; line-height: 1.3; color: var(--ink-2); }
+.facts.facts-tiles .ld { display: none; }
+.facts.facts-tiles .fv { order: 2; flex-wrap: wrap; gap: 2px 4px; }
+.facts.facts-tiles .fv > .tm-number.n { font-size: 19px; }
+.facts.facts-tiles .fv > u { font-size: 11px; }
+.facts.facts-tiles .fl > small { order: 3; font-size: 11px; line-height: 1.35; color: var(--ink-3); }
+@media (max-width: 359px) { .facts.facts-tiles > .fact { padding: 10px 9px; } .facts.facts-tiles .fv > .tm-number.n { font-size: 17px; } }
 
 @media (prefers-reduced-motion: reduce) {
   .tm-button, .tm-switch.tm-plate-switch, .tm-switch.tm-plate-switch .tm-switch-track, .tm-switch.tm-plate-switch .tm-switch-thumb { transition: none; }

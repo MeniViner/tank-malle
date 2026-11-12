@@ -2,7 +2,7 @@
 .tm-secondary-body { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 18px; padding: 4px 20px calc(32px + env(safe-area-inset-bottom)); }
 .tm-secondary-title { margin: 0; color: var(--ink); font: 400 clamp(44px, 12vw, 54px)/.98 var(--font-display); letter-spacing: -.01em; text-align: start; text-wrap: balance; }
 .tm-secondary-title-result { font-size: clamp(54px, 15vw, 68px); }
-.tm-secondary-section-title { color: var(--ink); font: 400 32px/1 var(--font-display); }
+.tm-secondary-section-title { color: var(--ink); font: 700 18px/1.3 var(--font-sans); }
 .tm-secondary-copy { color: var(--ink-2); font-size: 15px; line-height: 1.6; }
 .tm-secondary-note { color: var(--ink-2); font-size: 13px; line-height: 1.6; }
 .tm-secondary-stack { display: flex; min-width: 0; flex-direction: column; gap: 12px; }
@@ -32,7 +32,7 @@
 .tm-secondary-bottom > .tm-secondary-link { align-self: center; }
 .tm-secondary-loading { display: flex; min-height: 210px; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; }
 .tm-secondary-file { display: flex; min-height: 174px; flex-direction: column; align-items: center; justify-content: center; gap: 12px; border: 1px dashed var(--line); border-radius: var(--r-lg); background: var(--surface); padding: 22px 16px; color: var(--ink); text-align: center; cursor: pointer; }
-.tm-secondary-file > b { font: 400 34px/1 var(--font-display); }
+.tm-secondary-file > b { font: 600 20px/1.2 var(--font-sans); }
 .tm-secondary-file[aria-disabled="true"] { pointer-events: none; opacity: .45; }
 .tm-secondary-file-input:focus-visible + .tm-secondary-file { outline: 2px solid var(--ink); outline-offset: 4px; }
 .tm-secondary-file-name { overflow-wrap: anywhere; }
@@ -45,7 +45,7 @@
 .tm-import-stats { display: grid; border-block: 1px solid var(--line); }
 .tm-import-stat { display: flex; min-width: 0; min-height: 52px; flex-direction: row-reverse; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; }
 .tm-import-stat + .tm-import-stat { border-top: 1px dashed var(--line); }
-.tm-import-stat > .tm-number { flex: none; font: 400 22px/1 var(--font-mono); }
+.tm-import-stat > .tm-number { flex: none; font: 600 19px/1.1 var(--font-sans); }
 .tm-import-stat > span { color: var(--ink); font: 500 15px/1.35 var(--font-sans); }
 .tm-import-duplicate .tm-secondary-row-copy, .tm-import-duplicate .tm-secondary-row-value { color: var(--ink-2); }
 .tm-import-preview-money { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
