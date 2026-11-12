@@ -18,7 +18,8 @@ export function PushNotificationsSection() {
   const [status, setStatus] = useState<PushStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { let live = true; void pushStatus().then(next => { if (live) setStatus(next); }, () => { if (live) setStatus('unsupported'); }); return () => { live = false; }; }, []);
+  const uid = user?.uid ?? null;
+  useEffect(() => { let live = true; void pushStatus(uid).then(next => { if (live) setStatus(next); }, () => { if (live) setStatus('unsupported'); }); return () => { live = false; }; }, [uid]);
   if (status === null) return null;
   const toggle = async (on: boolean) => {
     if (!user || busy) return;

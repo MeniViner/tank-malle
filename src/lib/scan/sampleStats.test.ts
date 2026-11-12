@@ -45,7 +45,7 @@ describe('threshold tuning from labelled attempts', () => {
     expect(tuneThreshold(many(50, {}), .45, [.4, .8])).toBeNull();
   });
   it('lowers the threshold, one step at most, when lower-confidence guesses were right', () => {
-    const rows = [...many(200, { confidence: .7 }), ...many(100, { confidence: .42, outcome: 'unreadable' })];
+    const rows = [...many(200, { confidence: .7 }), ...many(100, { confidence: .42, outcome: 'unreadable', source: 'file' })];
     expect(tuneThreshold(rows, .5, [.4, .8])).toMatchObject({ value: .45, wrong: 0 });
     expect(tuneThreshold(rows, .45, [.4, .8])).toMatchObject({ value: .4, right: 300 });
   });
@@ -54,13 +54,19 @@ describe('threshold tuning from labelled attempts', () => {
     expect(tuneThreshold(rows, .45, [.4, .8])).toMatchObject({ value: .48, wrong: 0, right: 300 });
     expect(tuneThreshold(rows, .45, [.4, .46])!.value).toBe(.46);
   });
+  it('ignores the stray best frame of a camera session that showed nothing', () => {
+    const stray = many(5, { confidence: .6, outcome: 'unreadable', source: 'camera', final: '168058', result: 'manual' });
+    expect(tuneThreshold([...many(30, { confidence: .7 }), ...stray], .45, [.4, .8])).toBeNull();
+    // The same guesses from single pictures would have been shown at that confidence: they count.
+    expect(tuneThreshold([...many(30, { confidence: .7 }), ...stray.map(r => ({ ...r, source: 'file' as const }))], .45, [.4, .8])).toMatchObject({ value: .5 });
+  });
   it('with few attempts only tightens, and only after two wrong readings were shown', () => {
     const wrong = (n: number) => many(n, { confidence: .47, final: '168058', result: 'corrected' });
     expect(tuneThreshold([...many(30, { confidence: .7 }), ...wrong(1)], .45, [.4, .8])).toBeNull();
     expect(tuneThreshold([...many(10, { confidence: .7 }), ...wrong(2)], .45, [.4, .8])).toBeNull();
     expect(tuneThreshold([...many(30, { confidence: .7 }), ...wrong(2)], .45, [.4, .8])).toMatchObject({ value: .48, wrong: 0, right: 30 });
     // Right guesses under the threshold are not enough to lower it yet.
-    expect(tuneThreshold([...many(30, { confidence: .7 }), ...many(100, { confidence: .42, outcome: 'unreadable' })], .5, [.4, .8])).toBeNull();
+    expect(tuneThreshold([...many(30, { confidence: .7 }), ...many(100, { confidence: .42, outcome: 'unreadable', source: 'file' })], .5, [.4, .8])).toBeNull();
   });
 });
 

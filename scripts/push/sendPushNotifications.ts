@@ -49,7 +49,23 @@ async function main() {
     profile: async uid => (await db.doc(`users/${uid}`).get()).data() ?? null,
     vehicles: async uid => rows(await db.collection(`users/${uid}/vehicles`).get()),
     collection: async (uid, vehicleId, name) => rows(await db.collection(`users/${uid}/vehicles/${vehicleId}/${name}`).get()),
-    sentIds: async uid => new Set((await db.collection(`users/${uid}/pushSent`).select().get()).docs.map(doc => doc.id)),
+    // Pages back until `limit` rows pass `keep`, or 500 documents were looked at.
+    async latest(uid, vehicleId, name, field, limit, keep) {
+      const found: RawDoc[] = [];
+      let query = db.collection(`users/${uid}/vehicles/${vehicleId}/${name}`).orderBy(field, 'desc').limit(50), seen = 0;
+      for (;;) {
+        const page = await query.get();
+        for (const row of rows(page)) if (keep(row) && found.push(row) >= limit) return found;
+        seen += page.size;
+        if (page.size < 50 || seen >= 500) return found;
+        query = query.startAfter(page.docs[page.docs.length - 1]);
+      }
+    },
+    async sentIds(uid, ids) {
+      if (!ids.length) return new Set();
+      const found = await db.getAll(...ids.map(id => db.doc(`users/${uid}/pushSent/${id}`)), { fieldMask: [] });
+      return new Set(found.filter(doc => doc.exists).map(doc => doc.id));
+    },
     async markSent(uid, items, sentAt) {
       const batch = db.batch();
       for (const item of items) batch.set(db.doc(`users/${uid}/pushSent/${item.id}`), { occurrence: item.occurrence, sentAt });
@@ -68,7 +84,8 @@ async function main() {
     try {
       await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
         JSON.stringify({ title: message.title, body: message.body, url: message.url, tag: message.tag }),
-        { TTL: 24 * 60 * 60, urgency: message.urgent ? 'high' : 'normal' });
+        // The timeout keeps one unanswering address from holding up everyone after it.
+        { TTL: 24 * 60 * 60, urgency: message.urgent ? 'high' : 'normal', timeout: 10_000 });
       return 'sent';
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode;
@@ -76,9 +93,11 @@ async function main() {
       console.warn(`push failed (${status ?? 'network'}) for one device`);
       return 'failed';
     }
-  }, { today, now, dryRun });
+  }, { today, now, dryRun, warn: message => console.warn(message) });
   console.log(`${dryRun ? 'dry run' : 'sent'} ${today} · project ${projectId} · ${JSON.stringify(report)}`);
+  // The other accounts were served; the failed run still shows red so it gets looked at.
+  if (report.errors) process.exitCode = 1;
 }
 
 // The Admin SDK keeps its connection open; exit once the run is reported.
-main().then(() => process.exit(0), error => { console.error(error instanceof Error ? error.message : error); process.exit(1); });
+main().then(() => process.exit(process.exitCode ?? 0), error => { console.error(error instanceof Error ? error.message : error); process.exit(1); });

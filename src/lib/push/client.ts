@@ -1,4 +1,4 @@
-import { deleteDoc, doc, setDoc } from 'firebase/firestore';
+import { deleteDoc, doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { WEB_PUSH_PUBLIC_KEY } from './config';
 
@@ -30,12 +30,21 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
   return (await navigator.serviceWorker.getRegistration()) ?? null;
 }
 
-export async function pushStatus(): Promise<PushStatus> {
+/**
+ * `on` means this account is registered on this device: the browser holds a subscription AND
+ * its document is under this account. A subscription left by another account that used this
+ * browser reads as `off`, so the toggle never claims notifications that will not arrive.
+ */
+export async function pushStatus(uid?: string | null): Promise<PushStatus> {
   if (pushPlatform() === 'ios' && !standalone()) return 'needsInstall';
   const reg = await registration();
   if (!reg) return 'unsupported';
   if (Notification.permission === 'denied') return 'denied';
-  return Notification.permission === 'granted' && await reg.pushManager.getSubscription() ? 'on' : 'off';
+  const subscription = Notification.permission === 'granted' ? await reg.pushManager.getSubscription() : null;
+  if (!subscription || !uid) return 'off';
+  // Offline with nothing cached the document cannot be checked; the subscription alone is the best evidence.
+  const mine = await getDoc(doc(db, 'users', uid, 'pushSubscriptions', await subscriptionId(subscription.endpoint))).then(snapshot => snapshot.exists(), () => true);
+  return mine ? 'on' : 'off';
 }
 
 /** A stable document id per push endpoint, so the same phone never registers twice. */
@@ -58,8 +67,10 @@ export async function enablePush(uid: string): Promise<PushStatus> {
   if (!reg) return pushPlatform() === 'ios' && !standalone() ? 'needsInstall' : 'unsupported';
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return permission === 'denied' ? 'denied' : 'off';
-  const subscription = await reg.pushManager.getSubscription()
-    ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(WEB_PUSH_PUBLIC_KEY) });
+  // Enabling starts from `off`, so a subscription still held here belongs to another account or
+  // lost its document. Replace it: the old address stops working and the sender drops its record.
+  await (await reg.pushManager.getSubscription())?.unsubscribe();
+  const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(WEB_PUSH_PUBLIC_KEY) });
   const json = subscription.toJSON();
   if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) throw new Error('push-subscription-incomplete');
   await setDoc(doc(db, 'users', uid, 'pushSubscriptions', await subscriptionId(json.endpoint)), {
@@ -76,4 +87,17 @@ export async function disablePush(uid: string): Promise<PushStatus> {
     await subscription.unsubscribe();
   }
   return 'off';
+}
+
+/**
+ * Sign-out: this device must stop receiving the account's reminders. The subscription is
+ * cancelled first, which works offline and makes the address dead (the sender then removes
+ * its record); deleting the record is attempted briefly and never delays the sign-out.
+ */
+export async function releasePush(uid: string, waitMs = 3000): Promise<void> {
+  const subscription = await (await registration().catch(() => null))?.pushManager.getSubscription().catch(() => null);
+  if (!subscription) return;
+  const id = await subscriptionId(subscription.endpoint);
+  await subscription.unsubscribe().catch(() => false);
+  await Promise.race([deleteDoc(doc(db, 'users', uid, 'pushSubscriptions', id)).catch(() => {}), new Promise(resolve => setTimeout(resolve, waitMs))]);
 }
