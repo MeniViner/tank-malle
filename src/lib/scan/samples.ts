@@ -102,15 +102,60 @@ export function labelScanSamples(entries: readonly ScanSampleEntry[], saved: Par
 export const LABEL_AFTER_MS = 6_000;
 
 /**
- * Labels once the save can no longer be undone. `cancel` (an undo started) holds the label back;
+ * Labels waiting for the undo window, kept on the device: closing or reloading the app within
+ * those seconds must not lose them. The next start labels whatever is due (flushScanLabels).
+ */
+type LabelJob = { id: string; uid: string; dueAt: number; entries: ScanSampleEntry[]; saved: Partial<ScanFinal> };
+const JOBS_KEY = 'tm.scan-labels.v1';
+const readJobs = (): LabelJob[] => {
+  try {
+    const list = JSON.parse(localStorage.getItem(JOBS_KEY) ?? '[]');
+    return Array.isArray(list) ? list.filter((j): j is LabelJob => !!j && typeof j.id === 'string' && typeof j.uid === 'string' && Number.isFinite(j.dueAt)
+      && Array.isArray(j.entries) && !!j.saved && typeof j.saved === 'object')
+      .map(j => ({ ...j, entries: readScanBook({ session: 'stored', pump: 0, odometer: 0, samples: j.entries })?.samples ?? [] })) : [];
+  } catch { return []; }
+};
+const writeJobs = (jobs: LabelJob[]) => {
+  try { if (jobs.length) localStorage.setItem(JOBS_KEY, JSON.stringify(jobs.slice(-50))); else localStorage.removeItem(JOBS_KEY); } catch { /* labels are best effort */ }
+};
+const dropJob = (id: string) => writeJobs(readJobs().filter(j => j.id !== id));
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function runJob(job: LabelJob): void {
+  clearTimeout(timers.get(job.id)); timers.delete(job.id);
+  // Only a job still on the device runs: one cancelled (undo) or already run elsewhere is gone.
+  if (!readJobs().some(j => j.id === job.id)) return;
+  dropJob(job.id);
+  labelScanSamples(job.entries, job.saved);
+}
+function arm(job: LabelJob, now: number): void {
+  clearTimeout(timers.get(job.id));
+  timers.set(job.id, setTimeout(() => runJob(job), Math.max(0, job.dueAt - now)));
+}
+
+/**
+ * Labels once the save can no longer be undone. `cancel` (an undo started) withdraws the label;
  * `flush` labels now, for an undo that failed. An undone save is never labelled: its numbers were
  * not what the person kept.
  */
-export function scheduleScanLabels(entries: readonly ScanSampleEntry[], saved: Partial<ScanFinal>, delayMs = LABEL_AFTER_MS): { cancel: () => void; flush: () => void } {
-  let done = !entries.length;
-  const flush = () => { if (done) return; done = true; clearTimeout(timer); labelScanSamples(entries, saved); };
-  const timer = setTimeout(flush, delayMs);
-  return { cancel: () => clearTimeout(timer), flush };
+export function scheduleScanLabels(uid: string, entries: readonly ScanSampleEntry[], saved: Partial<ScanFinal>, delayMs = LABEL_AFTER_MS): { cancel: () => void; flush: () => void } {
+  if (!entries.length) return { cancel: () => {}, flush: () => {} };
+  const now = Date.now();
+  const job: LabelJob = { id: crypto.randomUUID(), uid, dueAt: now + delayMs, entries: [...entries], saved: { ...saved } };
+  writeJobs([...readJobs(), job]);
+  arm(job, now);
+  let held: LabelJob | null = null;
+  return {
+    cancel: () => { clearTimeout(timers.get(job.id)); timers.delete(job.id); if (readJobs().some(j => j.id === job.id)) { held = job; dropJob(job.id); } },
+    flush: () => { if (held) { const again = held; held = null; labelScanSamples(again.entries, again.saved); } else runJob(job); },
+  };
+}
+
+/** At start, for the signed-in account: label what is due, wait for the rest. Jobs older than 30 days are dropped. */
+export function flushScanLabels(uid: string, now = Date.now()): void {
+  const jobs = readJobs(), fresh = jobs.filter(j => now - j.dueAt < 30 * 86_400_000);
+  if (fresh.length !== jobs.length) writeJobs(fresh);
+  for (const job of fresh) if (job.uid === uid) arm(job, now);
 }
 
 let tuning: Promise<Partial<Accept> | null> | null = null;

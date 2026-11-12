@@ -28,6 +28,7 @@ import {
 import { auth, db, googleProvider } from "../lib/firebase";
 import { unacknowledgedState } from "../lib/outbox";
 import { releasePush } from "../lib/push/client";
+import { flushScanLabels } from "../lib/scan/samples";
 import { authErrorMessage, REDIRECT_MARKER } from "../lib/authFlow";
 import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
 
@@ -90,6 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // An account returning to the same UID is a new session, not permission for
   // an earlier token/profile request to publish into the new one.
   const authEpoch = useRef(0);
+  // Scan labels left waiting when the app was closed right after a save (src/lib/scan/samples.ts).
+  const uid = user?.uid;
+  useEffect(() => { if (uid) flushScanLabels(uid); }, [uid]);
 
   useEffect(() => {
     let alive = true;

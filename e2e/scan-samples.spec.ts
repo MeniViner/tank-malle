@@ -101,7 +101,10 @@ test('one fill-up is one scan session; labels survive a reload, skip an undone s
   await page.reload();
   await expect(page.getByTestId('fillup-total')).toHaveValue('287.60');
   await page.getByRole('button', { name: /שמירת תדלוק/ }).click();
-  await expect(async () => { samples = await mine(); expect(samples.filter(s => s.final !== null)).toHaveLength(3); }).toPass({ timeout: 15_000 });
+  // Reloaded right after saving, inside the undo window: the labels still arrive.
+  await expect(page.getByTestId('fillup-saved-undo')).toBeVisible();
+  await page.reload();
+  await expect(async () => { samples = await mine(); expect(samples.filter(s => s.final !== null)).toHaveLength(3); }).toPass({ timeout: 20_000 });
   expect(samples.map(s => s.result).sort()).toEqual(['manual', 'match', 'match']);
 
   // Saved, then undone within the five seconds: those attempts are never labelled.

@@ -947,7 +947,7 @@ function FillupEditor({
     const labelScans = () => {
       const entries = scanBookRef.current.samples;
       scanBookRef.current = { ...scanBookRef.current, samples: [] };
-      return scheduleScanLabels(entries, { total: String(nextRecord.totalCost), liters: String(nextRecord.liters), odometer: String(nextRecord.odometer) });
+      return scheduleScanLabels(user?.uid ?? "", entries, { total: String(nextRecord.totalCost), liters: String(nextRecord.liters), odometer: String(nextRecord.odometer) });
     };
     try {
       if (editing && (!operation || operation.opType === "update" || operation.kind === "fillup.update")) {
