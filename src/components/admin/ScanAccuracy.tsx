@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { db } from '../../lib/firebase';
@@ -26,10 +26,20 @@ export function ScanAccuracy() {
   const [now] = useState(() => Date.now());
   // Rows belong to the period they were loaded for; while another period loads there are none.
   const rows = loaded?.days === days ? loaded.rows : null, error = loaded?.days === days && loaded.rows === null;
+  // Periods already read, kept for this visit: switching back and forth must not read up to 3,000 documents each time.
+  const cache = useRef(new Map<string, { rows: ScanSampleRow[]; complete: boolean }>());
   useEffect(() => {
     let live = true;
-    void getDocs(query(collection(db, 'scanSamples'), where('createdAt', '>=', now - Number(days) * 86_400_000), orderBy('createdAt', 'desc'), limit(LIMIT)))
-      .then(snapshot => { if (live) setLoaded({ days, rows: snapshot.docs.flatMap(d => { const r = toSampleRow(d.id, d.data()); return r ? [r] : []; }) }); })
+    const from = now - Number(days) * 86_400_000;
+    // A longer period that was read in full already holds this one.
+    const wider = [...cache.current].find(([period, entry]) => Number(period) >= Number(days) && (period === days || entry.complete));
+    if (wider) { queueMicrotask(() => { if (live) setLoaded({ days, rows: wider[1].rows.filter(r => r.createdAt >= from) }); }); return () => { live = false; }; }
+    void getDocs(query(collection(db, 'scanSamples'), where('createdAt', '>=', from), orderBy('createdAt', 'desc'), limit(LIMIT)))
+      .then(snapshot => {
+        const list = snapshot.docs.flatMap(d => { const r = toSampleRow(d.id, d.data()); return r ? [r] : []; });
+        cache.current.set(days, { rows: list, complete: snapshot.size < LIMIT });
+        if (live) setLoaded({ days, rows: list });
+      })
       .catch(() => { if (live) setLoaded({ days, rows: null }); });
     return () => { live = false; };
   }, [days, now]);

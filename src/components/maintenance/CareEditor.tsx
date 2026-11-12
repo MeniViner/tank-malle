@@ -33,7 +33,8 @@ export function CareEditor({ uid, vehicleId, collection, record: currentRecord, 
   currentOdometer?: {day:string;odometer:number;ambiguous:boolean;minimum:number;maximum:number} | null;
   onClose: () => void; onSave: (record: CareRecord, base?: CareRecord, onAccepted?: () => void) => Promise<void>;
 }) {
-  const draftKey = careDraftKey(uid, vehicleId, collection, currentRecord?.id ?? (completePlan ? `complete-${completePlan.id}` : 'new'));
+  // An offered reminder keeps its own draft: an unrelated reminder left half-written must not replace the offered values.
+  const draftKey = careDraftKey(uid, vehicleId, collection, currentRecord?.id ?? (completePlan ? `complete-${completePlan.id}` : planDefaults ? `offer-${planDefaults.job}-${planDefaults.dueDay}` : 'new'));
   const [restored] = useState(() => readCareDraft(draftKey));
   const [record] = useState(() => restored?.base && validCareRecord(collection, restored.base) ? restored.base : currentRecord);
   function restore<T>(key: string, fallback: T): T {

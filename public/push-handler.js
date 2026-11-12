@@ -22,8 +22,15 @@ self.addEventListener('notificationclick', (event) => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of windows) {
       if (new URL(client.url).origin !== self.location.origin) continue;
-      await client.focus();
-      if ('navigate' in client) await client.navigate(url);
+      // navigate() works only on a window this worker controls (not one opened before it took
+      // over); when it is refused, open the page instead of leaving the user where they were.
+      await client.focus().catch(() => {});
+      try {
+        if (!('navigate' in client)) throw new Error('no navigate');
+        await client.navigate(url);
+      } catch {
+        await self.clients.openWindow(url);
+      }
       return;
     }
     await self.clients.openWindow(url);

@@ -36,7 +36,7 @@ import { DateSheet } from "../components/fillup/DateSheet";
 import { savedFillupResult } from "../components/fillup/savedResult";
 import { resolveEditedTank, selectTankDraft, selectTankOriginal } from "../components/fillup/tankEdit";
 const ReceiptImport = lazy(() => import("../components/ReceiptImport").then(module => ({ default: module.ReceiptImport })));
-import { labelScanSamples } from "../lib/scan/samples";
+import { newScanBook, readScanBook, recordScanSample, scheduleScanLabels, type ScanBook } from "../lib/scan/samples";
 const ScanWizard = lazy(() => import("../components/scan/ScanWizard").then(module => ({ default: module.ScanWizard })));
 type PumpAnswer = "unanswered" | "same" | "discount" | "different" | "unknown";
 
@@ -260,6 +260,8 @@ interface SavedSession {
   fuelType: FuelType;
   deadline: number;
   lock: { action: "idle" | "undo" | "pump"; transferred: boolean };
+  /** The scan labels waiting for the undo window to pass. */
+  labels: { cancel: () => void; flush: () => void };
 }
 
 function FillupEditor({
@@ -430,8 +432,16 @@ function FillupEditor({
   const [shaking, setShaking] = useState(false);
   const totalInput = useRef<HTMLInputElement>(null);
   const saveLock = useRef(false);
-  /** Ids of this form's scan attempts; the saved numbers become their label. */
-  const scanSamples = useRef<string[]>([]);
+  /** This form's scan attempts; the saved numbers become their label. Kept in the draft, so a reload does not lose them. */
+  const [scanBook, setScanBook] = useState<ScanBook>(() => readScanBook(restoredDraft?.scan) ?? newScanBook());
+  const scanBookRef = useRef(scanBook);
+  const recordScanAttempt = useCallback((attempt: Parameters<typeof recordScanSample>[1], labelable: boolean) => {
+    if (!user) return;
+    const book = scanBookRef.current, count = Math.min(99, book[attempt.kind] + 1);
+    const entry = recordScanSample({ uid: user.uid, session: book.session, attempt: count }, attempt);
+    const next = { ...book, [attempt.kind]: count, samples: entry && labelable ? [...book.samples, entry] : book.samples };
+    scanBookRef.current = next; setScanBook(next);
+  }, [user]);
   const [saved, setSaved] = useState<SavedSession | null>(null);
   const committedSaved = useRef<SavedSession | null>(null);
   useLayoutEffect(() => { committedSaved.current = saved; }, [saved]);
@@ -446,8 +456,8 @@ function FillupEditor({
   const historyComplete = !loadingFillups && !fillupsError && malformedFillups.length === 0;
 
   const draft = useMemo(() => ({ base: editBase, tankOriginal, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft,
-    continuityBreak, pumpAnswer, pumpPrice, pumpTouched, clearStoredPosted, station, stationAuto, notes }),
-    [editBase, tankOriginal, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, clearStoredPosted, station, stationAuto, notes]);
+    continuityBreak, pumpAnswer, pumpPrice, pumpTouched, clearStoredPosted, station, stationAuto, notes, scan: scanBook }),
+    [editBase, tankOriginal, receiptImport, date, dateConfirmed, odometer, receipt, tankDraft, continuityBreak, pumpAnswer, pumpPrice, pumpTouched, clearStoredPosted, station, stationAuto, notes, scanBook]);
   const initialDraft = useRef(draft);
   const humanInput = odometer.trim() || receipt.liters.trim() || receipt.authored.length > 0 ||
     notes.trim() || hasTankAnswer(tankDraft) || pumpTouched || clearStoredPosted || date !== initialDraft.current.date ||
@@ -565,6 +575,8 @@ function FillupEditor({
     }
     return [...map.values()];
   }, [fillups]);
+  const pastStationsRef = useRef(pastStations);
+  useLayoutEffect(() => { pastStationsRef.current = pastStations; }, [pastStations]);
 
   const lastPaidByStation = useMemo(() => {
     const map = new Map<string, { price: number; observedAt: number }>();
@@ -611,7 +623,8 @@ function FillupEditor({
       const here = result.position;
       let bestPast: Station | null = null;
       let bestPastDistance = Number.POSITIVE_INFINITY;
-      for (const candidate of pastStations) {
+      // The list as it is now: fill-ups often arrive while the position is still being found.
+      for (const candidate of pastStationsRef.current) {
         if (candidate.lat === undefined || candidate.lng === undefined) continue;
         const distance = distanceMeters({ lat: candidate.lat, lng: candidate.lng }, here);
         if (distance < bestPastDistance) {
@@ -626,7 +639,7 @@ function FillupEditor({
       setStation(chosen);
       setStationAuto(true);
     },
-    [pastStations, captureUi],
+    [captureUi],
   );
 
   // Explicit proximity sorting refreshes location without choosing a station.
@@ -876,6 +889,7 @@ function FillupEditor({
   const undoSaved = useCallback(async (session: SavedSession, leaveSaved: boolean) => {
     if (Date.now() >= session.deadline || session.lock.action !== "idle" || !session.submission.isCurrent() || !session.submission.undoCreation) return;
     session.lock.action = "undo";
+    session.labels.cancel();
     const stillMounted = captureUi();
     if (stillMounted()) setUndoBusy(true);
     try {
@@ -890,6 +904,7 @@ function FillupEditor({
     } catch (error) {
       if (!session.submission.isCurrent()) return;
       session.lock.action = "idle";
+      session.labels.flush();
       if (stillMounted()) setUndoBusy(false);
       showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר", detail: "התדלוק נשאר כמו שנשמר" });
     }
@@ -928,14 +943,19 @@ function FillupEditor({
     const history = others.map(fill => ({ ...fill, station: fill.station ? { ...fill.station } : null }));
     const submitted: { current: FillupSubmission | null; at: number } = { current: null, at: 0 };
     const onSubmitted = (entry: FillupSubmission) => { submitted.current = entry; submitted.at = Date.now(); };
-    const labelScans = () => { labelScanSamples(scanSamples.current.splice(0), { total: String(nextRecord.totalCost), liters: String(nextRecord.liters), odometer: String(nextRecord.odometer) }); };
+    // Labelled once the undo window has passed; an undone save labels nothing.
+    const labelScans = () => {
+      const entries = scanBookRef.current.samples;
+      scanBookRef.current = { ...scanBookRef.current, samples: [] };
+      return scheduleScanLabels(entries, { total: String(nextRecord.totalCost), liters: String(nextRecord.liters), odometer: String(nextRecord.odometer) });
+    };
     try {
       if (editing && (!operation || operation.opType === "update" || operation.kind === "fillup.update")) {
         const previous: Fillup = { ...(editBase ?? editing), station: (editBase ?? editing).station ? { ...(editBase ?? editing).station! } : null };
         await updateFillup(editing.id, nextRecord, previous, {
           replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion, vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted,
         });
-        labelScans();
+        const labels = labelScans();
         const submission = submitted.current;
         clearDraft();
         if (!stillMounted() || !submission?.isCurrent()) return;
@@ -944,13 +964,14 @@ function FillupEditor({
         const undoEdit = !submission.undoEdit ? undefined : async () => {
           if (!submission.isCurrent()) return;
           undoUsed = true;
+          labels.cancel();
           try {
             const receipt = await submission.undoEdit!();
             if (!(await receipt.settled) && submission.isCurrent()) {
               showToast({ tone: "error", title: "הביטול לא אושר", detail: "הבקשה נשמרה לבדיקה" });
             }
           }
-          catch (error) { if (submission.isCurrent()) showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר" }); }
+          catch (error) { labels.flush(); if (submission.isCurrent()) showToast({ tone: "error", title: error instanceof Error ? error.message : "הביטול לא נשמר" }); }
         };
         // Keep Undo available during handoff without claiming a server receipt.
         const undoToast = undoEdit ? showToast({ tone: "info", title: "עריכת תדלוק", duration: 5000,
@@ -971,11 +992,11 @@ function FillupEditor({
       } else {
         await addFillup(nextRecord, { replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion,
           vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted });
-        labelScans();
+        const labels = labelScans();
         const submission = submitted.current;
         clearDraft();
         if (!stillMounted() || !submission?.isCurrent()) return;
-        const session: SavedSession = {
+        const session: SavedSession = { labels,
           submission, result: savedFillupResult(submission.written, history, vehicle, prices, historyComplete),
           vehicleId: vehicle.id, fuelType: submission.written.fuelType ?? vehicle.fuelType,
           deadline: submitted.at + 5000, lock: { action: "idle", transferred: false },
@@ -1222,7 +1243,7 @@ function FillupEditor({
     {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
       context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
-      onSample={id => { scanSamples.current.push(id); }}
+      onAttempt={recordScanAttempt}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),

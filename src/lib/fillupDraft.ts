@@ -9,6 +9,8 @@ export interface FillupDraft {
   receipt: ReceiptState; tankDraft: TankStateDraft; continuityBreak: boolean;
   pumpAnswer: "same" | "different" | "unanswered" | "discount" | "unknown"; pumpPrice: string; pumpTouched: boolean;
   station: Station | null; stationAuto: boolean; notes: string;
+  /** Scan attempts waiting for their label (src/lib/scan/samples.ts); checked with readScanBook on restore. */
+  scan?: unknown;
 }
 export function fillupDraftKey(uid: string, vehicleId: string, recordId: string): string {
   return `tm.fillup-draft.v1.${uid}.${vehicleId}.${recordId}`;

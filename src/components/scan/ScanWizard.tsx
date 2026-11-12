@@ -5,8 +5,7 @@ import { CheckIcon } from '../icons';
 import { PhotoReader } from './PhotoReader';
 import { acceptScanReading, type AcceptedScanDraft, type ScanDraft, type ScanField } from '../../lib/scan/draft';
 import type { Accept, DisplayReading, ScanContext } from '../../lib/scan/engine';
-import { loadScanAccept, recordScanSample, type ScanAttempt } from '../../lib/scan/samples';
-import { useAuth } from '../../context/AuthContext';
+import { loadScanAccept, type ScanAttempt } from '../../lib/scan/samples';
 import { Money, NumRun } from '../Fmt';
 
 type ScanWizardProps = {
@@ -14,19 +13,20 @@ type ScanWizardProps = {
   onApply:(draft:ScanDraft,acceptedFields:readonly ScanField[])=>void;
   /** Last odometer and tank capacity: what the reader may use to choose between rows. */
   context?:ScanContext;
-  /** Told the id of every attempt's sample, so the form can attach what was finally saved. */
-  onSample?:(id:string)=>void;
+  /**
+   * Told of every attempt, to record it. `labelable` is false when the display's numbers were
+   * already typed by hand: the reading is not applied, so the saved numbers say nothing about it.
+   */
+  onAttempt?:(attempt:ScanAttempt,labelable:boolean)=>void;
 };
 
-export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onSample }: ScanWizardProps) {
-  const { user }=useAuth();
-  const attempts=useRef({session:crypto.randomUUID(),pump:0,odometer:0});
+const FIELDS:Record<ScanAttempt['kind'],readonly ScanField[]>={pump:['total','liters'],odometer:['odometer']};
+
+export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onAttempt }: ScanWizardProps) {
   const [accept,setAccept]=useState<Partial<Accept>|null>(null);
   useEffect(()=>{let live=true;void loadScanAccept().then(value=>{if(live)setAccept(value);});return()=>{live=false;};},[]);
   function attempt(entry:ScanAttempt) {
-    if(!user)return;
-    const id=recordScanSample({uid:user.uid,session:attempts.current.session,attempt:++attempts.current[entry.kind]},entry);
-    if(id)onSample?.(id);
+    onAttempt?.(entry,!FIELDS[entry.kind].some(field=>protectedFields.includes(field)));
   }
   const heading=useRef<HTMLParagraphElement>(null);
   const session=useRef<AcceptedScanDraft>({draft:{...initial},acceptedFields:[]});

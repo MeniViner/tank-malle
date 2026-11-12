@@ -102,6 +102,32 @@ test("a Home fuel row opens its scoped Journal receipt before editing; direct ed
   expect(await getDocument(`${scope.base}/fillups/journal-last`)).toEqual(original);
 });
 
+test("A new periodic service offers the next reminder, filled in even when an old reminder draft exists", async ({ page }) => {
+  const scope = await journalFixture(page, false);
+  // A reminder for something else, started and left half-written earlier.
+  await page.evaluate(({ uid, vehicleId }) => localStorage.setItem(`tm.care-draft.v1.${encodeURIComponent(uid)}.${encodeURIComponent(vehicleId)}.maintenancePlans.new`,
+    JSON.stringify({ version: 1, at: Date.now(), data: { fields: { title: "צמיגים ישנים", titleAuthored: true, job: "tires", dueDay: "2030-01-01", _step: 1 }, base: null } })), { uid: scope.uid, vehicleId: scope.vehicleId });
+  await journalAdd(page, "service");
+  // Ticked oil first: the offer is still for the periodic service.
+  await page.getByTestId("care-job-oil").click();
+  await page.getByTestId("care-job-periodic").click();
+  await page.getByTestId("care-next").click();
+  await page.getByTestId("care-odo").fill("102000");
+  await page.getByTestId("care-save").click();
+  await expect(page.getByTestId("next-reminder-offer")).toContainText("לקבוע כבר עכשיו תזכורת לטיפול תקופתי?");
+  await expect(page.getByTestId("next-reminder-offer")).toContainText("112,000");
+  await page.getByTestId("next-reminder-accept").click();
+  await expect(page.getByTestId("care-entry")).toBeVisible();
+  await expect(page.getByTestId("care-draft-restored")).toHaveCount(0);
+  await expect(page.getByTestId("care-due-day")).not.toHaveValue("01/01/2030");
+  await page.getByTestId("care-save").click();
+  await expect(page.getByTestId("care-entry")).toHaveCount(0);
+  await expect.poll(() => listDocuments(`${scope.base}/maintenancePlans`)).toHaveLength(1);
+  const [reminder] = await listDocuments(`${scope.base}/maintenancePlans`);
+  expect(reminder.data).toMatchObject({ job: "periodic", title: "טיפול תקופתי", dueOdometer: 112000, intervalMonths: 12, intervalKm: 10000, active: true });
+  expect(Number(String(reminder.data.dueDay).slice(0, 4))).toBe(new Date().getFullYear() + 1);
+});
+
 test("Journal Add records one multi-job invoice, keeps its draft across steps and reload, and adds a real odometer row", async ({ page }) => {
   const scope = await journalFixture(page, false);
   await journalAdd(page, "service");
@@ -135,9 +161,8 @@ test("Journal Add records one multi-job invoice, keeps its draft across steps an
   await page.getByTestId("care-day").fill(formatCivilDay(scope.day(-1, 26)));
   await page.getByTestId("care-save").click();
   await expect(page.getByTestId("care-entry")).toHaveCount(0);
-  // A new service with no reminder for its job offers to set the next one; "לא עכשיו" just closes.
-  await expect(page.getByTestId("next-reminder-offer")).toContainText("לקבוע כבר עכשיו תזכורת לצמיגים?");
-  await page.getByTestId("next-reminder-skip").click();
+  // Tires and brakes wear out over years, not on a yearly rhythm: no next-reminder offer.
+  await expect.poll(() => listDocuments(`${scope.base}/serviceEvents`)).toHaveLength(1);
   await expect(page.getByTestId("next-reminder-offer")).toHaveCount(0);
   expect(await listDocuments(`${scope.base}/maintenancePlans`)).toHaveLength(0);
   await expect.poll(() => listDocuments(`${scope.base}/serviceEvents`)).toHaveLength(1);

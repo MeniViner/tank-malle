@@ -627,9 +627,12 @@ service cloud.firestore {
         allow create, update: if isOwner(uid) && accountWritable(uid)
           && request.resource.data.keys().hasOnly(['endpoint', 'p256dh', 'auth', 'platform', 'createdAt'])
           && isString(request.resource.data.endpoint, 1000)
-          && request.resource.data.endpoint.matches('https://.+')
+          // Only the browsers' push services: the daily sender posts to this address.
+          && request.resource.data.endpoint.matches('https://(fcm[.]googleapis[.]com|android[.]googleapis[.]com|updates[.]push[.]services[.]mozilla[.]com|web[.]push[.]apple[.]com|[a-z0-9-]+[.]notify[.]windows[.]com)/.+')
           && isString(request.resource.data.p256dh, 200)
+          && request.resource.data.p256dh.matches('[A-Za-z0-9_-]{60,120}=*')
           && isString(request.resource.data.auth, 100)
+          && request.resource.data.auth.matches('[A-Za-z0-9_-]{16,40}=*')
           && request.resource.data.platform in ['ios', 'android', 'desktop']
           && optionalEpochMillis(request.resource.data, 'createdAt');
       }
