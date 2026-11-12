@@ -140,10 +140,19 @@ jobs:
   # ---------------------------------------------------------------------------
   # End-to-end, in a real browser, against the emulators.
   # ---------------------------------------------------------------------------
+  # Split across 4 machines. Specs can't run in parallel on one machine (they
+  # share one emulator instance and reset its data), but each shard is its own
+  # VM with its own emulators, so 4 shards cut wall-clock time about 4x.
+  # Public repo: standard runners cost nothing.
   e2e:
-    name: End-to-end
+    name: End-to-end (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
+    strategy:
+      # Let every shard finish so one failure doesn't hide others.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
 
     steps:
       - uses: actions/checkout@v4
@@ -183,17 +192,28 @@ jobs:
 
       - name: End-to-end tests
         # A successful retry must not hide a failed durability invariant.
-        run: npm run test:e2e -- --retries=0 --fail-on-flaky-tests
+        run: npm run test:e2e -- --retries=0 --fail-on-flaky-tests --shard=${{ matrix.shard }}/4
 
       - name: Upload the report on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
+
+  # One stable "End-to-end" check that's green only if every shard passed, so a
+  # required-check rule never has to list the shards one by one.
+  e2e-result:
+    name: End-to-end
+    if: always()
+    needs: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - name: All shards passed
+        run: test "${{ needs.e2e.result }}" = "success"
 
   unified-vehicle:
     name: Vehicle integration, built PWA and HTTPS gateway
