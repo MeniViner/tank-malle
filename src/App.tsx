@@ -5,6 +5,7 @@ import { VehicleRecordEditor } from "./components/VehicleRecordEditor";
 import { useStats } from "./hooks/useStats";
 import { usePublishSummary } from "./hooks/usePublishSummary";
 import { RouteScroll } from "./components/RouteScroll";
+import { AndroidBackNavigation } from "./components/AndroidBackNavigation";
 import { lazy, Suspense, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -60,6 +61,7 @@ export default function App() {
   return (
     <>
       <AppAtmosphere />
+      <AndroidBackNavigation />
       {import.meta.env.VITE_LOCAL_CARE === "1" ? <div className="mx-auto max-w-[430px] bg-warning-soft px-3 py-1.5 text-center text-xs text-warning-ink">תצוגה מקומית · נתוני הדגמה</div> : null}
       <RouteScroll />
       <Suspense fallback={<Splash />}><Shell /></Suspense>

@@ -23,6 +23,8 @@
     "test:unified": "playwright test --config playwright.unified.config.ts"
   },
   "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2",
     "firebase": "^11.10.0",
     "pdfjs-dist": "6.4.299",
     "react": "^18.3.1",

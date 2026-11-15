@@ -13,6 +13,7 @@ import { Money, NumericText, Quantity } from "../components/Fmt";
 import { CarIcon, CheckIcon, ChevronDown, UploadIcon, WarningIcon } from "../components/icons";
 import { dayMonthShort, fullDate, vehicleLabel } from "../lib/format";
 import { ConfirmDialog } from "../components/Sheet";
+import { useBackLayer } from "../lib/backNavigation";
 import type { ImportBatch } from "../context/DataContext";
 import type { Fillup, Vehicle } from "../lib/types";
 import type { ImportPlan, ImportReport } from "../lib/import/plan";
@@ -97,6 +98,8 @@ function AccountImportData() {
     setConfirmUndo(false);
     setStage("choose");
   }
+
+  useBackLayer(stage !== "choose", chooseAnotherFile);
 
   const targetVehicle = useMemo(
     () => (resolvedTarget?.id === targetVehicleId ? resolvedTarget : activeVehicles.find((entry) => entry.id === targetVehicleId)) ?? null,
