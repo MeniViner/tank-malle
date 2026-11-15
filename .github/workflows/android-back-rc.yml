@@ -37,7 +37,19 @@ jobs:
           distribution: temurin
           java-version: "21"
       - name: Prepare Android SDK
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_HOME:?Missing Android SDK}"
+          if [[ ! -f "${sdk}/platforms/android-36/android.jar" ||
+                ! -x "${sdk}/build-tools/36.0.0/apksigner" ]]; then
+            managers=("${sdk}"/cmdline-tools/*/bin/sdkmanager)
+            if [[ ! -x "${managers[0]}" ]]; then
+              echo "::error::Android SDK packages and sdkmanager are missing"
+              exit 1
+            fi
+            "${managers[0]}" --sdk_root="${sdk}" "platforms;android-36" "build-tools;36.0.0"
+          fi
       - run: npm ci
       - name: Build the Firebase emulator only APK
         run: node scripts/build-android-back-rc.mjs
