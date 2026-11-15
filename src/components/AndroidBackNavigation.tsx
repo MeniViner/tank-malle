@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
@@ -13,17 +13,8 @@ export function AndroidBackNavigation() {
   const { user, loading, signingOut } = useAuth();
   const { ready, accountDeletionPending } = useData();
   const { showToast, dismissToast } = useToast();
-  const toast = useRef<number | null>(null);
-  const controller = useMemo(() => createBackController({
-    promptExit: () => { toast.current = showToast({ tone: "info", title: "לחץ שוב כדי לצאת", duration: EXIT_WINDOW_MS }); },
-    clearExitPrompt: () => {
-      if (toast.current !== null) dismissToast(toast.current);
-      toast.current = null;
-    },
-    minimize: minimizeNativeApp,
-  }), [showToast, dismissToast]);
-
-  const onBack = useRef((_: boolean) => {});
+  const controller = useRef<ReturnType<typeof createBackController> | null>(null);
+  const onBack = useRef<((canGoBack: boolean) => void) | null>(null);
   useLayoutEffect(() => {
     onBack.current = (canGoBack) => {
       // React Router's index is relative to this app. WebView history can
@@ -33,27 +24,39 @@ export function AndroidBackNavigation() {
         && (canGoBack || window.history.length > 1);
       const atRoot = location.pathname === "/";
       const waiting = loading || signingOut || (Boolean(user) && !ready);
-      controller.back({
+      controller.current?.back({
         navigateBack: hasAppHistory ? () => navigate(-1) : undefined,
         returnHome: !atRoot && !waiting && !accountDeletionPending
           ? () => navigate("/", { replace: true }) : undefined,
         canMinimize: atRoot && !waiting && !accountDeletionPending,
       });
     };
-  }, [controller, location.pathname, navigate, user, ready, loading, signingOut, accountDeletionPending]);
+  }, [location.pathname, navigate, user, ready, loading, signingOut, accountDeletionPending]);
 
-  useLayoutEffect(() => { controller.routeChanged(); }, [controller, location.key]);
-  useLayoutEffect(() => { controller.resetExit(); }, [controller, user, ready, loading, signingOut, accountDeletionPending]);
-  useLayoutEffect(() => subscribeBackLayers(controller.resetExit), [controller]);
+  useLayoutEffect(() => { controller.current?.routeChanged(); }, [location.key]);
+  useLayoutEffect(() => { controller.current?.resetExit(); }, [user, ready, loading, signingOut, accountDeletionPending]);
 
   useEffect(() => {
-    const stop = listenForNativeBack((canGoBack) => onBack.current(canGoBack), controller.resetExit);
-    const onVisibilityChange = () => { if (document.hidden) controller.resetExit(); };
+    let toast: number | null = null;
+    const back = createBackController({
+      promptExit: () => { toast = showToast({ tone: "info", title: "לחץ שוב כדי לצאת", duration: EXIT_WINDOW_MS }); },
+      clearExitPrompt: () => {
+        if (toast !== null) dismissToast(toast);
+        toast = null;
+      },
+      minimize: minimizeNativeApp,
+    });
+    controller.current = back;
+    const unsubscribe = subscribeBackLayers(back.resetExit);
+    const stop = listenForNativeBack((canGoBack) => onBack.current?.(canGoBack), back.resetExit);
+    const onVisibilityChange = () => { if (document.hidden) back.resetExit(); };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       stop();
+      unsubscribe();
+      controller.current = null;
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [controller]);
+  }, [showToast, dismissToast]);
   return null;
 }
