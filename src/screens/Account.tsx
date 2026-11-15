@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ScreenHeader } from "../components/AppHeader";
 import { GroupRow } from "../components/DesignPrimitives";
 import { ChevronEnd, ShieldIcon } from "../components/icons";
@@ -11,6 +11,7 @@ import { AccountPreferences } from "../components/account/AccountPreferences";
 import { useAccountSummary } from "../components/account/useAccountSummary";
 import { useAuth } from "../context/AuthContext";
 import { useData } from "../context/DataContext";
+import { isAccountDeletionEntry } from "../lib/accountDeletion";
 import "../account-design.css";
 
 /** A new identity gets a new UI lifetime, including sheets and pending requests. */
@@ -21,6 +22,7 @@ export function Account() {
 
 function AccountBody() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin, claimsLoaded } = useAuth();
   const { accountDeletionPending } = useData();
   const summary = useAccountSummary();
@@ -39,7 +41,7 @@ function AccountBody() {
           <div className="tm-group"><GroupRow testId="account-admin" icon={<ShieldIcon />} title="לוח בקרה" onClick={() => navigate("/admin")} /></div>
         </section> : null}
       </>}
-      <AccountMore><AccountActions /></AccountMore>
+      <AccountMore><AccountActions openDeleteConfirmation={isAccountDeletionEntry(location)} /></AccountMore>
     </div>
   </main>;
 }

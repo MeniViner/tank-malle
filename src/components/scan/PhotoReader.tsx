@@ -16,12 +16,17 @@ export function PhotoReader({ kind,autoOpen=false,onRead,context,onAttempt,accep
   const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const generation=useRef(0),worker=useRef<Worker|null>(null),pending=useRef<((result:DisplayResult)=>void)|null>(null),lastFrame=useRef('');
   const journal=(context?.lastOdometer??0)>0,report=useRef(onAttempt),finish=useRef(()=>{});
-  useLayoutEffect(()=>{report.current=onAttempt;finish.current=()=>endCamera();});
+  const sharingRevision = useRef(0);
+  useLayoutEffect(() => {
+    if (Boolean(report.current) !== Boolean(onAttempt)) sharingRevision.current++;
+    report.current = onAttempt;
+    finish.current = () => endCamera();
+  });
   // One camera session is one attempt: its frames are counted and the most confident one is kept.
-  const camera=useRef<{start:number;frames:number;best:DisplayResult|null}|null>(null);
+  const camera=useRef<{start:number;frames:number;best:DisplayResult|null;sharingRevision:number}|null>(null);
   function endCamera(read:DisplayResult|null=null){
     const session=camera.current;camera.current=null;
-    if(!session||!session.frames)return;
+    if(!session||!session.frames||session.sharingRevision!==sharingRevision.current)return;
     const result:DisplayResult|null=read??(session.best?{status:'unreadable',sample:session.best.sample}:null);
     report.current?.({kind,source:'camera',result,frames:session.frames,seconds:(Date.now()-session.start)/1000,journal});
   }
@@ -37,19 +42,20 @@ export function PhotoReader({ kind,autoOpen=false,onRead,context,onAttempt,accep
   }
   useImperativeHandle(controlsRef, () => ({ closeCamera }));
   useLayoutEffect(()=>()=>{generation.current++;cancel();finish.current();},[]);
-  function scan(image:ImageData,limit=8000):Promise<DisplayResult> {
+  function scan(image:ImageData,sample:boolean,limit=8000):Promise<DisplayResult> {
     return new Promise(resolve=>{
       if(!worker.current)worker.current=new Worker(new URL('../../lib/scan/display.worker.ts',import.meta.url),{type:'module'});
       const timeout=setTimeout(()=>cancel(),limit);
       pending.current=result=>{clearTimeout(timeout);resolve(result);};
       worker.current.onmessage=(event:MessageEvent<DisplayResult>)=>{pending.current?.(event.data);pending.current=null;};
       worker.current.onerror=()=>cancel();
-      worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample:!!report.current,accept}},[image.data.buffer]);
+      worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample,accept}},[image.data.buffer]);
     });
   }
   async function frame(image:ImageData,isActive:()=>boolean) {
-    camera.current??={start:Date.now(),frames:0,best:null};
-    const token=generation.current,result=await scan(image);
+    camera.current??={start:Date.now(),frames:0,best:null,sharingRevision:sharingRevision.current};
+    const sample = Boolean(report.current) && camera.current.sharingRevision === sharingRevision.current;
+    const token=generation.current,result=await scan(image,sample);
     if(token!==generation.current||!isActive()){lastFrame.current='';return false;}
     const session=camera.current;
     if(session){session.frames++;if(result.sample&&(result.sample.confidence??-1)>=(session.best?.sample?.confidence??-1))session.best=result;}
@@ -59,6 +65,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,context,onAttempt,accep
   }
   async function load(file?:File) {
     if(!file)return;
+    const sharingAtStart = sharingRevision.current;
     const token=++generation.current;cancel();endCamera();setCameraOpen(false);setBusy(false);setMessage('');lastFrame.current='';
     if(file.size>20_000_000 || !(/^image\/(jpeg|png|webp|heic|heif|avif)$/.test(file.type)||(!file.type&&/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)))){setMessage('בחרו תמונה בגודל עד 20 MB.');return;}
     setBusy(true);const url=URL.createObjectURL(file);
@@ -75,10 +82,13 @@ export function PhotoReader({ kind,autoOpen=false,onRead,context,onAttempt,accep
       const ratio=Math.min(1,Math.sqrt(MAX_PIXELS/(image.naturalWidth*image.naturalHeight)));
       canvas.width=Math.floor(image.naturalWidth*ratio);canvas.height=Math.floor(image.naturalHeight*ratio);
       ctx.drawImage(image,0,0,canvas.width,canvas.height);
-      const started=Date.now(),result=await scan(ctx.getImageData(0,0,canvas.width,canvas.height),45000);
+      const sample = Boolean(report.current) && sharingAtStart === sharingRevision.current;
+      const started=Date.now(),result=await scan(ctx.getImageData(0,0,canvas.width,canvas.height),sample,45000);
       canvas.width=canvas.height=0;
       if(token!==generation.current)return;
-      report.current?.({kind,source:'file',result,frames:1,seconds:(Date.now()-started)/1000,journal});
+      if (sharingAtStart === sharingRevision.current) {
+        report.current?.({kind,source:'file',result,frames:1,seconds:(Date.now()-started)/1000,journal});
+      }
       if(result.status==='read'){onRead(result.values,false);return;}
       setMessage('הספרות עדיין לא ברורות מספיק. נסו צילום קרוב יותר בלי סנוור, או סגרו את הצילום והשלימו בטופס.');
     }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG, או סגרו את הצילום והשלימו בטופס.');}

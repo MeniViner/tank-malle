@@ -664,11 +664,15 @@ function FillupEditor({
     return result;
   }, [captureUi]);
 
-  // A new fill-up picks the station right next to you (it can be changed). Wait for the
-  // vehicle: its scope is what keeps a late answer from landing in another car's form.
+  // Suggest a station automatically only when location permission already exists.
+  // The station picker explains the use of location before the first request.
   useEffect(() => {
     if (isEdit || station || operation || !activeVehicle) return;
-    void detectStation();
+    let active = true;
+    void navigator.permissions?.query({ name: "geolocation" }).then(permission => {
+      if (active && permission.state === "granted") void detectStation();
+    }).catch(() => undefined);
+    return () => { active = false; };
   }, [isEdit, station, operation, detectStation, activeVehicle]);
 
   /* ---------- validation ---------- */

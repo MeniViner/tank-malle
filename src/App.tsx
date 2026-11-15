@@ -6,6 +6,7 @@ import { useStats } from "./hooks/useStats";
 import { usePublishSummary } from "./hooks/usePublishSummary";
 import { RouteScroll } from "./components/RouteScroll";
 import { AndroidBackNavigation } from "./components/AndroidBackNavigation";
+import { isAccountDeletionEntry } from "./lib/accountDeletion";
 import { lazy, Suspense, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -89,8 +90,6 @@ function Shell() {
     }
   });
 
-  if (loading || signingOut) return <Splash />;
-
   // The legal pages must be reachable before signing in — that is exactly
   // when someone wants to read them.
   if (location.pathname.startsWith("/legal")) {
@@ -104,8 +103,10 @@ function Shell() {
     );
   }
 
+  if (loading || signingOut) return <Splash />;
+
   if (!user) {
-    if (!onboarded) {
+    if (!onboarded && !isAccountDeletionEntry(location)) {
       return (
         <Onboarding
           onDone={() => {
