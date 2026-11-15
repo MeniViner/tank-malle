@@ -1,0 +1,69 @@
+name: Android Back debug APK
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/android-back-rc.yml"
+      - ".env.e2e"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/build-android-back-rc.mjs"
+      - "src/**"
+      - "vite.config.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-back-rc-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22.22.0"
+          cache: npm
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
+        with:
+          distribution: temurin
+          java-version: "21.0.9+10"
+      - name: Prepare Android SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - run: npm ci
+      - name: Build the Firebase emulator only APK
+        run: node scripts/build-android-back-rc.mjs
+      - name: Verify package identity and debug signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk=(.care-device/android-back-rc/*.apk)
+          test "${#apk[@]}" -eq 1
+          sdk="${ANDROID_HOME}/build-tools/36.0.0"
+          "${sdk}/aapt" dump badging "${apk[0]}" | sed -n '1p' | grep -F "package: name='com.meniviner.tankmalle.backtest'"
+          "${sdk}/apksigner" verify --print-certs "${apk[0]}"
+          unzip -p "${apk[0]}" assets/capacitor.config.json | node -e '
+            const c = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            if (c.appId !== "com.meniviner.tankmalle.backtest" ||
+                c.server.url || c.plugins.App.disableBackButtonHandler !== false) process.exit(1);
+          '
+          unzip -p "${apk[0]}" assets/public/build-info.json | node -e '
+            const b = JSON.parse(require("node:fs").readFileSync(0, "utf8"));
+            if (b.mode !== "e2e" || b.dirty) process.exit(1);
+          '
+          sha256sum "${apk[0]}"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: tank-malle-android-backtest
+          path: .care-device/android-back-rc/*.apk
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 14
