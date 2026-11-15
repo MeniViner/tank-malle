@@ -5,6 +5,7 @@ import { useData, type VehicleCreationSubmission, type VehicleSelectionResult } 
 import { useToast } from "../context/ToastContext";
 import { useAccountScope } from "../components/account/useAccountScope";
 import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
+import { useBackLayer } from "../lib/backNavigation";
 import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
 import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
 import { NumericText, NumRun } from "../components/Fmt";
@@ -295,6 +296,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
     else if (step === "confirm") { cancelRequests(); setStep("plate"); }
     else if (canExit) navigate(-1);
   }
+
+  useBackLayer(step !== "plate" || !canExit || saving || creation !== null, back);
 
   return <main ref={root} className="vehicle-wizard" data-testid="vehicle-wizard"
     data-step={needsRecovery ? "recovery" : creation ? "submitted" : step}>

@@ -42,9 +42,15 @@ export function CatalogPicker({ onClose, onPick }: {
     return result;
   }, [model]);
   const title = model ? "בחירת שנה" : make ? "בחירת דגם" : "בחירת יצרן";
-  return <Sheet open onClose={onClose} title={<h2 ref={heading} tabIndex={-1} data-testid="wizard-catalog-title">{title}</h2>}>
+  function back() {
+    if (model) setModel(null);
+    else if (make) setMake(null);
+    else { onClose(); return; }
+    setQuery("");
+  }
+  return <Sheet open onClose={onClose} onBack={back} title={<h2 ref={heading} tabIndex={-1} data-testid="wizard-catalog-title">{title}</h2>}>
     <div className="wizard-catalog">
-      {make ? <button type="button" className="wizard-catalog-back" onClick={() => { if (model) setModel(null); else setMake(null); setQuery(""); }}><ChevronEnd size={20}/>חזרה</button> : null}
+      {make ? <button type="button" className="wizard-catalog-back" onClick={back}><ChevronEnd size={20}/>חזרה</button> : null}
       {!model ? <label className="wizard-catalog-search">
         <SearchIcon size={20}/><span className="sr-only">{make ? "חיפוש דגם" : "חיפוש יצרן"}</span>
         <input data-testid="wizard-catalog-search" dir="auto" value={query} onChange={event => setQuery(event.currentTarget.value)}

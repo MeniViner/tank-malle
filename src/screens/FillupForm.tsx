@@ -6,6 +6,7 @@ import { useData, type FillupSubmission } from "../context/DataContext";
 import { useToast } from "../context/ToastContext";
 import { useAccountScope } from "../components/account/useAccountScope";
 import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
+import { useBackGuard, useBackLayer } from "../lib/backNavigation";
 import { useStats } from "../hooks/useStats";
 import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
 import { RECEIPT_SOURCE, type ReceiptImport as ImportIdentity } from "../lib/import/receiptText";
@@ -479,6 +480,10 @@ function FillupEditor({
   function canLeaveDraft() {
     return !draftStorageFailed || !draftDirty || window.confirm("לא ניתן לשמור טיוטה במכשיר. לצאת ולאבד את הפרטים?");
   }
+  useBackGuard(true, () => !saveLock.current && !undoBusy && pumpWriteState !== "journaling" && (saved !== null || canLeaveDraft()));
+  // These loading placeholders are visible before the lazy sheet registers.
+  useBackLayer(importOpen, () => setImportOpen(false));
+  useBackLayer(scanOpen, () => setScanOpen(false));
 
   // A recovered create can already be visible under the same document id.
   // Every form evaluates one candidate, never its listener copy a second time.
@@ -659,11 +664,15 @@ function FillupEditor({
     return result;
   }, [captureUi]);
 
-  // A new fill-up picks the station right next to you (it can be changed). Wait for the
-  // vehicle: its scope is what keeps a late answer from landing in another car's form.
+  // Suggest a station automatically only when location permission already exists.
+  // The station picker explains the use of location before the first request.
   useEffect(() => {
     if (isEdit || station || operation || !activeVehicle) return;
-    void detectStation();
+    let active = true;
+    void navigator.permissions?.query({ name: "geolocation" }).then(permission => {
+      if (active && permission.state === "granted") void detectStation();
+    }).catch(() => undefined);
+    return () => { active = false; };
   }, [isEdit, station, operation, detectStation, activeVehicle]);
 
   /* ---------- validation ---------- */

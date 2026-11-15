@@ -52,6 +52,7 @@ test("nearby orders every matching station beyond 400 m, preserves selection and
   await expect(rows).toHaveCount(30);
   await expect(dialog.getByRole("button", { name: /פז בדיקה הקרובה/ })).toHaveCount(0);
   await expect(order).toHaveCSS("text-decoration-line", "underline");
+  await expect(order).toHaveAccessibleDescription("המיקום הנוכחי משמש למיון תחנות במכשיר בלבד.");
   await order.click();
   await expect(rows.first()).toContainText("פז בדיקה הקרובה");
   await expect(rows.first()).toContainText("1.1 ק״מ");
@@ -80,13 +81,9 @@ test("nearby orders every matching station beyond 400 m, preserves selection and
   await expect(rows.first().getByText("פז בדיקה 2", { exact: true })).toBeVisible();
   await expect(rows).toHaveCount(30);
   const requests = await page.evaluate(() => (window as Window & { stationLocation?: StationLocationFixture }).stationLocation!.requests);
-  // The automatic look-up may ask twice when the form opens before the vehicle has loaded
-  // (the first answer is discarded as stale); every "בקרבתי" asks once, for a fresh fix.
-  const automatic = requests.filter(options => options.maximumAge === 60_000), manual = requests.filter(options => options.maximumAge === 0);
-  expect(automatic.length).toBeGreaterThanOrEqual(1);
-  expect(automatic.length).toBeLessThanOrEqual(2);
-  expect(manual).toHaveLength(4);
-  expect(requests.slice(automatic.length).every(options => options.maximumAge === 0)).toBe(true);
+  // With no existing location permission, only the four explicit presses may request a fix.
+  expect(requests).toHaveLength(4);
+  expect(requests.every(options => options.maximumAge === 0)).toBe(true);
   await page.keyboard.press("Escape");
   await expect(trigger).toContainText(chosen);
   await expect(trigger).toBeFocused();

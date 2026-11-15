@@ -14,6 +14,12 @@ export interface DeletionResult {
   needsReauth?: boolean;
 }
 
+export const ACCOUNT_DELETION_ENTRY = "/account?delete=1";
+
+export function isAccountDeletionEntry({ pathname, search }: { pathname: string; search: string }): boolean {
+  return pathname === "/account" && new URLSearchParams(search).get("delete") === "1";
+}
+
 const deletionKey = (uid: string) => `tm.deleting.${uid}`;
 export function isAccountDeleting(uid: string): boolean {
   try { return localStorage.getItem(deletionKey(uid)) === "1"; } catch { return false; }

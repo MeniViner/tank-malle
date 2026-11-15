@@ -3,17 +3,20 @@ import { createPortal } from "react-dom";
 import { Button } from "./Button";
 import { CloseIcon } from "./icons";
 import { getTopModalDialog, registerModalLayer } from "./modalLayers";
+import { registerBackLayer } from "../lib/backNavigation";
 
 /** Native modal containment/inertness, keyboard trapping and focus restoration. */
-function Modal({ open, close, children, labelId, bodyId, alert = false, sheet = false, returnFocus }: {
+function Modal({ open, close, back = close, children, labelId, bodyId, alert = false, sheet = false, returnFocus }: {
   open: boolean; close: () => void; children: ReactNode; labelId: string; bodyId?: string; alert?: boolean; sheet?: boolean;
+  back?: () => void;
   returnFocus?: () => HTMLElement | null;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const toastHostRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef(close);
+  const backRef = useRef(back);
   const returnFocusRef = useRef(returnFocus);
-  useLayoutEffect(() => { closeRef.current = close; returnFocusRef.current = returnFocus; }, [close, returnFocus]);
+  useLayoutEffect(() => { closeRef.current = close; backRef.current = back; returnFocusRef.current = returnFocus; }, [close, back, returnFocus]);
   useEffect(() => {
     if (!open || !ref.current || !toastHostRef.current) return;
     const dialog = ref.current;
@@ -23,9 +26,11 @@ function Modal({ open, close, children, labelId, bodyId, alert = false, sheet = 
     const resolveFocus = returnFocusRef.current;
     dialog.showModal();
     const unregister = registerModalLayer(dialog, toastHostRef.current);
+    const unregisterBack = registerBackLayer(() => backRef.current());
     // Changing form values or callbacks never reopens the dialog or steals focus.
     (dialog.querySelector<HTMLElement>("[data-modal-initial-focus]") ?? dialog).focus();
     return () => {
+      unregisterBack();
       dialog.close();
       unregister();
       const parent = getTopModalDialog();
@@ -63,15 +68,17 @@ function Modal({ open, close, children, labelId, bodyId, alert = false, sheet = 
   );
 }
 
-export function Sheet({ open, onClose, title, children, className = "", header, atmosphereRoute, returnFocus }: {
+export function Sheet({ open, onClose, onBack, title, children, className = "", header, atmosphereRoute, returnFocus }: {
   open: boolean; onClose: () => void; title?: ReactNode; children: ReactNode;
+  /** Some sheets contain steps that Android Back should unwind first. */
+  onBack?: () => void;
   /** Optional presentation hooks; modal containment and its default header stay shared. */
   className?: string; header?: ReactNode; atmosphereRoute?: string;
   /** Resolve a replaced logical opener; null deliberately refuses restoration. */
   returnFocus?: () => HTMLElement | null;
 }) {
   const titleId = useId();
-  return <Modal open={open} close={onClose} labelId={titleId} returnFocus={returnFocus} sheet>
+  return <Modal open={open} close={onClose} back={onBack} labelId={titleId} returnFocus={returnFocus} sheet>
     <div className={`tm-sheet-in tm-sheet-panel ${className}`}>
       {atmosphereRoute ? <div data-app-atmosphere-host data-atmosphere-route={atmosphereRoute} aria-hidden="true" /> : null}
       <div className="tm-sheet-grab" aria-hidden="true" />

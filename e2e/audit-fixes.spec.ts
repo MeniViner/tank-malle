@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { test, expect, type Page } from "@playwright/test";
 import { openFillupMore } from "./helpers/fillup";
 import { exportedFileTime } from "./helpers/exports";
-import { ALICE, signedInWithData } from "./helpers/app";
+import { ALICE, completeGooglePopup, signOut, signedInWithData } from "./helpers/app";
 import { getDocument, installRules, listAccounts, listDocuments, restoreRules, seedFillups, seedVehicle, setDocument } from "./helpers/emulator";
 import { fillupsToCsv, rowsToCsv, tankUpdatesToCsv } from "../src/lib/csv";
 import type { Fillup, Vehicle } from "../src/lib/types";
@@ -50,6 +50,26 @@ test("F01/F02: cancelling real reauthentication retains account and data", async
   await expect(page.getByText("נדרשת התחברות מחדש לפני המחיקה", { exact: true })).toBeVisible({ timeout: 25000 });
   expect(await getDocument(`users/${uid}/vehicles/v1`)).not.toBeNull();
   expect((await listAccounts()).some((account) => account.localId === uid)).toBe(true);
+});
+
+test("the public account deletion link reaches confirmation after signing in from the web", async ({ page }) => {
+  const { uid } = await signedInWithData(page);
+  await signOut(page);
+  await page.evaluate(() => localStorage.removeItem("tm.onboarded"));
+  await page.goto("/legal/privacy");
+  await page.getByRole("link", { name: "מחיקת חשבון ונתונים באתר" }).click();
+  await expect(page).toHaveURL("/legal/delete-account");
+  await expect(page.getByRole("heading", { name: "מחיקת חשבון טנק מלא" })).toBeVisible();
+  await page.getByRole("link", { name: "פתיחת מסך מחיקת החשבון" }).click();
+  await page.getByTestId("signin-consent").check();
+  const [popup] = await Promise.all([page.waitForEvent("popup"), page.getByTestId("signin-google").click()]);
+  await completeGooglePopup(popup, ALICE);
+  const confirmation = page.getByRole("alertdialog", { name: "למחוק את החשבון?" });
+  await expect(confirmation).toBeVisible();
+  expect(await getDocument(`users/${uid}/vehicles/v1`)).not.toBeNull();
+  await confirmation.getByRole("button", { name: "ביטול", exact: true }).click();
+  await expect(confirmation).toHaveCount(0);
+  expect((await listAccounts()).some(account => account.localId === uid)).toBe(true);
 });
 
 test("F01/F02: a partial deletion failure retains auth, then retry completes", async ({ page }) => {
