@@ -49,12 +49,16 @@ export function AndroidBackNavigation() {
     controller.current = back;
     const unsubscribe = subscribeBackLayers(back.resetExit);
     const stop = listenForNativeBack((canGoBack) => onBack.current?.(canGoBack), back.resetExit);
+    // The history traversal can finish before React commits an intermediate
+    // location. Release the guard even when React only sees the original key.
+    window.addEventListener("popstate", back.routeChanged);
     const onVisibilityChange = () => { if (document.hidden) back.resetExit(); };
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       stop();
       unsubscribe();
       controller.current = null;
+      window.removeEventListener("popstate", back.routeChanged);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [showToast, dismissToast]);
