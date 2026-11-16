@@ -10,7 +10,7 @@ import { ConfirmDialog } from "../Sheet";
 import { useAccountScope } from "./useAccountScope";
 
 /** Account actions retain the device-wide write/cache checks in the auth layer. */
-export function AccountActions() {
+export function AccountActions({ openDeleteConfirmation = false }: { openDeleteConfirmation?: boolean }) {
   const { user, signOutUser } = useAuth();
   const { outbox, writes, outboxHealth, checkUnacknowledged, deleteAccount } = useData();
   const { showToast } = useToast();
@@ -19,7 +19,7 @@ export function AccountActions() {
   const [clearLocal, setClearLocal] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(0);
+  const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(openDeleteConfirmation ? 1 : 0);
   const [deleting, setDeleting] = useState(false);
   const signOutBusy = useRef(false);
   const deleteBusy = useRef(false);

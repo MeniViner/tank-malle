@@ -25,10 +25,10 @@
     "native:android": "node scripts/build-android.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "8.6.0",
+    "@capacitor/android": "8.6.2",
     "@capacitor/app": "8.1.2",
     "@capacitor/camera": "8.2.6",
-    "@capacitor/core": "8.6.0",
+    "@capacitor/core": "8.6.2",
     "@capacitor/filesystem": "8.1.5",
     "@capacitor/geolocation": "8.2.4",
     "@capacitor/ios": "8.6.0",
@@ -44,7 +44,7 @@
     "recharts": "^3.10.1"
   },
   "devDependencies": {
-    "@capacitor/cli": "8.6.0",
+    "@capacitor/cli": "8.6.2",
     "@firebase/rules-unit-testing": "^4.0.1",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",

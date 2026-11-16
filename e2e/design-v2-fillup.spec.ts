@@ -383,6 +383,7 @@ test("edit deletion Undo restores the same document, immutable receipt and creat
 
 test("a delayed geolocation result cannot overwrite the station manually chosen while it was pending", async ({ page }) => {
   const scope = await fillupFixture(page, { history: "none" });
+  await page.context().grantPermissions(["geolocation"]);
   await page.addInitScript(() => {
     const callbacks: PositionCallback[] = [];
     Object.defineProperty(navigator.geolocation, "getCurrentPosition", {

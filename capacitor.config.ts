@@ -9,7 +9,7 @@ export default {
   server: { hostname: 'localhost', androidScheme: 'https', iosScheme: 'capacitor' },
   ios: { contentInset: 'never' },
   plugins: {
-    App: { disableBackButtonHandler: true },
+    App: { disableBackButtonHandler: false },
     SocialLogin: {
       providers: { google: true, apple: false, facebook: false, twitter: false, oauth2: false },
       logLevel: 0,

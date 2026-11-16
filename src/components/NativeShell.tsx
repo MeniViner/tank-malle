@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { App as NativeApp } from '@capacitor/app';
-import { Capacitor, type PluginListenerHandle } from '@capacitor/core';
+import type { PluginListenerHandle } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -16,7 +16,6 @@ export default function NativeShell() {
   const { user, loading, signingOut } = useAuth();
   const data = useData();
   const vehicle = useVehicleData();
-  const { pathname } = useLocation();
   const navigate = useNavigate();
   const uid = user?.uid;
   const [revision, setRevision] = useState(0);
@@ -49,16 +48,6 @@ export default function NativeShell() {
       window.removeEventListener(REMINDERS_CHANGED, refresh);
     };
   }, []);
-
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'android') return;
-    const listener = NativeApp.addListener('backButton', () => {
-      if (typeof window.history.state?.idx === 'number' && window.history.state.idx > 0) navigate(-1);
-      else if (pathname !== '/') navigate('/', { replace: true });
-      else void NativeApp.minimizeApp();
-    });
-    return () => { void listener.then(handle => handle.remove(), () => {}); };
-  }, [navigate, pathname]);
 
   useEffect(() => {
     const tap = pendingTap.current;

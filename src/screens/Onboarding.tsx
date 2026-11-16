@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "../components/Button";
 import { NumericText } from "../components/Fmt";
 import { OnboardingArt } from "../components/entry/OnboardingArt";
+import { useBackLayer } from "../lib/backNavigation";
 import "../entry-design.css";
 
 /** Design v3 §7.3: car-cost management, not only fuel. The copy promises only what the app does today. */
@@ -17,6 +18,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const [index, setIndex] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { if (index > 0) heading.current?.focus(); }, [index]);
+  useBackLayer(index > 0, () => setIndex(current => Math.max(0, current - 1)));
   const slide = SLIDES[index];
   return <main className="entry-page entry-onboarding" data-testid="onboarding">
     <header className="entry-onboarding-top">

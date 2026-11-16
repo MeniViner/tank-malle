@@ -1,7 +1,8 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ScreenHeader } from "../components/AppHeader";
 import { Num } from "../components/Num";
 import { NumericText } from "../components/Fmt";
+import { ACCOUNT_DELETION_ENTRY } from "../lib/accountDeletion";
 import "../secondary-design.css";
 import { nativeBuild } from "../lib/native/platform";
 
@@ -15,24 +16,30 @@ import { nativeBuild } from "../lib/native/platform";
  */
 
 const LAST_UPDATED = "11 בנובמבר 2026";
+const PRIVACY_LAST_UPDATED = "16 בנובמבר 2026";
 const CONTACT = "meniviner@gmail.com";
 
 export function Legal() {
   const navigate = useNavigate();
   const { doc } = useParams<{ doc: string }>();
+  const isDeletion = doc === "delete-account";
   const isPrivacy = doc === "privacy";
+  const title = isDeletion ? "מחיקת חשבון ונתונים" : isPrivacy ? "מדיניות פרטיות" : "תנאי שימוש";
 
   return (
     <main className="tm-secondary-page" data-testid="legal-page">
       <ScreenHeader
-        title={isPrivacy ? "מדיניות פרטיות" : "תנאי שימוש"}
+        title={title}
         onBack={() => navigate(-1)}
       />
 
       <div className="tm-secondary-body">
-        <article className="tm-secondary-legal flex flex-col gap-7 pb-6" aria-label={isPrivacy ? "מדיניות הפרטיות המלאה" : "תנאי השימוש המלאים"}>
-          <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{LAST_UPDATED}</NumericText> · גרסה <Num>{isPrivacy ? "1.3" : "1.2"}</Num></p>
-          {isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}
+        <article className="tm-secondary-legal flex flex-col gap-7 pb-6"
+          aria-label={isDeletion ? title : isPrivacy ? "מדיניות הפרטיות המלאה" : "תנאי השימוש המלאים"}>
+          {isDeletion ? <AccountDeletionInfo /> : <>
+            <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{isPrivacy ? PRIVACY_LAST_UPDATED : LAST_UPDATED}</NumericText> · גרסה <Num>{isPrivacy ? "1.4" : "1.2"}</Num></p>
+            {isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}
+          </>}
 
           <div className="tm-secondary-group pt-4">
             <h2 className="tm-secondary-section-title">יצירת קשר</h2>
@@ -53,6 +60,17 @@ export function Legal() {
       </div>
     </main>
   );
+}
+
+function AccountDeletionInfo() {
+  return <>
+    <Section title="מחיקת חשבון טנק מלא">
+      <p>אפשר להתחיל את המחיקה באתר גם ממכשיר שבו האפליקציה אינה מותקנת. התחברו עם חשבון Google ששימש אתכם בטנק מלא ואשרו את המחיקה במסך החשבון.</p>
+      <p>הפעולה מוחקת לצמיתות את החשבון ואת הנתונים המשויכים אליו, כולל כלי רכב, תדלוקים, טיפולים, תזכורות, העדפות, דוגמאות סריקה וסיכומים ששותפו.</p>
+      <p>אם אין לכם גישה לחשבון Google, אפשר לבקש עזרה במחיקה בדוא״ל שמופיע למטה. ציינו את כתובת החשבון בטנק מלא כדי שנוכל לסייע באימות הבקשה.</p>
+    </Section>
+    <Link className="tm-button tm-button-primary" to={ACCOUNT_DELETION_ENTRY}>פתיחת מסך מחיקת החשבון</Link>
+  </>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -242,7 +260,7 @@ function PrivacyPolicy() {
           פרטי רישוי וביטוח הם רשות, ויכולים לכלול מועד טסט, חברת ביטוח, סוג כיסוי, תוקף ועלות שנתית.
         </p>
         <p>
-          <b>סריקות:</b> חיתוכים מהצילומים שסרקתם ונתוני הזיהוי, כמפורט בסעיף<Num> 6</Num>.
+          <b>סריקות:</b> אם בחרתם לשתף דוגמאות, נשמרים חיתוכים מהצילומים ונתוני הזיהוי כמפורט בסעיף<Num> 6</Num>.
         </p>
         <p>
           <b>העדפות:</b> ערכת נושא, צבע הדגשה, יחידת מדידה והרכב הפעיל.
@@ -335,8 +353,8 @@ function PrivacyPolicy() {
           ואינה נשמרת.
         </p>
         <p>
-          כדי למדוד את דיוק הזיהוי ולשפר אותו לכל המשתמשים, כל ניסיון סריקה נרשם אצלנו
-          ומקושר לחשבון שלכם. הרישום כולל:
+          לשיפור הזיהוי אפשר לבחור לשתף דוגמאות בסריקה. רק לאחר סימון האפשרות, ניסיונות
+          הסריקה הבאים כל עוד היא מסומנת נשלחים ל־Firebase של Google ומקושרים לחשבון שלכם. הדוגמאות כוללות:
         </p>
         <List
           items={[
@@ -352,9 +370,8 @@ function PrivacyPolicy() {
           הזיהוי, ובדיקה של קריאות שנכשלו. הוא אינו נמכר ואינו מועבר לצד שלישי.
         </p>
         <p>
-          האיסוף הוא חלק מהשימוש בסריקה. מי שמעדיף שלא ייאסף — יכול להזין את המספרים
-          בטופס בלי לצלם. התמונות נמחקות אחרי שנה לכל היותר, ומחיקת החשבון מוחקת את כל
-          רשומות הסריקה שלכם.
+          אפשר להשתמש בסריקה כשהשיתוף כבוי. הבחירה מתאפסת בכל פתיחה של מסך הסריקה.
+          ניקוי אוטומטי מסיר חיתוכי תמונה שגילם מעל שנה. מחיקת החשבון מוחקת את רשומות הסריקה שלכם.
         </p>
       </Section>
 
@@ -432,6 +449,7 @@ function PrivacyPolicy() {
           לפני המחיקה נבקש מכם להתחבר מחדש, כדי לוודא שזו באמת בקשה שלכם. אם שלב כלשהו
           במחיקה נכשל — נציג לכם בדיוק מה לא נמחק, ולא נציג הודעת הצלחה במקום.
         </p>
+        <Link to="/legal/delete-account" className="tm-secondary-link">מחיקת חשבון ונתונים באתר</Link>
       </Section>
 
       <Section title="11. הזכויות שלכם">

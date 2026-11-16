@@ -11,6 +11,7 @@ const CATALOG = { count: 3, companies: ["פז", "דלק"], stations: [
 ] };
 
 async function standAt(page: Page, lat: number, lng: number) {
+  await page.context().grantPermissions(["geolocation"]);
   await page.addInitScript(([la, ln]) => {
     Object.defineProperty(navigator.geolocation, "getCurrentPosition", { configurable: true, value: (ok: PositionCallback) =>
       setTimeout(() => ok({ coords: { latitude: la, longitude: ln, accuracy: 8, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() } as GeolocationPosition), 50) });

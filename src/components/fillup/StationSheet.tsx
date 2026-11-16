@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FuelPrices, FuelType, Station } from "../../lib/types";
 import { loadStationCatalog, searchStationOptions, stationOptionsByDistance, stationKey, toStation, formatDistance, type GeoResult, type StationSearchResult } from "../../lib/stations";
 import { publicPriceStationId, reusableStationName } from "../../lib/fillupPricing";
@@ -180,6 +180,7 @@ export function StationSheet({
     orderedMatches?.slice(0, visibleCount) ?? matches;
 
   const trimmed = query.trim();
+  const locationDisclosure = useId();
 
   return (
     <Sheet
@@ -198,9 +199,10 @@ export function StationSheet({
           />
         </div>
 
+        <p id={locationDisclosure} className="text-[13px] text-muted">המיקום הנוכחי משמש למיון תחנות במכשיר בלבד.</p>
         <div className="flex flex-none items-center justify-between gap-3">
           <button type="button" className="fillup-text-action min-w-[44px]" data-testid="station-nearby-order"
-            onClick={() => void orderNearby()} disabled={ordering} aria-busy={ordering}>בקרבתי</button>
+            onClick={() => void orderNearby()} disabled={ordering} aria-busy={ordering} aria-describedby={locationDisclosure}>בקרבתי</button>
           {ordering ? <span role="status" className="text-[12px] text-muted">מאתר מיקום…</span>
             : nearbyPosition ? <span className="text-[12px] text-muted">לפי מרחק בקו אווירי</span> : null}
         </div>
