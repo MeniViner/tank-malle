@@ -50,8 +50,10 @@ for (const night of [false, true]) {
     await write(resolve(android, `mipmap${night ? '-night' : ''}-${density}/ic_launcher_round.png`), await sharp(flat).ensureAlpha().composite([{ input: mask, blend: 'dest-in' }]).png(png).toBuffer());
   }
 }
-for (const version of [26, 33]) for (const suffix of ['', '_round']) {
-  await write(resolve(android, `mipmap-anydpi-v${version}/ic_launcher${suffix}.xml`), `<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@color/tm_launcher_background"/>\n  <foreground android:drawable="@drawable/tm_launcher_foreground"/>\n${version >= 33 ? '  <monochrome android:drawable="@drawable/tm_launcher_monochrome"/>\n' : ''}</adaptive-icon>\n`);
+// Night-qualified legacy PNGs otherwise win before Android compares density/API.
+// Match their uiMode qualifier so modern launchers keep the adaptive drawable.
+for (const night of [false, true]) for (const version of [26, 33]) for (const suffix of ['', '_round']) {
+  await write(resolve(android, `mipmap${night ? '-night' : ''}-anydpi-v${version}/ic_launcher${suffix}.xml`), `<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">\n  <background android:drawable="@color/tm_launcher_background"/>\n  <foreground android:drawable="@drawable/tm_launcher_foreground"/>\n${version >= 33 ? '  <monochrome android:drawable="@drawable/tm_launcher_monochrome"/>\n' : ''}</adaptive-icon>\n`);
 }
 const catalog = resolve(root, 'ios/App/App/Assets.xcassets/AppIcon.appiconset');
 const variants = [
