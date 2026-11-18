@@ -8,6 +8,7 @@ if (!['qa', 'personal'].includes(profile) || !['android', 'ios'].includes(platfo
 }
 
 const mode = 'native-' + profile;
+const identity = JSON.parse(readFileSync('resources/app-icon/identity.json', 'utf8'));
 const settings = parseEnv(readFileSync('.env.' + mode + '.local', 'utf8'));
 const project = settings.VITE_FIREBASE_PROJECT_ID;
 const googleClient = /^(\d+)-[a-z0-9-]+\.apps\.googleusercontent\.com$/;
@@ -33,6 +34,7 @@ const env = {
   TANK_MALLE_NATIVE_PROFILE: profile,
   TANK_MALLE_NATIVE_PLATFORM: platform,
 };
+execFileSync('node', ['scripts/generate-app-icons.mjs'], { stdio: 'inherit' });
 execFileSync('npm', ['run', 'build', '--', '--mode', mode], { env, stdio: 'inherit' });
 execFileSync('npx', ['--no-install', 'cap', 'sync', platform], { env, stdio: 'inherit' });
 
@@ -49,7 +51,7 @@ if (platform === 'ios') {
   writeFileSync('ios/App/App/TankMalle.generated.xcconfig', [
     'PRODUCT_BUNDLE_IDENTIFIER = ' + identifier,
     'TANK_MALLE_GOOGLE_SCHEME = ' + reversedClient,
-    'TANK_MALLE_DISPLAY_NAME = ' + (profile === 'qa' ? 'טנק מלא QA' : 'טנק מלא'),
+    'TANK_MALLE_DISPLAY_NAME = ' + (profile === 'qa' ? 'טנק מלא QA' : identity.displayName),
     'MARKETING_VERSION = ' + version,
     'CURRENT_PROJECT_VERSION = ' + buildNumber,
     '',

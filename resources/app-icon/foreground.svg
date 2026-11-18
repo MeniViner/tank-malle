@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1166" height="1349" viewBox="0 0 1166 1349">
+  <defs>
+    <mask id="receipt-cutouts" maskUnits="userSpaceOnUse" x="0" y="0" width="1166" height="1349">
+      <rect width="1166" height="1349" fill="white"/>
+      <path d="M649 312H839M635 373H826" fill="none" stroke="black" stroke-width="27" stroke-linecap="round"/>
+    </mask>
+    <mask id="car-cutouts" maskUnits="userSpaceOnUse" x="0" y="0" width="1166" height="1349">
+      <rect width="1166" height="1349" fill="white"/>
+      <path d="M275 560L358 481Q388 449 425 449H491V560ZM533 449H594Q649 449 686 482L785 560H533Z" fill="black"/>
+      <path d="M186 889A164 164 0 0 1 514 889" fill="none" stroke="black" stroke-width="12" stroke-linecap="round"/>
+      <path d="M199 889A151 151 0 0 1 501 889" fill="none" stroke="black" stroke-width="3" stroke-linecap="round"/>
+      <g fill="none" stroke="black" stroke-linecap="butt">
+        <path d="M202 889H231M245 784L266 810M350 741V779M455 784L433 811M498 889H469" stroke-width="8"/>
+        <path d="M211 848L233 856M239 813L255 825M307 763L313 782M391 763L385 782M461 813L445 825M489 848L467 856" stroke-width="5"/>
+      </g>
+      <path d="M345 947L424 831Q435 822 431 835L361 953Z" fill="black"/>
+    </mask>
+    <mask id="clasp-cutout" maskUnits="userSpaceOnUse" x="0" y="0" width="1166" height="1349">
+      <rect width="1166" height="1349" fill="white"/>
+      <circle cx="817" cy="734" r="31" fill="black"/>
+    </mask>
+  </defs>
+  <path d="M550 403L589 214L639 247L691 214L742 247L795 214L846 247L894 214Q936 233 925 282L867 557L832 530L713 442Q666 403 594 403Z" fill="#FFF5E3" mask="url(#receipt-cutouts)"/>
+  <path d="M153 590Q153 547 207 530Q239 520 276 480L315 440Q353 403 421 403H593Q665 403 713 441L832 528Q871 561 903 560Q934 563 932 545Q930 532 900 526L914 476Q990 501 990 575V603Q990 636 952 636H815Q719 636 719 721V748Q719 830 800 830H990V895Q990 976 910 986H833V963A79 79 0 0 0 675 963V986H431V963A80 80 0 0 0 271 963V985Q153 985 153 902Z" fill="#FFC915" mask="url(#car-cutouts)"/>
+  <path d="M820 660H979Q991 660 991 672V794Q991 806 979 806H817Q751 806 751 734Q751 660 820 660Z" fill="#FFC915" mask="url(#clasp-cutout)"/>
+  <path d="M380 882L429 831" fill="none" stroke="#FFF5E3" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="350" cy="943" r="11" fill="none" stroke="#FFC915" stroke-width="5"/>
+</svg>

@@ -3,8 +3,16 @@ package com.meniviner.tankmalle;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.Intent;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Insets;
+import android.graphics.drawable.AdaptiveIconDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -12,6 +20,8 @@ import android.view.WindowInsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.io.File;
+import java.io.FileOutputStream;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -83,10 +93,52 @@ public class ReleaseSmokeInstrumentation extends Instrumentation {
         check("true".equals(safe), "Visible buttons overlap a system bar or cutout: " + viewport.get());
     }
 
+    private void verifyInstalledIdentity() throws Exception {
+        Context target = getTargetContext();
+        check("טנק מלא - ניהול הוצאות הרכב".contentEquals(target.getApplicationInfo().loadLabel(target.getPackageManager())), "Wrong installed app name");
+        File folder = new File(target.getExternalFilesDir(null), "icon-validation");
+        check(folder.isDirectory() || folder.mkdirs(), "Cannot write icon validation output");
+        for (boolean night : new boolean[] { false, true }) {
+            Configuration config = new Configuration(target.getResources().getConfiguration());
+            config.uiMode = (config.uiMode & ~Configuration.UI_MODE_NIGHT_MASK)
+                | (night ? Configuration.UI_MODE_NIGHT_YES : Configuration.UI_MODE_NIGHT_NO);
+            Context themed = target.createConfigurationContext(config);
+            Drawable icon = themed.getDrawable(target.getApplicationInfo().icon);
+            check(icon != null, "Missing installed launcher icon");
+            if (Build.VERSION.SDK_INT >= 26) {
+                check(icon instanceof AdaptiveIconDrawable, "Launcher icon is not adaptive");
+                AdaptiveIconDrawable adaptive = (AdaptiveIconDrawable) icon;
+                Bitmap background = Bitmap.createBitmap(32, 32, Bitmap.Config.ARGB_8888);
+                adaptive.getBackground().setBounds(0, 0, 32, 32);
+                adaptive.getBackground().draw(new Canvas(background));
+                check(background.getPixel(16, 16) == Color.parseColor(night ? "#121619" : "#25282B"), "Wrong day/night launcher background");
+                if (Build.VERSION.SDK_INT >= 33) {
+                    check(adaptive.getMonochrome() != null, "Missing themed launcher layer");
+                    if (!night) {
+                        Drawable mono = adaptive.getMonochrome().mutate();
+                        mono.setTint(Color.parseColor("#413A52"));
+                        writeIcon(new AdaptiveIconDrawable(new ColorDrawable(Color.parseColor("#E7DFF3")), mono), new File(folder, "themed.png"));
+                    }
+                }
+            }
+            writeIcon(icon, new File(folder, night ? "dark.png" : "default.png"));
+        }
+    }
+
+    private void writeIcon(Drawable icon, File file) throws Exception {
+        Bitmap bitmap = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888);
+        icon.setBounds(0, 0, 512, 512);
+        icon.draw(new Canvas(bitmap));
+        try (FileOutputStream output = new FileOutputStream(file)) {
+            check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, output), "Cannot encode launcher icon");
+        }
+    }
+
     @Override
     public void onStart() {
         Bundle result = new Bundle();
         try {
+            verifyInstalledIdentity();
             Intent launch = new Intent(Intent.ACTION_MAIN)
                 .setClassName(getTargetContext().getPackageName(), MainActivity.class.getName())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -129,6 +181,7 @@ public class ReleaseSmokeInstrumentation extends Instrumentation {
             JSONObject nativeResult = new JSONObject(json);
             check(!nativeResult.has("error"), "Native plugin failure: " + json);
             check(getTargetContext().getPackageName().equals(nativeResult.getJSONObject("info").getString("id")), "Wrong app id");
+            check("טנק מלא - ניהול הוצאות הרכב".equals(nativeResult.getJSONObject("info").getString("name")), "Wrong native app display name");
             check(nativeResult.getJSONObject("info").getString("version").matches("\\d+\\.\\d+\\.\\d+"), "Missing app version");
             check("R8 bridge OK".equals(nativeResult.getString("file")), "Filesystem round trip failed");
             check(nativeResult.getJSONObject("camera").has("camera"), "Camera permission bridge failed");

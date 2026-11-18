@@ -1,10 +1,11 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import identity from './resources/app-icon/identity.json';
 
 const qa = process.env.TANK_MALLE_NATIVE_PROFILE === 'qa';
 
 export default {
   appId: qa ? 'com.meniviner.tankmalle.qa' : 'com.meniviner.tankmalle',
-  appName: qa ? 'טנק מלא QA' : 'טנק מלא',
+  appName: qa ? 'טנק מלא QA' : identity.displayName,
   webDir: 'dist-native',
   server: { hostname: 'localhost', androidScheme: 'https', iosScheme: 'capacitor' },
   ios: { contentInset: 'never' },
