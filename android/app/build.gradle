@@ -7,13 +7,16 @@ def buildInfo = buildInfoFile.exists() ? new groovy.json.JsonSlurper().parse(bui
 android {
     namespace = "com.meniviner.tankmalle"
     compileSdk = rootProject.ext.compileSdkVersion
+    testBuildType project.hasProperty('playReleaseTest') ? 'release' : 'debug'
     defaultConfig {
         applicationId "com.meniviner.tankmalle"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode = Integer.parseInt(System.getenv('TANK_MALLE_BUILD_NUMBER') ?: '1')
         versionName = buildInfo.version ?: "1.10.0"
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner project.hasProperty('playReleaseTest')
+            ? "com.meniviner.tankmalle.ReleaseSmokeInstrumentation"
+            : "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
@@ -45,8 +48,9 @@ android {
     buildTypes {
         release {
             if (signingDir) signingConfig signingConfigs.personalKey
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }
@@ -74,3 +78,4 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
+apply from: 'verify-play-bundle.gradle'
