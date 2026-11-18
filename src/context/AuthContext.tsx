@@ -13,6 +13,7 @@ import {
   getRedirectResult,
   onAuthStateChanged,
   signInWithCredential,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -65,6 +66,7 @@ interface AuthContextValue {
   /** False until the token claims have been read at least once. */
   claimsLoaded: boolean;
   signIn: () => Promise<void>;
+  signInEmail: (email: string, password: string) => Promise<void>;
   /**
    * Sign out. Nothing local is cleared automatically: Firestore's persistent
    * cache is shared by every account that signed in on this device and may
@@ -204,6 +206,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const signInEmail = useCallback(async (email: string, password: string) => {
+    setError(null);
+    setSigningIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch (caught) {
+      setError(authErrorMessage((caught as { code?: string }).code ?? ""));
+    } finally {
+      setSigningIn(false);
+    }
+  }, []);
+
   /**
    * Sign out and leave nothing of this session behind.
    *
@@ -269,6 +283,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       previousLoginAt,
       claimsLoaded,
       signIn,
+      signInEmail,
       signOutUser,
       refreshClaims,
     }),
@@ -282,6 +297,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       previousLoginAt,
       claimsLoaded,
       signIn,
+      signInEmail,
       signOutUser,
       refreshClaims,
     ],

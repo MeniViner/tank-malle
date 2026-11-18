@@ -35,7 +35,7 @@ export function AccountIdentity({ summary }: { summary: AccountSummary }) {
     <Sheet open={open} onClose={() => setOpen(false)} title="פרטי החשבון">
       <div data-testid="account-summary" className="account-sheet-stack">
         <FactsStrip label="פרטי החשבון" testId="account-identity-facts">
-          <Fact label="שיטת התחברות" valueKind="text" value="חשבון Google" />
+          <Fact label="שיטת התחברות" valueKind="text" value={user?.providerData.some(provider => provider.providerId === "password") ? "אימייל וסיסמה" : "חשבון Google"} />
           <Fact label="חבר מאז" valueKind="text" value={joinedAt === null ? null : fullDate(joinedAt)} />
           <Fact label="התחברות קודמת" valueKind="text" value={previousLoginAt === undefined ? "טוענים…" : previousLoginAt === null
             ? "זו ההתחברות הראשונה" : `נכנס לאחרונה ${loginMoment(previousLoginAt)}`} muted={previousLoginAt === undefined} />

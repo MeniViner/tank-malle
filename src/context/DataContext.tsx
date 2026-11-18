@@ -69,7 +69,7 @@ import {
   type DocumentSnapshot,
   type QuerySnapshot,
 } from "firebase/firestore";
-import { reauthenticateWithCredential, reauthenticateWithPopup } from "firebase/auth";
+import { EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup } from "firebase/auth";
 import { nativeBuild } from "../lib/native/platform";
 import { db, googleProvider } from "../lib/firebase";
 import { accountDataDeletionSteps, clearAccountLocalData, clearVehicleLocalDrafts, finishAccountDeletion, isAccountDeleting, markAccountDeleting, runAccountDeletion, type DeletionResult } from "../lib/accountDeletion";
@@ -324,7 +324,7 @@ interface DataContextValue {
   updateTankPreferences: (patch: Partial<TankPreferences>) => Promise<void>;
 
   /** Reports exactly what was and was not deleted. Never claims a clean sweep. */
-  deleteAccount: () => Promise<DeletionResult>;
+  deleteAccount: (password?: string) => Promise<DeletionResult>;
 }
 
 /** Read a stored preferences map defensively; any gap falls back to a default. */
@@ -2862,11 +2862,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
    * The result is reported honestly: if a collection fails to clear, the
    * caller is told which one rather than being shown a success message.
    */
-  const deleteAccount = useCallback(async (): Promise<DeletionResult> => {
+  const deleteAccount = useCallback(async (password?: string): Promise<DeletionResult> => {
     if (!user || !uid) return { ok: false, deleted: [], failed: ["no-session"] };
     const result = await runAccountDeletion({
       reauthenticate: async () => {
-        if (nativeBuild) {
+        if (user.providerData.some(provider => provider.providerId === "password")) {
+          if (!user.email || !password) return false;
+          await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, password));
+        } else if (nativeBuild) {
           const { nativeGoogleCredential } = await import("../lib/native/google");
           await reauthenticateWithCredential(user, await nativeGoogleCredential());
         } else await reauthenticateWithPopup(user, googleProvider);
