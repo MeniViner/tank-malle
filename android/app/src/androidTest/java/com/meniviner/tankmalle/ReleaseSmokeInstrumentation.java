@@ -3,6 +3,7 @@ package com.meniviner.tankmalle;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
@@ -90,7 +91,16 @@ public class ReleaseSmokeInstrumentation extends Instrumentation {
                 .setClassName(getTargetContext().getPackageName(), MainActivity.class.getName())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             MainActivity activity = (MainActivity) startActivitySync(launch);
+            if (expectedOrientation != null) {
+                int orientation = "landscape".equals(expectedOrientation)
+                    ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE : ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                runOnMainSync(() -> activity.setRequestedOrientation(orientation));
+            }
             awaitTrue(activity, "!!(window.Capacitor?.nativePromise && document.querySelector('button'))");
+            if (expectedOrientation != null) {
+                awaitTrue(activity, "landscape".equals(expectedOrientation)
+                    ? "innerWidth > innerHeight" : "innerWidth < innerHeight");
+            }
             evaluate(activity, """
                 (() => {
                   window.__releaseBridgeTest = null;
