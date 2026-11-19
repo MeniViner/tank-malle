@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">טנק מלא - ניהול הוצאות הרכב</string>
-    <string name="title_activity_main">טנק מלא - ניהול הוצאות הרכב</string>
+    <string name="app_name">טנק מלא</string>
+    <string name="title_activity_main">טנק מלא</string>
     <string name="package_name">com.meniviner.tankmalle</string>
     <string name="custom_url_scheme">com.meniviner.tankmalle</string>
 </resources>

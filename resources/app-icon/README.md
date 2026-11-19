@@ -1,6 +1,10 @@
 # Native app identity
 
-Display name: **טנק מלא - ניהול הוצאות הרכב**. Publisher credit: **menis 10tec**.
+Display name: **טנק מלא**. Tagline: **ניהול הוצאות הרכב**. Publisher credit: **menis 10tec**.
+
+Keep the installed launcher label and store title short. The tagline belongs in
+marketing artwork, the short description and the full description, not the
+launcher label (where the longer form was truncated).
 
 `foreground.svg` is the production vector rendering of the approved car-wallet,
 receipt and detailed gauge integrated with the left wheel. Its negative spaces

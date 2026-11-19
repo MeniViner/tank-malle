@@ -95,7 +95,7 @@ public class ReleaseSmokeInstrumentation extends Instrumentation {
 
     private void verifyInstalledIdentity() throws Exception {
         Context target = getTargetContext();
-        check("טנק מלא - ניהול הוצאות הרכב".contentEquals(target.getApplicationInfo().loadLabel(target.getPackageManager())), "Wrong installed app name");
+        check("טנק מלא".contentEquals(target.getApplicationInfo().loadLabel(target.getPackageManager())), "Wrong installed app name");
         File folder = new File(target.getExternalFilesDir(null), "icon-validation");
         check(folder.isDirectory() || folder.mkdirs(), "Cannot write icon validation output");
         for (boolean night : new boolean[] { false, true }) {
@@ -181,7 +181,7 @@ public class ReleaseSmokeInstrumentation extends Instrumentation {
             JSONObject nativeResult = new JSONObject(json);
             check(!nativeResult.has("error"), "Native plugin failure: " + json);
             check(getTargetContext().getPackageName().equals(nativeResult.getJSONObject("info").getString("id")), "Wrong app id");
-            check("טנק מלא - ניהול הוצאות הרכב".equals(nativeResult.getJSONObject("info").getString("name")), "Wrong native app display name");
+            check("טנק מלא".equals(nativeResult.getJSONObject("info").getString("name")), "Wrong native app display name");
             check(nativeResult.getJSONObject("info").getString("version").matches("\\d+\\.\\d+\\.\\d+"), "Missing app version");
             check("R8 bridge OK".equals(nativeResult.getString("file")), "Filesystem round trip failed");
             check(nativeResult.getJSONObject("camera").has("camera"), "Camera permission bridge failed");
