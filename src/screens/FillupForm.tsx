@@ -17,7 +17,8 @@ import { parseNumberInput } from "../lib/numeric";
 import { clearReceiptPriceSuggestion, receiptConflict, receiptNumbers, suggestReceiptPrice, typeReceiptField, type ReceiptState } from "../lib/receipt";
 import { fillupFromPayload, serializeFillupPatch, toEpochMillis, validateFillupInput, type FieldError, type FillupWrite } from "../lib/fillupSerializer";
 import { OutboxStorageError, type OutboxOperation } from "../lib/outbox";
-import { distanceMeters, locateStations, stationKey, toStation, type GeoResult } from "../lib/stations";
+import { distanceMeters, findNearby, loadStationCatalog, locateStations, stationKey, toStation, type GeoResult, type NearbyStation } from "../lib/stations";
+import { photoTimeUsable, type PhotoMetadata } from "../lib/scan/photoMetadata";
 import type { FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
 import { resolveStationPrice } from "../lib/prices/resolver";
@@ -602,6 +603,22 @@ function FillupEditor({
   const geoRequest = useRef(0);
   const stationSelection = useRef(0);
 
+  /** A station the driver used before within 300 m wins over the catalog's nearest. */
+  const nearestStation = useCallback((here: { lat: number; lng: number }, nearby: readonly NearbyStation[]): Station | null => {
+    let bestPast: Station | null = null;
+    let bestPastDistance = Number.POSITIVE_INFINITY;
+    // The list as it is now: fill-ups often arrive while the position is still being found.
+    for (const candidate of pastStationsRef.current) {
+      if (candidate.lat === undefined || candidate.lng === undefined) continue;
+      const distance = distanceMeters({ lat: candidate.lat, lng: candidate.lng }, here);
+      if (distance < bestPastDistance) {
+        bestPastDistance = distance;
+        bestPast = candidate;
+      }
+    }
+    return bestPast && bestPastDistance <= 300 ? bestPast : nearby[0] ? toStation(nearby[0]) : null;
+  }, []);
+
   const detectStation = useCallback(
     async (manual = false) => {
       if (!manual && geoRequested.current) return;
@@ -625,27 +642,39 @@ function FillupEditor({
       if (selection !== stationSelection.current) return;
       if (result.status !== "ok" || result.position === null) return;
 
-      const here = result.position;
-      let bestPast: Station | null = null;
-      let bestPastDistance = Number.POSITIVE_INFINITY;
-      // The list as it is now: fill-ups often arrive while the position is still being found.
-      for (const candidate of pastStationsRef.current) {
-        if (candidate.lat === undefined || candidate.lng === undefined) continue;
-        const distance = distanceMeters({ lat: candidate.lat, lng: candidate.lng }, here);
-        if (distance < bestPastDistance) {
-          bestPastDistance = distance;
-          bestPast = candidate;
-        }
-      }
-
-      const chosen =
-        bestPast && bestPastDistance <= 300 ? bestPast : toStation(result.nearby[0]);
+      const chosen = nearestStation(result.position, result.nearby);
       if (!chosen) return;
       setStation(chosen);
       setStationAuto(true);
     },
-    [captureUi],
+    [captureUi, nearestStation],
   );
+
+  // A photo chosen from the device says where and when it was taken: the station nearest to
+  // that spot and that time fill the form, unless the driver already chose them by hand.
+  const stationRef = useRef(station), stationAutoRef = useRef(stationAuto);
+  useLayoutEffect(() => { stationRef.current = station; stationAutoRef.current = stationAuto; }, [station, stationAuto]);
+  const dateTouched = useRef(Boolean(restoredDraft) || isEdit || operation !== null);
+  const [dateFromPhoto, setDateFromPhoto] = useState(false);
+  const applyPhotoMetadata = useCallback(async (metadata: PhotoMetadata) => {
+    if (isEdit || operation) return;
+    if (metadata.takenAt !== null && !dateTouched.current && photoTimeUsable(metadata.takenAt, Date.now())) {
+      setDate(metadata.takenAt); setDateConfirmed(true); setDateFromPhoto(true);
+    }
+    if (!metadata.position) return;
+    const stillMounted = captureUi();
+    const selection = stationSelection.current;
+    const request = geoRequest.current + 1;
+    geoRequest.current = request; geoRequested.current = true;
+    const catalog = await loadStationCatalog().catch(() => null);
+    if (!stillMounted() || selection !== stationSelection.current) return;
+    const nearby = findNearby(catalog, metadata.position, 400);
+    if (request === geoRequest.current) setGeo({ status: nearby.length > 0 ? "ok" : "none", position: metadata.position, nearby });
+    const chosen = nearestStation(metadata.position, nearby);
+    if (!chosen) return;
+    if (stationRef.current && !stationAutoRef.current) return;   // a station chosen by hand stays
+    setStation(chosen); setStationAuto(true);
+  }, [isEdit, operation, captureUi, nearestStation]);
 
   // Explicit proximity sorting refreshes location without choosing a station.
   // Invalidate an earlier automatic suggestion before requesting a fresh fix.
@@ -1175,7 +1204,7 @@ function FillupEditor({
         <button type="button" className="tm-chip" data-testid="fillup-date" onClick={openDate}
           aria-invalid={submitAttempted && !dateConfirmed ? true : undefined}
           aria-describedby={submitAttempted && !dateConfirmed ? "fillup-date-error" : undefined}>
-          <ClockIcon size={16} />{dateConfirmed ? <><NumericText>{relativeDate(date)}</NumericText>, <NumRun>{time(date)}</NumRun></> : "בחירת תאריך"}
+          <ClockIcon size={16} />{dateConfirmed ? <><NumericText>{relativeDate(date)}</NumericText>, <NumRun>{time(date)}</NumRun>{dateFromPhoto ? <small> · לפי התמונה</small> : null}</> : "בחירת תאריך"}
         </button>
         <button type="button" className="tm-chip" data-testid="fillup-station" onClick={() => setStationSheetOpen(true)}
           aria-invalid={visibleErrors.station ? true : undefined}
@@ -1239,13 +1268,14 @@ function FillupEditor({
       open={stationSheetOpen} onClose={() => setStationSheetOpen(false)} stations={pastStations} lastPaid={lastPaidByStation}
       nearby={geo.nearby} geoStatus={geo.status} onLocate={locateForOrdering} current={station} onPick={chooseStation} />
     <DateSheet open={dateSheetOpen} onClose={() => setDateSheetOpen(false)} value={date} maxDate={dateSheetNow} bounds={bounds}
-      onChange={next => { setDate(next); setDateConfirmed(true); }} />
+      onChange={next => { dateTouched.current = true; setDateFromPhoto(false); setDate(next); setDateConfirmed(true); }} />
     <ConfirmDialog open={confirmDelete} title="למחוק את התדלוק?" body="אחרי שהמחיקה תאושר, אפשר יהיה לשחזר מיד."
       confirmLabel="מחיקה" onConfirm={() => void remove()} onCancel={() => setConfirmDelete(false)} />
     {importOpen ? <Suspense fallback={<p role="status">טוענים ייבוא קבלה…</p>}><ReceiptImport fillups={fillups}
       hasAuthored={receipt.authored.length > 0 || date !== initialDraft.current.date} onClose={() => setImportOpen(false)}
       onApply={(candidate, identity) => {
         setReceipt(previous => typeReceiptField(typeReceiptField(previous, "totalCost", candidate.total), "liters", candidate.liters));
+        dateTouched.current = true; setDateFromPhoto(false);
         setDate(new Date(`${candidate.day}T${candidate.time}:00`).getTime()); setDateConfirmed(true);
         setReceiptImport(identity); setImportOpen(false);
       }} /></Suspense> : null}
@@ -1253,6 +1283,7 @@ function FillupEditor({
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
       context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
       onAttempt={recordScanAttempt}
+      onPhotoMetadata={metadata => { void applyPhotoMetadata(metadata); }}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),

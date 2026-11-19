@@ -4,6 +4,7 @@ import { Button } from '../Button';
 import { PumpIcon, GaugeIcon, UploadIcon } from '../icons';
 import { MAX_PIXELS, type Accept, type DisplayKind, type DisplayReading, type DisplayResult, type ScanContext } from '../../lib/scan/engine';
 import type { ScanAttempt } from '../../lib/scan/samples';
+import { readPhotoMetadata, type PhotoMetadata } from '../../lib/scan/photoMetadata';
 
 /**
  * The photo itself is read in a worker and dropped. With `onAttempt`, each attempt (a camera
@@ -12,7 +13,9 @@ import type { ScanAttempt } from '../../lib/scan/samples';
  */
 export type PhotoReaderControls = { closeCamera: () => boolean };
 
-export function PhotoReader({ kind,autoOpen=false,onRead,context,onAttempt,accept,controlsRef }: { kind:DisplayKind;autoOpen?:boolean;onRead:(values:DisplayReading,live:boolean)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
+export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context,onAttempt,accept,controlsRef }: { kind:DisplayKind;autoOpen?:boolean;onRead:(values:DisplayReading,live:boolean)=>void;
+  /** Where and when a chosen photo was taken (EXIF), read on the device; not called for camera frames. */
+  onPhotoMetadata?:(metadata:PhotoMetadata)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
   const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
   const generation=useRef(0),worker=useRef<Worker|null>(null),pending=useRef<((result:DisplayResult)=>void)|null>(null),lastFrame=useRef('');
   const journal=(context?.lastOdometer??0)>0,report=useRef(onAttempt),finish=useRef(()=>{});
@@ -68,6 +71,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,context,onAttempt,accep
     const sharingAtStart = sharingRevision.current;
     const token=++generation.current;cancel();endCamera();setCameraOpen(false);setBusy(false);setMessage('');lastFrame.current='';
     if(file.size>20_000_000 || !(/^image\/(jpeg|png|webp|heic|heif|avif)$/.test(file.type)||(!file.type&&/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)))){setMessage('בחרו תמונה בגודל עד 20 MB.');return;}
+    if(onPhotoMetadata)void readPhotoMetadata(file).then(metadata=>{if(token===generation.current&&(metadata.takenAt!==null||metadata.position))onPhotoMetadata(metadata);});
     setBusy(true);const url=URL.createObjectURL(file);
     try {
       const image=new Image();
