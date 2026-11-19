@@ -43,17 +43,19 @@ export function Gauge({ value, habit, low = false, onChange, label = "כמות �
       <div className="tm-gauge-ticks" aria-hidden="true">
         {Array.from({ length: 20 }, (_, index) => <span key={index} className={index >= filled ? "tm-gauge-tick"
           : showUse && !low && habitTick !== null && index >= habitTick ? "tm-gauge-tick tm-gauge-tick-filled tm-gauge-tick-use" : "tm-gauge-tick tm-gauge-tick-filled"} />)}
-        {marker !== null ? <span className={`tm-gauge-habit${habitLabel ? " tm-gauge-habit-labelled" : ""}`} style={{ left: `${marker * 100}%` }}>
+        {marker !== null ? <span className={`tm-gauge-habit${habitLabel ? " tm-gauge-habit-labelled" : ""}`} style={{ right: `${marker * 100}%` }}>
           {habitLabel ? <em>{habitLabel}</em> : null}
         </span> : null}
       </div>
       {onChange ? <>
         <label htmlFor={id} className="sr-only">{label}</label>
-        <input id={id} className="tm-gauge-input" type="range" min="0" max="1" step="0.05" dir="ltr"
+        <input id={id} className="tm-gauge-input" type="range" min="0" max="1" step="0.05" dir="rtl"
           value={level ?? 0} aria-valuetext={valueText}
           onChange={(event) => onChange(snapLevel(Number(event.currentTarget.value), null))}
           onKeyDown={(event) => {
-            const next = levelFromKey(level ?? 0, event.key);
+            // Fuller is toward the left (right-to-left layout), so the horizontal arrows swap.
+            const key = event.key === "ArrowLeft" ? "ArrowRight" : event.key === "ArrowRight" ? "ArrowLeft" : event.key;
+            const next = levelFromKey(level ?? 0, key);
             if (next === null) return;
             event.preventDefault();
             // Home at an unknown/zero native value is still a deliberate reading.
