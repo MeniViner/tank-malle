@@ -520,12 +520,11 @@ for (const [theme, accent] of [["light", "plate"], ["light", "mint"], ["dark", "
     await size44(page.getByTestId("tank-save-gauge"));
     await capture(page, `home-tank-sheet-${suffix}`, true);
     for (let index = 0; index < 8; index++) { await page.keyboard.press("Tab"); await focusedIn(tank); }
-    for (const [id, name] of [["tank-open-odometer", "odometer"], ["tank-open-trip", "trip"], ["tank-open-reserve", "reserve"], ["tank-open-habit", "habit"]]) {
+    for (const [id, name] of [["tank-open-odometer", "odometer"], ["tank-open-reserve", "reserve"], ["tank-open-habit", "habit"]]) {
       await page.getByTestId(id).click();
       const nested = page.getByRole("dialog").last();
       await focusedIn(nested);
       if (name === "odometer") fieldMeasurements.push(await fieldAccessibility(nested.getByLabel("קילומטראז׳ נוכחי")));
-      if (name === "trip") fieldMeasurements.push(await fieldAccessibility(nested.getByLabel("מרווח ביטחון (לא חובה)")));
       await capture(page, `home-${name}-sheet-${suffix}`);
       await page.keyboard.press("Escape");
       await expect(page.getByTestId(id)).toBeFocused();

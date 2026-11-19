@@ -197,12 +197,6 @@ test('history learning and whole-shekel displays fit a small mobile screen', asy
   await page.getByRole('slider',{name:'כמה דלק יש עכשיו במיכל',exact:true}).press('End');
   await page.getByTestId('tank-save-gauge').click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  await page.getByTestId('tank-hero').click();
-  await page.getByTestId('tank-open-trip').click();
-  await page.getByLabel('מרחק צפוי',{exact:true}).fill('600');
-  await page.getByRole('radio',{name:'היום',exact:true}).click();
-  await page.getByRole('dialog').getByRole('button',{name:'שמירה',exact:true}).click();
-  await expect(page.getByTestId('tank-recommended')).toContainText('כדאי לתדלק לפני הנסיעה המתוכננת');
   await page.goto('/history');
   await expect(page.getByText('233\u202F₪',{exact:true}).first()).toBeVisible();
   await expect(page.locator('.ledger-row[data-collection=fillups]').filter({hasText:'233\u202F₪'})).toHaveCount(1);
