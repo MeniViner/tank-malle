@@ -16,7 +16,7 @@ import { nativeBuild } from "../lib/native/platform";
  */
 
 const LAST_UPDATED = "11 בנובמבר 2026";
-const PRIVACY_LAST_UPDATED = "19 בנובמבר 2026";
+const PRIVACY_LAST_UPDATED = "20 בנובמבר 2026";
 const CONTACT = "meniviner@gmail.com";
 
 export function Legal() {
@@ -37,7 +37,7 @@ export function Legal() {
         <article className="tm-secondary-legal flex flex-col gap-7 pb-6"
           aria-label={isDeletion ? title : isPrivacy ? "מדיניות הפרטיות המלאה" : "תנאי השימוש המלאים"}>
           {isDeletion ? <AccountDeletionInfo /> : <>
-            <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{isPrivacy ? PRIVACY_LAST_UPDATED : LAST_UPDATED}</NumericText> · גרסה <Num>{isPrivacy ? "1.5" : "1.2"}</Num></p>
+            <p className="tm-secondary-legal-meta">עודכן לאחרונה: <NumericText>{isPrivacy ? PRIVACY_LAST_UPDATED : LAST_UPDATED}</NumericText> · גרסה <Num>{isPrivacy ? "1.6" : "1.2"}</Num></p>
             {isPrivacy ? <PrivacyPolicy /> : <TermsOfService />}
           </>}
 
@@ -285,6 +285,11 @@ function PrivacyPolicy() {
         <p>
           אם בחרתם תחנה, נשמרים שם התחנה והקואורדינטות שלה (של התחנה, לא שלכם) ברשומת
           התדלוק, כדי שנוכל לזהות אותה בפעם הבאה. ניתן תמיד לבחור „ללא מיקום״.
+        </p>
+        <p>
+          כשבוחרים תמונה מהמכשיר לסריקה, נקראים ממנה במכשיר המיקום והשעה שבהם צולמה (נתוני
+          EXIF, אם קיימים) כדי להציע את התחנה הקרובה ואת מועד התדלוק. גם הם אינם נשלחים: דוגמאות
+          הסריקה נחתכות מחדש ואינן כוללות נתונים אלה. אפשר לשנות את התחנה והמועד בטופס לפני השמירה.
         </p>
       </Section>
 
