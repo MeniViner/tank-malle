@@ -187,12 +187,12 @@ bdi.tm-latin-run { font-family: inherit; font-weight: inherit; font-variant-nume
 
 .tm-gauge { width: 100%; }
 .tm-gauge-control { position: relative; display: grid; align-items: center; min-height: 44px; }
-.tm-gauge-ticks { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; position: relative; direction: ltr; }
+.tm-gauge-ticks { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 3px; position: relative; direction: rtl; }
 .tm-gauge-tick { display: block; height: 22px; border-radius: 3px; background: var(--tm-gauge-empty); }
 .tm-gauge-tick-filled { background: var(--accent); }
 .tm-gauge-low .tm-gauge-tick-filled { background: #E0662B; }
-.tm-gauge-habit { position: absolute; top: -6px; bottom: -6px; width: 2px; border-radius: 1px; background: #F3EFE4; box-shadow: 0 0 0 1px #15130F; transform: translateX(-1px); }
-.tm-gauge-ends { display: flex; justify-content: space-between; direction: ltr; font: 500 12px/1.5 var(--font-mono); }
+.tm-gauge-habit { position: absolute; top: -6px; bottom: -6px; width: 2px; border-radius: 1px; background: #F3EFE4; box-shadow: 0 0 0 1px #15130F; transform: translateX(1px); }
+.tm-gauge-ends { display: flex; justify-content: space-between; direction: rtl; font: 500 12px/1.5 var(--font-mono); }
 .tm-gauge-editable .tm-gauge-tick { height: 30px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--ink-2); }
 .tm-gauge-editable .tm-gauge-tick-filled { background: var(--accent); box-shadow: inset 0 0 0 1.5px #111; }
 .tm-gauge-editable.tm-gauge-low .tm-gauge-tick-filled { background: #E0662B; }

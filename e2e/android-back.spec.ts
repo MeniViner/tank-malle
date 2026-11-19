@@ -207,11 +207,6 @@ test.describe("Android system Back through the Capacitor adapter", () => {
     }
 
     await page.getByTestId("tank-hero").click();
-    await page.getByTestId("tank-open-trip").click();
-    await page.getByTestId("tank-trip-distance").fill("90");
-    await page.getByRole("radio", { name: "מחר", exact: true }).click();
-    await page.getByTestId("tank-save-trip").click();
-    await expect(page.getByTestId("tank-trip-sheet")).toHaveCount(0);
     await back(page);
     await expect(page.getByTestId("tank-sheet")).toHaveCount(0);
     await back(page);

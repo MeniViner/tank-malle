@@ -16,7 +16,7 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
   const { showToast } = useToast();
   const captureScope = useAccountScope(user?.uid);
   const [deviceState, setDeviceState] = useState<"none" | "some" | "unknown" | null>(null);
-  const [clearLocal, setClearLocal] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(openDeleteConfirmation ? 1 : 0);
@@ -29,23 +29,26 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
   const healthUnknown = outboxHealth.state !== "ok";
   const trackerAttention = writes.pending.length > 0 || writes.failed.length > 0;
   const accountAttention = outbox.length > 0 || trackerAttention;
-  const attention = accountAttention || healthUnknown || deviceState === "some" || deviceState === "unknown";
-  const mayClearLocal = deviceState === "none" && !healthUnknown && !accountAttention;
 
-  function openSignOut() {
+  /**
+   * Signing out wipes this device's local data without asking. The only time the person is asked
+   * anything is when something has not reached the cloud yet: then nothing is wiped, and they are told.
+   */
+  async function openSignOut() {
+    if (signOutBusy.current || checking) return;
     const current = captureScope();
     const generation = ++checkGeneration.current;
-    setDeviceState(null);
-    setClearLocal(false);
+    setChecking(true);
+    let state: "none" | "some" | "unknown";
+    try { state = await checkUnacknowledged(); } catch { state = "unknown"; }
+    if (!current() || generation !== checkGeneration.current) return;
+    setChecking(false);
+    if (state === "none" && !healthUnknown && !accountAttention) { await reallySignOut(true); return; }
+    setDeviceState(state);
     setConfirmSignOut(true);
-    void checkUnacknowledged().then(state => {
-      if (current() && generation === checkGeneration.current) setDeviceState(state);
-    }, () => {
-      if (current() && generation === checkGeneration.current) setDeviceState("unknown");
-    });
   }
 
-  async function reallySignOut() {
+  async function reallySignOut(clearLocalData: boolean) {
     if (signOutBusy.current) return;
     const current = captureScope();
     signOutBusy.current = true;
@@ -53,7 +56,7 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
     setConfirmSignOut(false);
     try {
       // The auth operation checks again before clearing the shared cache.
-      const result = await signOutUser({ clearLocalData: clearLocal && mayClearLocal });
+      const result = await signOutUser({ clearLocalData });
       if (current() && result.refused) showToast({ tone: "info", title: result.refused });
     } catch {
       if (current()) showToast({ tone: "error", title: "ההתנתקות לא הושלמה", detail: "נסו שוב. הנתונים המקומיים נשמרים." });
@@ -95,28 +98,23 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
   }
 
   return <>
-    <GroupRow testId="account-signout" icon={<LogoutIcon />} title={signingOut ? "מתנתקים…" : "התנתקות"}
-      onClick={openSignOut} disabled={signingOut || deleting} chevron={false} />
+    <GroupRow testId="account-signout" icon={<LogoutIcon />} title={signingOut || checking ? "מתנתקים…" : "התנתקות"}
+      onClick={() => void openSignOut()} disabled={signingOut || checking || deleting} chevron={false} />
     <GroupRow testId="account-delete" icon={<TrashIcon />} title={deleting ? "מוחקים את החשבון…" : "מחיקת החשבון"}
       danger onClick={() => { setDeletionPassword(""); setDeleteStep(1); }} disabled={deleting || signingOut} chevron={false} />
     {deleting ? <p role="status" className="account-note">המחיקה מתבצעת. ממתינים לאישור השרת.</p> : null}
 
-    <ConfirmDialog open={confirmSignOut} title={attention ? "שינויים שעוד לא עלו לענן" : "להתנתק מהחשבון?"}
+    <ConfirmDialog open={confirmSignOut} title="שינויים שעוד לא עלו לענן"
       body={<div className="account-sheet-stack">
         {outbox.length > 0 ? <p><NumRun>{num(outbox.length, 0)}</NumRun> שינויים של החשבון הזה עוד לא אושרו בשרת. הם נשמרים במכשיר הזה וזמינים לטיפול בהתחברות הבאה לאותו חשבון.</p>
           : healthUnknown ? <p>לא ניתן לוודא שאין שינויים שעוד לא עלו לענן (<NumericText>{outboxHealth.message ?? "אחסון לא קריא"}</NumericText>). הנתונים המקומיים לא יימחקו.</p>
             : trackerAttention ? <p>יש שינויים שעדיין ממתינים לאישור או דורשים טיפול. בדקו אותם במסך ״שינויים שעוד לא עלו לענן״. הנתונים המקומיים לא יימחקו.</p>
               : deviceState === "some" ? <p>לחשבון אחר במכשיר הזה יש שינויים שעוד לא אושרו. הם לא יימחקו.</p>
                 : deviceState === "unknown" ? <p>לא ניתן לוודא את מצב השינויים המקומיים. הנתונים המקומיים לא יימחקו.</p>
-                  : deviceState === null ? <p>בודקים את השינויים שבמכשיר. התנתקות תשאיר את הנתונים המקומיים.</p>
-                    : <p>הנתונים שבענן יחזרו בהתחברות הבאה. הנתונים המקומיים נשמרים במכשיר.</p>}
-        {mayClearLocal ? <label className="account-checkbox-row">
-          <input type="checkbox" checked={clearLocal} onChange={event => setClearLocal(event.target.checked)} />
-          <span>למחוק גם את הנתונים המקומיים במכשיר הזה (מחשב משותף)</span>
-        </label> : null}
+                  : <p>יש שינויים שעוד לא עלו לענן. הנתונים המקומיים לא יימחקו.</p>}
       </div>}
-      confirmLabel={attention ? "התנתקות בכל זאת" : "התנתקות"} tone={attention ? "danger" : "accent"}
-      onConfirm={() => void reallySignOut()} onCancel={() => { checkGeneration.current += 1; setConfirmSignOut(false); }} />
+      confirmLabel="התנתקות בכל זאת" tone="danger"
+      onConfirm={() => void reallySignOut(false)} onCancel={() => { checkGeneration.current += 1; setConfirmSignOut(false); }} />
     <ConfirmDialog open={deleteStep === 1} title="למחוק את החשבון?"
       body="כל הרכבים, התדלוקים, הטיפולים והנתונים יימחקו לצמיתות. לא ניתן לשחזר. כדאי לשמור גיבוי קודם."
       confirmLabel="המשך למחיקה" onConfirm={() => setDeleteStep(2)} onCancel={() => setDeleteStep(0)} />

@@ -5,6 +5,8 @@
 .wizard-back svg { transform: none; }
 .wizard-back:disabled { visibility: hidden; }
 .wizard-top-spacer { width: 44px; height: 44px; flex: none; }
+.wizard-skip { flex: none; min-width: 44px; min-height: 44px; padding-inline: 4px; border: 0; background: none; color: var(--ink-2); font-size: 14px; font-weight: 600; text-shadow: var(--tm-atmosphere-text-shadow); }
+.wizard-skip:disabled { opacity: .5; }
 .wizard-step-count { color: var(--ink-2); font-size: 13px; font-weight: 600; text-shadow: var(--tm-atmosphere-text-shadow); }
 .wizard-progress { display: flex; gap: 6px; }
 .wizard-progress span { flex: 1; height: 4px; border-radius: 99px; background: var(--line); }

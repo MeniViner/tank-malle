@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import { useAccountScope } from "../components/account/useAccountScope";
 import { useAppUpdateBlocker } from "../hooks/useAppUpdateBlocker";
 import { useBackLayer } from "../lib/backNavigation";
+import { skipFirstVehicle } from "../lib/firstVehicleSkip";
 import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
 import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
 import { NumericText, NumRun } from "../components/Fmt";
@@ -307,7 +308,10 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
           <ChevronEnd size={22}/>
         </button>
         {!needsRecovery && !creation ? <span className="wizard-step-count">שלב <NumRun>{stepIndex}</NumRun> מתוך <NumRun>3</NumRun></span> : <span/>}
-        <span className="wizard-top-spacer" aria-hidden="true"/>
+        {firstRun && !canExit && !needsRecovery && !creation && user
+          ? <button type="button" className="wizard-skip" data-testid="wizard-skip-vehicle" disabled={saving}
+            onClick={() => { cancelRequests(); skipFirstVehicle(user.uid); navigate("/", { replace: true }); }}>דלג לעכשיו</button>
+          : <span className="wizard-top-spacer" aria-hidden="true"/>}
       </div>
       {!needsRecovery && !creation ? <div className="wizard-progress" role="progressbar" aria-label="הוספת רכב" aria-valuemin={1} aria-valuemax={3} aria-valuenow={stepIndex}>
         {[1, 2, 3].map(number => <span key={number} data-active={number <= stepIndex}/>)}

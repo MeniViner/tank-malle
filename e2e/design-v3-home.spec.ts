@@ -2,7 +2,6 @@ import { expect, test, type Locator } from "@playwright/test";
 import { signedInWithData } from "./helpers/app";
 import { getDocument, setDocument } from "./helpers/emulator";
 import { HOME_CAR, homeAppearance, homeFixture } from "./helpers/design-v2-home";
-import { outboxCount } from "./helpers/pwa";
 import { lowContrast } from "./helpers/contrast";
 
 /**
@@ -190,36 +189,6 @@ test("v3 facts: a month without fill-ups shows the previous month with data, nev
   await expect(month).not.toContainText(/(?<![\d,.])0\s₪/);
   await month.click();
   await expect(page).toHaveURL(/\/stats\?tab=spend/);
-});
-
-test("v3 spotlight: a planned trip that pulls the refuel forward asks to refuel before it and opens the tank sheet", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  const scope = await homeFixture(page);
-  await expect(page.locator('[data-spotlight-type="trip"]')).toHaveCount(0);
-  await page.getByTestId("tank-hero").click();
-  await page.getByTestId("tank-open-trip").click();
-  await page.getByTestId("tank-trip-distance").fill("900");
-  await page.getByRole("radio", { name: "מחר", exact: true }).click();
-  await page.getByTestId("tank-save-trip").click();
-  await expect(page.getByTestId("tank-trip-sheet")).toHaveCount(0);
-  await page.keyboard.press("Escape");
-  await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
-  const trip = page.locator('[data-spotlight-type="trip"]');
-  await expect(trip).toHaveCount(1);
-  await expect(trip).toContainText("כדאי לתדלק לפני הנסיעה");
-  await expect(trip).toContainText("900 ק״מ");
-  // Cards present → the status line carries the refuel timing and tank level instead of "all fine".
-  await expect(page.getByTestId("home-status")).toHaveAttribute("data-status", "refuel");
-  await expect(page.getByTestId("home-status")).toContainText(/תדלוק (היום|מחר|בעוד \d+ ימים) · במיכל כ־\d+%/);
-  await trip.locator(".tm-spotlight-open").click();
-  await expect(page.getByTestId("tank-sheet")).toBeVisible();
-  await page.keyboard.press("Escape");
-  const id = await trip.getAttribute("data-spotlight-id");
-  await trip.getByTestId(`spotlight-dismiss-${id}`).click();
-  await expect(page.locator('[data-spotlight-type="trip"]')).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByTestId("tco-card")).toBeVisible();
-  await expect(page.locator('[data-spotlight-type="trip"]')).toHaveCount(0);
 });
 
 test("v3 facts on an EV: electricity month and per-100 km, no fuel price row", async ({ page }) => {

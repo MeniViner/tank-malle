@@ -97,7 +97,10 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
   return <div ref={body} className="home-body">
     {active && !loading && status ? <HomeStatusLine status={status} passage={tank.estimate.expectedRefuel} /> : null}
     <HomeSpotlight items={spotlight.items} onOpen={openItem} onDismiss={spotlight.dismiss} onEmpty={focusContent} />
-    {!active ? <section className="home-empty" data-testid="home-no-active">
+    {!active ? data.vehicles.length === 0 ? <section className="home-empty" data-testid="home-no-vehicle">
+      <h2>עוד אין רכב</h2><p>כשיהיה רכב, מוסיפים אותו כאן ומתחילים לרשום תדלוקים ולעקוב אחרי הצריכה וההוצאות.</p>
+      <Button onClick={() => navigate("/vehicles/new")}>הוספת רכב</Button>
+    </section> : <section className="home-empty" data-testid="home-no-active">
       <h2>בוחרים רכב וממשיכים</h2><p>אפשר לשחזר רכב מהארכיון או להוסיף רכב.</p>
       <Button onClick={() => navigate("/vehicle")}>לרכב שלי</Button>
     </section> : loading ? <HomeSkeleton /> : <>

@@ -439,11 +439,6 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
       Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined });
     });
     await sheet(page.getByTestId("account-share"), "שיתוף האפליקציה", "account-share");
-    await page.getByTestId("account-signout").click();
-    const signout = page.getByRole("alertdialog", { name: "להתנתק מהחשבון?", exact: true });
-    await expect(signout).toBeVisible();
-    await capture(page, `account-signout-${suffix}`);
-    await page.keyboard.press("Escape");
     await page.getByTestId("account-delete").click();
     const confirmation = page.getByRole("alertdialog", { name: "למחוק את החשבון?", exact: true });
     await expect(confirmation.getByRole("button", { name: "ביטול", exact: true })).toBeFocused();
