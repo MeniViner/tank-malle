@@ -5,10 +5,10 @@ import { ALICE, signIn, signOut, signedInWithData } from './helpers/app';
 import { PROJECT_ID, listDocuments } from './helpers/emulator';
 
 /**
- * After opt-in, scan attempts are recorded with the rows the engine cut out; saving attaches
+ * Scan attempts are recorded (sharing is on by default, off behind the info icon) with the rows the engine cut out; saving attaches
  * the saved numbers; the Admin "סריקה" tab measures accuracy from those records.
  */
-const sampleConsent = (dialog: Locator) => dialog.getByRole('checkbox', { name: 'לשתף דוגמאות מהניסיונות הבאים' });
+const sharingInfo = (dialog: Locator) => dialog.getByRole('button', { name: 'על שיתוף דוגמאות לשיפור הזיהוי' });
 
 test('scan attempts are recorded, labelled by the saved fill-up, and measured in Admin', async ({ page }) => {
   const sharp = (await import('sharp')).default, { demoPhoto } = await import('../src/lib/scan/fixtures');
@@ -17,11 +17,13 @@ test('scan attempts are recorded, labelled by the saved fill-up, and measured in
   const scope = await signedInWithData(page, { fillups: [] });
   await page.goto('/fillup/new'); await page.getByTestId('fillup-camera').click();
   const dialog = page.getByRole('dialog', { name: 'תדלוק בשני צילומים', exact: true });
-  await expect(dialog.getByText('טנק מלא ישלח ל־Firebase של Google', { exact: false })).toBeVisible();
-  await expect(sampleConsent(dialog)).not.toBeChecked();
+  // The explanation is behind a small icon; the switch inside it turns sharing off for this opening.
+  await sharingInfo(dialog).click();
+  await expect(dialog.getByText('נשלחים ל־Firebase של Google', { exact: false })).toBeVisible();
+  await dialog.getByRole('button', { name: 'לא לשתף', exact: true }).click();
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'local.png', mimeType: 'image/png', buffer: blank });
   await expect(dialog.getByText('הספרות עדיין לא ברורות מספיק', { exact: false })).toBeVisible();
-  await sampleConsent(dialog).check();
+  await dialog.getByRole('button', { name: 'לשתף שוב', exact: true }).click();
 
   // First try: nothing readable. Second try: the pump. Then the odometer.
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'blank.png', mimeType: 'image/png', buffer: blank });
@@ -91,13 +93,10 @@ test('one fill-up is one scan session; labels survive a reload, skip an undone s
 
   // Opened twice for one fill-up: the second opening continues the same session (attempt 2, not 1 again).
   await page.goto('/fillup/new'); await page.getByTestId('fillup-camera').click();
-  await sampleConsent(dialog).check();
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'blank.png', mimeType: 'image/png', buffer: blank });
   await expect(dialog.getByText('הספרות עדיין לא ברורות מספיק', { exact: false })).toBeVisible();
   await dialog.getByRole('button', { name: 'סגירה', exact: true }).click();
   await page.getByTestId('fillup-camera').click();
-  await expect(sampleConsent(dialog)).not.toBeChecked();
-  await sampleConsent(dialog).check();
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.png', mimeType: 'image/png', buffer: await png('pump') });
   await dialog.locator('input[aria-label="תמונת קילומטראז׳"]').setInputFiles({ name: 'odometer.png', mimeType: 'image/png', buffer: await png('odometer') });
   await expect(page.getByTestId('fillup-total')).toHaveValue('287.60');
@@ -118,7 +117,6 @@ test('one fill-up is one scan session; labels survive a reload, skip an undone s
 
   // Saved, then undone within the five seconds: those attempts are never labelled.
   await page.goto('/fillup/new'); await page.getByTestId('fillup-camera').click();
-  await sampleConsent(dialog).check();
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.png', mimeType: 'image/png', buffer: await png('pump') });
   await dialog.locator('input[aria-label="תמונת קילומטראז׳"]').setInputFiles({ name: 'odometer.png', mimeType: 'image/png', buffer: await png('odometer') });
   await expect(page.getByTestId('fillup-odometer')).toHaveValue('128450');
@@ -134,7 +132,6 @@ test('one fill-up is one scan session; labels survive a reload, skip an undone s
   await page.goto('/fillup/new');
   await page.getByTestId('fillup-total').fill('285');
   await page.getByTestId('fillup-camera').click();
-  await sampleConsent(dialog).check();
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.png', mimeType: 'image/png', buffer: await png('pump') });
   await dialog.locator('input[aria-label="תמונת קילומטראז׳"]').setInputFiles({ name: 'odometer.png', mimeType: 'image/png', buffer: await png('odometer') });
   await expect(page.getByTestId('fillup-total')).toHaveValue('285');
