@@ -14,7 +14,7 @@ test("the first-run wizard can be skipped; every tab still works without a vehic
   await resetEmulators();
   await signIn(page, ALICE);
   await expect(page.getByTestId("vehicle-wizard")).toBeVisible();
-  await page.getByTestId("wizard-skip").click();
+  await page.getByTestId("wizard-skip-vehicle").click();
 
   await expect(page).toHaveURL("/");
   await expect(page.getByTestId("home-no-vehicle")).toBeVisible();
@@ -32,7 +32,7 @@ test("the first-run wizard can be skipped; every tab still works without a vehic
   await page.goto("/");
   await page.getByTestId("home-no-vehicle").getByRole("button", { name: "הוספת רכב" }).click();
   await expect(page.getByTestId("vehicle-wizard")).toBeVisible();
-  await expect(page.getByTestId("wizard-skip")).toHaveCount(0);
+  await expect(page.getByTestId("wizard-skip-vehicle")).toHaveCount(0);
   expect(await listDocuments(`users/${await uidOf(ALICE)}/vehicles`)).toHaveLength(0);
 
   expect(errors).toEqual([]);

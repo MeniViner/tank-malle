@@ -309,7 +309,7 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         </button>
         {!needsRecovery && !creation ? <span className="wizard-step-count">שלב <NumRun>{stepIndex}</NumRun> מתוך <NumRun>3</NumRun></span> : <span/>}
         {firstRun && !canExit && !needsRecovery && !creation && user
-          ? <button type="button" className="wizard-skip" data-testid="wizard-skip" disabled={saving}
+          ? <button type="button" className="wizard-skip" data-testid="wizard-skip-vehicle" disabled={saving}
             onClick={() => { cancelRequests(); skipFirstVehicle(user.uid); navigate("/", { replace: true }); }}>דלג לעכשיו</button>
           : <span className="wizard-top-spacer" aria-hidden="true"/>}
       </div>
