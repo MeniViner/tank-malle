@@ -11,13 +11,12 @@ import { displayTankLevel } from "../../lib/tank/display";
 import { useAccountScope } from "../account/useAccountScope";
 import { GroupRow } from "../DesignPrimitives";
 import { ConsumptionValue, Distance, NumericText, Percent } from "../Fmt";
-import { CalendarIcon, GaugeIcon } from "../icons";
+import { GaugeIcon } from "../icons";
 import { Sheet } from "../Sheet";
 import { TankCapacityConfirm } from "./TankCapacityConfirm";
 import { GaugeObservationEditor, TankOdometerSheet } from "./TankObservationSheets";
 import { TankPreferenceControls } from "./TankPreferenceControls";
 import { TankHabitLevel, TankLevel, TankPassage, TankSource, TankText } from "./TankPresentation";
-import { TankTripSheet } from "./TankTripSheet";
 import type { TankSheetsProps } from "./types";
 import "../../tank-design.css";
 
@@ -40,7 +39,7 @@ function TankSummarySession({ handle, entry, enriching, onClose }: TankSheetsPro
   const { user } = useAuth();
   const { activeVehicle, plans, deletePlan, settings } = useData();
   const captureScope = useAccountScope(`${user?.uid ?? ""}/${activeVehicle?.id ?? ""}`);
-  const [nested, setNested] = useState<"odometer" | "trip" | null>(null);
+  const [nested, setNested] = useState<"odometer" | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState("");
   const busyPlan = useRef<string | null>(null);
@@ -100,22 +99,18 @@ function TankSummarySession({ handle, entry, enriching, onClose }: TankSheetsPro
             onClick={() => setNested("odometer")} />
         </div>
 
-        <section className="tm-tank-trips" aria-labelledby="tank-trips-title">
-          <div className="tm-tank-trips-head">
-            <h3 id="tank-trips-title" className="tm-tank-section-title">נסיעות מתוכננות</h3>
-            <button type="button" className="tm-tank-trip-add" data-testid="tank-open-trip" aria-haspopup="dialog"
-              onClick={() => setNested("trip")}><CalendarIcon size={16} />יש לי נסיעה מתוכננת</button>
-          </div>
-          {plans.length === 0 ? <p className="tm-tank-note">נסיעה ארוכה בדרך? הנסיעה תשפיע על התחזית בלבד, ונראה אם כדאי לתדלק לפניה.</p> : null}
-          {plans.length > 0 ? <div className="tm-group">{plans.map(plan => <div key={plan.id} data-testid={`tank-plan-${plan.id}`} className="tm-tank-plan-row">
+        {/* Trips can no longer be added from here; plans saved earlier stay visible so they can be deleted. */}
+        {plans.length > 0 ? <section className="tm-tank-trips" aria-labelledby="tank-trips-title">
+          <h3 id="tank-trips-title" className="tm-tank-section-title">נסיעות מתוכננות</h3>
+          <div className="tm-group">{plans.map(plan => <div key={plan.id} data-testid={`tank-plan-${plan.id}`} className="tm-tank-plan-row">
             <span className="tm-tank-plan-copy"><span><NumericText>{dayMonthShort(plan.date)}</NumericText> · <Distance value={plan.distanceKm} /></span>
               <small>{plan.mode === "replaces" ? "במקום הנהיגה הרגילה" : "בנוסף לנהיגה הרגילה"}
                 {plan.bufferKm != null && plan.bufferKm > 0 ? <> · מרווח <Distance value={plan.bufferKm} /></> : null}</small>
               {plan.note ? <small><TankText>{plan.note}</TankText></small> : null}</span>
             <button type="button" className="tm-tank-action tm-tank-action-danger" disabled={deleting !== null}
               aria-label={`מחיקת הנסיעה ב־${dayMonthShort(plan.date)}`} onClick={() => void removePlan(plan.id)}>{deleting === plan.id ? "מוחקים…" : "מחיקה"}</button>
-          </div>)}</div> : null}
-        </section>
+          </div>)}</div>
+        </section> : null}
         {error ? <p role="alert" className="tm-tank-error">{error}</p> : null}
 
         <TankPreferenceControls estimate={estimate} />
@@ -152,7 +147,6 @@ function TankSummarySession({ handle, entry, enriching, onClose }: TankSheetsPro
       </div>
     </Sheet>
     {nested === "odometer" ? <TankOdometerSheet estimate={estimate} onClose={() => setNested(null)} /> : null}
-    {nested === "trip" ? <TankTripSheet onClose={() => setNested(null)} /> : null}
   </>;
 }
 

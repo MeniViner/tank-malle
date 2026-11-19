@@ -66,8 +66,6 @@
 .tm-tank-form-fields { margin: 0; padding: 0; border: 0; }
 .tm-tank-form-choice { display: grid; gap: 8px; min-width: 0; }
 .tm-tank-form-label { display: flex; align-items: center; gap: 8px; color: var(--ink); font-size: 14px; font-weight: 600; }
-.tm-tank-trip-days .tm-segment { min-width: 0; padding-inline: 6px; font-size: 13px; line-height: 1.35; }
-.tm-tank-trip-mode .tm-segment { min-width: 0; padding: 10px 8px; white-space: normal; font-size: 13px; line-height: 1.4; }
 .tm-tank-capacity-confirm { display: grid; gap: 14px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
 .tm-tank-capacity-copy { display: grid; gap: 6px; }
 .tm-tank-capacity-number { font-family: var(--font-display); font-size: 42px; line-height: 1; }
@@ -80,8 +78,5 @@
 .tm-tank-gauge-reading { font: 600 17px/1.3 var(--font-sans); text-align: center; }
 .tm-tank-gauge-reading .tm-tank-note { font-family: var(--font-sans); font-size: 13px; }
 .tm-tank-trips { display: grid; gap: 8px; min-width: 0; }
-.tm-tank-trips-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.tm-tank-trip-add { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: var(--ink); font: 600 14px/1.3 var(--font-sans); text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
-.tm-tank-trip-add:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
 .tm-tank-section-title { font-weight: 500; font-size: 13px; }
 .tm-tank-capacity-confirm { border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-card); }

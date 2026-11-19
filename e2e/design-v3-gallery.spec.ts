@@ -112,12 +112,6 @@ for (const theme of THEMES) for (const viewport of VIEWPORTS) {
         await page.getByTestId("tank-hero").click();
         await settle(page, page.getByTestId("tank-sheet"));
       });
-      await shot("sheet-trip", async () => {
-        await go("/", page.getByTestId("tank-hero"));
-        await page.getByTestId("tank-hero").click();
-        await page.getByTestId("tank-open-trip").click();
-        await settle(page, page.getByTestId("tank-trip-sheet"));
-      });
       await shot("sheet-measurement", async () => {
         await go("/", page.getByTestId("consumption-details-open"));
         await page.getByTestId("consumption-details-open").click();
