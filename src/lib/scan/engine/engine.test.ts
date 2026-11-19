@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { demoPhoto, lineFixture } from '../fixtures';
+import { blank, demoPhoto, drawDigits, lineFixture } from '../fixtures';
 import { ACCEPT, acceptOdometer, recognizeDisplay } from './index';
 import { oneApart, scanPhoto } from './read';
 
@@ -8,6 +8,17 @@ describe('scan engine on synthetic displays', () => {
     const r = recognizeDisplay(demoPhoto('pump'), 'pump');
     expect(r).toMatchObject({ status: 'read', values: { total: '287.60', liters: '40.000' } });
     expect(scanPhoto(demoPhoto('pump'), 'pump').pump[0].price).toBe('7.19');
+  });
+  it('finishes an amount whose last digit was not seen from the litres and the one price that fits', () => {
+    // Real case: 226.13 beside the dark bezel read as "226.1"; 28.806 L at 7.85 = 226.13. No price row is shown.
+    const photo = (total: string, liters: string) => { const image = blank(820, 640); drawDigits(image, total, 150, 70); drawDigits(image, liters, 150, 255); return image; };
+    const r = recognizeDisplay(photo('226.1', '28.806'), 'pump');
+    expect(r).toMatchObject({ status: 'read', values: { total: '226.13', liters: '28.806' } });
+    expect(scanPhoto(photo('226.1', '28.806'), 'pump').pump[0].price).toBeNull();
+    // A complete amount is still read as printed.
+    expect(recognizeDisplay(photo('226.13', '28.806'), 'pump')).toMatchObject({ status: 'read', values: { total: '226.13', liters: '28.806' } });
+    // Litres that no price in range turns into an amount starting 226.1: nothing is invented.
+    expect(recognizeDisplay(photo('226.1', '30.000'), 'pump').status).toBe('unreadable');
   });
   it('reads the demo odometer and prefers the journal-consistent reading', () => {
     expect(recognizeDisplay(demoPhoto('odometer'), 'odometer')).toMatchObject({ status: 'read', values: { odometer: '128450' } });
