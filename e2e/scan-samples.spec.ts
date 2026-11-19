@@ -5,7 +5,7 @@ import { ALICE, signIn, signOut, signedInWithData } from './helpers/app';
 import { PROJECT_ID, listDocuments } from './helpers/emulator';
 
 /**
- * Scan attempts are recorded (sharing is on by default, off behind the info icon) with the rows the engine cut out; saving attaches
+ * Scan attempts are recorded (scanning always shares; the explanation is behind the info icon) with the rows the engine cut out; saving attaches
  * the saved numbers; the Admin "סריקה" tab measures accuracy from those records.
  */
 const sharingInfo = (dialog: Locator) => dialog.getByRole('button', { name: 'על שיתוף דוגמאות לשיפור הזיהוי' });
@@ -17,13 +17,10 @@ test('scan attempts are recorded, labelled by the saved fill-up, and measured in
   const scope = await signedInWithData(page, { fillups: [] });
   await page.goto('/fillup/new'); await page.getByTestId('fillup-camera').click();
   const dialog = page.getByRole('dialog', { name: 'תדלוק בשני צילומים', exact: true });
-  // The explanation is behind a small icon; the switch inside it turns sharing off for this opening.
+  // Scanning always shares samples: the explanation is behind a small icon and there is no switch.
   await sharingInfo(dialog).click();
   await expect(dialog.getByText('נשלחים ל־Firebase של Google', { exact: false })).toBeVisible();
-  await dialog.getByRole('button', { name: 'לא לשתף', exact: true }).click();
-  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'local.png', mimeType: 'image/png', buffer: blank });
-  await expect(dialog.getByText('הספרות עדיין לא ברורות מספיק', { exact: false })).toBeVisible();
-  await dialog.getByRole('button', { name: 'לשתף שוב', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'לא לשתף', exact: true })).toHaveCount(0);
 
   // First try: nothing readable. Second try: the pump. Then the odometer.
   await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'blank.png', mimeType: 'image/png', buffer: blank });
