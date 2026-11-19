@@ -95,14 +95,13 @@ export async function completeGooglePopup(popup: Page, account: TestAccount): Pr
 export async function signOut(page: Page): Promise<void> {
   await page.goto("/account");
   await page.getByTestId("account-signout").click();
-  // Stay scoped to the confirmation. A detached/reopened dialog must never
-  // let the locator silently retarget the Account row with the same label.
+  // With nothing waiting to sync, signing out is immediate (and wipes the device). Only unsynced
+  // changes bring up a confirmation, scoped here so the Account row with the same label is never retargeted.
+  const google = page.getByRole("button", { name: /Google/ });
   const confirmation = page.getByRole("alertdialog");
-  await expect(confirmation).toBeVisible();
-  await confirmation.getByRole("button", { name: /^התנתקות(?: בכל זאת)?$/ }).click();
-  await expect(page.getByRole("button", { name: /Google/ })).toBeVisible({
-    timeout: 20_000,
-  });
+  await expect(confirmation.or(google)).toBeVisible({ timeout: 20_000 });
+  if (await confirmation.isVisible()) await confirmation.getByRole("button", { name: "התנתקות בכל זאת" }).click();
+  await expect(google).toBeVisible({ timeout: 20_000 });
 }
 
 /**

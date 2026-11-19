@@ -31,6 +31,7 @@ import { releasePush } from "../lib/push/client";
 import { flushScanLabels } from "../lib/scan/samples";
 import { authErrorMessage, REDIRECT_MARKER } from "../lib/authFlow";
 import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
+import { clearSignedOutLocalStorage } from "../lib/deviceStorage";
 
 interface AuthContextValue {
   user: User | null;
@@ -64,11 +65,12 @@ interface AuthContextValue {
   claimsLoaded: boolean;
   signIn: () => Promise<void>;
   /**
-   * Sign out. Nothing local is cleared automatically: Firestore's persistent
+   * Sign out. Local data is cleared only when asked (`clearLocalData`, which the
+   * account screen sets whenever nothing is waiting to sync): Firestore's persistent
    * cache is shared by every account that signed in on this device and may
    * hold queued writes the outbox knows nothing about (an older build's
-   * writes, or a write journaled elsewhere). `clearLocalData` asks for an
-   * explicit wipe; it is honoured only when the device provably holds no
+   * writes, or a write journaled elsewhere). The wipe (cache and localStorage,
+   * except device preferences) is honoured only when the device provably holds no
    * unacknowledged write, and refused — with the reason — otherwise.
    */
   signOutUser: (options?: { clearLocalData?: boolean }) => Promise<{ cleared: boolean; refused: string | null }>;
@@ -231,6 +233,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await terminate(db);
         await clearIndexedDbPersistence(db);
         cleared = true;
+        clearSignedOutLocalStorage();
       } catch {
         refused = "לא ניתן היה לנקות את המטמון (ייתכן שלשונית נוספת פתוחה)";
       }

@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useId, useLayoutEffect } from 'react';
 import { Sheet } from '../Sheet';
 import { Button } from '../Button';
-import { CheckIcon } from '../icons';
+import { CheckIcon, InfoIcon } from '../icons';
 import { PhotoReader, type PhotoReaderControls } from './PhotoReader';
 import { acceptScanReading, type AcceptedScanDraft, type ScanDraft, type ScanField } from '../../lib/scan/draft';
 import type { Accept, DisplayReading, ScanContext } from '../../lib/scan/engine';
@@ -24,7 +24,9 @@ const FIELDS:Record<ScanAttempt['kind'],readonly ScanField[]>={pump:['total','li
 
 export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onAttempt }: ScanWizardProps) {
   const [accept,setAccept]=useState<Partial<Accept>|null>(null);
-  const [shareSamples, setShareSamples] = useState(false);
+  // Scanning always shares samples (terms §3, privacy §6): there is no switch. Someone who does not
+  // want that types the numbers in the form instead. The explanation sits behind a small icon.
+  const [infoOpen, setInfoOpen] = useState(false);
   const sampleDisclosure = useId();
   useEffect(()=>{let live=true;void loadScanAccept().then(value=>{if(live)setAccept(value);});return()=>{live=false;};},[]);
   function attempt(entry:ScanAttempt) {
@@ -62,18 +64,16 @@ export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onA
       <ol className="scan-steps" aria-label="שלבי הוספת תדלוק">{['משאבה','קילומטראז׳'].map((name,i)=><li key={name} aria-current={step===i?'step':undefined}><span>{i<step?<CheckIcon size={16}/>:i+1}</span>{name}</li>)}</ol>
       {pump?<div className="scan-success" role="status"><CheckIcon size={20}/><span><b>המשאבה נקראה</b><span><Money value={Number(pump.total)}/> · <span className="tm-number-with-unit"><NumRun>{pump.liters}</NumRun><span className="unit">ליטר</span></span></span></span></div>:null}
       <p ref={heading} tabIndex={-1} className="text-sm leading-relaxed text-muted outline-none">{step===0?'פותחים מצלמה, מכוונים לצג — ואנחנו קוראים את הספרות. פעלו לפי הנחיות התחנה לשימוש בטלפון.':'עוד צילום אחד, והנתונים יעברו לטופס לבדיקה. אפשר גם לסגור ולהשלים בטופס; מה שכבר נקרא יישאר.'}</p>
-      {onAttempt ? <div className="rounded-md border border-line bg-surface p-3">
-        <p id={sampleDisclosure} className="text-sm leading-relaxed text-muted">
-          הזיהוי נעשה במכשיר. אם תבחרו לשתף, טנק מלא ישלח ל־Firebase של Google חיתוכי ספרות או תמונה מוקטנת כשזיהוי נכשל, יחד עם תוצאות הזיהוי, הסכום, הליטרים והקילומטראז׳ ששמרתם ומזהה החשבון. צוות האפליקציה משתמש בדוגמאות לשיפור הזיהוי.
-        </p>
-        <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-ink">
-          <input type="checkbox" checked={shareSamples} onChange={event => setShareSamples(event.target.checked)} aria-describedby={sampleDisclosure} />
-          לשתף דוגמאות מהניסיונות הבאים
-        </label>
-      </div> : null}
-      <PhotoReader key={step} kind={step===0?'pump':'odometer'} autoOpen={live} onRead={read} context={context} onAttempt={shareSamples ? attempt : undefined} accept={accept} controlsRef={reader}/>
+      <PhotoReader key={step} kind={step===0?'pump':'odometer'} autoOpen={live} onRead={read} context={context} onAttempt={onAttempt ? attempt : undefined} accept={accept} controlsRef={reader}/>
       {step===0?<Button variant="ghost" onClick={()=>setStep(1)}>דילוג לקילומטראז׳</Button>:<Button variant="ghost" onClick={backToPump}>צילום המשאבה מחדש</Button>}
-      <p className="text-center text-xs leading-relaxed text-muted">לפני השמירה בדקו את הסכום ששולם ואת קריאת ODO בק״מ.</p>
+      <div className="flex items-start justify-center gap-1">
+        <p className="text-center text-xs leading-relaxed text-muted">לפני השמירה בדקו את הסכום ששולם ואת קריאת ODO בק״מ.</p>
+        {onAttempt ? <button type="button" aria-label="על שיתוף דוגמאות לשיפור הזיהוי" aria-expanded={infoOpen} aria-controls={sampleDisclosure}
+          className="-my-2.5 inline-flex size-11 shrink-0 items-center justify-center rounded-full text-muted" onClick={() => setInfoOpen(open => !open)}><InfoIcon size={16} /></button> : null}
+      </div>
+      {onAttempt && infoOpen ? <p id={sampleDisclosure} role="note" className="text-xs leading-relaxed text-muted">
+        בשימוש בסריקה, חיתוכי ספרות (או תמונה מוקטנת כשהזיהוי נכשל), תוצאות הזיהוי והמספרים ששמרתם נשלחים ל־Firebase של Google, מקושרים לחשבון ומשמשים לשיפור הזיהוי. התמונה המלאה לא נשמרת. לא מעוניינים? אפשר לסגור ולהזין את המספרים ידנית.
+      </p> : null}
     </div>
   </Sheet>;
 }
