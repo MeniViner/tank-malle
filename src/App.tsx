@@ -7,6 +7,7 @@ import { usePublishSummary } from "./hooks/usePublishSummary";
 import { RouteScroll } from "./components/RouteScroll";
 import { AndroidBackNavigation } from "./components/AndroidBackNavigation";
 import { isAccountDeletionEntry } from "./lib/accountDeletion";
+import { useFirstVehicleSkipped } from "./lib/firstVehicleSkip";
 import { lazy, Suspense, useState } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
@@ -44,7 +45,7 @@ const Admin = lazy(() => import("./screens/Admin").then((m) => ({ default: m.Adm
 
 const ONBOARDING_KEY = "tm.onboarded";
 const ALWAYS_REACHABLE = ["/vehicles/new", "/admin", "/legal", "/account", "/settings", "/feedback", "/notifications"];
-const needsFirstVehicle = (pathname: string, vehicleCount: number) => vehicleCount === 0
+const needsFirstVehicle = (pathname: string, vehicleCount: number, skipped = false) => vehicleCount === 0 && !skipped
   && !ALWAYS_REACHABLE.some(path => pathname === path || pathname.startsWith(`${path}/`));
 
 /** Entry screens can replace a route; keep the one atmosphere on that screen. */
@@ -52,8 +53,9 @@ function AppAtmosphere() {
   const { pathname } = useLocation();
   const { user, loading, signingOut } = useAuth();
   const { ready, vehicles, accountDeletionPending } = useData();
+  const skipped = useFirstVehicleSkipped(user?.uid);
   const route = pathname.startsWith("/legal") ? pathname : !user ? "/"
-    : !loading && !signingOut && ready && !accountDeletionPending && needsFirstVehicle(pathname, vehicles.length)
+    : !loading && !signingOut && ready && !accountDeletionPending && needsFirstVehicle(pathname, vehicles.length, skipped)
       ? "/vehicles/new" : pathname;
   return <Atmosphere route={route} />;
 }
@@ -78,6 +80,7 @@ export default function App() {
 function Shell() {
   const { user, loading, signingOut } = useAuth();
   const { ready, activeVehicles, vehicles, accountDeletionPending } = useData();
+  const firstVehicleSkipped = useFirstVehicleSkipped(user?.uid);
   const location = useLocation();
   const stats = useStats();
   usePublishSummary(stats);
@@ -128,8 +131,8 @@ function Shell() {
 
   // A signed-in user with no vehicle at all goes straight to the wizard —
   // except on routes that are meaningful without one (admin, legal, account),
-  // which must stay reachable.
-  if (needsFirstVehicle(location.pathname, vehicles.length)) return <VehicleWizard key={user.uid} firstRun />;
+  // which must stay reachable, or after "דלג לעכשיו" (someone without a car).
+  if (needsFirstVehicle(location.pathname, vehicles.length, firstVehicleSkipped)) return <VehicleWizard key={user.uid} firstRun />;
 
   // Only the four primary destinations keep tabs. Pushed screens have a back control.
   const showTabBar = ["/", "/history", "/stats", "/vehicle"].includes(location.pathname.replace(/\/+$/, "") || "/");
