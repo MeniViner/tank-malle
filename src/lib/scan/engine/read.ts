@@ -230,7 +230,53 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
     const k = `${t.text}|${l.text}`, prev = best.get(k);
     if (!prev || confidence > prev.confidence) best.set(k, { total: t.text, liters: l.text, price: price?.text ?? null, confidence, words: { total: t.word, liters: l.word, price: price?.word ?? null } });
   }
+  // The amount's last digit may be unreadable (it sits against the dark bezel of the display), leaving
+  // a row such as "226.1" for 226.13. Litres and the price are enough to finish it: the rows are
+  // trusted only if exactly one whole-agora price (or, with a known price, the one nearest it)
+  // turns the litres into an amount that starts with what was read.
+  const partial = good.filter(w => w.dot != null && w.digits.length - w.dot - 1 === 1 && w.dot >= 1 && w.dot <= 4).flatMap(w => truncatedTotals(w));
+  for (const t of partial) for (const l of liters) {
+    if (sameRow(l.word, t.word) || l.value < 1 || !placedBelow(t.word, l.word)) continue;
+    const price = priceFor(t.value, l.value, context.pricePerLiter);
+    if (!price) continue;
+    const total = (Math.round(price * l.value * 100) / 100).toFixed(2);
+    // Weaker than a complete amount: one digit was not seen, and no price row confirmed the sale.
+    const known = !!context.pricePerLiter && Math.abs(price - context.pricePerLiter) < .6;
+    let confidence = t.quality * l.quality * (known ? .6 : .35);
+    if (context.tankCapacity && l.value > context.tankCapacity * 1.05) confidence *= .2;
+    const k = `${total}|${l.text}`, prev = best.get(k);
+    if (!prev || confidence > prev.confidence) best.set(k, { total, liters: l.text, price: null, confidence, words: { total: t.word, liters: l.word, price: null } });
+  }
   return [...best.values()].sort((a, b) => b.confidence - a.confidence).slice(0, 5);
+}
+
+/** Same display: the litres row sits right under the amount (never beside it) and is not larger than it. */
+function placedBelow(totalWord: Word, litersWord: Word): boolean {
+  const dir = totalWord.flipped ? -1 : 1, ux = totalWord.line.ux * dir, uy = totalWord.line.uy * dir, dx = litersWord.line.cx - totalWord.line.cx, dy = litersWord.line.cy - totalWord.line.cy;
+  const along = dx * ux + dy * uy, below = -dx * uy + dy * ux, size = totalWord.line.height;
+  return !(below < size * .6 || below > size * 3 || Math.abs(along) > Math.max(totalWord.line.length, size * 3) || litersWord.line.height > size * 1.5 || litersWord.line.height < size * .3);
+}
+
+/** An amount row read up to one decimal ("226.1"): the value it starts with, as a Decimal-like candidate. */
+function truncatedTotals(word: Word): Decimal[] {
+  const dot = word.dot!, whole = word.digits.slice(0, dot + 1).replace(/^0+(?=\d)/, ''), text = `${whole}.${word.digits.slice(dot + 1)}`;
+  const fit = Math.exp(word.cells.reduce((sum, c) => sum + Math.log(c.fit), 0) / word.cells.length);
+  return [{ word, text, value: Number(text), quality: fit * (word.refined ? 1 : .85) }];
+}
+
+/**
+ * The one price (a whole number of agorot) at which `liters` cost an amount in [prefix, prefix + 0.1).
+ * More than one means the litres are too few to tell: a known price may choose among them, else none.
+ */
+function priceFor(prefix: number, liters: number, known?: number | null): number | null {
+  const found: number[] = [];
+  for (let agorot = Math.ceil(PRICE_MIN * 100); agorot <= PRICE_MAX * 100; agorot++) {
+    const total = Math.round(agorot * liters) / 100;
+    if (total >= prefix - 1e-9 && total < prefix + .1 - 1e-9) found.push(agorot / 100);
+  }
+  if (found.length === 1) return found[0];
+  if (found.length > 1 && known) { const near = found.filter(p => Math.abs(p - known) < .3); if (near.length === 1) return near[0]; }
+  return null;
 }
 
 /** Faint displays (glare, dusk, a dim backlight) need a lower ink threshold; it is slower and noisier, so it is the second try. */

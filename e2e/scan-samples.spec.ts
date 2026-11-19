@@ -3,6 +3,7 @@ import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { ALICE, signIn, signOut, signedInWithData } from './helpers/app';
 import { PROJECT_ID, listDocuments } from './helpers/emulator';
+import { ENGINE_VERSION } from '../src/lib/scan/engine/version';
 
 /**
  * Scan attempts are recorded (scanning always shares; the explanation is behind the info icon) with the rows the engine cut out; saving attaches
@@ -36,7 +37,7 @@ test('scan attempts are recorded, labelled by the saved fill-up, and measured in
   await expect(async () => expect(await mine('scanSamples')).toHaveLength(3)).toPass();
   let samples = (await mine('scanSamples')).map(d => d.data);
   const pick = (kind: string, attempt: number) => samples.find(s => s.kind === kind && s.attempt === attempt)!;
-  expect(pick('pump', 1)).toMatchObject({ outcome: 'unreadable', source: 'file', final: null, result: null, journal: false, engine: 2 });
+  expect(pick('pump', 1)).toMatchObject({ outcome: 'unreadable', source: 'file', final: null, result: null, journal: false, engine: ENGINE_VERSION });
   expect(pick('pump', 2)).toMatchObject({ outcome: 'read', guess: '287.60|40.000', final: null });
   expect(pick('odometer', 1)).toMatchObject({ outcome: 'read', guess: '128450', final: null });
   expect(new Set(samples.map(s => s.session)).size).toBe(1);

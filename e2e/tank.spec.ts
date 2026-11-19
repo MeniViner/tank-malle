@@ -144,15 +144,15 @@ test("§16.15.10 dragging the gauge sets a level and leaves the page scrollable"
   const box = (await gauge.boundingBox())!;
   expect(await gauge.evaluate(element => {
     const box = element.getBoundingClientRect();
-    const hit = document.elementFromPoint(box.x + box.width * .25, box.y + box.height / 2);
+    const hit = document.elementFromPoint(box.x + box.width * .75, box.y + box.height / 2);
     return hit === element || !!hit && element.contains(hit);
   })).toBe(true);
-  // The v2 range is horizontal and physically LTR: a quarter from the left
-  // retains the same 25% observation as the previous vertical control.
-  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2);
+  // The range is horizontal and right-to-left (fuller toward the left): a
+  // quarter from the right, i.e. 75% of the way from the left, is a 25% level.
+  await page.mouse.move(box.x + box.width * 0.75, box.y + box.height / 2);
   await page.mouse.down();
   expect((await gauge.boundingBox())!.y).toBeCloseTo(box.y, 0);
-  await page.mouse.move(box.x + box.width * 0.25, box.y + box.height / 2, { steps: 4 });
+  await page.mouse.move(box.x + box.width * 0.75, box.y + box.height / 2, { steps: 4 });
   await page.mouse.up();
 
   await expect(gauge).toHaveValue("0.25");

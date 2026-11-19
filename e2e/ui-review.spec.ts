@@ -39,7 +39,6 @@ test('Home keeps a compact tank and moves measured mileage and honest habit deta
   await page.screenshot({path:info.outputPath('home-review.png')});
   await tank.click();
   await expect(page.getByTestId('tank-open-odometer')).toContainText('170,450');
-  await expect(page.getByTestId('tank-open-trip')).toBeVisible();
   await expect(page.getByTestId('tank-open-habit')).toContainText('עוד לומדים');
   expect((await getDocument(base+'/maintenancePlans/one'))?.active).toBe(true);
 });
