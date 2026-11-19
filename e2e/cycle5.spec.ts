@@ -10,7 +10,7 @@ async function pasteReceipt(page:Page,text=receipt){
   const dialog=page.getByRole('dialog');await dialog.getByLabel('טקסט הקבלה',{exact:true}).fill(text);await dialog.getByRole('button',{name:'חילוץ נתונים מהטקסט'}).click();
   await dialog.getByRole('checkbox',{name:/בדקתי: אלה ליטרים/}).check();return dialog;
 }
-test('maintenance draft survives reload, vehicle switching and account switching',async({page})=>{
+test('maintenance draft survives reload and vehicle switching; signing out wipes it',async({page})=>{
   const scope=await signedInWithData(page,{fillups:[]});
   await page.goto('/vehicle');await startCareEditor(page,'service');
   await setCareTitle(page,'טיוטת טיפול פרטית');await page.getByLabel('עלות כוללת',{exact:true}).fill('12.');
@@ -21,7 +21,8 @@ test('maintenance draft survives reload, vehicle switching and account switching
   await page.goto('/');await signOut(page);await signIn(page,BOB);
   expect(await page.locator('body').innerText()).not.toContain('טיוטת טיפול פרטית');
   await signOut(page);await signIn(page,ALICE);await setActiveVehicle(scope.uid,scope.vehicleId);await page.goto('/vehicle');await expect(page.getByText('מאזדה 3',{exact:true}).first()).toBeVisible();await startCareEditor(page,'service');
-  await expect(page.getByLabel('תיאור',{exact:true})).toHaveValue('טיוטת טיפול פרטית');
+  // Signing out wipes this device's drafts (nothing was waiting to sync), so Alice starts from the default.
+  await expect(page.getByLabel('תיאור',{exact:true})).toHaveValue('טיפול תקופתי');
 });
 test('refunds reduce costs and unknown amounts remain explicit beyond the first history page',async({page})=>{
   const scope=await signedInWithData(page,{fillups:[]});const base=`users/${scope.uid}/vehicles/${scope.vehicleId}`;
