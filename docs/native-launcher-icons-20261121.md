@@ -2,9 +2,32 @@
 
 Tank Malle **1.11.6 / code 17** integrates the owner-approved transparent PNG
 into the installed launcher. The application source is frozen at
-[`44941104bac497dc0c9bf7bc4bbee4a5cdb90c36`](https://github.com/MeniViner/tank-malle-android-handoff/commit/44941104bac497dc0c9bf7bc4bbee4a5cdb90c36)
+[`44941104bac497dc0c9bf7bc4bbee4a5cdb90c36`](https://github.com/MeniViner/tank-malle/commit/44941104bac497dc0c9bf7bc4bbee4a5cdb90c36)
 on `codex/launcher-icons-20261120`, based on native release `faf8c0b`.
 Later documentation commits do not change or rebuild that application source.
+
+## Origin publication and next-release gate
+
+The original branch was initially pushed only to the private `handoff` remote,
+not to `origin` (`MeniViner/tank-malle`). The follow-up publishes this same branch
+and its original ancestry to `origin` for a PR targeting `main`; it does not
+rewrite the submitted application commit or publish another Play build.
+
+The submitted AAB's embedded build-info names clean commit `4494110` and version
+`1.11.6`; its Android manifest has code `17`. That build supplied
+`TANK_MALLE_BUILD_NUMBER=17`. The follow-up changes the tracked Gradle fallback
+from `1` to `17` in `android/app/build.gradle`, so a missing environment override
+also uses the submitted release code. This explicit configuration correction is
+separate from the already submitted binary and does not claim a new artifact hash.
+
+`origin/main` at `e086620` lacks the native shell used in the submitted build.
+The PR therefore includes that existing native baseline as well as the icon and
+version changes; dropping those files would not preserve the application source
+that was submitted.
+
+Do not modify or merge scanner branch `ccr-1a6af9b1-z4jo8s` / `c5d56a6` here.
+Its owner will update it separately to `1.11.7` / code `18` above this PR.
+**Do not submit another Google Play version until both PRs are merged to main.**
 
 ## Scope and artifacts
 
