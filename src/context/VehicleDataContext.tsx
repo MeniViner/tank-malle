@@ -13,6 +13,9 @@ import { emptyExtraSources, recordExtraSourceError, type ExtraSourceState } from
 import { buildLedger, currentMileage, mileageEvidence, periodSummary, reminderRows } from '../lib/vehicle/derived';
 import type { PlanDefaults } from '../lib/maintenance/nextReminder';
 import { notificationPreferences } from '../lib/vehicle/notificationPreferences';
+
+const EMPTY_DEMO_CARE: Readonly<Record<string, unknown[]>> = Object.freeze({});
+
 export interface EditingRecord {
   collection: VehicleCollection; record?: VehicleRecord; completePlan?: MaintenancePlan; initialJob?: Job; odometerIntent?: 'current';
   /** A new reminder prefilled from the service just saved. */
@@ -23,7 +26,7 @@ export interface EditingRecord {
 function useVehicleSources() {
   const {user}=useAuth();const data=useData();const uid=user?.uid??'',vehicleId=data.activeVehicle?.id??'';const scope=`${uid}/${vehicleId}`;
   // Demo mode: the sample's records stand in for the account's (nothing is read from or written to Firestore).
-  const demoCare=data.demo?data.demoCare??{}:null;
+  const demoCare = data.demo ? data.demoCare ?? EMPTY_DEMO_CARE : null;
   const accountCare=useMaintenance(uid,demoCare?'':vehicleId);
   const care=useMemo(()=>demoCare?{scope,data:Object.fromEntries(CARE_COLLECTIONS.map(name=>[name,(demoCare[name]??[]).filter(row=>validCareRecord(name,row))])) as unknown as CareData,loaded:[...CARE_COLLECTIONS] as string[],cached:[] as string[],errors:[] as string[],malformed:0,loading:false}:accountCare,[demoCare,accountCare,scope]);
   const notificationLifetime=useMemo(()=>({uid,vehicleId}),[uid,vehicleId]);

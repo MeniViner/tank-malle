@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { getDocument, listDocuments, seedVehicle, setDocument } from "./helpers/emulator";
-import { captureJournal, journalEvidence, journalRawFields } from "./helpers/design-v2-journal";
+import { captureJournal, journalEvidence, journalRawFields, replaceJournalRawFields } from "./helpers/design-v2-journal";
 import { homeAppearance } from "./helpers/design-v2-home";
 import {
   DOC_TITLES, VEHICLE_COVERAGE, assertNoDocumentExpenses, displayDay, documentSaved,
@@ -10,6 +10,7 @@ import {
   vehicleFieldPair, vehiclePlateGeometry, vehicleKeyboardLoop as keyboardLoop, vehicleStyle,
   type DocKey, type VehicleFixture,
 } from "./helpers/design-v2-vehicle";
+import { holdFirestoreDisk, releaseFirestoreDisk } from "./helpers/disk";
 import { holdJournal, journalOperations, releaseJournal, waitForJournalHold } from "./helpers/journal";
 import { outboxCount } from "./helpers/pwa";
 import { notificationId } from "../src/lib/vehicle/model";
@@ -157,6 +158,42 @@ test("current odometer blocks a lower value and asks only above the 3000 km boun
   await expect.poll(async () => (await listDocuments(`${scope.base}/odometerReadings`)).map(row => row.data.odometer).sort()).toEqual([103500, 106501]);
   await expect.poll(() => outboxCount(page, scope.uid)).toBe(0);
   expect(await listDocuments(`${scope.base}/fillups`)).toHaveLength(2);
+});
+
+test("a cached document opens from Home and becomes editable when its raw snapshot arrives", async ({ page, context }) => {
+  const due = vehicleDayOffset(20);
+  const insurance = { insurer: "הראל", due, cost: 1200.125 };
+  const scope = await vehicleFixture(page, { mandatory: insurance });
+  const reader = await context.newPage();
+  // The display cache can lag behind Firestore. Hold the real Firestore disk
+  // in the first tab so the new tab must open from that older display alone.
+  await holdFirestoreDisk(page);
+  try {
+    await page.evaluate(({ key, id }) => {
+      const cache = JSON.parse(localStorage.getItem(key)!);
+      cache.data.find((car: { id: string }) => car.id === id).docs.mandatory.insurer = "חברה קודמת";
+      localStorage.setItem(key, JSON.stringify(cache));
+    }, { key: `tm.cache.v1.${scope.uid}.vehicles`, id: scope.vehicleId });
+    await reader.goto("/");
+    const spotlight = reader.locator(`[data-spotlight-id="doc:mandatory:${due}:month"]`);
+    await spotlight.locator(".tm-spotlight-open").click();
+    await expect(reader.getByTestId("vehicle-doc-mandatory")).toContainText("חברה קודמת");
+    const dialog = reader.getByRole("dialog", { name: DOC_TITLES.mandatory, exact: true });
+    await expect(dialog.getByRole("status")).toContainText("הפרטים עדיין לא אומתו");
+    await expect(dialog.getByTestId("vehicle-doc-form")).toHaveCount(0);
+    await releaseFirestoreDisk(page);
+    const insurer = dialog.getByTestId("vehicle-doc-insurer");
+    await expect(insurer).toHaveValue(insurance.insurer);
+    await expect(dialog.getByTestId("vehicle-doc-cost")).toHaveValue("1200.125");
+    await insurer.fill("חברה חדשה");
+    await replaceJournalRawFields(scope.base, { ...scope.original, nickname: { stringValue: "שם מעודכן" } });
+    await expect(reader.getByText("שם מעודכן", { exact: true })).toBeAttached();
+    await expect(insurer).toHaveValue("חברה חדשה");
+    await documentSaved(reader, scope, { mandatory: { ...insurance, insurer: "חברה חדשה" } });
+  } finally {
+    await releaseFirestoreDisk(page);
+    await reader.close();
+  }
 });
 
 test("document Home links, notification occurrence identity and reminder preferences follow the saved civil due date", async ({ page }) => {

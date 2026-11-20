@@ -6,7 +6,6 @@ import { chooseNamedStation, fillupFixture, FILLUP_CAR, FILLUP_DAY, newServerFil
 import { finishFillupSave, openFillupMore, setFillupEndState } from "./helpers/fillup";
 import { homeAppearance, homeSwitchVehicle } from "./helpers/design-v2-home";
 import { outboxCount } from "./helpers/pwa";
-import { fillupDraftKey } from "../src/lib/fillupDraft";
 import { shekel } from "../src/lib/format";
 
 const stage = process.env.DESIGN_V2_STAGE;
@@ -117,10 +116,6 @@ async function savedEdit(page: Page, uid: string, path: string) {
   await expect(page).toHaveURL("/");
   await expect.poll(() => outboxCount(page, uid)).toBe(0);
   return (await getDocument(path))!;
-}
-
-async function draftTank(page: Page, key: string) {
-  return page.evaluate(key => JSON.parse(localStorage.getItem(key) ?? "null")?.data?.tankDraft, key);
 }
 
 test("Save exposes invalid input and the real inclusive odometer range without discarding the draft", async ({ page }) => {
