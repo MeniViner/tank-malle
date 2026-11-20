@@ -6,8 +6,8 @@ import sharp from 'sharp';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const identity = JSON.parse(await readFile(resolve(root, 'resources/app-icon/identity.json'), 'utf8'));
-const svg = await readFile(resolve(root, 'resources/app-icon/foreground.svg'));
-const art = await sharp(svg).trim({ background: '#00000000' }).ensureAlpha().png().toBuffer();
+const source = await readFile(resolve(root, 'resources/app-icon/foreground.png'));
+const art = await sharp(source).trim({ background: '#00000000' }).ensureAlpha().png().toBuffer();
 const { data, info } = await sharp(art).raw().toBuffer({ resolveWithObject: true });
 let radius = 0;
 for (let y = 0; y < info.height; y++) for (let x = 0; x < info.width; x++) {
@@ -75,6 +75,6 @@ if (output) {
   await write(resolve(output, 'icon-dark-1024.png'), await icon(1024, identity.darkBackground));
   await write(resolve(output, 'icon-tinted-1024.png'), await icon(1024, '#000000', true));
   await write(resolve(output, 'icon-play-512.png'), await icon(512, identity.background));
-  await write(resolve(output, 'icon-foreground.svg'), svg);
+  await write(resolve(output, 'icon-foreground.png'), source);
 }
 console.log(JSON.stringify({ displayName: identity.displayName, adaptiveCanvas: 648, safeRadius: 197, sourceRadius: Math.round(radius), output: output || null }));

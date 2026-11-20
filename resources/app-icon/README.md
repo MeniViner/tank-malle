@@ -6,10 +6,11 @@ Keep the installed launcher label and store title short. The tagline belongs in
 marketing artwork, the short description and the full description, not the
 launcher label (where the longer form was truncated).
 
-`foreground.svg` is the production vector rendering of the approved car-wallet,
-receipt and detailed gauge integrated with the left wheel. Its negative spaces
-are real transparent cutouts. The presentation frame and paper background are
-not part of the app icon.
+`foreground.png` is the owner-approved transparent car-wallet and receipt
+artwork. Its SHA-256 is
+`81c5fcbd6eda1822e4975db7dfefa10c4a9fd734378063dfa8c478b37e19cb27`.
+The generator only trims transparent margins, scales and centers the approved
+art, and derives its monochrome alpha silhouette. It does not redraw the icon.
 
 Run `npm run native:icons` to regenerate native Android and iOS app icons.
 `native:prepare` also runs the generator. Pass an output directory directly to
