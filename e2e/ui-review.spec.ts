@@ -60,7 +60,7 @@ test('authored pump figures stay fixed and optional tank controls never choose a
   await page.getByTestId('fillup-odometer').fill('100000');
   const full=page.getByRole('radio',{name:'מילאתי עד הסוף',exact:true});await expect(full).toBeVisible();await expect(full).toHaveAttribute('aria-checked','false');
   await openFillupMore(page);
-  await expect(page.getByRole('slider',{name:'כמה דלק נשאר לפני התדלוק'})).toHaveAttribute('aria-valuetext','עדיין לא סומן');
+  await expect(page.getByRole('slider',{name:'כמה דלק נשאר לפני התדלוק'})).toHaveCount(0);
   await expect(full).toHaveAttribute('aria-checked','false');
   await full.click();await expect(page.getByTestId('fillup-live-preview')).toContainText('טנק מלא ראשון');
   await page.getByTestId('fillup-more-toggle').click();

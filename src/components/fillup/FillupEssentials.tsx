@@ -1,6 +1,6 @@
 import type { ReactNode, Ref } from "react";
 import { PumpDisplay, PumpDisplayRow } from "../DesignPrimitives";
-import { Segmented } from "../Segmented";
+import { Segmented, Toggle } from "../Segmented";
 import { ConsumptionValue, NumRun, NumericText, Quantity } from "../Fmt";
 import { WarningIcon } from "../icons";
 import { int, price } from "../../lib/format";
@@ -34,14 +34,21 @@ export interface FillupEssentialsProps {
   historyComplete: boolean;
   /** False for an EV: no tank end state and no tank-based preview (DESIGN-V3 §7.4). */
   tankFields?: boolean;
+  /** "I missed refuels before this one": offered only when the numbers suggest it, or already on. */
+  continuityBreak: boolean;
+  onContinuityChange: (value: boolean) => void;
+  /** Opens the vehicle's tank capacity, offered on a fill larger than the tank. */
+  onReviewCapacity?: () => void;
 }
 
 /** The controller owns every editable string and all canonical calculations. */
 export function FillupEssentials({ receipt, onReceiptChange, odometer, odometerValue,
   onOdometerChange, bounds, errors, odometerError, priceCaption, priceValue, conflict, receiptBlocked,
   warnings, evaluation, units, endChoice, onEndChoice, shaking, totalRef, autoFocus,
-  historyComplete, tankFields = true,
+  historyComplete, tankFields = true, continuityBreak, onContinuityChange, onReviewCapacity,
 }: FillupEssentialsProps) {
+  // A long odometer jump or an implausible consumption is what an unrecorded refuel looks like.
+  const suggestsMissed = warnings.some(warning => warning.field === "odometer" || warning.field === "consumption");
   const authored = new Set(receipt.authored);
   const totalDerived = !authored.has("totalCost") && receipt.totalCost.trim() !== "";
   const litersDerived = !authored.has("liters") && receipt.liters.trim() !== "";
@@ -109,9 +116,13 @@ export function FillupEssentials({ receipt, onReceiptChange, odometer, odometerV
     </div></> : null}
     {warnings.map((warning, index) => <div key={`${warning.field}-${index}`} className="fillup-warning" data-testid="fillup-soft-warning">
       <WarningIcon size={18} /><span><NumericText>{warning.message}</NumericText>
-        {warning.field === "odometer" ? <span> · פספסתם תדלוק? אפשר לסמן בפרטים הנוספים.</span> : null}
+        {warning.field === "liters" && onReviewCapacity ? <> <button type="button" className="fillup-text-action" onClick={onReviewCapacity}>בדיקת נפח המיכל</button></> : null}
       </span>
     </div>)}
+    {suggestsMissed || continuityBreak ? <div className="fillup-continuity-row" data-testid="fillup-continuity">
+      <span><b>פספסתי תדלוקים לפני זה</b><small>נתחיל מדידה חדשה מכאן, וההיסטוריה נשארת</small></span>
+      <Toggle checked={continuityBreak} onChange={onContinuityChange} ariaLabel="פספסתי תדלוקים לפני זה" />
+    </div> : null}
   </section>;
 }
 

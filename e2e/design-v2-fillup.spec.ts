@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { getDocument, listDocuments, seedRegulatedPrice, seedVehicle, setDocument } from "./helpers/emulator";
 import { chooseNamedStation, fillupFixture, FILLUP_CAR, FILLUP_DAY, newServerFillup, setFillupDay, typeFillup } from "./helpers/design-v2-fillup";
-import { finishFillupSave, openFillupMore, openFillupTankAdvanced, setFillupEndState } from "./helpers/fillup";
+import { finishFillupSave, openFillupMore, setFillupEndState } from "./helpers/fillup";
 import { homeAppearance, homeSwitchVehicle } from "./helpers/design-v2-home";
 import { outboxCount } from "./helpers/pwa";
 import { fillupDraftKey } from "../src/lib/fillupDraft";
@@ -210,9 +210,8 @@ for (const amount of [
   await expect(page.getByTestId("fillup-total")).toHaveValue(String(amount.total));
   await expect(page.getByTestId("fillup-price")).toHaveValue(String(amount.price));
   await expect(page.getByTestId("fillup-liters")).toHaveValue("40");
-  await openFillupTankAdvanced(page);
-  await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveValue("0.2");
-  await expect(page.getByRole("meter", { name: "מצב המיכל אחרי התדלוק" })).toHaveAttribute("aria-valuetext", "80%");
+  // The tank gauges left the form; their stored values must survive an unchanged save.
+  await expect(page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" })).toHaveCount(0);
   await page.getByTestId("fillup-save").click();
   await expect(page).toHaveURL("/");
   await expect(page.getByTestId("fillup-saved")).toHaveCount(0);
@@ -233,72 +232,6 @@ test("editing a note preserves the historical refuel reason and all original phy
   expect(await listDocuments(scope.collection)).toHaveLength(1);
 });
 
-test("clearing gauges preserves the hidden historical refuel reason and exact receipt", async ({ page }) => {
-  const { scope, path, original } = await importedEditFixture(page);
-  await openFillupTankAdvanced(page);
-  await page.getByRole("button", { name: "ניקוי המדים", exact: true }).click();
-  const after = await savedEdit(page, scope.uid, path);
-  expect(after.preFillLevel).toBeNull();
-  for (const key of ["refuelReason", "pricePerLiter", "totalCost", "liters", "postedPricePerLiter", "notes"]) {
-    expect(after[key], key).toEqual(original[key]);
-  }
-  expect(await listDocuments(scope.collection)).toHaveLength(1);
-});
-
-test("returning tank answers to their opening values survives draft reload without replacing imported provenance", async ({ page }) => {
-  const { scope, path, original } = await importedEditFixture(page);
-  await openFillupTankAdvanced(page);
-  const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
-  await before.press("Home");
-  await before.press("ArrowUp");
-  await expect(before).toHaveValue("0.05");
-  await before.press("Home");
-  await before.press("PageUp");
-  await expect(before).toHaveValue("0.2");
-  const full = page.getByRole("radio", { name: "מילאתי עד הסוף", exact: true });
-  await full.click();
-  await expect(full).toHaveAttribute("aria-checked", "true");
-  await full.click();
-  await expect(full).toHaveAttribute("aria-checked", "false");
-  const key = fillupDraftKey(scope.uid, scope.vehicleId, "fillup-baseline");
-  // A complete return to the opening values correctly clears a pristine
-  // draft. Keep an unrelated note change so the physical reset also crosses
-  // a genuine draft restoration boundary.
-  await expect.poll(() => page.evaluate(key => localStorage.getItem(key), key)).toBeNull();
-  await page.getByTestId("fillup-notes").fill("טיוטה עם מצב המיכל המקורי");
-  await expect.poll(() => draftTank(page, key))
-    .toMatchObject({ beforeLevel: .2, afterLevelOverride: null, endChoice: null, confirmedFull: false, reason: "routine" });
-  await page.reload();
-  await openFillupTankAdvanced(page);
-  await expect(before).toHaveValue("0.2");
-  await expect(full).toHaveAttribute("aria-checked", "false");
-  await expect(page.getByTestId("fillup-notes")).toHaveValue("טיוטה עם מצב המיכל המקורי");
-  await page.getByTestId("fillup-notes").fill(String(original.notes));
-  const after = await savedEdit(page, scope.uid, path);
-  for (const [key, value] of Object.entries(original)) expect(after[key], key).toEqual(value);
-});
-
-test("a deliberately changed physical tank answer survives draft reload and becomes direct evidence", async ({ page }) => {
-  const { scope, path, original } = await importedEditFixture(page);
-  await openFillupMore(page);
-  const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
-  await before.press("Home");
-  await before.press("ArrowUp");
-  await before.press("ArrowUp");
-  await expect(before).toHaveValue("0.1");
-  await expect.poll(() => draftTank(page, fillupDraftKey(scope.uid, scope.vehicleId, "fillup-baseline")))
-    .toMatchObject({ beforeLevel: .1, reason: "routine" });
-  await page.reload();
-  await openFillupTankAdvanced(page);
-  await expect(before).toHaveValue("0.1");
-  const after = await savedEdit(page, scope.uid, path);
-  expect(after).toMatchObject({ preFillLevel: .1, preFillLevelSource: "direct-gauge", postFillLevelSource: "derived-after-partial",
-    fillEndState: "partial", fillEndStateSource: "gauge-estimate", capacityLitersAtEntry: 50, refuelReason: "routine" });
-  expect(after.postFillLevel).toBeCloseTo(.9, 10);
-  for (const key of ["date", "createdAt", "odometer", "liters", "pricePerLiter", "totalCost", "station", "fuelType",
-    "postedPricePerLiter", "importSource", "importBatchId", "importRowHash", "notes"]) expect(after[key], key).toEqual(original[key]);
-});
-
 test("a quantity-only edit refreshes derived after-level using its stored capacity revision", async ({ page }) => {
   const { scope, path, original } = await importedEditFixture(page, {
     liters: 20, pricePerLiter: 7, totalCost: 140, capacityLitersAtEntry: 40,
@@ -308,8 +241,6 @@ test("a quantity-only edit refreshes derived after-level using its stored capaci
   });
   await page.getByTestId("fillup-liters").fill("24");
   await page.getByTestId("fillup-total").fill("168");
-  await openFillupTankAdvanced(page);
-  await expect(page.getByRole("meter", { name: "מצב המיכל אחרי התדלוק" })).toHaveAttribute("aria-valuetext", "80%");
   const after = await savedEdit(page, scope.uid, path);
   expect(after).toMatchObject({ liters: 24, pricePerLiter: 7, totalCost: 168, capacityLitersAtEntry: 40,
     preFillLevel: .2, preFillLevelSource: "direct-gauge", preFillLevelUncertainty: .12,
@@ -471,29 +402,17 @@ for (const theme of ["light", "dark"] as const) for (const accent of ["plate", "
     await capture(page, `fillup-soft-warning-${suffix}`);
     await typeFillup(page, { end: "full" });
     await openFillupMore(page);
-    const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
-    await target44(before);
-    await before.press("Home"); await before.press("PageUp"); await before.press("ArrowUp");
     await page.getByTestId("fillup-notes").fill("הנתונים מהקבלה, לפני הנסיעה");
     await capture(page, `fillup-more-${suffix}`, true);
     await page.keyboard.press("Tab");
-    const advancedVisibility = await keyboardVisibility(page, "notes-to-advanced");
-    measurements.push(advancedVisibility);
-    await saveMeasurements();
-    await expect(page.getByTestId("fillup-tank-advanced").locator("summary")).toBeFocused();
-    expect(advancedVisibility).toMatchObject({ unobscured: true, hiddenByFooter: false });
-    await page.keyboard.press("Tab");
-    // v3 stage 4: receipt import moved to the header (icon button, same accessible name),
-    // so the next stop after the advanced disclosure is the footer save action.
-    const saveVisibility = await keyboardVisibility(page, "advanced-to-save");
+    // The tank gauges left the form, so the next stop after the note is the footer save action.
+    const saveVisibility = await keyboardVisibility(page, "notes-to-save");
     measurements.push(saveVisibility);
     await saveMeasurements();
     await expect(page.getByTestId("fillup-save")).toBeFocused();
     expect(saveVisibility).toMatchObject({ unobscured: true });
     await target44(page.getByTestId("fillup-import-receipt"));
     await expect(page.getByRole("button", { name: "ייבוא קבלה מקובץ או טקסט", exact: true })).toBeVisible();
-    await openFillupTankAdvanced(page);
-    await capture(page, `fillup-advanced-${suffix}`, true);
     await page.getByTestId("fillup-date").click();
     const dateDialog = page.getByRole("dialog", { name: "תאריך ושעה", exact: true });
     for (const label of ["תאריך — הקלדה ידנית", "שעה — הקלדה ידנית", "בחירת תאריך מהמכשיר", "בחירת שעה מהמכשיר", "פתיחת לוח השנה", "פתיחת בורר השעה"]) {

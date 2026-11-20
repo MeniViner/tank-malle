@@ -178,6 +178,26 @@ test("a continuity break stops every calculation from crossing the gap", async (
   await expect(page.locator('.ledger-row[data-collection=fillups]')).toHaveCount(4);
 });
 
+test("\"missed refuels\" is offered only when the odometer jump suggests it", async ({ page }) => {
+  const { uid, vehicleId } = await freshVehicle(page);
+  await seedFillups(uid, vehicleId, [
+    { id: "a", date: new Date(2026, 0, 5), odometer: 100_000, liters: 40 },
+    { id: "b", date: new Date(2026, 0, 15), odometer: 100_400, liters: 40 },
+  ]);
+  await setActiveVehicle(uid, vehicleId);
+  await page.goto("/fillup/new");
+  await page.getByTestId("fillup-liters").fill("40");
+  await page.getByTestId("fillup-odometer").fill("100800");
+  await expect(page.getByTestId("fillup-continuity")).toHaveCount(0);
+  await page.getByTestId("fillup-more-toggle").click();
+  await expect(page.getByTestId("fillup-notes")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "פספסתי תדלוקים לפני זה" })).toHaveCount(0);
+  await page.getByTestId("fillup-odometer").fill("103000");
+  await expect(page.getByTestId("fillup-continuity")).toBeVisible();
+  await page.getByRole("switch", { name: "פספסתי תדלוקים לפני זה" }).click();
+  await expect(page.getByRole("switch", { name: "פספסתי תדלוקים לפני זה" })).toBeChecked();
+});
+
 test("editing, deleting and backdating recompute the result", async ({ page }) => {
   const { uid, vehicleId } = await freshVehicle(page);
 
