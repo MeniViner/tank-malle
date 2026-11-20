@@ -6,7 +6,8 @@
  */
 import { useCallback, useContext, useEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
-import { DataContext, type DataContextValue, type FillupSubmission } from "./DataContext";
+import type { DataContextValue, FillupSubmission } from "./DataContext";
+import { DataContext } from "./dataContextInstance";
 import { exitDemo, isDemoVehicleId, readDemo, subscribeDemo, updateDemo, type DemoState } from "../lib/demo/demo";
 import type { MutationReceipt } from "../lib/writes";
 import type { Fillup } from "../lib/stats";
@@ -150,7 +151,7 @@ function DemoProvider({ real, demo, uid, children }: { real: DataContextValue; d
       deleteImportBatch: blocked,
       savePriceRule: blocked,
       deletePriceRule: blocked,
-      demoCare: activeVehicle ? demo.care?.[activeVehicle.id] ?? {} : {},
+      demoCare: activeVehicle ? demo.care?.[activeVehicle.id] : undefined,
       saveCareRecord: async (id, name, record) => {
         setCare(id, name, rows => [...rows.filter(row => (row as { id?: string }).id !== record.id), record]);
         return accepted(record.id);
