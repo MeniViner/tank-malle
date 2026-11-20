@@ -515,6 +515,22 @@
 .scan-camera-caption { display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;font-size:14px;color:var(--muted); }
 .scan-live-dot { flex:none;width:7px;height:7px;border-radius:50%;background:var(--accent); }
 .scan-camera > button { width:100%; }
+/* While a chosen photo is read: the photo itself, a beam sweeping over it and a soft grid. */
+.scan-reading { position:relative;overflow:hidden;height:min(44dvh,320px);border-radius:var(--r-lg);background:#101719;isolation:isolate; }
+.scan-reading img { position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.75) brightness(.8);animation:scan-reading-zoom 6s ease-out both; }
+.scan-reading-grid { position:absolute;inset:0;background-image:linear-gradient(color-mix(in srgb,var(--accent) 22%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--accent) 22%,transparent) 1px,transparent 1px);background-size:28px 28px;mask-image:radial-gradient(ellipse at center,#000 30%,transparent 75%);animation:scan-reading-grid 2.2s ease-in-out infinite alternate; }
+.scan-reading-beam { position:absolute;inset-inline:0;top:0;height:22%;background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--accent) 35%,transparent) 85%,var(--accent));box-shadow:0 1px 0 var(--accent),0 0 18px 2px color-mix(in srgb,var(--accent) 70%,transparent);animation:scan-reading-beam 2.2s ease-in-out infinite alternate; }
+.scan-reading-corners { position:absolute;inset:14px;border-radius:14px;--c:color-mix(in srgb,#fff 85%,transparent);background:linear-gradient(var(--c),var(--c)) top left/22px 3px,linear-gradient(var(--c),var(--c)) top left/3px 22px,linear-gradient(var(--c),var(--c)) top right/22px 3px,linear-gradient(var(--c),var(--c)) top right/3px 22px,linear-gradient(var(--c),var(--c)) bottom left/22px 3px,linear-gradient(var(--c),var(--c)) bottom left/3px 22px,linear-gradient(var(--c),var(--c)) bottom right/22px 3px,linear-gradient(var(--c),var(--c)) bottom right/3px 22px;background-repeat:no-repeat;animation:scan-reading-pulse 1.4s ease-in-out infinite; }
+.scan-reading-label { position:absolute;inset-inline:0;bottom:16px;margin-inline:auto;width:max-content;display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#0d1416cc;backdrop-filter:blur(6px);color:#fff;font-size:14px;font-weight:650; }
+.scan-reading-dots { display:inline-flex;gap:3px; }
+.scan-reading-dots i { width:5px;height:5px;border-radius:50%;background:var(--accent);animation:scan-reading-dot 1s ease-in-out infinite; }
+.scan-reading-dots i:nth-child(2) { animation-delay:.15s; } .scan-reading-dots i:nth-child(3) { animation-delay:.3s; }
+@keyframes scan-reading-beam { from { transform:translateY(-100%); } to { transform:translateY(min(44dvh,320px)); } }
+@keyframes scan-reading-grid { from { opacity:.35; } to { opacity:.85; } }
+@keyframes scan-reading-zoom { from { transform:scale(1.08); } to { transform:scale(1); } }
+@keyframes scan-reading-pulse { 50% { inset:18px; opacity:.6; } }
+@keyframes scan-reading-dot { 50% { transform:translateY(-4px); opacity:.5; } }
+@media (prefers-reduced-motion: reduce) { .scan-reading img,.scan-reading-grid,.scan-reading-beam,.scan-reading-corners,.scan-reading-dots i { animation:none; } .scan-reading-beam { top:45%; } }
 .scan-success { display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:var(--r-md);background:var(--accent-soft);color:var(--ink); }
 .scan-success > span { display:flex;flex-direction:column;gap:3px;font-size:14px; }
 .scan-success bdi { font-variant-numeric:tabular-nums; }

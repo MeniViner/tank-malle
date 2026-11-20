@@ -8,19 +8,19 @@ import { signedInWithData } from './helpers/app';
 test.use({ serviceWorkers: 'block' });
 
 /** JPEG APP1 "Exif" with DateTimeOriginal (+offset) and GPS, little-endian, the way phone cameras write it. */
-function exifSegment(takenAt: Date, lat: number, lng: number): Buffer {
+function exifSegment(takenAt: Date, lat: number, lng: number, gpsTags = true): Buffer {
   const u16 = (v: number) => [v & 255, v >> 8];
   const u32 = (v: number) => [v & 255, (v >> 8) & 255, (v >> 16) & 255, v >>> 24];
   const dms = (value: number) => { const d = Math.floor(value), m = Math.floor((value - d) * 60), s = Math.round(((value - d) * 60 - m) * 60 * 10000); return [[d, 1], [m, 1], [s, 10000]]; };
   const pad = (n: number) => String(n).padStart(2, '0');
   const stamp = `${takenAt.getUTCFullYear()}:${pad(takenAt.getUTCMonth() + 1)}:${pad(takenAt.getUTCDate())} ${pad(takenAt.getUTCHours())}:${pad(takenAt.getUTCMinutes())}:${pad(takenAt.getUTCSeconds())}`;
   type Tag = [number, 2 | 4 | 5, string | number | number[][]];
-  const root: Tag[] = [[0x8769, 4, 0], [0x8825, 4, 0]];
+  const root: Tag[] = gpsTags ? [[0x8769, 4, 0], [0x8825, 4, 0]] : [[0x8769, 4, 0]];
   const exif: Tag[] = [[0x9003, 2, stamp], [0x9011, 2, '+00:00']];
-  const gps: Tag[] = [[1, 2, 'N'], [2, 5, dms(lat)], [3, 2, 'E'], [4, 5, dms(lng)]];
-  const ifds = [root, exif, gps], starts: number[] = [];
+  const gps: Tag[] = gpsTags ? [[1, 2, 'N'], [2, 5, dms(lat)], [3, 2, 'E'], [4, 5, dms(lng)]] : [];
+  const ifds = gpsTags ? [root, exif, gps] : [root, exif], starts: number[] = [];
   let at = 8; for (const tags of ifds) { starts.push(at); at += 2 + tags.length * 12 + 4; }
-  root[0][2] = starts[1]; root[1][2] = starts[2];
+  root[0][2] = starts[1]; if (gpsTags) root[1][2] = starts[2];
   const out: number[] = [0x49, 0x49, ...u16(42), ...u32(8)], blobs: number[] = [];
   for (const tags of ifds) {
     out.push(...u16(tags.length));
@@ -36,11 +36,12 @@ function exifSegment(takenAt: Date, lat: number, lng: number): Buffer {
   return Buffer.from([0xff, 0xe1, length >> 8, length & 255, ...payload]);
 }
 
-async function pumpPhoto(takenAt: Date): Promise<Buffer> {
+async function pumpPhoto(takenAt: Date, gps = true): Promise<Buffer> {
   const sharp = (await import('sharp')).default, { demoPhoto } = await import('../src/lib/scan/fixtures');
   const raw = demoPhoto('pump');
   const jpeg = await sharp(Buffer.from(raw.data), { raw: { width: raw.width, height: raw.height, channels: 4 } }).jpeg({ quality: 95 }).toBuffer();
   // דלק דורון - כפר סבא, from public/fuel-stations.json, about 20 m away.
+  if (!gps) return Buffer.concat([jpeg.subarray(0, 2), exifSegment(takenAt, Number.NaN, Number.NaN, false), jpeg.subarray(2)]);
   return Buffer.concat([jpeg.subarray(0, 2), exifSegment(takenAt, 32.17410, 34.89080), jpeg.subarray(2)]);
 }
 
@@ -78,4 +79,33 @@ test('a date chosen by hand is not replaced by the photo time', async ({ page })
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('fillup-station')).toContainText('דלק דורון - כפר סבא');
   await expect(page.getByTestId('fillup-date')).not.toContainText('לפי התמונה');
+});
+
+test('a just-taken photo whose location the picker stripped uses the current location', async ({ page, context }) => {
+  await signedInWithData(page, { fillups: [] });
+  await page.goto('/fillup/new');
+  await expect(page.getByTestId('fillup-station')).toContainText('בחירת תחנה');
+  // Permission given only now, as on a phone where the picker removed the photo's position.
+  await context.grantPermissions(['geolocation']);
+  await context.setGeolocation({ latitude: 32.17400, longitude: 34.89075 });
+  await page.getByTestId('fillup-camera').click();
+  const dialog = page.getByRole('dialog', { name: 'תדלוק בשני צילומים', exact: true });
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.jpg', mimeType: 'image/jpeg', buffer: await pumpPhoto(new Date(Date.now() - 5 * 60_000), false) });
+  await expect(dialog.getByText('המשאבה נקראה', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('fillup-station')).toContainText('דלק דורון - כפר סבא');
+  await expect(page.getByTestId('fillup-date')).toContainText('לפי התמונה');
+});
+
+test('reading a chosen photo shows the photo with a scanning animation', async ({ page }) => {
+  await signedInWithData(page, { fillups: [] });
+  await page.goto('/fillup/new');
+  await page.getByTestId('fillup-camera').click();
+  const dialog = page.getByRole('dialog', { name: 'תדלוק בשני צילומים', exact: true });
+  const sharp = (await import('sharp')).default;
+  const noisy = await sharp({ create: { width: 3000, height: 4000, channels: 3, noise: { type: 'gaussian', mean: 128, sigma: 60 } } }).jpeg().toBuffer();
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'noise.jpg', mimeType: 'image/jpeg', buffer: noisy });
+  await expect(dialog.getByTestId('scan-reading')).toBeVisible();
+  await dialog.getByTestId('scan-reading').screenshot({ path: 'test-results/scan-reading.png' });
+  await expect(dialog.getByTestId('scan-reading')).toHaveCount(0, { timeout: 60_000 });
 });
