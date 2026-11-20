@@ -16,8 +16,8 @@ export type PhotoReaderControls = { closeCamera: () => boolean };
 
 export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context,onAttempt,accept,controlsRef }: { kind:DisplayKind;autoOpen?:boolean;onRead:(values:DisplayReading,live:boolean)=>void;
   /** Where and when a chosen photo was taken (EXIF), read on the device; not called for camera frames. */
-  onPhotoMetadata?:(metadata:PhotoMetadata)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
-  const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+  onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
+  const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[preview,setPreview]=useState<string|null>(null),[message,setMessage]=useState('');
   const generation=useRef(0),worker=useRef<Worker|null>(null),pending=useRef<((result:DisplayResult)=>void)|null>(null),lastFrame=useRef('');
   const journal=(context?.lastOdometer??0)>0,report=useRef(onAttempt),finish=useRef(()=>{});
   const sharingRevision = useRef(0);
@@ -72,8 +72,8 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     const sharingAtStart = sharingRevision.current;
     const token=++generation.current;cancel();endCamera();setCameraOpen(false);setBusy(false);setMessage('');lastFrame.current='';
     if(file.size>20_000_000 || !(/^image\/(jpeg|png|webp|heic|heif|avif)$/.test(file.type)||(!file.type&&/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)))){setMessage('בחרו תמונה בגודל עד 20 MB.');return;}
-    if(onPhotoMetadata)void readPhotoMetadata(file).then(metadata=>{if(token===generation.current&&(metadata.takenAt!==null||metadata.position))onPhotoMetadata(metadata);});
-    setBusy(true);const url=URL.createObjectURL(file);
+    if(onPhotoMetadata)void readPhotoMetadata(file).then(metadata=>{if(token===generation.current)onPhotoMetadata(metadata,kind);});
+    setBusy(true);const url=URL.createObjectURL(file);setPreview(url);
     try {
       const image=new Image();
       // WebKit can delay decode() for detached images by about a second.
@@ -97,7 +97,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       if(result.status==='read'){onRead(result.values,false);return;}
       setMessage('הספרות עדיין לא ברורות מספיק. נסו צילום קרוב יותר בלי סנוור, או סגרו את הצילום והשלימו בטופס.');
     }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG, או סגרו את הצילום והשלימו בטופס.');}
-    finally{URL.revokeObjectURL(url);if(token===generation.current)setBusy(false);}
+    finally{if(token===generation.current){setBusy(false);setPreview(null);}URL.revokeObjectURL(url);}
   }
   async function takeSystemPhoto() {
     const token = ++generation.current;
@@ -119,7 +119,8 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
   }
   const Icon=kind==='pump'?PumpIcon:GaugeIcon;
   return <div className="flex flex-col gap-4">
-    {cameraOpen?<LiveCamera onFrame={frame} onClose={closeCamera}/>:
+    {busy&&preview?<div className="scan-reading" data-testid="scan-reading" aria-hidden="true"><img src={preview} alt=""/><span className="scan-reading-grid"/><span className="scan-reading-beam"/><span className="scan-reading-corners"/><span className="scan-reading-label"><span className="scan-reading-dots"><i/><i/><i/></span>קוראים את הספרות</span></div>:
+     cameraOpen?<LiveCamera onFrame={frame} onClose={closeCamera}/>:
       <div className="scan-start"><span className="scan-start-icon"><Icon size={38}/></span><h3>{kind==='pump'?'מצלמים את המשאבה':'עוברים למד הקילומטרים'}</h3><p>{kind==='pump'?'הסכום והליטרים ייקראו יחד, אוטומטית.':'כוונו אל מד המרחק המצטבר כשהרכב עומד.'}</p><Button full onClick={()=>{setMessage('');setCameraOpen(true);}}>פתיחת מצלמה</Button></div>}
     {nativeBuild ? <Button variant="secondary" disabled={busy} onClick={() => void takeSystemPhoto()}>צילום דרך מצלמת המכשיר</Button> : null}
     <label className="scan-photo-choice"><UploadIcon size={18}/>{busy?'קוראים את התמונה…':'בחירת תמונה מהמכשיר'}<input className="sr-only" type="file" accept="image/*" aria-label={kind==='pump'?'תמונת משאבה':'תמונת קילומטראז׳'} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}}/></label>

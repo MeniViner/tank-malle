@@ -4,7 +4,7 @@ import { Button } from '../Button';
 import { CheckIcon, InfoIcon } from '../icons';
 import { PhotoReader, type PhotoReaderControls } from './PhotoReader';
 import { acceptScanReading, type AcceptedScanDraft, type ScanDraft, type ScanField } from '../../lib/scan/draft';
-import type { Accept, DisplayReading, ScanContext } from '../../lib/scan/engine';
+import type { Accept, DisplayKind, DisplayReading, ScanContext } from '../../lib/scan/engine';
 import { loadScanAccept, type ScanAttempt } from '../../lib/scan/samples';
 import { Money, NumRun } from '../Fmt';
 import type { PhotoMetadata } from '../../lib/scan/photoMetadata';
@@ -20,7 +20,7 @@ type ScanWizardProps = {
    */
   onAttempt?:(attempt:ScanAttempt,labelable:boolean)=>void;
   /** EXIF time and position of a photo chosen from the device. */
-  onPhotoMetadata?:(metadata:PhotoMetadata)=>void;
+  onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind)=>void;
 };
 
 const FIELDS:Record<ScanAttempt['kind'],readonly ScanField[]>={pump:['total','liters'],odometer:['odometer']};
