@@ -36,7 +36,6 @@ import {
 import { withPublicPrices } from "../lib/prices/regulated";
 import type { TankImportRecord } from "../lib/import/tankUpdates";
 import {
-  createContext,
   useCallback,
   useContext,
   useEffect,
@@ -110,6 +109,7 @@ import { conditionalFillupWrite, fillupBaseMatches, FillupConflictError } from "
 import { APP_VERSION } from "../lib/version";
 import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
 import { useAuth } from "./AuthContext";
+import { DataContext } from "./dataContextInstance";
 import { DemoDataLayer } from "./DemoDataLayer";
 import { useTheme } from "./ThemeContext";
 import {
@@ -416,8 +416,6 @@ export interface ImportRollbackResult {
   pending?: boolean;
   reason?: string;
 }
-
-export const DataContext = createContext<DataContextValue | null>(null);
 
 /**
  * A date that cannot be read is reported, not replaced with "now". For the
