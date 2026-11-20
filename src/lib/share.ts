@@ -53,7 +53,7 @@ export interface ShareDeps {
  */
 function isCancellation(error: unknown): boolean {
   const name = (error as { name?: string } | null)?.name;
-  return name === "AbortError" || name === "NotAllowedError";
+  return name === "AbortError" || name === "NotAllowedError" || (error instanceof Error && error.message === "Share canceled");
 }
 
 /**

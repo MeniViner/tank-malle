@@ -1,0 +1,58 @@
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+import java.util.zip.ZipFile
+
+// Check the artifact, not just the Gradle settings: a stale D8 bundle can be
+// uploaded even when minifyEnabled has since been switched on in the source.
+tasks.register('verifyPlayBundle') {
+    group = 'verification'
+    description = 'Build and verify the personal Play bundle has effective R8 optimization.'
+    if (!project.hasProperty('playBundle')) dependsOn 'bundlePersonalRelease'
+
+    doLast {
+        def bundle = project.hasProperty('playBundle')
+            ? file(project.property('playBundle'))
+            : layout.buildDirectory.file('outputs/bundle/personalRelease/app-personal-release.aab').get().asFile
+        if (!bundle.isFile()) throw new GradleException("Missing Play bundle: ${bundle}")
+
+        new ZipFile(bundle).withCloseable { zip ->
+            def metadata = zip.getEntry('BUNDLE-METADATA/com.android.tools/r8.json')
+            if (!metadata) throw new GradleException('Play bundle has no R8 metadata; rebuild the release with R8.')
+            def report = zip.getInputStream(metadata).withCloseable { new JsonSlurper().parse(it) }
+            for (option in ['isObfuscationEnabled', 'isOptimizationsEnabled', 'isShrinkingEnabled']) {
+                if (report.options[option] != true) throw new GradleException("R8 ${option} is not enabled.")
+            }
+            if (report.options.isDebugModeEnabled != false) throw new GradleException('R8 bundle is not a release build.')
+            if (!zip.getEntry('BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map')) {
+                throw new GradleException('Play bundle has no embedded deobfuscation mapping.')
+            }
+
+            def dexFiles = zip.entries().findAll { !it.directory && it.name ==~ /base\/dex\/classes\d*\.dex/ }
+            if (!dexFiles) throw new GradleException('Play bundle has no base DEX files.')
+            def checksums = dexFiles.collect { entry ->
+                def digest = MessageDigest.getInstance('SHA-256')
+                zip.getInputStream(entry).withCloseable { input ->
+                    byte[] buffer = new byte[8192]
+                    int count
+                    while ((count = input.read(buffer)) != -1) digest.update(buffer, 0, count)
+                }
+                digest.digest().encodeHex().toString()
+            }
+            if (checksums.sort() != report.dexFiles*.checksum.sort()) {
+                throw new GradleException('R8 metadata does not match the DEX files in this bundle.')
+            }
+
+            def scores = [:]
+            ['obfuscation': 'noObfuscationPercentage', 'optimization': 'noOptimizationPercentage',
+             'shrinking': 'noShrinkingPercentage'].each { name, field ->
+                def blocked = report.stats[field]
+                if (!(blocked instanceof Number) || blocked < 0 || blocked > 100) {
+                    throw new GradleException("Missing or invalid R8 score: ${field}")
+                }
+                scores[name] = 100 - blocked
+                if (scores[name] < 25) throw new GradleException("R8 ${name} is only ${scores[name]}%; expected at least 25%.")
+            }
+            logger.lifecycle("Verified Play bundle: DEX ${dexFiles.sum { it.size }} bytes; R8 ${report.version}; ${scores}")
+        }
+    }
+}

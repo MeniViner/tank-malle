@@ -4,6 +4,7 @@ import { Button } from '../Button';
 import { PumpIcon, GaugeIcon, UploadIcon } from '../icons';
 import { MAX_PIXELS, type FoundRegion, type Accept, type DisplayKind, type DisplayReading, type DisplayResult, type ScanContext } from '../../lib/scan/engine';
 import type { ScanAttempt } from '../../lib/scan/samples';
+import { nativeBuild } from '../../lib/native/platform';
 import { readPhotoMetadata, type PhotoMetadata } from '../../lib/scan/photoMetadata';
 
 /**
@@ -103,6 +104,24 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG, או סגרו את הצילום והשלימו בטופס.');}
     finally{if(token===generation.current){setBusy(false);setPreview(null);setFound(null);}URL.revokeObjectURL(url);}
   }
+  async function takeSystemPhoto() {
+    const token = ++generation.current;
+    cancel();
+    endCamera();
+    setCameraOpen(false);
+    setBusy(true);
+    setMessage('');
+    lastFrame.current = '';
+    try {
+      const { captureScanPhoto } = await import('../../lib/native/camera');
+      const photo = await captureScanPhoto();
+      if (token === generation.current && photo) await load(photo);
+    } catch {
+      if (token === generation.current) setMessage('המצלמה לא זמינה. אפשר לבחור תמונה או להמשיך ידנית.');
+    } finally {
+      if (token === generation.current) setBusy(false);
+    }
+  }
   const Icon=kind==='pump'?PumpIcon:GaugeIcon;
   return <div className="flex flex-col gap-4">
     {busy&&preview?<div className="scan-reading" data-testid="scan-reading" data-found={found?'true':undefined} aria-hidden="true">
@@ -113,6 +132,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       <span className="scan-reading-label">{found?<>נמצא!</>:<><span className="scan-reading-dots"><i/><i/><i/></span>קוראים את הספרות</>}</span></div>:
      cameraOpen?<LiveCamera onFrame={frame} onClose={closeCamera}/>:
       <div className="scan-start"><span className="scan-start-icon"><Icon size={38}/></span><h3>{kind==='pump'?'מצלמים את המשאבה':'עוברים למד הקילומטרים'}</h3><p>{kind==='pump'?'הסכום והליטרים ייקראו יחד, אוטומטית.':'כוונו אל מד המרחק המצטבר כשהרכב עומד.'}</p><Button full onClick={()=>{setMessage('');setCameraOpen(true);}}>פתיחת מצלמה</Button></div>}
+    {nativeBuild ? <Button variant="secondary" disabled={busy} onClick={() => void takeSystemPhoto()}>צילום דרך מצלמת המכשיר</Button> : null}
     <label className="scan-photo-choice"><UploadIcon size={18}/>{busy?'קוראים את התמונה…':'בחירת תמונה מהמכשיר'}<input className="sr-only" type="file" accept="image/*" aria-label={kind==='pump'?'תמונת משאבה':'תמונת קילומטראז׳'} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}}/></label>
     {message?<p role="status" className="text-sm leading-relaxed text-muted">{message}</p>:null}
     {busy?<p role="status" className="sr-only">מזהים את הספרות במכשיר…</p>:null}

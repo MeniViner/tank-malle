@@ -2,7 +2,7 @@ import type { Fillup, Vehicle } from "./types";
 import { EXPORT_SCHEMA_VERSION } from "./import/schema";
 import { vehicleLabel } from "./format";
 import type { TankObservation, TankPlan } from "./tank/types";
-import { exportFilename } from "./exportFilename";
+import { downloadTextFile } from "./downloadFile";
 
 /**
  * Versioned raw-data export.
@@ -158,26 +158,18 @@ function slugify(vehicle: Vehicle | null): string {
   );
 }
 
-function download(content: string, filename: string): void {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = exportFilename(filename);
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+function download(content: string, filename: string, current?: () => boolean) {
+  return downloadTextFile(content, filename, "text/csv;charset=utf-8;", new Date(), current);
 }
 
 /** Export one vehicle's records. */
-export function downloadFillupsCsv(fillups: Fillup[], vehicle: Vehicle | null): void {
-  download(fillupsToCsv(fillups, vehicle), `tank-maleh-${slugify(vehicle)}.csv`);
+export function downloadFillupsCsv(fillups: Fillup[], vehicle: Vehicle | null, current?: () => boolean) {
+  return download(fillupsToCsv(fillups, vehicle), `tank-maleh-${slugify(vehicle)}.csv`, current);
 }
 
 /** Export every vehicle's records in one file, with the vehicle on each row. */
-export function downloadAllVehiclesCsv(rows: ExportRow[]): void {
-  download(rowsToCsv(rows), "tank-maleh-all-vehicles.csv");
+export function downloadAllVehiclesCsv(rows: ExportRow[], current?: () => boolean) {
+  return download(rowsToCsv(rows), "tank-maleh-all-vehicles.csv", current);
 }
 
 /* ------------------------------------------------------------------ *
@@ -272,6 +264,7 @@ export function tankUpdatesToCsv(
 export function downloadTankUpdatesCsv(
   observations: readonly TankObservation[],
   plans: readonly TankPlan[],
-): void {
-  download(tankUpdatesToCsv(observations, plans), "tank-maleh-tank-updates.csv");
+  current?: () => boolean,
+) {
+  return download(tankUpdatesToCsv(observations, plans), "tank-maleh-tank-updates.csv", current);
 }

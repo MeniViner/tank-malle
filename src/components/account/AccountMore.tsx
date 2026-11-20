@@ -5,6 +5,7 @@ import { useToast } from "../../context/ToastContext";
 import { useInstallPrompt } from "../../hooks/useInstallPrompt";
 import { APP_SHARE_URL, browserShareDeps, buildSharePayload, shareApp } from "../../lib/share";
 import { APP_VERSION, BUILD_COMMIT, BUILD_DIRTY } from "../../lib/version";
+import { nativeBuild } from "../../lib/native/platform";
 import { GroupRow } from "../DesignPrimitives";
 import { NumRun } from "../Fmt";
 import { Sheet } from "../Sheet";
@@ -40,7 +41,13 @@ export function AccountMore({ children }: { children?: ReactNode }) {
     shareBusy.current = true;
     setSharing(true);
     try {
-      const outcome = await shareApp(browserShareDeps());
+      const deps = browserShareDeps();
+      if (nativeBuild) {
+        const { Share } = await import("@capacitor/share");
+        if (!token?.active || scope.current !== token) return;
+        deps.share = async payload => { await Share.share({ ...payload }); };
+      }
+      const outcome = await shareApp(deps);
       if (!token?.active || scope.current !== token) return;
       if (outcome === "copied") showToast({ tone: "success", title: "הקישור הועתק" });
       else if (outcome === "manual") { setManualNote(""); setManualOpen(true); }
@@ -100,14 +107,14 @@ export function AccountMore({ children }: { children?: ReactNode }) {
       <GroupRow icon={<MessageIcon />} title="שליחת משוב" onClick={() => navigate("/feedback")} />
       <GroupRow icon={<ShareIcon />} title="שיתוף האפליקציה" testId="account-share"
         onClick={() => void share()} disabled={sharing} chevron={false} />
-      <GroupRow icon={<PhoneIcon />} testId="account-install"
+      {nativeBuild ? null : <GroupRow icon={<PhoneIcon />} testId="account-install"
         title={installState === "installed" ? "האפליקציה מותקנת" : "התקנת האפליקציה"}
         subtitle={installState === "manual" ? manualInstall : undefined}
         value={installing ? "ממתינים…" : undefined}
         onClick={installState === "available" ? () => void installApp() : undefined}
         disabled={installing}>
         {installState === "installed" ? <CheckIcon size={20} aria-hidden="true" /> : null}
-      </GroupRow>
+      </GroupRow>}
       <GroupRow icon={<DocumentIcon />} title="תנאי שימוש" onClick={() => navigate("/legal/terms")} />
       <GroupRow icon={<DocumentIcon />} title="מדיניות פרטיות" onClick={() => navigate("/legal/privacy")} />
       {children}
@@ -116,7 +123,7 @@ export function AccountMore({ children }: { children?: ReactNode }) {
       טנק מלא · גרסה <NumRun>{APP_VERSION}</NumRun> · בילד <NumRun>{BUILD_COMMIT.slice(0, 10)}</NumRun>
       {BUILD_DIRTY ? " · שינויים מקומיים" : ""}
     </p>
-    <div className="[&_button]:min-h-11"><UpdateCheckButton /></div>
+    {nativeBuild ? null : <div className="[&_button]:min-h-11"><UpdateCheckButton /></div>}
 
     <Sheet open={manualOpen} onClose={() => setManualOpen(false)} title="שיתוף האפליקציה">
       <div className="flex flex-col gap-4">

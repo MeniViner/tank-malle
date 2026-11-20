@@ -7,7 +7,11 @@ import { CheckIcon, GoogleMark, TabPumpIcon } from "../components/icons";
 import "../entry-design.css";
 
 export function SignIn() {
-  const { signIn, signingIn, error } = useAuth();
+  const { signIn, signInEmail, signingIn, error } = useAuth();
+  const [emailOpen, setEmailOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [credentialsInvalid, setCredentialsInvalid] = useState(false);
   const [consent, setConsent] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [shake, setShake] = useState(false);
@@ -16,7 +20,7 @@ export function SignIn() {
   const consentId = useId();
   const invalidConsent = attempted && !consent;
 
-  function submit() {
+  function submit(withEmail = false) {
     if (submitting.current || signingIn) return;
     if (!consent) {
       setAttempted(true);
@@ -24,9 +28,16 @@ export function SignIn() {
       checkbox.current?.focus();
       return;
     }
+    if (withEmail && (!email.trim() || !password)) {
+      setCredentialsInvalid(true);
+      return;
+    }
     // Keep the actual popup call in this user gesture, including installed Safari.
     submitting.current = true;
-    void signIn().finally(() => { submitting.current = false; });
+    void (withEmail ? signInEmail(email, password) : signIn()).finally(() => {
+      submitting.current = false;
+      setPassword("");
+    });
   }
 
   return <main className="entry-page entry-signin" data-testid="signin">
@@ -34,7 +45,7 @@ export function SignIn() {
     <h1 className="entry-signin-title" data-testid="signin-title">כל מה שהרכב עולה. במקום אחד.</h1>
     <p className="entry-intro">דלק או חשמל, טיפולים, ביטוח וטסט; צריכה אמיתית ותזכורות. לרכב פרטי ולרכב של העסק, גם בלי קליטה.</p>
     <div className="entry-signin-space"/>
-    <form className="entry-signin-form" noValidate onSubmit={event => { event.preventDefault(); submit(); }}>
+    <form className="entry-signin-form" noValidate onSubmit={event => { event.preventDefault(); submit(emailOpen); }}>
       <div className={"entry-consent" + (shake ? " entry-consent-shake" : "")}
         onAnimationEnd={() => setShake(false)}>
         <label className="entry-consent-control" htmlFor={consentId}>
@@ -54,10 +65,23 @@ export function SignIn() {
       {invalidConsent ? <p id={consentId + "-error"} data-testid="signin-consent-error" className="entry-error" role="alert">
         צריך לסמן את התיבה כדי להמשיך
       </p> : null}
-      <button type="submit" className="entry-google" data-testid="signin-google" disabled={signingIn} aria-busy={signingIn || undefined}>
+      <button type={emailOpen ? "button" : "submit"} onClick={emailOpen ? () => submit() : undefined} className="entry-google" data-testid="signin-google" disabled={signingIn} aria-busy={signingIn || undefined}>
         {signingIn ? <Spinner/> : <GoogleMark size={22}/>}
         <span>{signingIn ? "מתחברים…" : <>התחברות עם <bdi dir="ltr">Google</bdi></>}</span>
       </button>
+      <button type="button" className="entry-email-toggle" data-testid="signin-email-toggle" aria-expanded={emailOpen} aria-controls={consentId + "-email"} disabled={signingIn}
+        onClick={() => { setEmailOpen(open => !open); setPassword(""); setCredentialsInvalid(false); }}>
+        {emailOpen ? "סגירת כניסה באימייל" : "התחברות עם אימייל וסיסמה"}
+      </button>
+      {emailOpen ? <div id={consentId + "-email"} className="entry-email-fields">
+        <label>אימייל<input type="email" name="email" dir="ltr" autoComplete="username" autoCapitalize="none" spellCheck={false} value={email} disabled={signingIn}
+          onChange={event => { setEmail(event.currentTarget.value); setCredentialsInvalid(false); }}/></label>
+        <label>סיסמה<input type="password" name="password" dir="ltr" autoComplete="current-password" value={password} disabled={signingIn}
+          onChange={event => { setPassword(event.currentTarget.value); setCredentialsInvalid(false); }}/></label>
+        {credentialsInvalid ? <p className="entry-error" role="alert">יש להזין אימייל וסיסמה.</p> : null}
+        <button type="submit" className="entry-email-submit" data-testid="signin-email-submit" disabled={signingIn}>{signingIn ? "מתחברים…" : "כניסה"}</button>
+        <p className="entry-trust">לחשבון קיים עם סיסמה. אפשר גם להמשיך עם Google.</p>
+      </div> : null}
       {error ? <p data-testid="signin-auth-error" className="entry-error" role="alert"><NumericText>{error}</NumericText></p> : null}
       <p className="entry-trust">הנתונים נשמרים בחשבון שלכם.</p>
     </form>

@@ -1,0 +1,81 @@
+apply plugin: 'com.android.application'
+
+def signingDir = System.getenv('TANK_MALLE_SIGNING_DIR')
+def buildInfoFile = file('src/main/assets/public/build-info.json')
+def buildInfo = buildInfoFile.exists() ? new groovy.json.JsonSlurper().parse(buildInfoFile) : [:]
+
+android {
+    namespace = "com.meniviner.tankmalle"
+    compileSdk = rootProject.ext.compileSdkVersion
+    testBuildType project.hasProperty('playReleaseTest') ? 'release' : 'debug'
+    defaultConfig {
+        applicationId "com.meniviner.tankmalle"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode = Integer.parseInt(System.getenv('TANK_MALLE_BUILD_NUMBER') ?: '18')
+        versionName = buildInfo.version ?: "1.10.0"
+        testInstrumentationRunner project.hasProperty('playReleaseTest')
+            ? "com.meniviner.tankmalle.ReleaseSmokeInstrumentation"
+            : "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    flavorDimensions += "profile"
+    productFlavors {
+        personal { dimension "profile" }
+        qa {
+            dimension "profile"
+            applicationIdSuffix ".qa"
+            resValue "string", "app_name", "טנק מלא QA"
+            resValue "string", "title_activity_main", "טנק מלא QA"
+        }
+    }
+    signingConfigs {
+        if (signingDir) {
+            personalKey {
+                def password = new File(signingDir, 'password').text.trim()
+                storeFile file(new File(signingDir, 'tank-malle.p12'))
+                storeType 'PKCS12'
+                storePassword password
+                keyAlias 'tank-malle'
+                keyPassword password
+            }
+        }
+    }
+    buildTypes {
+        release {
+            if (signingDir) signingConfig signingConfigs.personalKey
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+androidComponents.beforeVariants(androidComponents.selector().all()) { variant ->
+    if (buildInfo.mode) variant.enable = buildInfo.mode == "native-" + variant.productFlavors[0].second
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+apply from: 'verify-play-bundle.gradle'

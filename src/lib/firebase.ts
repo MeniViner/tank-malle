@@ -17,6 +17,7 @@ import {
   type Firestore,
 } from "firebase/firestore";
 import { authDomainFor } from "./authFlow";
+import { nativeBuild } from "./native/platform";
 
 const config = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -41,7 +42,7 @@ export const app: FirebaseApp = initializeApp(config);
 /** Explicit persistence order keeps Safari/iOS PWA sessions alive. */
 export const auth: Auth = initializeAuth(app, {
   persistence: [indexedDBLocalPersistence, browserLocalPersistence],
-  popupRedirectResolver: browserPopupRedirectResolver,
+  ...(nativeBuild ? {} : { popupRedirectResolver: browserPopupRedirectResolver }),
 });
 
 /**

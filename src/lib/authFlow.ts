@@ -13,5 +13,8 @@ export function authErrorMessage(code: string): string | null {
   if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") return "חלון ההתחברות נחסם. אפשרו חלונות קופצים ונסו שוב.";
   if (code === "auth/unauthorized-domain") return "כתובת האפליקציה אינה מורשית להתחברות.";
   if (code === "auth/web-storage-unsupported") return "שמירת ההתחברות חסומה בדפדפן. אפשרו אחסון לאתר ונסו שוב.";
+  if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found", "auth/invalid-email"].includes(code)) return "האימייל או הסיסמה אינם נכונים. בדקו את הפרטים ונסו שוב.";
+  if (code === "auth/too-many-requests") return "בוצעו יותר מדי ניסיונות התחברות. המתינו מעט ונסו שוב.";
+  if (code === "auth/user-disabled") return "החשבון הזה אינו פעיל. פנו לתמיכה.";
   return "ההתחברות לא הושלמה. נסו שוב.";
 }

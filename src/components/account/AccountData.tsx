@@ -7,6 +7,7 @@ import { loadAccountExport } from "../../lib/accountExport";
 import { downloadAllVehiclesCsv, downloadFillupsCsv, downloadTankUpdatesCsv } from "../../lib/csv";
 import { db } from "../../lib/firebase";
 import { num } from "../../lib/format";
+import { nativeBuild } from "../../lib/native/platform";
 import { ChoiceList } from "../ChoiceList";
 import { GroupRow } from "../DesignPrimitives";
 import { NumRun } from "../Fmt";
@@ -55,9 +56,12 @@ export function AccountData({ onImported }: { onImported: () => void }) {
         showToast({ tone: "info", title: "אין עדיין נתונים מהסוג הזה לייצוא" });
         return;
       }
-      if (kind === "fillups") downloadAllVehiclesCsv(data.rows);
-      else downloadTankUpdatesCsv(data.observations, data.plans);
-      showToast({ tone: "success", title: "הקובץ הוכן להורדה", detail: "כולל רכבים בארכיון. בדקו שהקובץ נשמר בהורדות הדפדפן." });
+      const exported = kind === "fillups"
+        ? await downloadAllVehiclesCsv(data.rows, current)
+        : await downloadTankUpdatesCsv(data.observations, data.plans, current);
+      if (exported && current() && !nativeBuild) {
+        showToast({ tone: "success", title: "הקובץ הוכן להורדה", detail: "כולל רכבים בארכיון. בדקו שהקובץ נשמר בהורדות הדפדפן." });
+      }
     } catch {
       if (current()) setError("הייצוא לא הושלם. בדקו את החיבור ונסו שוב.");
     } finally {
@@ -66,7 +70,7 @@ export function AccountData({ onImported }: { onImported: () => void }) {
     }
   }
 
-  function exportSelected(kind: "fillups" | "tank") {
+  async function exportSelected(kind: "fillups" | "tank") {
     if (accountDeletionPending) return;
     if (exportScope === "account") { void exportAll(kind); return; }
     if (!activeVehicle || exportingRef.current) return;
@@ -75,9 +79,20 @@ export function AccountData({ onImported }: { onImported: () => void }) {
       showToast({ tone: "info", title: "אין עדיין נתונים מהסוג הזה לייצוא" });
       return;
     }
-    if (kind === "fillups") downloadFillupsCsv(fillups, activeVehicle);
-    else downloadTankUpdatesCsv(observations, plans);
-    showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
+    const current = captureScope();
+    exportingRef.current = true;
+    setExporting(true);
+    try {
+      const exported = kind === "fillups"
+        ? await downloadFillupsCsv(fillups, activeVehicle, current)
+        : await downloadTankUpdatesCsv(observations, plans, current);
+      if (exported && current() && !nativeBuild) showToast({ tone: "success", title: "הקובץ הוכן להורדה" });
+    } catch {
+      if (current()) setError("הייצוא לא הושלם. נסו שוב.");
+    } finally {
+      exportingRef.current = false;
+      if (current()) setExporting(false);
+    }
   }
 
   return <section className="account-section" aria-labelledby="account-data-heading">
@@ -105,7 +120,7 @@ export function AccountData({ onImported }: { onImported: () => void }) {
             subtitle={exporting ? "טוענים נתונים מכל הרכבים…" : `CSV נפרד · ${scopeLabel}`}
             disabled={exporting || (exportScope === "active" && !activeVehicle)} onClick={() => exportSelected("tank")} />
         </div>
-        <p className="account-note">כל קובץ יורד בנפרד ונפתח ב-Excel. בייצוא של כל החשבון נדרש חיבור לשרת.</p>
+        <p className="account-note">{nativeBuild ? "כל קובץ נפתח בתפריט השיתוף של המכשיר." : "כל קובץ יורד בנפרד ונפתח ב-Excel."} בייצוא של כל החשבון נדרש חיבור לשרת.</p>
         {error ? <p role="alert" className="account-error">{error}</p> : null}
       </div>
     </Sheet>

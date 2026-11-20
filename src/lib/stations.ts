@@ -1,4 +1,5 @@
 import { num } from "./format";
+import { nativeBuild } from "./native/platform";
 import type { Station } from "./types";
 
 /**
@@ -329,6 +330,26 @@ export function locateStations(
   radiusMeters = 400,
   options: { maximumAge?: number } = {},
 ): Promise<GeoResult> {
+  const fromCoords = async (coords: { latitude: number; longitude: number }): Promise<GeoResult> => {
+    const point = { lat: coords.latitude, lng: coords.longitude };
+    if (!validPosition(point)) return { status: "unavailable", position: null, nearby: [] };
+    const catalog = await loadStationCatalog().catch(() => null);
+    const nearby = findNearby(catalog, point, radiusMeters);
+    return { status: nearby.length > 0 ? "ok" : "none", position: point, nearby };
+  };
+  const positionOptions = { enableHighAccuracy: true, timeout: 10_000, maximumAge: options.maximumAge ?? 60_000 };
+  if (nativeBuild) {
+    return import("@capacitor/geolocation").then(async ({ Geolocation }): Promise<GeoResult> => {
+      let permission = await Geolocation.checkPermissions();
+      if (permission.location === "prompt" || permission.location === "prompt-with-rationale") {
+        permission = await Geolocation.requestPermissions();
+      }
+      if (permission.location !== "granted" && permission.coarseLocation !== "granted") {
+        return { status: "denied", position: null, nearby: [] };
+      }
+      return fromCoords((await Geolocation.getCurrentPosition(positionOptions)).coords);
+    }).catch(() => ({ status: "unavailable", position: null, nearby: [] }));
+  }
   return new Promise((resolve) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       resolve({ status: "unavailable", position: null, nearby: [] });
@@ -336,23 +357,7 @@ export function locateStations(
     }
 
     try { navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const point = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        if (!validPosition(point)) {
-          resolve({ status: "unavailable", position: null, nearby: [] });
-          return;
-        }
-        const catalog = await loadStationCatalog().catch(() => null);
-        const nearby = findNearby(catalog, point, radiusMeters);
-        resolve({
-          status: nearby.length > 0 ? "ok" : "none",
-          position: point,
-          nearby,
-        });
-      },
+      (position) => { void fromCoords(position.coords).then(resolve); },
       (error) => {
         resolve({
           status: error.code === error.PERMISSION_DENIED ? "denied" : "unavailable",
@@ -360,7 +365,7 @@ export function locateStations(
           nearby: [],
         });
       },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: options.maximumAge ?? 60_000 },
+      positionOptions,
     ); } catch {
       resolve({ status: "unavailable", position: null, nearby: [] });
     }
