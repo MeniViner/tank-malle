@@ -28,7 +28,12 @@ proposes; the person checks the numbers in the fill-up form and saves there.
    segment or a narrow "1") are both plausible, both are doubted. Pump: amount and litres must be
    stacked, the litres row under the amount; litres × price must equal the
    amount to the agora — the price row when one is read, otherwise some
-   whole-agora price. If the first pass is not confident, a lower ink threshold
+   whole-agora price. The fill-up form passes the price it would suggest
+   (`pricePerLiter`), which counts for more than an unexplained exact sum. A
+   decimal point that is not seen is assumed at a cost; when both rows are read
+   end to end, litres to the millilitre, and the sum is exact, most of that cost
+   is given back, in proportion to how unlikely the exact sum is by chance (none
+   for a few litres). If the first pass is not confident, a lower ink threshold
    is tried for faint displays, and the rows just above and below a well-read
    pump row are cut out directly.
 5. **Answer only when confident** (`index.ts`): below `ACCEPT` the app says the
@@ -56,6 +61,22 @@ angle. Median time: about 2 s per 12 MP photo on an M-series Mac in Node; the
 app runs it in a worker with a 45 s limit for files.
 
 Raw per-photo results: `docs/releases/2026-11-11-scan-engine/real-photos.json`.
+
+## Pumps photographed off a screen (2026-11-20, engine 4)
+
+A screen recording of the live camera pointed at web photos of five Gilbarco
+pumps on a laptop: 218 frames, each read at two sizes. The displays are small
+and their decimal points are a pixel or two.
+
+| | right reading above the threshold | wrong reading above the threshold |
+|---|---|---|
+| engine 3 | 35 | 2 |
+| engine 4 (points placed by the exact sum) | 61 | 2 |
+
+The two wrong readings are the same in both: an amount that lost its leading
+"1" paired with the price row taken as litres. The recording is private and
+this set has not been run on the owner's 43 photos; run
+`scripts/scan-real/run.mjs` on them before trusting the change further.
 
 ## Measured on other cars: TRODO (2026-11-11)
 
