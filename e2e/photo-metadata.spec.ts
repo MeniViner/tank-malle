@@ -109,3 +109,16 @@ test('reading a chosen photo shows the photo with a scanning animation', async (
   await dialog.getByTestId('scan-reading').screenshot({ path: 'test-results/scan-reading.png' });
   await expect(dialog.getByTestId('scan-reading')).toHaveCount(0, { timeout: 60_000 });
 });
+
+test('after reading, the rows found are framed in red for a moment before the form moves on', async ({ page }) => {
+  await signedInWithData(page, { fillups: [] });
+  await page.goto('/fillup/new');
+  await page.getByTestId('fillup-camera').click();
+  const dialog = page.getByRole('dialog', { name: 'תדלוק בשני צילומים', exact: true });
+  await dialog.locator('input[aria-label="תמונת משאבה"]').setInputFiles({ name: 'pump.jpg', mimeType: 'image/jpeg', buffer: await pumpPhoto(new Date()) });
+  await expect(dialog.getByTestId('scan-found-box')).toHaveCount(2);
+  await page.waitForTimeout(500);
+  await dialog.getByTestId('scan-reading').screenshot({ path: 'test-results/scan-found.png' });
+  await expect(dialog.getByText('המשאבה נקראה', { exact: true })).toBeVisible();
+  await expect(dialog.getByTestId('scan-found-box')).toHaveCount(0);
+});

@@ -131,7 +131,7 @@ test.describe("Android system Back through the Capacitor adapter", () => {
     expect(await minimizeCalls(page)).toBe(0);
   });
 
-  test("tabs, Account, Notifications, Import, reminders and faults preserve route order", async ({ page }) => {
+  test("Back follows the hierarchy: nested screen → its tab, tab → Home, never the visit history", async ({ page }) => {
     const scope = await homeFixture(page);
     await homeKmReminder(scope);
     await setDocument(`${scope.base}/vehicleIssues/back-issue`, {
@@ -151,22 +151,27 @@ test.describe("Android system Back through the Capacitor adapter", () => {
     await expect(page).toHaveURL("/vehicle/issues/back-issue");
     await back(page);
     await expect(page).toHaveURL("/vehicle");
-    // A popstate updates the URL before React commits the destination. Wait
-    // for the previous Back transition before testing two new Back events.
     await expect(page.getByRole("heading", { name: "מה קורה ברכב" })).toBeVisible();
-
-    // Two native events before the pending popstate may only traverse one entry.
-    await page.evaluate(() => {
-      window.testNativeBack!.back();
-      window.testNativeBack!.back();
-    });
-    await expect(page).toHaveURL("/stats");
-    await expect(page.getByTestId("insights-page")).toBeVisible();
+    // A press while the previous Back is still committing is ignored by design; let it settle.
+    await page.waitForTimeout(400);
+    // Visited Journal and Insights before: Back from a tab still goes straight Home.
     await back(page);
-    await expect(page).toHaveURL("/history");
+    await expect(page).toHaveURL("/");
+    // Home → Journal → Home → Journal, then Back: Home, then the exit prompt (no replay).
+    for (let i = 0; i < 2; i++) {
+      await page.getByTestId("tab-history").click();
+      await expect(page.getByTestId("journal-page")).toBeVisible();
+      await page.getByTestId("tab-home").click();
+      await expect(page).toHaveURL("/");
+    }
+    await page.getByTestId("tab-history").click();
     await expect(page.getByTestId("journal-page")).toBeVisible();
     await back(page);
     await expect(page).toHaveURL("/");
+    await back(page);
+    await expect(exitPrompt(page)).toBeVisible();
+    await expect(page).toHaveURL("/");
+    await page.waitForTimeout(2200);
 
     await page.getByRole("button", { name: "התראות", exact: true }).click();
     await expect(page).toHaveURL("/notifications");

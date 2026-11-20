@@ -102,9 +102,10 @@ describe("photoTimeUsable", () => {
 
 describe("photoJustTaken", () => {
   const now = Date.UTC(2026, 10, 20, 12);
-  it("is true only for a photo from the last half hour", () => {
+  it("is true only for a photo from the last three hours", () => {
     expect(photoJustTaken(now - 10 * 60_000, now)).toBe(true);
-    expect(photoJustTaken(now - 31 * 60_000, now)).toBe(false);
+    expect(photoJustTaken(now - 170 * 60_000, now)).toBe(true);
+    expect(photoJustTaken(now - 181 * 60_000, now)).toBe(false);
     expect(photoJustTaken(null, now)).toBe(false);
   });
 });

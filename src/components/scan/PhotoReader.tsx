@@ -1,8 +1,8 @@
 import { LiveCamera } from './LiveCamera';
-import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
+import { useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
 import { Button } from '../Button';
 import { PumpIcon, GaugeIcon, UploadIcon } from '../icons';
-import { MAX_PIXELS, type Accept, type DisplayKind, type DisplayReading, type DisplayResult, type ScanContext } from '../../lib/scan/engine';
+import { MAX_PIXELS, type FoundRegion, type Accept, type DisplayKind, type DisplayReading, type DisplayResult, type ScanContext } from '../../lib/scan/engine';
 import type { ScanAttempt } from '../../lib/scan/samples';
 import { readPhotoMetadata, type PhotoMetadata } from '../../lib/scan/photoMetadata';
 
@@ -15,8 +15,8 @@ export type PhotoReaderControls = { closeCamera: () => boolean };
 
 export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context,onAttempt,accept,controlsRef }: { kind:DisplayKind;autoOpen?:boolean;onRead:(values:DisplayReading,live:boolean)=>void;
   /** Where and when a chosen photo was taken (EXIF), read on the device; not called for camera frames. */
-  onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
-  const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[preview,setPreview]=useState<string|null>(null),[message,setMessage]=useState('');
+  onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind,live?:boolean)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
+  const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[preview,setPreview]=useState<string|null>(null),[aspect,setAspect]=useState<number|null>(null),[found,setFound]=useState<FoundRegion[]|null>(null),[message,setMessage]=useState('');
   const generation=useRef(0),worker=useRef<Worker|null>(null),pending=useRef<((result:DisplayResult)=>void)|null>(null),lastFrame=useRef('');
   const journal=(context?.lastOdometer??0)>0,report=useRef(onAttempt),finish=useRef(()=>{});
   const sharingRevision = useRef(0);
@@ -63,13 +63,13 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     const session=camera.current;
     if(session){session.frames++;if(result.sample&&(result.sample.confidence??-1)>=(session.best?.sample?.confidence??-1))session.best=result;}
     const signature=result.status==='read'?JSON.stringify(result.values):'';
-    if(signature && signature===lastFrame.current && result.status==='read'){endCamera(result);onRead(result.values,true);return true;}
+    if(signature && signature===lastFrame.current && result.status==='read'){endCamera(result);onPhotoMetadata?.({takenAt:null,position:null},kind,true);onRead(result.values,true);return true;}
     lastFrame.current=signature;return false;
   }
   async function load(file?:File) {
     if(!file)return;
     const sharingAtStart = sharingRevision.current;
-    const token=++generation.current;cancel();endCamera();setCameraOpen(false);setBusy(false);setMessage('');lastFrame.current='';
+    const token=++generation.current;cancel();endCamera();setCameraOpen(false);setBusy(false);setMessage('');setFound(null);setAspect(null);lastFrame.current='';
     if(file.size>20_000_000 || !(/^image\/(jpeg|png|webp|heic|heif|avif)$/.test(file.type)||(!file.type&&/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)))){setMessage('בחרו תמונה בגודל עד 20 MB.');return;}
     if(onPhotoMetadata)void readPhotoMetadata(file).then(metadata=>{if(token===generation.current)onPhotoMetadata(metadata,kind);});
     setBusy(true);const url=URL.createObjectURL(file);setPreview(url);
@@ -80,6 +80,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       await new Promise<void>((resolve,reject)=>{image.onload=()=>resolve();image.onerror=()=>reject(new Error('image'));image.src=url;});
       if(token!==generation.current)return;
       if(!image.naturalWidth||image.naturalWidth*image.naturalHeight>60_000_000)throw new Error('size');
+      setAspect(image.naturalWidth/image.naturalHeight);
       const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');if(!ctx)throw new Error('canvas');
       // The whole photo at full size: a display is often a small part of it,
       // and shrinking the photo first would erase its digits.
@@ -93,14 +94,23 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       if (sharingAtStart === sharingRevision.current) {
         report.current?.({kind,source:'file',result,frames:1,seconds:(Date.now()-started)/1000,journal});
       }
-      if(result.status==='read'){onRead(result.values,false);return;}
+      if(result.status==='read'){
+        // A beat to show where the numbers were found before moving on.
+        if(result.regions?.length){setFound(result.regions);await new Promise(resolve=>setTimeout(resolve,1100));if(token!==generation.current)return;}
+        onRead(result.values,false);return;
+      }
       setMessage('הספרות עדיין לא ברורות מספיק. נסו צילום קרוב יותר בלי סנוור, או סגרו את הצילום והשלימו בטופס.');
     }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG, או סגרו את הצילום והשלימו בטופס.');}
-    finally{if(token===generation.current){setBusy(false);setPreview(null);}URL.revokeObjectURL(url);}
+    finally{if(token===generation.current){setBusy(false);setPreview(null);setFound(null);}URL.revokeObjectURL(url);}
   }
   const Icon=kind==='pump'?PumpIcon:GaugeIcon;
   return <div className="flex flex-col gap-4">
-    {busy&&preview?<div className="scan-reading" data-testid="scan-reading" aria-hidden="true"><img src={preview} alt=""/><span className="scan-reading-grid"/><span className="scan-reading-beam"/><span className="scan-reading-corners"/><span className="scan-reading-label"><span className="scan-reading-dots"><i/><i/><i/></span>קוראים את הספרות</span></div>:
+    {busy&&preview?<div className="scan-reading" data-testid="scan-reading" data-found={found?'true':undefined} aria-hidden="true">
+      <div className="scan-reading-photo" style={aspect?{'--ar':aspect} as CSSProperties:undefined}><img src={preview} alt=""/>
+        {found?found.map((region,i)=><span key={i} className="scan-found-box" data-testid="scan-found-box" style={{left:`${region.cx*100}%`,top:`${region.cy*100}%`,width:`${region.width*100}%`,height:`${region.height*100}%`,transform:`translate(-50%,-50%) rotate(${region.angle}deg)`,animationDelay:`${i*.12}s`}}/>):null}
+      </div>
+      {found?null:<><span className="scan-reading-grid"/><span className="scan-reading-beam"/></>}<span className="scan-reading-corners"/>
+      <span className="scan-reading-label">{found?<>נמצא!</>:<><span className="scan-reading-dots"><i/><i/><i/></span>קוראים את הספרות</>}</span></div>:
      cameraOpen?<LiveCamera onFrame={frame} onClose={closeCamera}/>:
       <div className="scan-start"><span className="scan-start-icon"><Icon size={38}/></span><h3>{kind==='pump'?'מצלמים את המשאבה':'עוברים למד הקילומטרים'}</h3><p>{kind==='pump'?'הסכום והליטרים ייקראו יחד, אוטומטית.':'כוונו אל מד המרחק המצטבר כשהרכב עומד.'}</p><Button full onClick={()=>{setMessage('');setCameraOpen(true);}}>פתיחת מצלמה</Button></div>}
     <label className="scan-photo-choice"><UploadIcon size={18}/>{busy?'קוראים את התמונה…':'בחירת תמונה מהמכשיר'}<input className="sr-only" type="file" accept="image/*" aria-label={kind==='pump'?'תמונת משאבה':'תמונת קילומטראז׳'} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}}/></label>

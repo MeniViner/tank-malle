@@ -32,7 +32,7 @@ export function JournalEntryRow({ row, units, kmPerLiter, ev = false, pending = 
   const content = quiet ? <>
     <span className="tm-journal-quiet-copy">
       <GaugeIcon size={14} />
-      {row.kind === "odometer" && row.odometer !== null ? <>ק״מ <NumRun>{int(row.odometer)}</NumRun></>
+      {row.kind === "odometer" && row.odometer !== null ? <>עדכנת ק״מ <NumRun>{int(row.odometer)}</NumRun></>
         : observation?.level != null ? <>{observationLevelLabel(observation)} <Percent value={observation.level * 100} /></>
           : <NumericText>{row.title}</NumericText>}
       <span className="tm-journal-meta"> · <NumericText>{dayMonthShort(date)}</NumericText>{state ? ` · ${state}` : ""}</span>

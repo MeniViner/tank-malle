@@ -90,6 +90,10 @@ test("v3 Home: order, 64 > 56 > 44 size hierarchy, facts strip, avatar ring, TCO
 
   // TCO: chip flips number, legend and sub-line; card opens the sheet on the chosen period.
   const card = page.getByTestId("tco-card");
+  // The breakdown starts behind "הצג פרטים"; once opened it stays open after a reload.
+  await expect(card.getByTestId("tco-legend")).toHaveCount(0);
+  await card.getByTestId("tco-details").click();
+  await expect(card.getByTestId("tco-details")).toHaveText("הסתרת פרטים");
   const legend = card.getByTestId("tco-legend").locator("[data-tco-legend]");
   const bar = card.getByTestId("tco-bar").locator("i");
   await expect(legend).toHaveCount(await bar.count());

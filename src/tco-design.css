@@ -19,6 +19,10 @@
 .tm-tco-sub{font-size:13.5px;line-height:18px;color:var(--ink-2)}
 .tm-tco-bar{display:flex;gap:3px;min-height:10px;border-radius:6px;overflow:hidden}
 .tm-tco-bar>i{display:block;min-width:4px;box-shadow:inset 0 0 0 1px rgb(0 0 0 / .15)}
+.tm-tco-details{position:relative;z-index:2;display:inline-flex;align-items:center;gap:5px;align-self:flex-start;min-height:44px;margin-block:-10px;padding:0 2px;border:0;background:none;color:var(--ink-2);font:600 13px/1.3 var(--font-sans);cursor:pointer}
+.tm-tco-details svg{transition:rotate .2s}
+.tm-tco-details[aria-expanded=true] svg{rotate:180deg}
+.tm-tco-details:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:6px}
 .tm-tco-legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;line-height:16px;color:var(--ink-2)}
 .tm-tco-legend>span{display:inline-flex;align-items:center;gap:6px}
 .tm-tco-legend i{width:10px;height:10px;border-radius:3px;box-shadow:inset 0 0 0 1px rgb(0 0 0 / .15);flex:none}

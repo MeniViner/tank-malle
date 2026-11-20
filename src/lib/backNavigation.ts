@@ -120,3 +120,16 @@ export function createBackController({
     },
   };
 }
+
+/**
+ * Where system Back goes from a screen: never through the visit history (Home → Journal → Home →
+ * Journal would replay every tab). A nested screen returns to its tab, a tab returns to Home, and
+ * Home asks before leaving the app.
+ */
+export function parentRoute(pathname: string): string | null {
+  const path = pathname.replace(/\/+$/, "") || "/";
+  if (path === "/") return null;
+  if (path.startsWith("/vehicle/")) return "/vehicle";
+  if (path.startsWith("/settings/")) return "/account";
+  return "/";
+}

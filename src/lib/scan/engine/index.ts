@@ -23,11 +23,18 @@ export type DisplaySample = {
   /** A small grey copy of the whole picture, only when nothing was read. */
   thumb: Gray | null;
 };
-export type DisplayResult = ({ status: 'read'; values: DisplayReading; confidence: number } | { status: 'unreadable' }) & { sample?: DisplaySample };
+/** Where a row that was read sits in the picture, as fractions of its width and height (for showing it). */
+export type FoundRegion = { cx: number; cy: number; angle: number; width: number; height: number };
+export type DisplayResult = ({ status: 'read'; values: DisplayReading; confidence: number; regions?: FoundRegion[] } | { status: 'unreadable' }) & { sample?: DisplaySample };
 export type DisplayOptions = { sample?: boolean; accept?: Partial<Accept> | null };
 
 /** Largest picture the engine is given, in pixels. */
 export const MAX_PIXELS = 16_000_000;
+
+function regionOf(word: Word, width: number, height: number): FoundRegion {
+  const { cx, cy, ux, uy, length, height: digit } = word.line;
+  return { cx: cx / width, cy: cy / height, angle: Math.atan2(uy, ux) * 180 / Math.PI, width: (length + digit * .5) / width, height: digit * 1.8 / height };
+}
 
 export function recognizeDisplay(image: RGBA, kind: DisplayKind, context: ScanContext = {}, options: DisplayOptions = {}): DisplayResult {
   const { width, height, data } = image;
@@ -38,7 +45,7 @@ export function recognizeDisplay(image: RGBA, kind: DisplayKind, context: ScanCo
   if (kind === 'odometer') {
     const best = result.odometer[0];
     if (best) { guess = { odometer: best.text }; confidence = best.confidence; }
-    if (best && acceptOdometer(best.confidence, context, accept)) answer = { status: 'read', values: { odometer: best.text }, confidence: best.confidence };
+    if (best && acceptOdometer(best.confidence, context, accept)) answer = { status: 'read', values: { odometer: best.text }, confidence: best.confidence, regions: [regionOf(best.word, width, height)] };
     for (const o of result.odometer) if (rows.length < 3 && !rows.some(r => sameRowOf(r.word, o.word))) rows.push({ role: 'odometer', word: o.word, text: o.text, confidence: o.confidence });
   } else {
     const best = result.pump[0];
@@ -46,7 +53,7 @@ export function recognizeDisplay(image: RGBA, kind: DisplayKind, context: ScanCo
       guess = { total: best.total, liters: best.liters }; confidence = best.confidence;
       rows.push({ role: 'total', word: best.words.total, text: best.total, confidence: best.confidence }, { role: 'liters', word: best.words.liters, text: best.liters, confidence: best.confidence });
       if (best.words.price && best.price) rows.push({ role: 'price', word: best.words.price, text: best.price, confidence: best.confidence });
-      if (best.confidence >= accept.pump) answer = { status: 'read', values: { total: best.total, liters: best.liters }, confidence: best.confidence };
+      if (best.confidence >= accept.pump) answer = { status: 'read', values: { total: best.total, liters: best.liters }, confidence: best.confidence, regions: [best.words.total, best.words.liters].map(word => regionOf(word, width, height)) };
     } else {
       // No coherent sale: keep the rows that look most like prices, so a person can see what was there.
       for (const w of result.words.filter(w => w.dot != null).sort((a, b) => b.fit * b.digits.length - a.fit * a.digits.length)) if (rows.length < 3 && !rows.some(r => sameRowOf(r.word, w))) rows.push({ role: 'total', word: w, text: w.text, confidence: w.fit });
