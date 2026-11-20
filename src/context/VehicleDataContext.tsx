@@ -6,7 +6,7 @@ import { subscribeResilient } from '../lib/subscribeResilient';
 import { useAuth } from './AuthContext';
 import { useData } from './DataContext';
 import { useMaintenance } from '../hooks/useMaintenance';
-import { localDay, type Job, type MaintenancePlan } from '../lib/maintenance/model';
+import { CARE_COLLECTIONS, localDay, validCareRecord, type CareData, type Job, type MaintenancePlan } from '../lib/maintenance/model';
 import { EXTRA_COLLECTIONS, decodeVehicleRecord, validVehicleRecord, type NotificationState, type VehicleCollection, type VehicleRecord } from '../lib/vehicle/model';
 import { advanceNotificationBaseline, notificationBaseline } from '../lib/vehicle/notificationBaseline';
 import { emptyExtraSources, recordExtraSourceError, type ExtraSourceState } from '../lib/vehicle/sourceState';
@@ -22,13 +22,16 @@ export interface EditingRecord {
 }
 function useVehicleSources() {
   const {user}=useAuth();const data=useData();const uid=user?.uid??'',vehicleId=data.activeVehicle?.id??'';const scope=`${uid}/${vehicleId}`;
-  const care=useMaintenance(uid,vehicleId);
+  // Demo mode: the sample's records stand in for the account's (nothing is read from or written to Firestore).
+  const demoCare=data.demo?data.demoCare??{}:null;
+  const accountCare=useMaintenance(uid,demoCare?'':vehicleId);
+  const care=useMemo(()=>demoCare?{scope,data:Object.fromEntries(CARE_COLLECTIONS.map(name=>[name,(demoCare[name]??[]).filter(row=>validCareRecord(name,row))])) as unknown as CareData,loaded:[...CARE_COLLECTIONS] as string[],cached:[] as string[],errors:[] as string[],malformed:0,loading:false}:accountCare,[demoCare,accountCare,scope]);
   const notificationLifetime=useMemo(()=>({uid,vehicleId}),[uid,vehicleId]);
   const [extra,setExtra]=useState<ExtraSourceState>(emptyExtraSources);
   const [now,setNow]=useState(()=>Date.now());
   const today=localDay(new Date(now));
   useEffect(()=>{const resume=()=>setNow(Date.now());window.addEventListener('focus',resume);document.addEventListener('visibilitychange',resume);const timer=setInterval(resume,60000);return()=>{clearInterval(timer);window.removeEventListener('focus',resume);document.removeEventListener('visibilitychange',resume);};},[]);
-  useEffect(()=>{if(!uid||!vehicleId)return;let current=true;const invalid=new Map<string,number>();
+  useEffect(()=>{if(!uid||!vehicleId||data.demo)return;let current=true;const invalid=new Map<string,number>();
     const empty=emptyExtraSources(scope);
     const off=EXTRA_COLLECTIONS.map(name=>subscribeResilient<QuerySnapshot<DocumentData>>((next,error)=>onSnapshot(collection(db,'users',uid,'vehicles',vehicleId,name),{includeMetadataChanges:true},next,error),snap=>{
       const rows=snap.docs.map(d=>decodeVehicleRecord(name,{...d.data(),id:d.id}));const valid=rows.filter(r=>validVehicleRecord(name,r));invalid.set(name,rows.length-valid.length);
@@ -36,8 +39,8 @@ function useVehicleSources() {
         ...(name==='notificationStates'?{notificationSnapshot:advanceNotificationBaseline(prev.notificationSnapshot,notificationLifetime,valid as NotificationState[],snap.docs.map(d=>d.id),!snap.metadata.fromCache&&!snap.metadata.hasPendingWrites)}:{})};});
     },{isCurrent:()=>current,label:name,onError:()=>setExtra(old=>recordExtraSourceError(old,scope,name))}));
     return()=>{current=false;off.forEach(fn=>fn());};
-  },[uid,vehicleId,scope,notificationLifetime]);
-  const scoped=extra.scope===scope?extra:emptyExtraSources(scope);
+  },[uid,vehicleId,scope,notificationLifetime,data.demo]);
+  const scoped=useMemo(()=>demoCare?{...emptyExtraSources(scope),data:{...emptyExtraSources(scope).data,...Object.fromEntries(EXTRA_COLLECTIONS.map(name=>[name,(demoCare[name]??[]) as VehicleRecord[]]))},loaded:[...EXTRA_COLLECTIONS] as string[]}:extra.scope===scope?extra:emptyExtraSources(scope),[demoCare,extra,scope]);
   const mileage=useMemo(()=>mileageEvidence(data.fillups,data.observations,care.data),[data.fillups,data.observations,care.data]);
   const ledger=useMemo(()=>buildLedger(data.fillups,data.observations,care.data,scoped.data),[data.fillups,data.observations,care.data,scoped.data]);
   const incomplete=care.loading||care.cached.length>0||care.errors.length>0||care.malformed>0||scoped.loaded.length<2||scoped.cached.length>0||scoped.errors.length>0||scoped.malformed>0||data.loadingFillups||data.fillupsFromCache||!!data.fillupsError||data.malformedFillups.length>0||data.observationsStatus!=='ready'||data.outbox.some(op=>op.vehicleId===vehicleId);

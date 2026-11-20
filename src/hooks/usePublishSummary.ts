@@ -32,12 +32,13 @@ import type { Stats } from "../lib/stats";
 export function usePublishSummary(stats: Stats): void {
   const { user } = useAuth();
   const vehicleData = useVehicleData();
-  const { activeVehicle, activeVehicles, ready, loadingFillups, accountDeletionPending, loadVehicleCatalog } = useData();
+  const { activeVehicle, activeVehicles, ready, loadingFillups, accountDeletionPending, loadVehicleCatalog, demo } = useData();
   const lastWritten = useRef<Record<string, VehicleSummary>>({});
   const lastScope = useRef("");
 
   useEffect(() => {
-    if (!ready || !user || loadingFillups || accountDeletionPending || (activeVehicle && vehicleData.incomplete)) return;
+    // Sample data never reaches the community summaries.
+    if (demo || !ready || !user || loadingFillups || accountDeletionPending || (activeVehicle && vehicleData.incomplete)) return;
     const next = activeVehicle ? { ...summariseVehicle(activeVehicle, stats), ledger: summariseLedger(vehicleData.ledger) } : null;
     const scope = JSON.stringify([user.uid, activeVehicles.map((v) => v.id).sort()]);
     const key = `${user.uid}/${activeVehicle?.id ?? "none"}`;
@@ -56,5 +57,5 @@ export function usePublishSummary(stats: Stats): void {
       delete lastWritten.current[key];
       if (lastScope.current === scope) lastScope.current = "";
     });
-  }, [ready, user, activeVehicle, activeVehicles, stats, loadingFillups, accountDeletionPending, loadVehicleCatalog, vehicleData.incomplete, vehicleData.ledger]);
+  }, [ready, user, activeVehicle, activeVehicles, stats, loadingFillups, accountDeletionPending, loadVehicleCatalog, vehicleData.incomplete, vehicleData.ledger, demo]);
 }
