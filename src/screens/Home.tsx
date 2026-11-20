@@ -33,6 +33,7 @@ import { SegmentSheet } from "../components/home/SegmentSheet";
 import { TankHero, type TankSheetEntry } from "../components/tank/TankHero";
 import { TankSheets } from "../components/tank/TankSheets";
 import { TcoBlock } from "../components/TcoBlock";
+import { DemoStart } from "../components/DemoMode";
 import "../home-design.css";
 
 /** Design v3 §2.8: Home shows the two newest records, the Journal has the rest. */
@@ -98,8 +99,9 @@ function HomeBody({ stats, tank, enriching }: { stats: Stats; tank: TankEstimate
     {active && !loading && status ? <HomeStatusLine status={status} passage={tank.estimate.expectedRefuel} /> : null}
     <HomeSpotlight items={spotlight.items} onOpen={openItem} onDismiss={spotlight.dismiss} onEmpty={focusContent} />
     {!active ? data.vehicles.length === 0 ? <section className="home-empty" data-testid="home-no-vehicle">
-      <h2>עוד אין רכב</h2><p>כשיהיה רכב, מוסיפים אותו כאן ומתחילים לרשום תדלוקים ולעקוב אחרי הצריכה וההוצאות.</p>
+      <h2>עדיין לא הוספת רכב</h2><p>מוסיפים את הרכב ומתחילים לרשום תדלוקים, לעקוב אחרי הצריכה ולראות כמה הרכב עולה.</p>
       <Button onClick={() => navigate("/vehicles/new")}>הוספת רכב</Button>
+      <DemoStart />
     </section> : <section className="home-empty" data-testid="home-no-active">
       <h2>בוחרים רכב וממשיכים</h2><p>אפשר לשחזר רכב מהארכיון או להוסיף רכב.</p>
       <Button onClick={() => navigate("/vehicle")}>לרכב שלי</Button>

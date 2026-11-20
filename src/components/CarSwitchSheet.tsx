@@ -70,7 +70,7 @@ export function CarSwitchSheet({ onClose }: { onClose: () => void }) {
           </button>;
         })}
         {activeVehicles.length === 0 ? <p className="tm-car-switch-empty">
-          {vehicles.length ? "כל הרכבים נמצאים בארכיון." : "עוד אין רכב בחשבון."}
+          {vehicles.length ? "כל הרכבים נמצאים בארכיון." : "עדיין לא נוסף רכב לחשבון."}
         </p> : null}
       </div>
       {error ? <p role="alert" className="text-sm text-danger-ink">{error}</p> : null}

@@ -110,6 +110,7 @@ import { conditionalFillupWrite, fillupBaseMatches, FillupConflictError } from "
 import { APP_VERSION } from "../lib/version";
 import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
 import { useAuth } from "./AuthContext";
+import { DemoDataLayer } from "./DemoDataLayer";
 import { useTheme } from "./ThemeContext";
 import {
   DEFAULT_SETTINGS,
@@ -169,7 +170,11 @@ function immutableFillup(fillup: Fillup): Readonly<Fillup> {
   return Object.freeze({ ...fillup, ...(fillup.station ? { station: Object.freeze({ ...fillup.station }) } : {}) });
 }
 
-interface DataContextValue {
+export interface DataContextValue {
+  /** True while the sample data (demo mode) stands in for the account's vehicles. */
+  demo?: boolean;
+  /** Demo mode only: the sample's care and vehicle records for the active vehicle, by collection. */
+  demoCare?: Record<string, unknown[]>;
   /** A render-bound lifetime check that survives route changes, but never account changes. */
   captureAccountAction: () => () => boolean;
   /** As above, also invalidated by switching away from the active vehicle. */
@@ -412,7 +417,7 @@ export interface ImportRollbackResult {
   reason?: string;
 }
 
-const DataContext = createContext<DataContextValue | null>(null);
+export const DataContext = createContext<DataContextValue | null>(null);
 
 /**
  * A date that cannot be read is reported, not replaced with "now". For the
@@ -3069,7 +3074,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return <DataContext.Provider value={value}><DemoDataLayer>{children}</DemoDataLayer></DataContext.Provider>;
 }
 
 export function useData(): DataContextValue {

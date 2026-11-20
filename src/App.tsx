@@ -22,6 +22,7 @@ import { Onboarding } from "./screens/Onboarding";
 import { SignIn } from "./screens/SignIn";
 const VehicleWizard = lazy(() => import("./screens/VehicleWizard").then((m) => ({ default: m.VehicleWizard })));
 import { Home } from "./screens/Home";
+import { DemoBanner } from "./components/DemoMode";
 import { FillupForm } from "./screens/FillupForm";
 import { History } from "./screens/History";
 const Maintenance = lazy(() => import("./screens/Maintenance").then(m => ({ default: m.Maintenance })));
@@ -139,6 +140,7 @@ function Shell() {
 
   return (
     <div className="app-shell mx-auto flex min-h-dvh w-full max-w-[430px] flex-col">
+      <DemoBanner />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/vehicle" element={<Maintenance />} />

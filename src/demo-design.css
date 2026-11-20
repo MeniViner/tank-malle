@@ -1,0 +1,23 @@
+/* Demo mode: the "see it with sample data" offer and the banner shown while the sample is active. */
+.demo-start { display: grid; gap: 10px; }
+.demo-start p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); text-shadow: var(--tm-atmosphere-text-shadow); }
+.demo-start-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-start-options .tm-chip { min-height: 44px; }
+.demo-start-link { font-size: 13.5px; }
+.demo-start-sheet { padding-bottom: 8px; }
+.demo-start-sheet p { font-size: 14.5px; color: var(--ink); }
+
+.demo-banner {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
+  background: var(--accent); color: #111; border-bottom: 1px solid #111;
+}
+.demo-banner > div { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.demo-banner b { font-size: 14px; font-weight: 700; }
+.demo-banner span { font-size: 12px; line-height: 1.35; }
+.demo-banner button {
+  flex: none; min-width: 64px; min-height: 40px; padding: 0 14px;
+  border: 1.5px solid #111; border-radius: 999px; background: #fff; color: #111; font-size: 14px; font-weight: 700;
+}
+.demo-banner button:focus-visible { outline: 2px solid #111; outline-offset: 2px; }

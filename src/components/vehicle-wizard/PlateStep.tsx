@@ -1,12 +1,14 @@
-import { useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 import { Button } from "../Button";
 import { NumericText, NumRun } from "../Fmt";
 import { WarningIcon } from "../icons";
 import { formatPlate } from "../../lib/format";
 
-export function PlateStep({ plate, onPlateChange, looking, error, canRetry, onLookup, onManual }: {
+export function PlateStep({ plate, onPlateChange, looking, error, canRetry, onLookup, onManual, extra }: {
   plate: string; onPlateChange: (value: string) => void; looking: boolean;
   error: string | null; canRetry: boolean; onLookup: () => void; onManual: () => void;
+  /** First run only: the sample-data offer for someone without a car. */
+  extra?: ReactNode;
 }) {
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => { heading.current?.focus(); }, []);
@@ -40,6 +42,7 @@ export function PlateStep({ plate, onPlateChange, looking, error, canRetry, onLo
     <div className="wizard-footer">
       <Button full data-testid="wizard-lookup" onClick={onLookup} loading={looking} disabled={plate.length < 5}>חיפוש הרכב</Button>
       <button type="button" className="wizard-text-action" data-testid="wizard-manual" onClick={onManual}>אין לוחית? הזנה ידנית</button>
+      {extra}
     </div>
   </section>;
 }
