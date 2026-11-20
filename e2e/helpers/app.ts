@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test";
-import { finishFillupSave, openFillupMore, setFillupEndState } from "./fillup";
+import { finishFillupSave, setFillupEndState } from "./fillup";
 import { outboxCount } from "./pwa";
 import {
   getDocument,
@@ -258,7 +258,7 @@ export async function addFillup(page: Page, input: FillupInput, scope: ReadyAcco
   }
 
   if (input.continuityBreak) {
-    await openFillupMore(page);
+    // Offered next to the warning a long odometer jump raises.
     await page
       .getByRole("switch", { name: "פספסתי תדלוקים לפני זה" })
       .click();

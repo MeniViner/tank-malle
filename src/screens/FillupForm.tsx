@@ -11,7 +11,7 @@ import { useStats } from "../hooks/useStats";
 import { fillupDraftKey, readFillupDraft, writeFillupDraft, removeFillupDraft } from "../lib/fillupDraft";
 import { RECEIPT_SOURCE, type ReceiptImport as ImportIdentity } from "../lib/import/receiptText";
 import { evaluateDraft, hardBlock, odometerBounds, softWarnings, type Fillup } from "../lib/stats";
-import { capacityNote, resolveCapacity } from "../lib/tank/capacity";
+import { resolveCapacity } from "../lib/tank/capacity";
 import { relativeDate, time, vehicleShort } from "../lib/format";
 import { parseNumberInput } from "../lib/numeric";
 import { clearReceiptPriceSuggestion, receiptConflict, receiptNumbers, suggestReceiptPrice, typeReceiptField, type ReceiptState } from "../lib/receipt";
@@ -751,7 +751,6 @@ function FillupEditor({
       }),
     [tankOriginal, tankDraft, litersValue, capacity],
   );
-  const tankOutcome = tankState.outcome;
   const endChoice = effectiveEndChoice(tankDraft);
   const isFullTank = tankState.isFullTank;
   const effectiveFillEndState = tankState.endState;
@@ -1250,16 +1249,15 @@ function FillupEditor({
         errors={visibleErrors} odometerError={blockMessage} priceCaption={<NumericText>{resolved.label}</NumericText>} priceValue={priceValue}
         conflict={conflict} receiptBlocked={fieldErrors.some(error => ["totalCost", "pricePerLiter", "liters"].includes(error.field))} warnings={warnings} evaluation={draftEvaluation} units={settings.units} endChoice={endChoice}
         onEndChoice={choice => setTankDraft(current => withEndChoice(current, choice))}
-        shaking={shaking} totalRef={totalInput} autoFocus={!scanOpen && !isEdit} historyComplete={historyComplete} tankFields={!electric} />
+        shaking={shaking} totalRef={totalInput} autoFocus={!scanOpen && !isEdit} historyComplete={historyComplete} tankFields={!electric}
+        continuityBreak={continuityBreak} onContinuityChange={setContinuityBreak}
+        onReviewCapacity={() => { if (canLeaveDraft()) navigate("/vehicle?tab=details"); }} />
       {(odometerParsed.ambiguous && odometerParsed.interpretation) || (litersParsed.ambiguous && litersParsed.interpretation) || (priceParsed.ambiguous && priceParsed.interpretation)
         ? <p className="fillup-small-status"><NumericText>{[odometerParsed.interpretation, litersParsed.interpretation, priceParsed.interpretation].filter(Boolean).join(" · ")}</NumericText></p> : null}
-      <FillupMore open={moreOpen} onOpenChange={setMoreOpen}
-        tankDraft={tankDraft} onTankChange={setTankDraft} outcome={tankOutcome} capacity={capacity}
-        capacityNote={capacityNote(capacity) ?? null} onReviewCapacity={() => { if (canLeaveDraft()) navigate("/vehicle?tab=details"); }}
-        continuityBreak={continuityBreak} onContinuityChange={setContinuityBreak} notes={notes} onNotesChange={setNotes}
-        notesError={visibleErrors.notes} legacyEndState={tankOriginal !== null && tankState.preserved}
+      <FillupMore open={moreOpen} onOpenChange={setMoreOpen} notes={notes} onNotesChange={setNotes}
+        notesError={visibleErrors.notes}
         storedPostedPrice={openedRecord?.postedPricePerLiter ?? null} clearStoredPosted={clearStoredPosted}
-        onClearStoredPosted={setClearStoredPosted} postedPriceError={visibleErrors.postedPricePerLiter} tankFields={!electric} />
+        onClearStoredPosted={setClearStoredPosted} postedPriceError={visibleErrors.postedPricePerLiter} />
       {isEdit && !dateWasInvalid ? <Button full variant="danger" size="sm" onClick={() => setConfirmDelete(true)} disabled={saving} data-testid="fillup-delete">
         <TrashIcon size={18} />מחיקת התדלוק
       </Button> : null}
