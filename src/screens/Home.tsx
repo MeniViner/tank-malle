@@ -178,7 +178,7 @@ function refuelWhen(passage: PassageResult) {
 /** v3 §2.2: one 15px line under the header that says only what the cards below don't. */
 function HomeStatusLine({ status, passage }: { status: HomeStatus; passage: PassageResult }) {
   let text;
-  if (status.kind === "low") text = <>הדלק נמוך · כדאי לתדלק היום</>;
+  if (status.kind === "low") text = <>הדלק במיכל נמוך · כדאי לתדלק בהקדם</>;
   else if (status.kind === "refuel") {
     const when = refuelWhen(passage);
     text = <>{when}{when ? " · " : null}במיכל כ־<Percent value={status.level * 100} /></>;

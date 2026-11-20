@@ -20,7 +20,7 @@ type ScanWizardProps = {
    */
   onAttempt?:(attempt:ScanAttempt,labelable:boolean)=>void;
   /** EXIF time and position of a photo chosen from the device. */
-  onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind)=>void;
+  onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind,live?:boolean)=>void;
 };
 
 const FIELDS:Record<ScanAttempt['kind'],readonly ScanField[]>={pump:['total','liters'],odometer:['odometer']};
