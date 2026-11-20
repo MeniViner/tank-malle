@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseExifDate, parsePhotoMetadata, photoTimeUsable } from "./photoMetadata";
+import { parseExifDate, parsePhotoMetadata, photoJustTaken, photoTimeUsable } from "./photoMetadata";
 
 type Tag = { tag: number; type: 2 | 4 | 5; value: string | number | number[][] };
 
@@ -97,5 +97,14 @@ describe("photoTimeUsable", () => {
     expect(photoTimeUsable(now + 60_000, now)).toBe(true);
     expect(photoTimeUsable(now + 3_600_000, now)).toBe(false);
     expect(photoTimeUsable(now - 61 * 86_400_000, now)).toBe(false);
+  });
+});
+
+describe("photoJustTaken", () => {
+  const now = Date.UTC(2026, 10, 20, 12);
+  it("is true only for a photo from the last half hour", () => {
+    expect(photoJustTaken(now - 10 * 60_000, now)).toBe(true);
+    expect(photoJustTaken(now - 31 * 60_000, now)).toBe(false);
+    expect(photoJustTaken(null, now)).toBe(false);
   });
 });

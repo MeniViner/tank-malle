@@ -18,7 +18,8 @@ import { clearReceiptPriceSuggestion, receiptConflict, receiptNumbers, suggestRe
 import { fillupFromPayload, serializeFillupPatch, toEpochMillis, validateFillupInput, type FieldError, type FillupWrite } from "../lib/fillupSerializer";
 import { OutboxStorageError, type OutboxOperation } from "../lib/outbox";
 import { distanceMeters, findNearby, loadStationCatalog, locateStations, stationKey, toStation, type GeoResult, type NearbyStation } from "../lib/stations";
-import { photoTimeUsable, type PhotoMetadata } from "../lib/scan/photoMetadata";
+import { photoJustTaken, photoTimeUsable, type PhotoMetadata } from "../lib/scan/photoMetadata";
+import type { DisplayKind } from "../lib/scan/engine";
 import type { FuelType, Station } from "../lib/types";
 import { adaptLegacyConfig } from "../lib/prices/regulated";
 import { resolveStationPrice } from "../lib/prices/resolver";
@@ -656,12 +657,24 @@ function FillupEditor({
   useLayoutEffect(() => { stationRef.current = station; stationAutoRef.current = stationAuto; }, [station, stationAuto]);
   const dateTouched = useRef(Boolean(restoredDraft) || isEdit || operation !== null);
   const [dateFromPhoto, setDateFromPhoto] = useState(false);
-  const applyPhotoMetadata = useCallback(async (metadata: PhotoMetadata) => {
+  const dateFromPhotoRef = useRef(false);
+  const stationFromPhoto = useRef(false);
+  const applyPhotoMetadata = useCallback(async (metadata: PhotoMetadata, kind: DisplayKind) => {
     if (isEdit || operation) return;
     if (metadata.takenAt !== null && !dateTouched.current && photoTimeUsable(metadata.takenAt, Date.now())) {
-      setDate(metadata.takenAt); setDateConfirmed(true); setDateFromPhoto(true);
+      // The pump photo is the fill-up; an odometer photo only fills a time the pump photo did not.
+      if (kind === "pump" || !dateFromPhotoRef.current) { setDate(metadata.takenAt); setDateConfirmed(true); setDateFromPhoto(true); dateFromPhotoRef.current = true; }
     }
-    if (!metadata.position) return;
+    // The odometer is often photographed later, at home: it never moves a station the pump photo chose.
+    if (kind === "odometer" && stationFromPhoto.current) return;
+    if (stationRef.current && !stationAutoRef.current) return;   // a station chosen by hand stays
+    if (!metadata.position) {
+      // No position in the file (stripped by the picker): a photo taken just now was taken here.
+      if (!photoJustTaken(metadata.takenAt, Date.now()) || stationRef.current) return;
+      const permission = await navigator.permissions?.query({ name: "geolocation" }).then(state => state.state).catch(() => "prompt");
+      if (permission !== "denied") void detectStation(true);
+      return;
+    }
     const stillMounted = captureUi();
     const selection = stationSelection.current;
     const request = geoRequest.current + 1;
@@ -673,8 +686,8 @@ function FillupEditor({
     const chosen = nearestStation(metadata.position, nearby);
     if (!chosen) return;
     if (stationRef.current && !stationAutoRef.current) return;   // a station chosen by hand stays
-    setStation(chosen); setStationAuto(true);
-  }, [isEdit, operation, captureUi, nearestStation]);
+    setStation(chosen); setStationAuto(true); stationFromPhoto.current = true;
+  }, [isEdit, operation, captureUi, nearestStation, detectStation]);
 
   // Explicit proximity sorting refreshes location without choosing a station.
   // Invalidate an earlier automatic suggestion before requesting a fresh fix.
@@ -1283,7 +1296,7 @@ function FillupEditor({
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
       context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
       onAttempt={recordScanAttempt}
-      onPhotoMetadata={metadata => { void applyPhotoMetadata(metadata); }}
+      onPhotoMetadata={(metadata, kind) => { void applyPhotoMetadata(metadata, kind); }}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),

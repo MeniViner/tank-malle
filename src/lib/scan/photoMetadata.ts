@@ -151,6 +151,15 @@ export function parseExifDate(text: string | null, offset: string | null = null)
  * future (a few minutes of clock skew aside) and from the last 60 days. An older photo is more
  * likely a reused picture than a late entry; the date stays one tap away either way.
  */
+/**
+ * Android's photo picker (and iOS Safari's) removes the position from a photo handed to a web page
+ * but keeps its time. A photo taken in the last half hour was most likely taken here, at the pump,
+ * so the device's current location stands in for the missing one.
+ */
+export function photoJustTaken(takenAt: number | null, now: number): boolean {
+  return takenAt !== null && takenAt <= now + 5 * 60_000 && takenAt >= now - 30 * 60_000;
+}
+
 export function photoTimeUsable(takenAt: number, now: number): boolean {
   return takenAt <= now + 5 * 60_000 && takenAt >= now - 60 * 86_400_000;
 }
