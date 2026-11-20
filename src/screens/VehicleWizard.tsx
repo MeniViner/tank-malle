@@ -11,6 +11,7 @@ import { LOOKUP_MESSAGES, lookupPlate } from "../lib/plateLookup";
 import { fetchVehicleSpecs, type VehicleSpecs } from "../lib/vehicleSpecs";
 import { NumericText, NumRun } from "../components/Fmt";
 import { ChevronEnd } from "../components/icons";
+import { DemoStart } from "../components/DemoMode";
 import { PlateStep } from "../components/vehicle-wizard/PlateStep";
 import { ConfirmStep } from "../components/vehicle-wizard/ConfirmStep";
 import { ExtrasStep } from "../components/vehicle-wizard/ExtrasStep";
@@ -324,7 +325,8 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
         : <>
           {saveError ? <p className="wizard-error wizard-save-error" data-testid="wizard-error" role="alert"><NumericText>{saveError}</NumericText></p> : null}
           {step === "plate" ? <PlateStep plate={plate} onPlateChange={changePlate} looking={looking} error={lookupError}
-            canRetry={canRetryLookup} onLookup={() => void runLookup()} onManual={goManual}/>
+            canRetry={canRetryLookup} onLookup={() => void runLookup()} onManual={goManual}
+            extra={firstRun && !canExit ? <DemoStart compact /> : null}/>
             : step === "confirm" ? <ConfirmStep draft={draft} review={draft.fromRegistry && !editing} notice={lookupNotice} errors={errors}
               specs={specs} loadingSpecs={loadingSpecs} battery={battery}
               onBatteryChange={(key, value) => { setBattery(current => ({ ...current, [key]: typeWizardNumber(value) })); setErrors(current => ({ ...current, [key === "kwh" ? "batteryKwh" : "batteryWltp"]: undefined })); }}
