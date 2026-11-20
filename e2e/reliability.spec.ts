@@ -124,15 +124,7 @@ test("a fill-up with station, before-level, note and pump price is acknowledged 
   await page.waitForTimeout(1200);
   await page.getByRole("button", { name: /פז חגור/ }).first().click();
 
-  // Before-level on the optional gauge.
   await openFillupMore(page);
-  const before = page.getByRole("slider", { name: "כמה דלק נשאר לפני התדלוק" });
-  await before.focus();
-  await before.press("Home");
-  await before.press("PageUp");
-  await before.press("ArrowUp");
-  await expect(before).toHaveValue("0.25");
-
   await page.getByLabel("הערה").fill("הערה ארוכה למדי על התדלוק הזה");
 
   await page.getByRole("button", { name: "שמירת תדלוק" }).click();
@@ -152,9 +144,7 @@ test("a fill-up with station, before-level, note and pump price is acknowledged 
   expect(data.postedPricePerLiter).toBe(7.19);
   expect(data.refuelReason).toBeNull();
   expect(data.notes).toBe("הערה ארוכה למדי על התדלוק הזה");
-  expect(Number(data.preFillLevel)).toBeCloseTo(0.25, 5);
-  expect(data.fillEndState).toBe("partial");
-  expect(data.fillEndStateSource).toBe("gauge-estimate");
+  expect(data.preFillLevel ?? null).toBeNull();
 
   // And once acknowledged, nothing is left in the outbox.
   await expect.poll(() => outboxCount(page, uid), { timeout: 15_000 }).toBe(0);

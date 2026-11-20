@@ -7,18 +7,13 @@ export async function openFillupMore(page: Page): Promise<void> {
   await expect(page.locator("#fillup-more-content")).toBeVisible();
 }
 
-/** The correction/unknown controls are deliberately separate from the primary choices. */
-export async function openFillupTankAdvanced(page: Page): Promise<void> {
-  await openFillupMore(page);
-  const details = page.getByTestId("fillup-tank-advanced");
-  if (await details.getAttribute("open") === null) await details.locator("summary").click();
-  await expect(details).toHaveAttribute("open", "");
-}
-
 export async function setFillupEndState(page: Page, state: "full" | "partial" | "unknown"): Promise<void> {
   if (state === "unknown") {
-    await openFillupTankAdvanced(page);
-    await page.getByTestId("fillup-end-unknown").click();
+    // Unknown is simply unanswered: tap a chosen answer again to clear it.
+    for (const name of ["מילאתי עד הסוף", "תדלוק חלקי"]) {
+      const choice = page.getByRole("radio", { name, exact: true });
+      if (await choice.getAttribute("aria-checked") === "true") await choice.click();
+    }
     return;
   }
   const choice = page.getByRole("radio", { name: state === "full" ? "מילאתי עד הסוף" : "תדלוק חלקי", exact: true });
