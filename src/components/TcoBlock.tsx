@@ -7,7 +7,7 @@ import { tcoLegendParts, type TcoPart, type TcoPartId, type TcoResult } from '..
 import type { VehicleDocKey } from '../lib/vehicle/documents';
 import { journalRangeLink } from './insights/presentation';
 import { Money, NumericText, NumRun } from './Fmt';
-import { BatteryIcon, CoinIcon, DocumentIcon, PumpIcon, ShieldIcon, SwapIcon, WrenchIcon, ChevronStart } from './icons';
+import { BatteryIcon, CoinIcon, DocumentIcon, PumpIcon, ShieldIcon, SwapIcon, WrenchIcon, ChevronStart, ChevronDown } from './icons';
 import { Segmented } from './Segmented';
 import { Sheet } from './Sheet';
 import { VehicleDocumentDialog } from './VehicleDocuments';
@@ -43,7 +43,7 @@ export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: b
   const trigger = useRef<HTMLButtonElement>(null);
   if (!data.activeVehicle || !data.fillups.length) return null;
   return <>
-    <TcoCard tco={tco} compact={compact} period={period} onPeriod={setPeriod} open={open} onOpen={() => setOpen(true)} triggerRef={trigger} />
+    <TcoCard tco={tco} compact={compact} period={period} onPeriod={setPeriod} open={open} onOpen={() => setOpen(true)} triggerRef={trigger} collapsible />
     {open ? <TcoSheet tco={tco} initialPeriod={period} onClose={() => setOpen(false)} returnFocus={() => trigger.current} /> : null}
   </>;
 }
@@ -52,11 +52,23 @@ export function TcoBlock({ tco, compact = false }: { tco: TcoResult; compact?: b
  * The TCO card itself, without data access: Home feeds it the engine's result,
  * onboarding feeds it static demo data inside an inert, aria-hidden artwork.
  */
-export function TcoCard({ tco, compact = false, period, onPeriod, open = false, onOpen, triggerRef }: {
+/** The breakdown under the bar starts closed; once opened it stays open on later visits (this device). */
+const DETAILS_KEY = 'tm.tco-details-open';
+function readDetailsOpen(): boolean { try { return localStorage.getItem(DETAILS_KEY) === '1'; } catch { return false; } }
+
+export function TcoCard({ tco, compact = false, period, onPeriod, open = false, onOpen, triggerRef, collapsible = false }: {
   tco: TcoResult; compact?: boolean; period: Period; onPeriod: (period: Period) => void;
   open?: boolean; onOpen: () => void; triggerRef?: Ref<HTMLButtonElement>;
+  /** The vehicle screen's card: details behind "הצג פרטים". The onboarding demo always shows them. */
+  collapsible?: boolean;
 }) {
-  const summaryId = useId();
+  const summaryId = useId(), legendId = useId();
+  const [detailsOpen, setDetailsOpen] = useState(() => !collapsible || readDetailsOpen());
+  function toggleDetails() {
+    const next = !detailsOpen;
+    setDetailsOpen(next);
+    try { localStorage.setItem(DETAILS_KEY, next ? '1' : '0'); } catch { /* stays open for this visit */ }
+  }
   const parts = tcoLegendParts(tco);
   const total = parts.reduce((sum, part) => sum + part.knownValue, 0);
   const label = tco.complete ? 'הרכב עולה לך' : tco.lowerBound && tco.month !== null ? 'הרכב עולה לך, לפחות' : 'עלות הרכב לפי הרישומים';
@@ -84,7 +96,9 @@ export function TcoCard({ tco, compact = false, period, onPeriod, open = false, 
     <span className="tm-tco-bar" data-testid="tco-bar" aria-hidden="true">
       {parts.map(part => <i key={part.id} data-tco-part={part.id} style={{ flexGrow: total ? part.knownValue / total : 0, background: COLORS[part.id] }} />)}
     </span>
-    {!compact ? <span className="tm-tco-legend" data-testid="tco-legend">{parts.map(part => <span key={part.id} data-tco-legend={part.id}>
+    {!compact && collapsible ? <button type="button" className="tm-tco-details" data-testid="tco-details" aria-expanded={detailsOpen} aria-controls={legendId}
+      onClick={toggleDetails}><ChevronDown size={15} />{detailsOpen ? 'הסתרת פרטים' : 'הצג פרטים'}</button> : null}
+    {!compact && detailsOpen ? <span id={legendId} className="tm-tco-legend" data-testid="tco-legend">{parts.map(part => <span key={part.id} data-tco-legend={part.id}>
       <i style={{ background: COLORS[part.id] }} aria-hidden="true" />{part.label}<strong><Money value={part.knownValue * multiplier} /></strong>
     </span>)}</span> : null}
   </div>;

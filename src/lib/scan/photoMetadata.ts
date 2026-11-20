@@ -153,11 +153,12 @@ export function parseExifDate(text: string | null, offset: string | null = null)
  */
 /**
  * Android's photo picker (and iOS Safari's) removes the position from a photo handed to a web page
- * but keeps its time. A photo taken in the last half hour was most likely taken here, at the pump,
- * so the device's current location stands in for the missing one.
+ * but keeps its time; nothing a page can do brings it back. A photo from the last three hours was
+ * most likely taken on this trip, so the device's current location stands in for the missing one
+ * (a station is still chosen only within 400 m of where the device is now).
  */
 export function photoJustTaken(takenAt: number | null, now: number): boolean {
-  return takenAt !== null && takenAt <= now + 5 * 60_000 && takenAt >= now - 30 * 60_000;
+  return takenAt !== null && takenAt <= now + 5 * 60_000 && takenAt >= now - 3 * 3_600_000;
 }
 
 export function photoTimeUsable(takenAt: number, now: number): boolean {

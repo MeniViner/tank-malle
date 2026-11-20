@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createBackController, EXIT_WINDOW_MS, registerBackLayer } from "./backNavigation";
+import { createBackController, EXIT_WINDOW_MS, parentRoute, registerBackLayer } from "./backNavigation";
 
 function harness() {
   let time = 0;
@@ -103,5 +103,15 @@ describe("system Back", () => {
     } finally {
       removeLayer();
     }
+  });
+});
+
+describe("parentRoute", () => {
+  it("goes up the hierarchy, never through visit history", () => {
+    expect(parentRoute("/")).toBeNull();
+    for (const tab of ["/history", "/stats", "/vehicle", "/account", "/notifications", "/fillup/new", "/legal/terms"]) expect(parentRoute(tab)).toBe("/");
+    expect(parentRoute("/vehicle/reminders/oil")).toBe("/vehicle");
+    expect(parentRoute("/settings/import")).toBe("/account");
+    expect(parentRoute("/history/")).toBe("/");
   });
 });

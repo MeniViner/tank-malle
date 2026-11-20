@@ -659,7 +659,7 @@ function FillupEditor({
   const [dateFromPhoto, setDateFromPhoto] = useState(false);
   const dateFromPhotoRef = useRef(false);
   const stationFromPhoto = useRef(false);
-  const applyPhotoMetadata = useCallback(async (metadata: PhotoMetadata, kind: DisplayKind) => {
+  const applyPhotoMetadata = useCallback(async (metadata: PhotoMetadata, kind: DisplayKind, live = false) => {
     if (isEdit || operation) return;
     if (metadata.takenAt !== null && !dateTouched.current && photoTimeUsable(metadata.takenAt, Date.now())) {
       // The pump photo is the fill-up; an odometer photo only fills a time the pump photo did not.
@@ -669,8 +669,9 @@ function FillupEditor({
     if (kind === "odometer" && stationFromPhoto.current) return;
     if (stationRef.current && !stationAutoRef.current) return;   // a station chosen by hand stays
     if (!metadata.position) {
-      // No position in the file (stripped by the picker): a photo taken just now was taken here.
-      if (!photoJustTaken(metadata.takenAt, Date.now()) || stationRef.current) return;
+      // No position in the file (phone pickers strip it), or read live from the camera: a photo
+      // taken just now was taken here, so the device's current location stands in.
+      if (!(live || photoJustTaken(metadata.takenAt, Date.now())) || stationRef.current) return;
       const permission = await navigator.permissions?.query({ name: "geolocation" }).then(state => state.state).catch(() => "prompt");
       if (permission !== "denied") void detectStation(true);
       return;
@@ -1296,7 +1297,7 @@ function FillupEditor({
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
       context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
       onAttempt={recordScanAttempt}
-      onPhotoMetadata={(metadata, kind) => { void applyPhotoMetadata(metadata, kind); }}
+      onPhotoMetadata={(metadata, kind, live) => { void applyPhotoMetadata(metadata, kind, live); }}
       protectedFields={[
         ...(receipt.authored.includes("totalCost") ? ["total" as const] : []),
         ...(receipt.authored.includes("liters") ? ["liters" as const] : []),
