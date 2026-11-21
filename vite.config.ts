@@ -14,13 +14,26 @@ const developmentWatch = { ignored: [
 
 export default defineConfig(({ mode, command }) => {
   const env = {...loadEnv(mode,process.cwd(),''),...process.env};
+  const native = mode === 'native-personal' || mode === 'native-qa';
+  if (native && command === 'build') {
+    const personal = mode === 'native-personal';
+    const project = env.VITE_FIREBASE_PROJECT_ID;
+    const platform = env.TANK_MALLE_NATIVE_PLATFORM;
+    if ((platform !== 'android' && platform !== 'ios') || !project || (project === 'tank-malle') !== personal ||
+      project.startsWith('demo-') || env.VITE_LOCAL_CARE === '1' || env.VITE_USE_EMULATORS === '1' ||
+      env.VITE_CARE_DEVICE_ORIGIN || !env.VITE_NATIVE_GOOGLE_WEB_CLIENT_ID ||
+      (platform === 'ios' && !env.VITE_NATIVE_GOOGLE_IOS_CLIENT_ID)) {
+      throw new Error('Prepare the selected Android/iOS profile with npm run native:prepare.');
+    }
+  }
   if (command==='build' && mode==='production' && (env.VITE_LOCAL_CARE==='1' || env.VITE_USE_EMULATORS==='1' || env.VITE_CARE_DEVICE_ORIGIN || env.VITE_FIREBASE_PROJECT_ID?.startsWith('demo-'))) throw new Error('Production builds must exclude emulator/demo configuration');
   const commit=execFileSync("git",["rev-parse","HEAD"],{encoding:"utf8"}).trim();
   const version=readFileSync('src/lib/version.ts','utf8').match(/APP_VERSION = "([^"]+)"/)?.[1];
   if (!version) throw new Error('App version is missing');
   const dirty=execFileSync("git",["status","--porcelain","--untracked-files=normal"],{encoding:"utf8"}).trim().length>0;
   return ({
-  define: { __BUILD_COMMIT__: JSON.stringify(commit), __BUILD_DIRTY__: JSON.stringify(dirty) },
+  define: { __BUILD_COMMIT__: JSON.stringify(commit), __BUILD_DIRTY__: JSON.stringify(dirty), __TANK_MALLE_NATIVE__: JSON.stringify(native) },
+  build: native ? { outDir: 'dist-native' } : undefined,
 
   // This preview only talks to local emulators. No production API, proxy or model service.
   server: ['care','unified-preview'].includes(mode) ? { watch: developmentWatch, headers: { 'Content-Security-Policy': "connect-src 'self' http://127.0.0.1:* http://localhost:* ws://127.0.0.1:* ws://localhost:*" } } : { watch: developmentWatch },
@@ -30,6 +43,7 @@ export default defineConfig(({ mode, command }) => {
     react(),
     tailwindcss(),
     VitePWA({
+      disable: native,
       registerType: "prompt",
       includeAssets: ["favicon.svg", "apple-touch-icon.png", "consumption-catalog.json"],
       workbox: {

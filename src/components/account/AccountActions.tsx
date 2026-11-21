@@ -21,6 +21,8 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
   const [signingOut, setSigningOut] = useState(false);
   const [deleteStep, setDeleteStep] = useState<0 | 1 | 2>(openDeleteConfirmation ? 1 : 0);
   const [deleting, setDeleting] = useState(false);
+  const [deletionPassword, setDeletionPassword] = useState("");
+  const passwordAccount = user?.providerData.some(provider => provider.providerId === "password") ?? false;
   const signOutBusy = useRef(false);
   const deleteBusy = useRef(false);
   const checkGeneration = useRef(0);
@@ -66,12 +68,16 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
 
   async function reallyDelete() {
     if (deleteBusy.current) return;
+    if (passwordAccount && !deletionPassword) {
+      showToast({ tone: "info", title: "יש להזין את הסיסמה לאישור המחיקה" });
+      return;
+    }
     const current = captureScope();
     deleteBusy.current = true;
     setDeleting(true);
     setDeleteStep(0);
     try {
-      const result = await deleteAccount();
+      const result = await deleteAccount(deletionPassword);
       if (!current()) return;
       if (result.needsReauth) {
         showToast({ tone: "info", title: "נדרשת התחברות מחדש לפני המחיקה", detail: "לא נמחק דבר. התחברו שוב ונסו שנית." });
@@ -87,7 +93,7 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
       if (current()) showToast({ tone: "error", title: "מחיקת החשבון נכשלה", detail: "לא ניתן לאשר שהמחיקה הושלמה. רעננו ונסו שוב." });
     } finally {
       deleteBusy.current = false;
-      if (current()) setDeleting(false);
+      if (current()) { setDeleting(false); setDeletionPassword(""); }
     }
   }
 
@@ -95,7 +101,7 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
     <GroupRow testId="account-signout" icon={<LogoutIcon />} title={signingOut || checking ? "מתנתקים…" : "התנתקות"}
       onClick={() => void openSignOut()} disabled={signingOut || checking || deleting} chevron={false} />
     <GroupRow testId="account-delete" icon={<TrashIcon />} title={deleting ? "מוחקים את החשבון…" : "מחיקת החשבון"}
-      danger onClick={() => setDeleteStep(1)} disabled={deleting || signingOut} chevron={false} />
+      danger onClick={() => { setDeletionPassword(""); setDeleteStep(1); }} disabled={deleting || signingOut} chevron={false} />
     {deleting ? <p role="status" className="account-note">המחיקה מתבצעת. ממתינים לאישור השרת.</p> : null}
 
     <ConfirmDialog open={confirmSignOut} title="שינויים שעוד לא עלו לענן"
@@ -113,7 +119,15 @@ export function AccountActions({ openDeleteConfirmation = false }: { openDeleteC
       body="כל הרכבים, התדלוקים, הטיפולים והנתונים יימחקו לצמיתות. לא ניתן לשחזר. כדאי לשמור גיבוי קודם."
       confirmLabel="המשך למחיקה" onConfirm={() => setDeleteStep(2)} onCancel={() => setDeleteStep(0)} />
     <ConfirmDialog open={deleteStep === 2} title="אישור אחרון"
-      body="זו ההזדמנות האחרונה לבטל. למחוק את כל הנתונים לצמיתות?"
-      confirmLabel="כן, מחקו הכול" onConfirm={() => void reallyDelete()} onCancel={() => setDeleteStep(0)} />
+      body={<>
+        <p>זו ההזדמנות האחרונה לבטל. למחוק את כל הנתונים לצמיתות?</p>
+        {passwordAccount ? <label className="mt-4 flex flex-col gap-2">סיסמה לאישור המחיקה
+          <input type="password" dir="ltr" autoComplete="current-password" value={deletionPassword}
+            disabled={deleting} onChange={event => setDeletionPassword(event.currentTarget.value)}
+            className="min-h-[48px] rounded-xl border border-line bg-surface px-3 text-[16px] text-ink"/>
+        </label> : null}
+      </>}
+      confirmLabel="כן, מחקו הכול" onConfirm={() => void reallyDelete()}
+      onCancel={() => { setDeletionPassword(""); setDeleteStep(0); }} />
   </>;
 }

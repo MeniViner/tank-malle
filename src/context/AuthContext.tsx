@@ -12,6 +12,8 @@ import {
 import {
   getRedirectResult,
   onAuthStateChanged,
+  signInWithCredential,
+  signInWithEmailAndPassword,
   signInWithPopup,
   signInWithRedirect,
   signOut,
@@ -31,6 +33,7 @@ import { releasePush } from "../lib/push/client";
 import { flushScanLabels } from "../lib/scan/samples";
 import { authErrorMessage, REDIRECT_MARKER } from "../lib/authFlow";
 import { missingProfileFields, type LoginProfile } from "../lib/profileBootstrap";
+import { nativeBuild } from "../lib/native/platform";
 import { clearSignedOutLocalStorage } from "../lib/deviceStorage";
 
 interface AuthContextValue {
@@ -64,6 +67,7 @@ interface AuthContextValue {
   /** False until the token claims have been read at least once. */
   claimsLoaded: boolean;
   signIn: () => Promise<void>;
+  signInEmail: (email: string, password: string) => Promise<void>;
   /**
    * Sign out. Local data is cleared only when asked (`clearLocalData`, which the
    * account screen sets whenever nothing is waiting to sync): Firestore's persistent
@@ -104,9 +108,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Recover pending redirects from older builds before rendering the login screen.
     void (async () => {
       try {
-        const result = await getRedirectResult(auth);
+        const result = nativeBuild ? null : await getRedirectResult(auth);
         await auth.authStateReady();
-        if (alive && sessionStorage.getItem(REDIRECT_MARKER) && !result && !auth.currentUser) {
+        if (!nativeBuild && alive && sessionStorage.getItem(REDIRECT_MARKER) && !result && !auth.currentUser) {
           setError("ההתחברות לא נשמרה. נסו שוב מתוך האפליקציה.");
         }
       } catch (caught) {
@@ -172,6 +176,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
     setSigningIn(true);
     try {
+      if (nativeBuild) {
+        const { nativeGoogleCredential, googleCancelled } = await import("../lib/native/google");
+        try {
+          await signInWithCredential(auth, await nativeGoogleCredential());
+        } catch (caught) {
+          if (!googleCancelled(caught)) setError(authErrorMessage((caught as { code?: string }).code ?? ""));
+        }
+        return;
+      }
       // Firebase recommends popup auth when third-party redirect storage is blocked.
       // The user gesture opens it synchronously, including installed Safari apps.
       await signInWithPopup(auth, googleProvider);
@@ -190,6 +203,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setError(authErrorMessage(code));
       }
+    } finally {
+      setSigningIn(false);
+    }
+  }, []);
+
+  const signInEmail = useCallback(async (email: string, password: string) => {
+    setError(null);
+    setSigningIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch (caught) {
+      setError(authErrorMessage((caught as { code?: string }).code ?? ""));
     } finally {
       setSigningIn(false);
     }
@@ -224,7 +249,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // While still signed in: this device stops receiving the account's phone notifications.
     const leaving = auth.currentUser?.uid;
-    if (leaving) await releasePush(leaving).catch(() => {});
+    if (nativeBuild) {
+      const { clearNativeReminders } = await import("../lib/native/reminders");
+      await clearNativeReminders().catch(() => {});
+      const { clearNativeExports } = await import("../lib/native/files");
+      await clearNativeExports().catch(() => {});
+      const { clearNativeGoogle } = await import("../lib/native/google");
+      await clearNativeGoogle().catch(() => {});
+    } else if (leaving) await releasePush(leaving).catch(() => {});
     await signOut(auth);
 
     if (options.clearLocalData && !refused) {
@@ -254,6 +286,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       previousLoginAt,
       claimsLoaded,
       signIn,
+      signInEmail,
       signOutUser,
       refreshClaims,
     }),
@@ -267,6 +300,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       previousLoginAt,
       claimsLoaded,
       signIn,
+      signInEmail,
       signOutUser,
       refreshClaims,
     ],

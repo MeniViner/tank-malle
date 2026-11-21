@@ -37,7 +37,8 @@ export function UnifiedTransfer({ onImported }: { onImported?: () => void }) {
     try {
       const backup = await loadUnifiedBackup(db, uid, data.outbox);
       if (!current()) return;
-      downloadCareFile(JSON.stringify(backup, null, 2), "tank-maleh-account-v2.json", "application/json", new Date(backup.exportedAt));
+      const exported = await downloadCareFile(JSON.stringify(backup, null, 2), "tank-maleh-account-v2.json", "application/json", new Date(backup.exportedAt), current);
+      if (!exported || !current()) return;
       setMessage("הגיבוי הוכן: כל הרכבים, הרשומות, ההעדפות, התראות, שינויים ממתינים וטיוטות. תמונות אינן כלולות.");
     } catch (cause) {
       if (current()) setError(cause instanceof Error ? cause.message : "הגיבוי לא הושלם");

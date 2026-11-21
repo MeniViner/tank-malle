@@ -4,6 +4,7 @@ import { useToast } from "../../context/ToastContext";
 import { useVehicleData } from "../../context/VehicleDataContext";
 import { buildMonthlyStatement, statementCsv, statementHtml, statementMonths, type StatementGroup } from "../../lib/business/statement";
 import { downloadCareFile } from "../../lib/maintenance/export";
+import { nativeBuild } from "../../lib/native/platform";
 import { int, monthYear, parseDecimal, vehicleShort } from "../../lib/format";
 import { vehicleDay, vehicleMoney } from "../../lib/vehicle/format";
 import { readBiz } from "../../lib/vehicle/v3Fields";
@@ -64,8 +65,20 @@ function StatementBody() {
       if (current()) showToast({ tone: "error", title: "פרטי העסק לא נשמרו", detail: error instanceof Error ? error.message : undefined });
     } finally { if (current()) setSaving(false); }
   };
-  const exportHtml = () => {
+  const exportHtml = async () => {
     const html = statementHtml(statement);
+    const current = capture();
+    if (nativeBuild) {
+      try {
+        const { Printer } = await import("@capgo/capacitor-printer");
+        if (!current()) return;
+        await Printer.printHtml({ html, name: statementFileName(statement, "html") });
+        if (current()) void save();
+      } catch {
+        if (current()) showToast({ tone: "error", title: "לא ניתן לפתוח את ההדפסה" });
+      }
+      return;
+    }
     const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
     const opened = window.open(url, "_blank");
     if (opened) {
@@ -73,15 +86,21 @@ function StatementBody() {
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } else {
       URL.revokeObjectURL(url);
-      downloadCareFile(html, statementFileName(statement, "html"), "text/html;charset=utf-8");
+      await downloadCareFile(html, statementFileName(statement, "html"), "text/html;charset=utf-8", new Date(), current);
       showToast({ tone: "info", title: "הדוח ירד כקובץ", detail: "פתחו אותו והדפיסו ל-PDF." });
     }
     void save();
   };
-  const exportCsv = () => {
-    downloadCareFile(statementCsv(statement), statementFileName(statement, "csv"), "text/csv;charset=utf-8");
-    showToast({ tone: "success", title: "קובץ ה-CSV הוכן להורדה", detail: "נפתח ב-Excel." });
-    void save();
+  const exportCsv = async () => {
+    const current = capture();
+    try {
+      const exported = await downloadCareFile(statementCsv(statement), statementFileName(statement, "csv"), "text/csv;charset=utf-8", new Date(), current);
+      if (!exported || !current()) return;
+      if (!nativeBuild) showToast({ tone: "success", title: "קובץ ה-CSV הוכן להורדה", detail: "נפתח ב-Excel." });
+      void save();
+    } catch {
+      if (current()) showToast({ tone: "error", title: "הייצוא לא הושלם" });
+    }
   };
   const groups: StatementGroup[] = [...statement.groups, ...(statement.excludedGroup ? [statement.excludedGroup] : [])];
 

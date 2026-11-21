@@ -22,6 +22,13 @@
 .entry-google:disabled { opacity: .6; }
 .entry-error { margin: 0; color: var(--danger-ink); font-size: 14px; line-height: 1.5; }
 .entry-trust { margin: 0; color: var(--ink-2); text-align: center; font-size: 13px; line-height: 1.5; }
+.entry-email-toggle { min-height: 44px; color: var(--ink); font-size: 15px; text-decoration: underline; text-underline-offset: 4px; }
+.entry-email-fields { display: grid; gap: 14px; }
+.entry-email-fields label { display: grid; gap: 6px; font-size: 15px; }
+.entry-email-fields input { width: 100%; min-height: 52px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font-size: 16px; }
+.entry-email-fields input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.entry-email-submit { min-height: 52px; border-radius: 14px; background: var(--accent); color: #111; font-size: 17px; font-weight: 600; }
+.entry-email-submit:disabled { opacity: .6; }
 .entry-onboarding-top { display: flex; align-items: center; gap: 14px; min-height: 48px; }
 .entry-steps { display: flex; flex: 1; gap: 6px; }
 .entry-steps span { flex: 1; height: 4px; border-radius: 99px; background: var(--line); }
