@@ -180,7 +180,14 @@ export function chooseOdometer(words: Word[], context: ScanContext = {}): Odomet
   return list.sort((a, b) => b.confidence - a.confidence).slice(0, 5);
 }
 
-type Decimal = { word: Word; text: string; value: number; quality: number };
+type Decimal = { word: Word; text: string; value: number; quality: number;
+  /** The point was not seen and is assumed. */
+  bare?: boolean;
+  /** The whole row is the number: no cell left out at either end. */
+  whole?: boolean;
+  places?: number };
+/** What an assumed decimal point costs a row, and what it costs once the sale itself places the point (see `choosePump`). */
+const BARE = .55, BARE_TIED = .9;
 /**
  * Readings of a row as a number with `places` decimals and at most `maxInt`
  * whole digits. The row may carry extra cells at either end (a frame, a label),
@@ -194,11 +201,11 @@ function decimals(word: Word, places: number[], maxInt: number, minInt = 1): Dec
     const text = `${whole}.${word.digits.slice(end - d, end)}`, fit = Math.exp(part.reduce((sum, c) => sum + Math.log(c.fit), 0) / part.length);
     // Leaving out a cell that read well as a digit is suspicious; leaving out a poor one (a frame, a letter) is not.
     let dropped = 1; word.cells.forEach((c, i) => { if (i < start || i >= end) dropped *= 1 - .7 * c.fit * c.fit; });
-    out.push({ word, text, value: Number(text), quality: fit * cost * dropped * (word.refined ? 1 : .85) * (/^0\d/.test(word.digits.slice(start, end - d)) ? .5 : 1) });
+    out.push({ word, text, value: Number(text), bare: cost < 1, whole: start === 0 && end === n, places: d, quality: fit * cost * dropped * (word.refined ? 1 : .85) * (/^0\d/.test(word.digits.slice(start, end - d)) ? .5 : 1) });
   };
   for (const d of places) {
     if (word.dot != null) { const end = word.dot + 1 + d; if (end <= n) for (let i = minInt; i <= maxInt && word.dot + 1 - i >= 0; i++) add(word.dot + 1 - i, end, d, 1); }
-    else for (let end = d + minInt; end <= n; end++) for (let i = minInt; i <= maxInt && end - d - i >= 0; i++) add(end - d - i, end, d, .55);
+    else for (let end = d + minInt; end <= n; end++) for (let i = minInt; i <= maxInt && end - d - i >= 0; i++) add(end - d - i, end, d, BARE);
   }
   return out;
 }
@@ -223,6 +230,15 @@ export function choosePump(words: Word[], context: ScanContext = {}): PumpRead[]
     // Evidence that the two numbers belong together, strongest first: the price row itself agrees;
     // the known price agrees; some whole-agora price makes the sum exact (true of every real sale).
     const round = Math.abs(l.value * Math.round(implied * 100) / 100 - t.value) <= tolerance;
+    // On a small or distant display the points are a pixel or two and are not seen. When both rows
+    // are read end to end and the sum is exact, only one placing of the points gives a fuel price,
+    // so the missing points say little and most of their cost is given back, in proportion to how
+    // unlikely the exact sum is by chance: with few litres almost any two numbers fit some price.
+    // Litres to the millilitre only: a row cut short by a digit also fits, to two decimals.
+    if (round && t.whole && l.whole && l.places === 3 && t.word.digits !== l.word.digits) {
+      const proof = Math.max(0, 1 - 2 * tolerance / (.01 * l.value)), tied = (BARE + (BARE_TIED - BARE) * proof) / BARE;
+      confidence *= (t.bare ? tied : 1) * (l.bare ? tied : 1);
+    }
     if (price) confidence *= .6 + .4 * price.quality;
     else if (context.pricePerLiter && Math.abs(implied - context.pricePerLiter) < .6) confidence *= round ? .7 : .4;
     else confidence *= round ? .4 : .08;

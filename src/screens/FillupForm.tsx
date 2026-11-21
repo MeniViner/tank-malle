@@ -1293,7 +1293,7 @@ function FillupEditor({
       }} /></Suspense> : null}
     {scanOpen ? <Suspense fallback={<p role="status">טוענים מצלמה…</p>}><ScanWizard
       initial={{ total: receipt.totalCost, liters: receipt.liters, odometer }} onClose={() => setScanOpen(false)}
-      context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters }}
+      context={{ lastOdometer: bounds.min, tankCapacity: capacity.liters, pricePerLiter: resolved.price && resolved.price > 0 ? resolved.price : null }}
       onAttempt={recordScanAttempt}
       onPhotoMetadata={(metadata, kind, live) => { void applyPhotoMetadata(metadata, kind, live); }}
       protectedFields={[

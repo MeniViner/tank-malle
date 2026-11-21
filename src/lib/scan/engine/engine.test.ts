@@ -20,6 +20,17 @@ describe('scan engine on synthetic displays', () => {
     // Litres that no price in range turns into an amount starting 226.1: nothing is invented.
     expect(recognizeDisplay(photo('226.1', '30.000'), 'pump').status).toBe('unreadable');
   });
+  it('reads a sale whose decimal points are too small to see when the sum is exact', () => {
+    // Real case (a pump photographed small): "16380" over "23201" with no visible points and no price row; 23.201 L at 7.06 = 163.80.
+    const photo = (total: string, liters: string) => { const image = blank(820, 640); drawDigits(image, total, 150, 70); drawDigits(image, liters, 150, 255); return image; };
+    expect(recognizeDisplay(photo('16380', '23201'), 'pump')).toMatchObject({ status: 'read', values: { total: '163.80', liters: '23.201' } });
+    // The price the app already knows agrees: more confidence, same reading.
+    const plain = scanPhoto(photo('16380', '23201'), 'pump').pump[0], known = scanPhoto(photo('16380', '23201'), 'pump', { pricePerLiter: 7.1 }).pump[0];
+    expect(known).toMatchObject({ total: '163.80', liters: '23.201' });
+    expect(known.confidence).toBeGreaterThan(plain.confidence);
+    // No whole-agora price turns 23.250 L into 163.80: two unrelated rows stay unread.
+    expect(recognizeDisplay(photo('16380', '23250'), 'pump').status).toBe('unreadable');
+  });
   it('reads the demo odometer and prefers the journal-consistent reading', () => {
     expect(recognizeDisplay(demoPhoto('odometer'), 'odometer')).toMatchObject({ status: 'read', values: { odometer: '128450' } });
     expect(recognizeDisplay(demoPhoto('odometer'), 'odometer', { lastOdometer: 128000 })).toMatchObject({ status: 'read', values: { odometer: '128450' } });

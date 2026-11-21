@@ -12,7 +12,7 @@ android {
         applicationId "com.meniviner.tankmalle"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode = Integer.parseInt(System.getenv('TANK_MALLE_BUILD_NUMBER') ?: '17')
+        versionCode = Integer.parseInt(System.getenv('TANK_MALLE_BUILD_NUMBER') ?: '18')
         versionName = buildInfo.version ?: "1.10.0"
         testInstrumentationRunner project.hasProperty('playReleaseTest')
             ? "com.meniviner.tankmalle.ReleaseSmokeInstrumentation"
