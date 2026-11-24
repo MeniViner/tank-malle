@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<style>
+@font-face{font-family:Karantina;src:url(../../../public/fonts/karantina-hebrew-700.woff2) format("woff2");font-weight:700;unicode-range:U+0590-05FF,U+FB1D-FB4F}
+@font-face{font-family:Karantina;src:url(../../../public/fonts/karantina-latin-700.woff2) format("woff2");font-weight:700}
+@font-face{font-family:Plex;src:url(../../../public/fonts/ibm-plex-sans-hebrew-500.woff2) format("woff2");font-weight:500;unicode-range:U+0590-05FF,U+FB1D-FB4F}
+@font-face{font-family:Plex;src:url(../../../public/fonts/ibm-plex-sans-hebrew-700.woff2) format("woff2");font-weight:700;unicode-range:U+0590-05FF,U+FB1D-FB4F}
+@font-face{font-family:Plex;src:url(../../../public/fonts/ibm-plex-sans-latin-500.woff2) format("woff2");font-weight:500}
+@font-face{font-family:Plex;src:url(../../../public/fonts/ibm-plex-sans-latin-700.woff2) format("woff2");font-weight:700}
+:root{--bg:#F9F7F2;--ink:#15130F;--ink2:#4B463C;--y:#F3C54B;--y2:#FFC915;--dark:#15130F;--dark2:#282520;--cream:#F3EFE4}
+*{box-sizing:border-box;margin:0}
+body{background:#777;font-family:Plex,sans-serif;color:var(--ink)}
+.f{width:1080px;height:1920px;position:relative;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;align-items:center}
+.f.dark{background:var(--dark);color:var(--cream)}
+.tag{position:absolute;top:28px;left:32px;direction:rtl;font:700 26px Plex;background:rgba(0,0,0,.55);color:#fff;padding:8px 18px;border-radius:12px;z-index:5}
+.h{font-family:Karantina;font-weight:700;font-size:150px;line-height:.92;text-align:center;padding:0 70px}
+.h .y{background:var(--y);color:var(--ink);padding:0 22px;border-radius:14px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.sub{font:500 46px/1.3 Plex;text-align:center;padding:0 90px;margin-top:28px;color:var(--ink2)}
+.dark .sub{color:#CFC8B8}
+.top{margin-top:190px}
+.phone{margin-top:60px;width:600px;border-radius:84px;background:#0d0c0a;padding:20px;box-shadow:0 40px 90px rgba(0,0,0,.28)}
+.phone img{display:block;width:100%;border-radius:66px}
+.ai{position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 70%,#4a3f2b 0%,#1b1812 60%,#0e0c09 100%)}
+.ai::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 18px,transparent 18px 36px)}
+.shot{position:absolute;left:70px;right:70px;bottom:330px;border:3px dashed rgba(255,214,90,.7);border-radius:28px;padding:30px 36px;color:#FFE7A0;font:500 34px/1.4 Plex;background:rgba(0,0,0,.35)}
+.shot b{display:block;font:700 30px Plex;color:var(--y);margin-bottom:8px}
+.z{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center}
+.grid{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:10px;background:#000}
+.cell{position:relative;background:radial-gradient(100% 80% at 50% 60%,#4a3f2b,#14110c);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cell .w{font-family:Karantina;font-weight:700;font-size:170px;color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.6)}
+.cell .d{font:500 26px/1.35 Plex;color:#FFE7A0;text-align:center;padding:0 40px;margin-top:6px}
+.cell .n{position:absolute;bottom:22px;right:26px;font:700 26px Plex;color:var(--y)}
+.big{font-family:Karantina;font-weight:700;font-size:250px;line-height:.9;margin-top:10px}
+.big small{font-size:110px;margin-inline-start:18px}
+.yr{font:700 60px Plex;margin-top:4px}
+.yr span{background:var(--y);padding:2px 18px;border-radius:12px}
+.bubbles{margin-top:330px;width:100%;padding:0 80px;display:flex;flex-direction:column;gap:46px}
+.b{align-self:flex-start;max-width:860px;background:var(--dark2);border-radius:44px 44px 44px 12px;padding:38px 48px;font:500 58px/1.3 Plex;color:var(--cream)}
+.b.me{align-self:flex-end;background:var(--y);color:var(--ink);border-radius:44px 44px 12px 44px;font-weight:700}
+.b.dim{opacity:.92}
+.cap{position:absolute;bottom:40px;left:0;right:0;text-align:center;font:500 26px Plex;color:rgba(0,0,0,.45)}
+.dark .cap{color:rgba(255,255,255,.4)}
+.logo{width:300px;height:300px;margin-top:430px}
+.name{font-family:Karantina;font-weight:700;font-size:210px;margin-top:30px}
+.cta{margin-top:60px;background:var(--y);color:var(--ink);font:700 54px Plex;padding:34px 70px;border-radius:999px}
+.inset{position:absolute;z-index:3;right:150px;bottom:520px;width:330px;border-radius:50px;padding:12px;background:#0d0c0a;transform:rotate(-6deg);box-shadow:0 30px 70px rgba(0,0,0,.6)}
+.inset img{width:100%;display:block;border-radius:40px}
+.chip{position:absolute;z-index:4;right:120px;bottom:1080px;background:#2f9e5b;color:#fff;font:700 34px Plex;padding:14px 26px;border-radius:999px;transform:rotate(-6deg)}
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="f dark" id="s1">
+  <div class="ai"></div>
+  <span class="tag">סצנה 1 · <bdi dir="ltr">0:00–0:03</bdi></span>
+  <div class="z top"><h1 class="h">כמה האוטו עולה לך בחודש?</h1><h1 class="h" style="margin-top:40px"><span class="y">לא, לא רק הדלק.</span></h1></div>
+  <div class="shot"><b>צילום AI · Google Flow</b>תקריב: יד מסובבת מפתח, לוח המחוונים נדלק, אור בוקר חם בתוך הרכב.</div>
+</section>
+
+<!-- 2 -->
+<section class="f dark" id="s2">
+  <div class="grid">
+    <div class="cell"><span class="n">0:03</span><div class="w">דלק.</div><div class="d">AI: אקדח תדלוק נכנס למכל, המספרים במשאבה מטושטשים</div></div>
+    <div class="cell"><span class="n">0:04</span><div class="w">טיפול.</div><div class="d">AI: קבלה מהמוסך מונחת על לוח המחוונים</div></div>
+    <div class="cell"><span class="n">0:05</span><div class="w">טסט.</div><div class="d">AI: רכב נכנס למכון רישוי</div></div>
+    <div class="cell"><span class="n">0:06</span><div class="w">ביטוח.</div><div class="d">AI: מעטפה של חברת ביטוח נפתחת על שולחן</div></div>
+  </div>
+  <span class="tag">סצנה 2 · <bdi dir="ltr">0:03–0:07</bdi> · ארבעה חיתוכים מהירים</span>
+</section>
+
+<!-- 3 -->
+<section class="f" id="s3">
+  <span class="tag">סצנה 3 · <bdi dir="ltr">0:07–0:12</bdi></span>
+  <div class="top" style="margin-top:170px;text-align:center">
+    <div class="sub" style="margin:0;font-weight:700;color:var(--ink)">זה המספר האמיתי:</div>
+    <div class="big">1,312&#8239;₪<small>בחודש</small></div>
+    <div class="yr"><span>15,749&#8239;₪ בשנה</span></div>
+  </div>
+  <div class="phone"><img src="../assets/screens/home-tco.png"></div>
+  <div class="cap">מסך אמיתי מהאפליקציה · מצב דמו</div>
+</section>
+
+<!-- 4 -->
+<section class="f" id="s4">
+  <span class="tag">סצנה 4 · <bdi dir="ltr">0:12–0:16</bdi></span>
+  <div class="top"><h1 class="h">ורואים בדיוק<br><span class="y">לאן הולך הכסף.</span></h1></div>
+  <div class="phone"><img src="../assets/screens/tco-sheet.png"></div>
+  <div class="cap">מסך אמיתי מהאפליקציה · מצב דמו</div>
+</section>
+
+<!-- 5 -->
+<section class="f dark" id="s5">
+  <div class="ai"></div>
+  <span class="tag">סצנה 5 · <bdi dir="ltr">0:16–0:20</bdi></span>
+  <div class="z top"><h1 class="h">תדלקת?<br>מצלמים את המשאבה.<br><span class="y">זהו.</span></h1></div>
+  <div class="inset"><img src="../assets/screens/fillup.png"></div>
+  <div class="chip">✓ נקלט</div>
+  <div class="shot" style="bottom:300px"><b>AI + הקלטת מסך</b>יד מחזיקה טלפון מול משאבה (AI, מסך ירוק). לתוך המסך מודבקת הסריקה האמיתית, והסכום והליטרים "קופצים" לטופס.</div>
+</section>
+
+<!-- 6 -->
+<section class="f" id="s6">
+  <span class="tag">סצנה 6 · <bdi dir="ltr">0:20–0:25</bdi></span>
+  <div class="top"><h1 class="h">עצמאי?</h1><div class="sub">דוח חודשי של כל הוצאות הרכב,<br><b style="color:var(--ink)">מוכן לרואה החשבון.</b></div></div>
+  <div class="phone"><img src="../assets/screens/business-statement.png"></div>
+  <div class="cap">מסך אמיתי מהאפליקציה · מצב דמו</div>
+</section>
+
+<!-- 7 -->
+<section class="f dark" id="s7">
+  <span class="tag">סצנה 7 · <bdi dir="ltr">0:25–0:29</bdi> · טקסט שמוקלד</span>
+  <div class="bubbles">
+    <div class="b">רגע, מה הקאץ'?</div>
+    <div class="b me">אין. בניתי את זה כי הייתי צריך את זה בעצמי.</div>
+    <div class="b me dim">חינם. הצילום של המשאבה נשאר אצלך בטלפון.</div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="f" id="s8">
+  <span class="tag">סצנה 8 · <bdi dir="ltr">0:29–0:32</bdi></span>
+  <svg class="logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#FFC915"/><path d="M17 40A17 17 0 1 1 47 40" stroke="#111" stroke-width="4.5" stroke-linecap="round" fill="none"/><path d="M32 37 43 28" stroke="#111" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="38" r="3.6" fill="#111"/></svg>
+  <div class="name">טנק מלא</div>
+  <div class="sub" style="font-size:58px;color:var(--ink)">בתדלוק הבא, תנסה.</div>
+  <div class="cta">קישור בתגובה הראשונה</div>
+</section>
+
+</body>
+</html>
