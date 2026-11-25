@@ -15,8 +15,10 @@ const evidence = resolve(stage ? `design/v2/evidence/stage-${stage}` : "test-res
 test.use({ viewport: { width: 390, height: 844 } });
 
 async function fixture(page: Page) {
+  // Seed complete specs before the first Home mount. This shell fixture must
+  // not start a real registry lookup or journal an enrichment as routes reload.
   const scope = await signedInWithData(page, {
-    vehicle: { make: "מאזדה", model: "3", year: 2020, tankLiters: 50, tankLitersSource: "user" },
+    vehicle: { make: "מאזדה", model: "3", year: 2020, tankLiters: 50, tankLitersSource: "user", declaredKmPerLiter: 15 },
     regulatedPrice: 7.77,
     fillups: [
       { id: "first", date: new Date("2026-10-01T09:00:00Z"), odometer: 100000, liters: 40, pricePerLiter: 7 },
@@ -25,7 +27,9 @@ async function fixture(page: Page) {
   });
   const firstPath = `users/${scope.uid}/vehicles/${scope.vehicleId}`;
   await setDocument(firstPath, { ...await getDocument(firstPath), nickname: "המשפחתית", plateNumber: "7248078" });
-  await seedVehicle(scope.uid, "second", { make: "טויוטה", model: "יאריס", year: 2022 });
+  await seedVehicle(scope.uid, "second", {
+    make: "טויוטה", model: "יאריס", year: 2022, tankLiters: 42, tankLitersSource: "user", declaredKmPerLiter: 18,
+  });
   const secondPath = `users/${scope.uid}/vehicles/second`;
   await setDocument(secondPath, { ...await getDocument(secondPath), nickname: "לעבודה", plateNumber: "12345678" });
   await seedVehicle(scope.uid, "archived", { make: "סוזוקי", model: "סוויפט", year: 2014 });
