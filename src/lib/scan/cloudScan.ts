@@ -39,15 +39,15 @@ function cropJpeg(crop: Gray) {
   return url.startsWith('data:image/jpeg;base64,') ? url.slice(23) : null;
 }
 
-export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanContext, signal: AbortSignal) {
+export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanContext, signal: AbortSignal, onGenerate: () => void) {
   if (signal.aborted || !navigator.onLine || Date.now() < cooldownUntil) return undefined;
   try {
     attestation ??= configureAttestation().catch(error => { attestation = undefined; throw error; });
     // Fail closed before passing any image to AI Logic if attestation is unavailable.
     await getToken(await attestation);
-    if (signal.aborted) return null;
+    if (signal.aborted) return undefined;
     const data = cropJpeg(crop);
-    if (!data) return null;
+    if (!data) return undefined;
     const digitString = () => Schema.string({ nullable: true });
     const properties: Record<string, ReturnType<typeof digitString>> = kind === 'odometer'
       ? { odometer: digitString() } : { total: digitString(), liters: digitString(), price: digitString() };
@@ -56,8 +56,9 @@ export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanCont
       generationConfig: { responseMimeType: 'application/json', responseSchema: Schema.object({ properties }),
         maxOutputTokens: 256, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
     });
-    const target = kind === 'odometer' ? 'the cumulative odometer in km, excluding trip or speed'
+    const target = kind === 'odometer' ? 'the vehicle’s cumulative odometer (ODO, total distance in km). Locate the mileage in the instrument display and ignore speed in km/h, Trip A/B, remaining range, clock, and gear indicators'
       : 'the pump sale total, litres and displayed price per litre, in that order on a typical Israeli pump';
+    onGenerate();
     const response = await model.generateContent([
       'Transcribe ' + target + '. Copy only legible digits and printed decimal points. Keep trailing zeros. Return null for ambiguous or missing fields. Never calculate a missing field.',
       { inlineData: { mimeType: 'image/jpeg', data } },

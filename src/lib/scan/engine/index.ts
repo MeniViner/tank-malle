@@ -3,7 +3,7 @@
  * It answers only when it is confident; otherwise the person types the number.
  */
 import { sameRowOf, scanPhoto, stripOf, type ScanContext, type ScanKind, type Word } from './read';
-import { rectify } from './proposals';
+import { displayCloudCrop } from './cloudCrop';
 import type { Gray, RGBA } from './image';
 
 export type DisplayKind = ScanKind;
@@ -62,16 +62,7 @@ export function recognizeDisplay(image: RGBA, kind: DisplayKind, context: ScanCo
   }
   // Derive one display crop from digit geometry. Never send a thumbnail or a whole frame.
   if (options.cloudCrop && answer.status === 'unreadable') {
-    const anchor = rows[0]?.word ?? result.words.reduce<Word | undefined>((best, word) =>
-      !best || word.fit * word.digits.length > best.fit * best.digits.length ? word : best, undefined);
-    const line = anchor?.line ?? result.candidateLine;
-    if (line) {
-      const band = kind === 'pump' ? 6 : 2.4;
-      const h = line.height * band, w = line.length + 3 * line.height;
-      if (w * h < width * height * 0.7 && w / h <= 12 && h >= 12) {
-        answer.cloudCrop = rectify(result.levels, line, Math.min(240, Math.round(960 * h / w)), anchor?.flipped ?? false, 1.5, band);
-      }
-    }
+    answer.cloudCrop = displayCloudCrop(image, result, rows[0]?.word);
   }
   if (!options.sample) return answer;
   const strips = rows.map(r => { const g = stripOf(result.levels, r.word); return { role: r.role, text: r.text, confidence: r.confidence, width: g.width, height: g.height, data: g.data }; });

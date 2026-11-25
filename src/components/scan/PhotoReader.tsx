@@ -36,7 +36,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     const session=camera.current;camera.current=null;
     if(!session||!session.frames||session.sharingRevision!==sharingRevision.current)return;
     const result:DisplayResult|null=read??(session.best?{status:'unreadable',sample:session.best.sample}:null);
-    recordScanTiming(session.start, 'camera', kind, result?.status === 'read' || !!session.cloudReading, session.cloudTried);
+    recordScanTiming(session.start, 'camera', kind, result?.status === 'read' || !!session.cloudReading, session.cloudReading !== undefined);
     report.current?.({kind,source:'camera',result,cloudReading:session.cloudReading,frames:session.frames,seconds:(Date.now()-session.start)/1000,journal});
   }
   function cancel(){cloudRequest.current?.abort();worker.current?.terminate();worker.current=null;pending.current?.({status:'unreadable'});pending.current=null;}
@@ -61,7 +61,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample,accept,cloudCrop:cloudPilot}},[image.data.buffer]);
     });
   }
-  async function fallback(result: DisplayResult, active: () => boolean) {
+  async function fallback(result: DisplayResult, active: () => boolean, onGenerate: () => void) {
     const crop = result.cloudCrop;
     if (!cloudPilot || !crop || !navigator.onLine || !active()) return undefined;
     const controller = new AbortController();
@@ -77,7 +77,7 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       const request = async () => {
         const { cloudScan } = await import('../../lib/scan/cloudScan');
         if (!active() || controller.signal.aborted) return undefined;
-        return cloudScan(kind, crop, context ?? {}, controller.signal);
+        return cloudScan(kind, crop, context ?? {}, controller.signal, onGenerate);
       };
       return await Promise.race([request(), aborted]);
     } catch {
@@ -105,9 +105,9 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     if (session && !session.cloudTried && session.frames >= 3 && result.status === 'unreadable' && result.cloudCrop) {
       session.cloudTried = true;
       const active = () => token === generation.current && isActive();
-      const reading = await fallback(result, active);
+      const reading = await fallback(result, active, () => { session.cloudReading = null; });
       if (!active()) return false;
-      session.cloudReading = reading;
+      if (reading) session.cloudReading = reading;
       if (reading) {
         endCamera(result);
         onPhotoMetadata?.({takenAt:null,position:null},kind,true);
@@ -144,7 +144,9 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       canvas.width=canvas.height=0;
       if(token!==generation.current)return;
       const active = () => token === generation.current && document.visibilityState !== 'hidden';
-      const cloudReading = result.status === 'unreadable' ? await fallback(result, active) : undefined;
+      let generated = false;
+      const suggestion = result.status === 'unreadable' ? await fallback(result, active, () => { generated = true; }) : undefined;
+      const cloudReading = generated ? (suggestion ?? null) : undefined;
       if (token !== generation.current) return;
       recordScanTiming(fileStarted, 'file', kind, result.status === 'read' || !!cloudReading, cloudReading !== undefined);
       if (sharingAtStart === sharingRevision.current) {
