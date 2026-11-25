@@ -5,9 +5,12 @@ const HOST = 'https://tank-malle.web.app';
 const REGISTRY = 'https://data.gov.il/api/3/action/datastore_search?resource_id=053cea08-09bc-40ec-8f7a-156f0677aff3&limit=0';
 const COLLECTIONS = ['users', 'userSummaries', 'feedback', 'scanSamples', 'benchmarks', 'costBenchmarks', 'stationPriceAggregates', 'appConfig'];
 
-async function request(url, token) {
+async function request(url, token, quotaProject) {
   const response = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(quotaProject ? { 'x-goog-user-project': quotaProject } : {}),
+    },
     signal: AbortSignal.timeout(10_000),
     redirect: 'error',
   });
@@ -50,7 +53,7 @@ async function percentile(token, end, reducer) {
     'aggregation.crossSeriesReducer': reducer,
     view: 'FULL',
   });
-  const result = await request(`https://monitoring.googleapis.com/v3/projects/${PROJECT}/timeSeries?${params}`, token);
+  const result = await request(`https://monitoring.googleapis.com/v3/projects/${PROJECT}/timeSeries?${params}`, token, PROJECT);
   if (result.executionErrors?.length || result.unreachable?.length || result.nextPageToken || result.timeSeries?.length !== 1) return null;
   const days = Array(7).fill(null);
   for (const point of result.timeSeries[0].points ?? []) {
@@ -83,10 +86,10 @@ async function backups(token) {
   } catch { return null; }
 }
 
-export async function publishOwnerTelemetry(db, token, now, end) {
+export async function publishOwnerTelemetry(db, token, now, end, monitoring = token) {
   const [check, latency, inventory, managedBackups] = await Promise.all([
     probe(db, now),
-    collectLatency(token, end),
+    collectLatency(monitoring, end),
     Promise.all(COLLECTIONS.map(async name => {
       try { return [name, (await db.collection(name).count().get()).data().count]; }
       catch { return [name, null]; }
