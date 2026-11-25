@@ -102,7 +102,8 @@ export async function publishOwnerTelemetry(db, token, now, end, monitoring = to
     const probes = history.filter(item => Math.floor(item.at / HOUR) < Math.floor(now / HOUR)).slice(-27);
     transaction.set(ref, {
       version: 1, checkedAt: now, probes: [...probes, check],
-      latency, inventory: Object.fromEntries(inventory), backups: managedBackups,
+      latency: latency ?? existing?.latency ?? null,
+      inventory: Object.fromEntries(inventory), backups: managedBackups,
     });
   });
   console.log(`Owner console: Hosting ${check.hostingMs === null ? 'unavailable' : 'ok'}, Firestore ${check.firestoreMs === null ? 'unavailable' : 'ok'}, registry ${check.registryMs === null ? 'unavailable' : 'ok'}, latency ${latency ? 'ok' : 'unavailable'}, backups ${managedBackups ? 'ok' : 'unavailable'}`);
