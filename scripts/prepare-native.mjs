@@ -31,6 +31,7 @@ const env = {
   ...process.env,
   ...Object.fromEntries(Object.entries(settings).filter(([key]) => key.startsWith('VITE_'))),
   VITE_NATIVE_GOOGLE_IOS_CLIENT_ID: platform === 'ios' ? iosClient : '',
+  VITE_NATIVE_METRICS: (platform === 'android' ? process.env.TANK_MALLE_ANDROID_GOOGLE_SERVICES : process.env.TANK_MALLE_IOS_GOOGLE_SERVICES) ? '1' : '0',
   TANK_MALLE_NATIVE_PROFILE: profile,
   TANK_MALLE_NATIVE_PLATFORM: platform,
 };

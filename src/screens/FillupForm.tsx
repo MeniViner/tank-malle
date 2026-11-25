@@ -1,4 +1,6 @@
 import "../fillup-design.css";
+import { beginFillupSave, trackUsage } from '../lib/monitoring/usage';
+import { isDemoVehicleId } from '../lib/demo/demo';
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -310,6 +312,14 @@ function FillupEditor({
   const captureUi = useAccountScope(`${user?.uid ?? "none"}:${activeVehicle?.id ?? "none"}`);
   const draftKey = fillupDraftKey(user?.uid ?? "none", activeVehicle?.id ?? "none", operation?.opId ?? initial?.id ?? "new");
   const [restoredDraft] = useState(() => readFillupDraft(draftKey));
+  const measureNewFillup = mode === 'new' && !operation && !!activeVehicle && !isDemoVehicleId(activeVehicle.id);
+  const opened = useRef(false);
+  useEffect(() => {
+    if (measureNewFillup && !opened.current) {
+      opened.current = true;
+      trackUsage('fillup_started');
+    }
+  }, [measureNewFillup]);
   const draftCleared = useRef(false);
   const [scanOpen, setScanOpen] = useState(() => mode === "new" && !operation && !initial && settings.quickEntry === true);
   const [scanCompleted,setScanCompleted] = useState(false);
@@ -993,7 +1003,11 @@ function FillupEditor({
     const vehicle = { ...activeVehicle };
     const history = others.map(fill => ({ ...fill, station: fill.station ? { ...fill.station } : null }));
     const submitted: { current: FillupSubmission | null; at: number } = { current: null, at: 0 };
-    const onSubmitted = (entry: FillupSubmission) => { submitted.current = entry; submitted.at = Date.now(); };
+    const finishMeasurement = measureNewFillup ? beginFillupSave() : () => {};
+    const onSubmitted = (entry: FillupSubmission) => {
+      submitted.current = entry;
+      submitted.at = Date.now();
+    };
     // Labelled once the undo window has passed; an undone save labels nothing.
     const labelScans = () => {
       const entries = scanBookRef.current.samples;
@@ -1041,8 +1055,9 @@ function FillupEditor({
         });
         navigate(operation ? "/settings/unsynced" : "/", { replace: true });
       } else {
-        await addFillup(nextRecord, { replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion,
+        const queuedId = await addFillup(nextRecord, { replaceOpId: operation?.opId ?? null, replaceVersion: openedOperationVersion,
           vehicleId: operation?.vehicleId ?? vehicle.id, onSubmitted });
+        finishMeasurement(!!queuedId);
         const labels = labelScans();
         const submission = submitted.current;
         clearDraft();
@@ -1065,6 +1080,7 @@ function FillupEditor({
         }
       }
     } catch (error) {
+      finishMeasurement(false);
       if (!stillMounted()) return;
       showToast({ tone: "error", title: error instanceof Error ? error.message : "השמירה נכשלה",
         detail: error instanceof OutboxStorageError ? "הפרטים נשארו בטופס. פנו מקום ונסו שוב." : "הפרטים נשארו בטופס", duration: 8000 });

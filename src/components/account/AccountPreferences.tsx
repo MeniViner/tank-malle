@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
@@ -18,6 +18,8 @@ import { useCostSharing } from "../../context/CostCommunityContext";
 import { Button } from "../Button";
 import { useAccountScope } from "./useAccountScope";
 
+import { measurementAvailable, measurementEnabled, setMeasurement, subscribeMeasurement } from '../../lib/monitoring/usage';
+
 const THEMES: { value: ThemeSetting; label: string }[] = [
   { value: "system", label: "לפי המכשיר" },
   { value: "light", label: "בהיר" },
@@ -29,6 +31,7 @@ const UNITS: { value: Units; label: string }[] = [
 ];
 
 export function AccountPreferences() {
+  const measuring = useSyncExternalStore(subscribeMeasurement, measurementEnabled, () => false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -79,6 +82,13 @@ export function AccountPreferences() {
       </div>
     </section>
 
+    {measurementAvailable && <section className="account-section" aria-labelledby="account-measurement-heading">
+      <h2 id="account-measurement-heading" className="account-section-title">מדידת שימוש וביצועים</h2>
+      <div className="tm-group"><GroupRow title="שיתוף נתוני שימוש מהמכשיר הזה">
+        <Toggle checked={measuring} ariaLabel="שיתוף נתוני שימוש מהמכשיר הזה" onChange={setMeasurement} />
+      </GroupRow></div>
+      <p className="account-note">עוזר לנו לזהות היכן תדלוק נתקע. נשלחים ל־Google אירועי פתיחה ושמירה, זמני ביצוע ופרטי מכשיר טכניים. אפשר לכבות בכל עת.</p>
+    </section>}
     <section className="account-section" aria-labelledby="account-community-heading">
       <h2 id="account-community-heading" className="account-section-title">השוואה לנהגים</h2>
       <div className="tm-group">

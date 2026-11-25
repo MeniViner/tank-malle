@@ -8,7 +8,7 @@ import {
   SlidersIcon, TabPumpIcon, ToolsIcon, UploadIcon, UsersIcon, WifiIcon,
 } from '../components/icons';
 import {
-  JOBS, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
+  JOBS, productReports, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
   type GithubRun, type OperationsSnapshot,
 } from '../lib/adminOperations';
 import { getConsoleAccess, getConsoleTelemetry, getDeliveryReport, type ConsoleProbe, type ConsoleTelemetry } from '../lib/ownerConsole';
@@ -316,6 +316,8 @@ function ConsoleView({ tab, revision }: { tab: Tab; revision: number }) {
   switch (tab) {
     case 'overview': return <Health {...diagnostics} />;
     case 'monitor': return <>
+      <Panel title="שימוש ובריאות האפליקציה"><Rows rows={productReports.map(({ label, detail, href }) =>
+        ({ label, detail, value: <External href={href}>פתיחת הדוח</External> }))} /></Panel>
       <Panel title="בדיקה מהמכשיר הזה" meta={<External href={destinations.health}>סטטוס Firebase</External>}><LiveRows checks={checks} /></Panel>
       <Panel title="היסטוריית בדיקות מהשרת" meta="בדיקה כל 6 שעות"><ProbeTable probes={telemetry?.probes} showVersion /></Panel>
     </>;

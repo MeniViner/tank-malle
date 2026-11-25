@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { num } from '../../lib/format';
 import {
-  JOBS, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
+  JOBS, productReports, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
   type GithubRun, type OperationsSnapshot, type Source,
 } from '../../lib/adminOperations';
 import { Skeleton } from '../Card';
@@ -63,6 +63,7 @@ async function readSystem(signal: AbortSignal) {
 }
 
 const workbench = [
+  ...productReports.map(report => [report.label, report.href]),
   ['Firebase Hosting · פריסות', `${TANK_FIREBASE}/hosting/sites`],
   ['Firestore · שימוש במסד', `${TANK_FIREBASE}/firestore/usage`],
   ['Firebase Authentication · חשבונות', `${TANK_FIREBASE}/authentication/users`],

@@ -8,6 +8,12 @@ export const TANK_FIREBASE = 'https://console.firebase.google.com/project/tank-m
 export const TANK_CLOUD = 'https://console.cloud.google.com';
 export const TANK_HOSTING = 'https://tank-malle.web.app';
 
+export const productReports = [
+  { label: 'Google Analytics', detail: 'פתיחת טופס תדלוק, ניסיון שמירה וקבלה בתור המקומי', href: 'https://analytics.google.com/analytics/web/#/p552217232/realtime/overview' },
+  { label: 'Firebase Performance', detail: 'זמן שמירה מקומית וביצועי האפליקציה', href: TANK_FIREBASE + '/performance' },
+  { label: 'Crashlytics', detail: 'קריסות בגרסאות המובייל המחוברות', href: TANK_FIREBASE + '/crashlytics' },
+] as const;
+
 export const JOBS = [
   { file: 'fuel-prices.yml', title: 'מחירי דלק', cadence: 'כל שעתיים' },
   { file: 'push-notifications.yml', title: 'התראות לטלפון', cadence: 'פעם ביום' },

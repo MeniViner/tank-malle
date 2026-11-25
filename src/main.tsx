@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { initializeMeasurement } from "./lib/monitoring/usage";
 import App from "./App";
 import { CostCommunityProvider } from "./context/CostCommunityContext";
 import { VehicleDataProvider } from "./context/VehicleDataContext";
@@ -21,6 +22,8 @@ if (import.meta.env.MODE === "e2e") {
     unacknowledgedState,
   };
 }
+
+initializeMeasurement();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
