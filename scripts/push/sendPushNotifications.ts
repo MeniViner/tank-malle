@@ -48,6 +48,13 @@ async function main() {
         return uid && typeof data.endpoint === 'string' && typeof data.p256dh === 'string' && typeof data.auth === 'string'
           ? [{ uid, id: doc.id, endpoint: data.endpoint, p256dh: data.p256dh, auth: data.auth, createdAt: typeof data.createdAt === 'number' ? data.createdAt : null }] : [];
       });
+      const android = native.docs.flatMap(doc => {
+        const uid = doc.ref.parent.parent?.id, data = doc.data();
+        return uid && typeof data.token === 'string' && /^[A-Za-z0-9_:-]{40,512}$/.test(data.token)
+          ? [{ uid, id: doc.id, token: data.token, transport: 'fcm' as const, createdAt: typeof data.createdAt === 'number' ? data.createdAt : null }]
+          : [];
+      });
+      return [...web, ...android];
     },
     profile: async uid => (await db.doc(`users/${uid}`).get()).data() ?? null,
     vehicles: async uid => rows(await db.collection(`users/${uid}/vehicles`).get()),

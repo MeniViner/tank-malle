@@ -42,7 +42,11 @@ async function series(token, metric, end) {
       signal: AbortSignal.timeout(15_000),
       redirect: 'error',
     });
-    if (!response.ok) return { status: response.status === 403 ? 'forbidden' : 'unavailable', http: response.status };
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      const reason = payload?.error?.details?.find(item => /^[A-Z_]{3,100}$/.test(item.reason ?? ''))?.reason;
+      return { status: response.status === 403 ? 'forbidden' : 'unavailable', http: response.status, ...(reason ? { reason } : {}) };
+    }
     const result = await response.json();
     if (result.executionErrors?.length || result.unreachable?.length) return { status: 'unavailable' };
     rows.push(...(result.timeSeries ?? []));
@@ -104,6 +108,12 @@ async function main() {
   const inline = process.env.FIREBASE_SERVICE_ACCOUNT;
   const key = inline ? JSON.parse(inline) : null;
   if (key && key.project_id !== PROJECT) throw new Error('Unexpected monitoring project.');
+  if (dryRun && key) {
+    const identity = key.client_email;
+    const configured = identity === 'firebase-adminsdk-fbsvc@tank-malle.iam.gserviceaccount.com'
+      ? 'Firebase Admin SDK' : identity === 'fuel-price-bot@tank-malle.iam.gserviceaccount.com' ? 'fuel price bot' : 'another existing service account';
+    console.log(`Configured credential: ${configured}`);
+  }
   if (!dryRun && !key) throw new Error('The repository service account is required to publish.');
   const credential = key ? cert(key) : applicationDefault();
   const app = initializeApp({ projectId: PROJECT, credential });
@@ -118,7 +128,7 @@ async function main() {
       ]);
     }
     for (const [key, value] of Object.entries(snapshot.metrics)) {
-      console.log(`${key}: ${value.status}${value.http ? ` (HTTP ${value.http})` : ''}`);
+      console.log(`${key}: ${value.status}${value.http ? ` (HTTP ${value.http}${value.reason ? ` · ${value.reason}` : ''})` : ''}`);
     }
     if (Object.values(snapshot.metrics).some(metric => ['forbidden', 'unavailable'].includes(metric.status))) process.exitCode = 1;
   } finally {
