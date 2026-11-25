@@ -1,0 +1,9 @@
+{
+  "name": "tank-malle-owner-scan",
+  "main": "index.mjs",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": false },
+  "vars": { "WEB_PILOT_ORIGIN": "https://tank-malle--owner-monitoring-2jkut94m.web.app" }
+}

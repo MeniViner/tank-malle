@@ -11,7 +11,7 @@ async function query(token, version, method, request, keys, parse) {
   try {
     const response = await fetch(`${base}/${version}/${property}:${method}`, {
       method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(15000), body: JSON.stringify({ dateRanges, ...request }),
+      signal: AbortSignal.timeout(15000), body: JSON.stringify(method === 'runRealtimeReport' ? request : { dateRanges, ...request }),
     });
     if (!response.ok) return { status: response.status === 403 || response.status === 401 ? 'forbidden'
       : response.status === 429 ? 'limited' : 'unavailable' };
@@ -39,18 +39,20 @@ export async function collectProductJourney(credentials) {
     const token = await auth.getAccessToken();
     if (token) return readJourney(token);
   } catch { /* Report missing credentials independently of the Cloud Monitoring job. */ }
-  return { collectedAt: Date.now(), funnel: { status: 'forbidden' }, operations: { status: 'forbidden' } };
+  return { collectedAt: Date.now(), funnel: { status: 'forbidden' }, operations: { status: 'forbidden' }, recent: { status: 'forbidden' } };
 }
 
 export async function readJourney(token) {
-  const [funnel, operations] = await Promise.all([
+  const writeReport = {
+    dimensions: [{ name: 'eventName' }], metrics: [{ name: 'eventCount' }],
+    dimensionFilter: { filter: { fieldName: 'eventName', inListFilter: { values: writes } } },
+  };
+  const [funnel, operations, recent] = await Promise.all([
     query(token, 'v1alpha', 'runFunnelReport', { funnel: { isOpenFunnel: false,
       steps: steps.map(name => ({ name, filterExpression: { funnelEventFilter: { eventName: name } } })),
     } }, steps, data => data.funnelTable),
-    query(token, 'v1beta', 'runReport', {
-      dimensions: [{ name: 'eventName' }], metrics: [{ name: 'eventCount' }],
-      dimensionFilter: { filter: { fieldName: 'eventName', inListFilter: { values: writes } } },
-    }, writes, data => data),
+    query(token, 'v1beta', 'runReport', writeReport, writes, data => data),
+    query(token, 'v1beta', 'runRealtimeReport', writeReport, writes, data => data),
   ]);
-  return { collectedAt: Date.now(), funnel, operations };
+  return { collectedAt: Date.now(), funnel, operations, recent };
 }

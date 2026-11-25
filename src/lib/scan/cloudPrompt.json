@@ -1,0 +1,6 @@
+{
+  "model": "gemini-3.5-flash-lite",
+  "odometer": "Transcribe the vehicle’s cumulative odometer (ODO, total distance in km). Locate the mileage in the instrument display and ignore speed in km/h, Trip A/B, remaining range, clock, and gear indicators.",
+  "pump": "Transcribe the pump sale total, litres and displayed price per litre, in that order on a typical Israeli pump.",
+  "instructions": "Copy only legible digits and printed decimal points. Keep trailing zeros. Return null for ambiguous or missing fields. Never calculate a missing field."
+}

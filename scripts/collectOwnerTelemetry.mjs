@@ -24,7 +24,7 @@ async function timed(read) {
   catch { return { ms: null }; }
 }
 
-async function probe(db, now) {
+export async function probe(db, now) {
   let build = null;
   const [hosting, firestore, registry] = await Promise.all([
     timed(async () => {
@@ -83,10 +83,9 @@ async function backups(token) {
   } catch { return null; }
 }
 
-export async function publishOwnerTelemetry(db, token, now, end, monitoring = token) {
-  const [check, latency, inventory, managedBackups] = await Promise.all([
-    probe(db, now),
-    collectLatency(monitoring, end),
+export async function publishOwnerTelemetry(db, token, now, end, monitoring, check) {
+  const [latency, inventory, managedBackups] = await Promise.all([
+    monitoring ? collectLatency(monitoring, end) : null,
     Promise.all(COLLECTIONS.map(async name => {
       try { return [name, (await db.collection(name).count().get()).data().count]; }
       catch { return [name, null]; }

@@ -10,6 +10,6 @@ export default defineConfig({
     environment: "node",
     // Scripts are tested too: the nightly price parser lives there, and a
     // wrong reading of the ministry's page would reach every driver.
-    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "scripts/**/*.test.ts", "workers/**/*.test.ts"],
   },
 });

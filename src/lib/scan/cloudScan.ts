@@ -1,6 +1,8 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema, ThinkingLevel } from 'firebase/ai';
 import { CustomProvider, getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
-import { app } from '../firebase';
+import { app, auth } from '../firebase';
+import prompt from './cloudPrompt.json';
+import { getConsoleAccess } from '../ownerConsole';
 import { nativeBuild } from '../native/platform';
 import type { DisplayKind, ScanContext } from './engine';
 import type { Gray } from './engine/image';
@@ -22,7 +24,9 @@ async function configureAttestation() {
   return initializeAppCheck(app, { provider });
 }
 let attestation: ReturnType<typeof configureAttestation> | undefined;
-let cooldownUntil = 0;
+const cooldowns = new Map<string, number>();
+const ownerService = 'https://tank-malle-owner-scan.meniviner.workers.dev/scan/';
+
 
 function cropJpeg(crop: Gray) {
   const canvas = document.createElement('canvas');
@@ -40,14 +44,30 @@ function cropJpeg(crop: Gray) {
 }
 
 export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanContext, signal: AbortSignal, onGenerate: () => void) {
-  if (signal.aborted || !navigator.onLine || Date.now() < cooldownUntil) return undefined;
+  const user = auth.currentUser;
+  const uid = user?.uid ?? '';
+  if (signal.aborted || !navigator.onLine || Date.now() < (cooldowns.get(uid) ?? 0)) return undefined;
   try {
     attestation ??= configureAttestation().catch(error => { attestation = undefined; throw error; });
     // Fail closed before passing any image to AI Logic if attestation is unavailable.
-    await getToken(await attestation);
+    const { token: appToken } = await getToken(await attestation);
     if (signal.aborted) return undefined;
     const data = cropJpeg(crop);
     if (!data) return undefined;
+    const identity = user?.emailVerified ? await user.getIdTokenResult() : undefined;
+    const owner = user && identity?.claims.admin === true && identity.signInProvider === 'google.com' &&
+      await getConsoleAccess(uid).catch(() => false);
+    if (auth.currentUser !== user || signal.aborted) return undefined;
+    if (owner && identity) {
+      const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+      onGenerate();
+      const result = await fetch(ownerService + kind, {
+        method: 'POST', signal: AbortSignal.any([signal, AbortSignal.timeout(15000)]), body: bytes,
+        headers: { Authorization: 'Bearer ' + identity.token, 'X-Firebase-AppCheck': appToken, 'Content-Type': 'image/jpeg' },
+      });
+      if (result.status === 429) cooldowns.set(uid, Date.now() + 60_000);
+      return result.ok ? parseCloudReading(kind, await result.text(), context) : null;
+    }
     const digitString = () => Schema.string({ nullable: true });
     const properties: Record<string, ReturnType<typeof digitString>> = kind === 'odometer'
       ? { odometer: digitString() } : { total: digitString(), liters: digitString(), price: digitString() };
@@ -56,17 +76,15 @@ export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanCont
       generationConfig: { responseMimeType: 'application/json', responseSchema: Schema.object({ properties }),
         maxOutputTokens: 256, thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL } },
     });
-    const target = kind === 'odometer' ? 'the vehicle’s cumulative odometer (ODO, total distance in km). Locate the mileage in the instrument display and ignore speed in km/h, Trip A/B, remaining range, clock, and gear indicators'
-      : 'the pump sale total, litres and displayed price per litre, in that order on a typical Israeli pump';
     onGenerate();
     const response = await model.generateContent([
-      'Transcribe ' + target + '. Copy only legible digits and printed decimal points. Keep trailing zeros. Return null for ambiguous or missing fields. Never calculate a missing field.',
+      prompt[kind] + ' ' + prompt.instructions,
       { inlineData: { mimeType: 'image/jpeg', data } },
     ], { signal, timeout: 12000 });
     return parseCloudReading(kind, response.response.text(), context);
   } catch (error) {
     if ((error as { customErrorData?: { status?: number } })?.customErrorData?.status === 429) {
-      cooldownUntil = Date.now() + 60_000;
+      cooldowns.set(uid, Date.now() + 60_000);
     }
     return null;
   }

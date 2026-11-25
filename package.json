@@ -42,6 +42,7 @@
     "@capgo/capacitor-printer": "8.1.10",
     "@capgo/capacitor-social-login": "8.7.9",
     "firebase": "^12.19.0",
+    "jose": "6.2.12",
     "pdfjs-dist": "6.4.299",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

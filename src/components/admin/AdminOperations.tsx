@@ -47,7 +47,7 @@ function Badge({ tone = 'neutral', children }: { tone?: 'good' | 'warn' | 'bad' 
 }
 
 const SOURCE_LABELS = {
-  ok: 'זמין', empty: 'אין נתונים', forbidden: 'אין הרשאה',
+  billing_required: 'דורש חשבון חיוב', ok: 'זמין', empty: 'אין נתונים', forbidden: 'אין הרשאה',
   limited: 'מכסת בקשות', unavailable: 'לא זמין כרגע', disabled: 'כבוי בתצוגה זו',
 };
 function SourceNote({ status }: { status: keyof typeof SOURCE_LABELS }) {
@@ -196,6 +196,9 @@ export function AdminJourney({ revision }: { revision: number }) {
       <h3>שמירה וסנכרון בכל המסלולים הנמדדים</h3>
       <p className="helper">כל רשומת יומן נספרת כשהיא נשמרת במכשיר וכשהשרת מאשר אותה. בייבוא נספרת כל רשומה בנפרד. האישור עשוי להגיע ביום אחר.</p>
       <JourneyRows labels={journey.writes} report={data.operations} />
+      {data.recent && <><h3>פעילות בחצי השעה שלפני הדגימה</h3>
+        <p className="helper">אירועי GA4 שנקלטו עד {date(data.collectedAt)}</p>
+        <JourneyRows labels={journey.writes} report={data.recent} /></>}
     </> : loading ? <Pending loading /> : <SourceNote status={result?.status === 'ok' ? 'unavailable' : result?.status ?? 'unavailable'} />}
   </AdminPanel>;
 }
@@ -212,7 +215,8 @@ export function AdminApi({ revision }: { revision: number }) {
     <AdminPanel title="קריאות API ותעבורה" bare note="מדדים מצטברים של טנק מלא מ־Google Cloud Monitoring. זמני התצוגה לפי שעון ישראל.">
       {data ? <>
         <p className="helper">עודכן {date(data.collectedAt)} · סוף חלון המדידה {date(data.end)} {stale ? <Badge tone="warn">הנתונים ישנים</Badge> : null}</p>
-        <MetricBoard data={data} />
+        {calls?.status === 'billing_required' ? <p className="helper">מדדי התעבורה של Cloud Monitoring דורשים חשבון חיוב. בדיקות הזמינות ממשיכות לפעול ב־Spark.</p> : <MetricBoard data={data} />}
+        {calls?.status === 'billing_required' && <Link href={TANK_FIREBASE + '/firestore/usage'}>שימוש ב־Firestore בקונסולת Firebase</Link>}
       </> : result.status !== 'ok' ? <SnapshotMessage result={result} /> : null}
     </AdminPanel>
     {data && calls?.days ? <AdminPanel title="בקשות ב־7 היממות האחרונות" note="כל תאריך מציין את סוף חלון המדידה. מקף מציין יממה ללא דגימה.">

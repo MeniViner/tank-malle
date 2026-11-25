@@ -3,7 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { monitoringToken } from './monitoringToken.mjs';
 import { applicationDefault, cert, deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
-import { publishOwnerTelemetry } from './collectOwnerTelemetry.mjs';
+import { probe, publishOwnerTelemetry } from './collectOwnerTelemetry.mjs';
 
 import { collectProductJourney } from './collectProductJourney.mjs';
 
@@ -98,6 +98,8 @@ function summarize(key, result, end) {
 export async function collectOperations(token, now = Date.now()) {
   // Use complete 24-hour windows, leaving more than the metric visibility lag.
   const end = Math.floor((now - 2 * HOUR) / HOUR) * HOUR;
+  if (!token) return { version: 1, collectedAt: now, end, metrics: Object.fromEntries(
+    Object.keys(metrics).map(name => [name, { status: 'billing_required' }])) };
   const results = await Promise.all(Object.entries(metrics).map(async ([key, metric]) => {
     try { return [key, summarize(key, await series(token, metric, end), end)]; }
     catch { return [key, { status: 'unavailable' }]; }
@@ -116,16 +118,21 @@ async function main() {
   const app = initializeApp({ projectId: PROJECT, credential });
   try {
     const { access_token: token } = await credential.getAccessToken();
-    const monitoring = process.env.GITHUB_ACTIONS === 'true' ? await monitoringToken() : token;
+    const spark = process.argv.includes('--spark');
+    const monitoring = spark ? null : process.env.GITHUB_ACTIONS === 'true' ? await monitoringToken() : token;
     const [snapshot, journey] = await Promise.all([collectOperations(monitoring), collectProductJourney(key ?? undefined)]);
     console.log(`Product journey: funnel ${journey.funnel.status}, writes ${journey.operations.status}`);
+    const db = getFirestore(app);
+    const check = await probe(db, snapshot.collectedAt);
+    console.log(`Availability: Hosting ${check.hostingMs ?? 'failed'} ms, Firestore ${check.firestoreMs ?? 'failed'} ms`);
+    if ([journey.funnel, journey.operations, journey.recent].some(r => !['ok', 'empty'].includes(r.status)) ||
+        check.hostingMs === null || check.firestoreMs === null) process.exitCode = 1;
     if (!dryRun) {
-      const db = getFirestore(app);
       const unavailable = Object.values(snapshot.metrics).some(metric => ['forbidden', 'unavailable'].includes(metric.status));
       await Promise.all([
         unavailable ? Promise.resolve() : db.doc('adminOperations/latest').set(snapshot),
         db.doc('adminOperations/journey').set(journey),
-        publishOwnerTelemetry(db, token, snapshot.collectedAt, snapshot.end, monitoring),
+        publishOwnerTelemetry(db, token, snapshot.collectedAt, snapshot.end, monitoring, check),
       ]);
     }
     for (const [key, value] of Object.entries(snapshot.metrics)) {

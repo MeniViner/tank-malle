@@ -26,7 +26,7 @@ export type Source<T> =
   | { status: 'empty' | 'forbidden' | 'limited' | 'unavailable' | 'disabled' };
 
 interface Metric {
-  status: 'ok' | 'empty' | 'forbidden' | 'unavailable';
+  status: 'billing_required' | 'ok' | 'empty' | 'forbidden' | 'unavailable';
   days?: (number | null)[];
   http?: number;
 }
@@ -139,7 +139,7 @@ function finiteTime(value: unknown) {
 }
 
 type JourneyReport = { status: 'ok' | 'empty' | 'limited' | 'forbidden' | 'unavailable'; counts?: Record<string, number>; limited?: boolean };
-export interface JourneySnapshot { collectedAt: number; funnel: JourneyReport; operations: JourneyReport }
+export interface JourneySnapshot { collectedAt: number; funnel: JourneyReport; operations: JourneyReport; recent?: JourneyReport }
 
 export async function loadJourney(parent: AbortSignal): Promise<Source<JourneySnapshot>> {
   const result = await source(async () => {
@@ -160,7 +160,7 @@ export async function loadOperations(parent: AbortSignal): Promise<Source<Operat
     const data = snapshot.data();
     const keys = ['calls', 'reads', 'writes', 'deletes', 'bandwidth'];
     if (data?.version !== 1 || !finiteTime(data.end) || !finiteTime(data.collectedAt) ||
-        keys.some(key => !['ok', 'empty', 'forbidden', 'unavailable'].includes(data.metrics?.[key]?.status))) {
+        keys.some(key => !['billing_required', 'ok', 'empty', 'forbidden', 'unavailable'].includes(data.metrics?.[key]?.status))) {
       throw new Error('Invalid monitoring snapshot');
     }
     return data as OperationsSnapshot;

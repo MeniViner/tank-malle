@@ -19,7 +19,17 @@ it('keeps counts of ordered users separate from permission errors for event tota
     return new Response(null, { status: 403 });
   });
   const result = await readJourney('fixture');
-  expect(requests).toHaveLength(2);
+  expect(requests).toHaveLength(3);
   expect(result.funnel).toMatchObject({ status: 'ok', counts: { signin_viewed: 9, first_action_saved: 2 } });
   expect(result.operations).toEqual({ status: 'forbidden' });
+});
+
+it('shows the Spark billing restriction without issuing a Cloud Monitoring request', async () => {
+  const { collectOperations } = await import('./collectAdminOperations.mjs');
+  const fetch = vi.fn();
+  vi.stubGlobal('fetch', fetch);
+  const result = await collectOperations(null, Date.UTC(2026, 10, 25));
+  expect(Object.keys(result.metrics)).toHaveLength(5);
+  expect(Object.values(result.metrics)).toEqual(Array(5).fill({ status: 'billing_required' }));
+  expect(fetch).not.toHaveBeenCalled();
 });
