@@ -1,3 +1,4 @@
+import { GoogleAuth } from 'google-auth-library';
 import journey from '../src/lib/monitoring/journey.json' with { type: 'json' };
 
 const property = 'properties/552217232';
@@ -31,25 +32,14 @@ async function query(token, version, method, request, keys, parse) {
   }
 }
 
-// Only aggregated counts enter Firestore.
-export async function collectProductJourney(cloudToken) {
-  // The main-branch scheduler can impersonate this report-only identity without a private key.
-  let token;
+// The existing scheduled collector credential is also a Viewer on this GA4 property.
+export async function collectProductJourney(credentials) {
   try {
-    const response = await fetch('https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/journey-reports@tank-malle.iam.gserviceaccount.com:generateAccessToken', {
-      method: 'POST', headers: { Authorization: `Bearer ${cloudToken}`, 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(10000),
-      body: JSON.stringify({ scope: ['https://www.googleapis.com/auth/analytics.readonly'], lifetime: '300s' }),
-    });
-    if (!response.ok) return missing(response.status === 403 || response.status === 401 ? 'forbidden' : 'unavailable');
-    token = (await response.json()).accessToken;
-    if (!token) return missing('unavailable');
-  } catch { return missing('unavailable'); }
-  return readJourney(token);
-}
-
-function missing(status) {
-  return { collectedAt: Date.now(), funnel: { status }, operations: { status } };
+    const auth = new GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/analytics.readonly'] });
+    const token = await auth.getAccessToken();
+    if (token) return readJourney(token);
+  } catch { /* Report missing credentials independently of the Cloud Monitoring job. */ }
+  return { collectedAt: Date.now(), funnel: { status: 'forbidden' }, operations: { status: 'forbidden' } };
 }
 
 export async function readJourney(token) {

@@ -518,9 +518,9 @@ external providers are outside this measurement.
 The admin overview also reads `adminOperations/journey`. The same six-hour job requests
 a closed GA4 funnel from sign-in to the first locally saved action and write counts for
 the previous seven complete reporting days. Only aggregate counts are published. The
-main-branch monitoring workflow uses its existing workload identity to obtain a short-lived
-`analytics.readonly` token for `journey-reports@tank-malle.iam.gserviceaccount.com`.
-This identity needs Viewer access to GA4 property `552217232`. If either report is
+main-branch workflow requests a short-lived `analytics.readonly` token using its existing
+Firebase service-account credential. The project's reporting account has Viewer access to
+GA4 property `552217232` with cost and revenue metrics restricted. If either report is
 unavailable, the panel shows that source's status. No billing account is required.
 
 To activate the snapshot in production, deploy the Firestore rules alongside

@@ -117,7 +117,7 @@ async function main() {
   try {
     const { access_token: token } = await credential.getAccessToken();
     const monitoring = process.env.GITHUB_ACTIONS === 'true' ? await monitoringToken() : token;
-    const [snapshot, journey] = await Promise.all([collectOperations(monitoring), collectProductJourney(monitoring)]);
+    const [snapshot, journey] = await Promise.all([collectOperations(monitoring), collectProductJourney(key ?? undefined)]);
     console.log(`Product journey: funnel ${journey.funnel.status}, writes ${journey.operations.status}`);
     if (!dryRun) {
       const db = getFirestore(app);
