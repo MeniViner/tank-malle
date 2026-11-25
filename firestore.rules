@@ -983,6 +983,28 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // The desktop console uses the single provisioned Firebase UID, via verified Google sign-in.
+    // Existing mobile admin permissions are independent of this desktop gate.
+    function verifiedGoogleAdmin() {
+      return isAdmin() && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+
+    match /ownerConsole/access {
+      allow get: if verifiedGoogleAdmin() && request.auth.uid == resource.data.uid;
+    }
+
+    match /ownerConsole/telemetry {
+      allow get: if verifiedGoogleAdmin()
+        && request.auth.uid == get(/databases/$(database)/documents/ownerConsole/access).data.uid;
+    }
+
+    // A single aggregate snapshot published by the scheduled Admin SDK job.
+    match /adminOperations/latest {
+      allow get: if isAdmin();
+      allow list, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

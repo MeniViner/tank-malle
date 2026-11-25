@@ -864,3 +864,46 @@ describe("operational summaries", () => {
     );
   });
 });
+
+describe('admin operations monitoring', () => {
+  it('lets a claimed admin read only the published snapshot', async () => {
+    const ref = (db: ReturnType<typeof admin>) => doc(db, 'adminOperations', 'latest');
+    await testEnv.withSecurityRulesDisabled(context => setDoc(ref(context.firestore()), { version: 1 }));
+    await assertSucceeds(getDoc(ref(admin())));
+    await assertFails(getDoc(ref(alice())));
+    await assertFails(getDoc(ref(anon())));
+    await assertFails(getDocs(collection(admin(), 'adminOperations')));
+    await assertFails(setDoc(ref(admin()), { version: 2 }));
+    await assertFails(deleteDoc(ref(admin())));
+  });
+});
+
+describe('desktop owner console', () => {
+  it('requires the enrolled UID, a verified Google login and an admin claim', async () => {
+    const owner = 'console-owner';
+    const required = { admin: true, email_verified: true, firebase: { sign_in_provider: 'google.com' } };
+    const access = (db: ReturnType<typeof admin>) => doc(db, 'ownerConsole', 'access');
+    const telemetry = (db: ReturnType<typeof admin>) => doc(db, 'ownerConsole', 'telemetry');
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(access(context.firestore()), { uid: owner });
+      await setDoc(telemetry(context.firestore()), { version: 1 });
+    });
+    const claimed = testEnv.authenticatedContext(owner, required).firestore();
+    await assertSucceeds(getDoc(access(claimed)));
+    await assertSucceeds(getDoc(telemetry(claimed)));
+    const wrong = [
+      testEnv.authenticatedContext('unrelated-admin', required).firestore(),
+      testEnv.authenticatedContext(owner, { ...required, admin: false }).firestore(),
+      testEnv.authenticatedContext(owner, { ...required, email_verified: false }).firestore(),
+      testEnv.authenticatedContext(owner, { ...required, firebase: { sign_in_provider: 'password' } }).firestore(),
+      anon(),
+    ];
+    for (const db of wrong) {
+      await assertFails(getDoc(access(db)));
+      await assertFails(getDoc(telemetry(db)));
+    }
+    await assertFails(getDocs(collection(claimed, 'ownerConsole')));
+    await assertFails(setDoc(access(claimed), { uid: 'someone-else' }));
+    await assertFails(setDoc(telemetry(claimed), { version: 2 }));
+  });
+});
