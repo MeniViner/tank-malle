@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import journey from '../../lib/monitoring/journey.json';
+import { loadJourney, type JourneySnapshot } from '../../lib/adminOperations';
 import { num } from '../../lib/format';
 import {
-  JOBS, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
+  JOBS, productReports, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
   type GithubRun, type OperationsSnapshot, type Source,
 } from '../../lib/adminOperations';
 import { Skeleton } from '../Card';
@@ -45,7 +47,7 @@ function Badge({ tone = 'neutral', children }: { tone?: 'good' | 'warn' | 'bad' 
 }
 
 const SOURCE_LABELS = {
-  ok: 'זמין', empty: 'אין נתונים', forbidden: 'אין הרשאה',
+  billing_required: 'דורש חשבון חיוב', ok: 'זמין', empty: 'אין נתונים', forbidden: 'אין הרשאה',
   limited: 'מכסת בקשות', unavailable: 'לא זמין כרגע', disabled: 'כבוי בתצוגה זו',
 };
 function SourceNote({ status }: { status: keyof typeof SOURCE_LABELS }) {
@@ -63,6 +65,7 @@ async function readSystem(signal: AbortSignal) {
 }
 
 const workbench = [
+  ...productReports.map(report => [report.label, report.href]),
   ['Firebase Hosting · פריסות', `${TANK_FIREBASE}/hosting/sites`],
   ['Firestore · שימוש במסד', `${TANK_FIREBASE}/firestore/usage`],
   ['Firebase Authentication · חשבונות', `${TANK_FIREBASE}/authentication/users`],
@@ -168,6 +171,38 @@ async function readOperations(signal: AbortSignal) {
   return { result, checkedAt: Date.now() };
 }
 
+function JourneyRows({ labels, report }: { labels: Record<string, string>; report: JourneySnapshot['funnel'] }) {
+  if (report.status !== 'ok') return <SourceNote status={report.status} />;
+  return <>
+    {Object.entries(labels).map(([name, label]) => <Row key={name} title={label}
+      value={<Num>{report.counts?.[name] == null ? '—' : num(report.counts[name], 0)}</Num>} />)}
+    {report.limited && <p className="helper">Google החילה דגימה או סף דיווח על התוצאות.</p>}
+  </>;
+}
+
+async function readJourney(signal: AbortSignal) {
+  return { result: await loadJourney(signal), checkedAt: Date.now() };
+}
+
+export function AdminJourney({ revision }: { revision: number }) {
+  const { value, loading } = useLoad(readJourney, revision);
+  const result = value?.result;
+  const data = result?.status === 'ok' ? result.value : null;
+  return <AdminPanel title="מהכניסה לפעולה הראשונה" note="שבעת הימים המלאים האחרונים לפי GA4 · מכשירים שהפעילו מדידה">
+    {data ? <>
+      <p className="helper">עודכן {date(data.collectedAt)} {value && value.checkedAt - data.collectedAt > 12 * 3600000 && <Badge tone="warn">הנתונים ישנים</Badge>}</p>
+      <h3>משתמשים שהגיעו לכל שלב לפי הסדר</h3>
+      <JourneyRows labels={journey.steps} report={data.funnel} />
+      <h3>שמירה וסנכרון בכל המסלולים הנמדדים</h3>
+      <p className="helper">כל רשומת יומן נספרת כשהיא נשמרת במכשיר וכשהשרת מאשר אותה. בייבוא נספרת כל רשומה בנפרד. האישור עשוי להגיע ביום אחר.</p>
+      <JourneyRows labels={journey.writes} report={data.operations} />
+      {data.recent && <><h3>פעילות בחצי השעה שלפני הדגימה</h3>
+        <p className="helper">אירועי GA4 שנקלטו עד {date(data.collectedAt)}</p>
+        <JourneyRows labels={journey.writes} report={data.recent} /></>}
+    </> : loading ? <Pending loading /> : <SourceNote status={result?.status === 'ok' ? 'unavailable' : result?.status ?? 'unavailable'} />}
+  </AdminPanel>;
+}
+
 export function AdminApi({ revision }: { revision: number }) {
   const { value, loading } = useLoad(readOperations, revision);
   if (!value) return <Skeleton className="h-[210px] rounded-card" />;
@@ -180,7 +215,8 @@ export function AdminApi({ revision }: { revision: number }) {
     <AdminPanel title="קריאות API ותעבורה" bare note="מדדים מצטברים של טנק מלא מ־Google Cloud Monitoring. זמני התצוגה לפי שעון ישראל.">
       {data ? <>
         <p className="helper">עודכן {date(data.collectedAt)} · סוף חלון המדידה {date(data.end)} {stale ? <Badge tone="warn">הנתונים ישנים</Badge> : null}</p>
-        <MetricBoard data={data} />
+        {calls?.status === 'billing_required' ? <p className="helper">מדדי התעבורה של Cloud Monitoring דורשים חשבון חיוב. בדיקות הזמינות ממשיכות לפעול ב־Spark.</p> : <MetricBoard data={data} />}
+        {calls?.status === 'billing_required' && <Link href={TANK_FIREBASE + '/firestore/usage'}>שימוש ב־Firestore בקונסולת Firebase</Link>}
       </> : result.status !== 'ok' ? <SnapshotMessage result={result} /> : null}
     </AdminPanel>
     {data && calls?.days ? <AdminPanel title="בקשות ב־7 היממות האחרונות" note="כל תאריך מציין את סוף חלון המדידה. מקף מציין יממה ללא דגימה.">

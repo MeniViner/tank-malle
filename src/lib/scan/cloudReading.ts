@@ -1,7 +1,8 @@
 import type { DisplayKind, DisplayReading, ScanContext } from './engine';
 import { PRICE_MAX, PRICE_MIN } from './engine/read';
 
-export const SCAN_MODEL = 'gemini-3.5-flash-lite';
+import prompt from './cloudPrompt.json';
+export const SCAN_MODEL = prompt.model;
 
 export function parseCloudReading(kind: DisplayKind, text: string, context: ScanContext): DisplayReading | null {
   let fields: Record<string, unknown>;

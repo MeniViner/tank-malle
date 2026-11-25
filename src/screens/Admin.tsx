@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScanAccuracy } from "../components/admin/ScanAccuracy";
 import { AdminPanel as Panel } from "../components/admin/AdminPanel";
-import { AdminApi, AdminGithub, AdminSystem } from "../components/admin/AdminOperations";
+import { AdminJourney, AdminApi, AdminGithub, AdminSystem } from "../components/admin/AdminOperations";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   collection,
@@ -337,6 +337,7 @@ function AdminSession({ section }: { section?: AdminSection }) {
         {tab === 'system' ? <AdminSystem revision={operationsRevision} /> : null}
         {tab === 'api' ? <AdminApi revision={operationsRevision} /> : null}
         {tab === 'github' ? <AdminGithub revision={operationsRevision} /> : null}
+        {tab === 'overview' ? <AdminJourney revision={profileRevision} /> : null}
         {!operations && error ? <div role="alert" className="admin-alert"><WarningIcon size={18} /><span>{error}</span><button type="button" onClick={() => void load(null)} className="admin-link">ניסיון נוסף</button></div> : null}
         {operations ? null : !users ? <><Skeleton className="h-[170px] rounded-card" /><Skeleton className="h-[210px] rounded-card" /></> : <>
           {tab === 'overview' ? <>

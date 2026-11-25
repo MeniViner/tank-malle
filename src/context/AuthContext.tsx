@@ -1,3 +1,4 @@
+import { trackUsage } from "../lib/monitoring/usage";
 import { isAccountDeleting } from "../lib/accountDeletion";
 import {
   createContext,
@@ -109,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         const result = nativeBuild ? null : await getRedirectResult(auth);
+        if (result?.user) trackUsage('signin_completed');
         await auth.authStateReady();
         if (!nativeBuild && alive && sessionStorage.getItem(REDIRECT_MARKER) && !result && !auth.currentUser) {
           setError("ההתחברות לא נשמרה. נסו שוב מתוך האפליקציה.");
@@ -180,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { nativeGoogleCredential, googleCancelled } = await import("../lib/native/google");
         try {
           await signInWithCredential(auth, await nativeGoogleCredential());
+          trackUsage('signin_completed');
         } catch (caught) {
           if (!googleCancelled(caught)) setError(authErrorMessage((caught as { code?: string }).code ?? ""));
         }
@@ -188,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Firebase recommends popup auth when third-party redirect storage is blocked.
       // The user gesture opens it synchronously, including installed Safari apps.
       await signInWithPopup(auth, googleProvider);
+      trackUsage('signin_completed');
     } catch (caught) {
       const code = (caught as { code?: string }).code ?? "";
       if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
@@ -213,6 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSigningIn(true);
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      trackUsage('signin_completed');
     } catch (caught) {
       setError(authErrorMessage((caught as { code?: string }).code ?? ""));
     } finally {

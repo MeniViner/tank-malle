@@ -183,7 +183,7 @@ export async function reconcileVehicleSelectionOperation(db: Firestore, outbox: 
       await outbox.acknowledge(current.opId, current.version);
     } else if (samePreference(before, server) && intent.sourceId && eligible(source?.exists() ? source.data() : null)) {
       // The restored source makes an unsubmitted follow-up unnecessary here too.
-      await outbox.acknowledge(current.opId, current.version);
+      await outbox.acknowledge(current.opId, current.version, false);
     } else if (samePreference(before, server)) await outbox.fail(current.opId, current.version, {
       code: 'unconfirmed', message: 'בחירת הרכב לא אושרה — אפשר לנסות שוב', at: Date.now(),
     });

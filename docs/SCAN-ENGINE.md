@@ -180,6 +180,13 @@ feed the local threshold tuner. In Admin → סריקה, the fallback breakdown 
 suggestions with what users saved. The pilot also records a Firebase Performance
 trace per processed photo/camera session with timing and categorical attributes.
 
+In the owner pilot, the verified Google account designated by `ownerConsole/access`
+uses a Cloudflare Workers Free endpoint for automatic fallback. It checks the
+Firebase ID and App Check signatures before forwarding only the re-encoded JPEG
+to the same project's Gemini Developer API. The Worker keeps no image or request
+logs. All other users continue through Firebase AI Logic at four requests per
+minute. Both paths share Google's project quotas. Local reads use neither path.
+
 The provider is the Gemini Developer API on Spark, using `gemini-3.5-flash-lite`.
 On 2026-11-25 the project's free quotas were 15 requests/min and 500/day for
 both 3.5 and 3.1 Flash-Lite, and 5/min and 20/day for 3.8 Flash. The AI Logic

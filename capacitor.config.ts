@@ -9,7 +9,11 @@ export default {
   webDir: 'dist-native',
   server: { hostname: 'localhost', androidScheme: 'https', iosScheme: 'capacitor' },
   ios: { contentInset: 'never' },
-  experimental: { ios: { spm: { packageOptions: {
+  experimental: { ios: { spm: { swiftToolsVersion: '6.1',
+    packageTraits: { '@capacitor-firebase/analytics': ['AnalyticsWithoutAdIdSupport'] },
+    packageOptions: {
+    '@capacitor-firebase/analytics': { symlink: true },
+    '@capacitor-firebase/performance': { symlink: true },
     '@capacitor-firebase/app-check': { symlink: true },
     '@capacitor-firebase/crashlytics': { symlink: true },
   } } } },

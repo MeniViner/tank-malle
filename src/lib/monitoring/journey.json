@@ -1,0 +1,15 @@
+{
+  "steps": {
+    "signin_viewed": "מסך כניסה",
+    "signin_started": "התחלת כניסה",
+    "signin_completed": "כניסה הושלמה",
+    "vehicle_wizard_open": "פתיחת אשף רכב",
+    "vehicle_created": "רכב ראשון שנמדד",
+    "first_action_saved": "פעולה ראשונה נשמרה"
+  },
+  "writes": {
+    "write_local": "פעולות שנשמרו במכשיר",
+    "write_synced": "פעולות שאושרו בשרת",
+    "write_synced_after_minute": "מתוכן, אושרו אחרי דקה ומעלה"
+  }
+}

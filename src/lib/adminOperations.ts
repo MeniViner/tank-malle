@@ -8,6 +8,12 @@ export const TANK_FIREBASE = 'https://console.firebase.google.com/project/tank-m
 export const TANK_CLOUD = 'https://console.cloud.google.com';
 export const TANK_HOSTING = 'https://tank-malle.web.app';
 
+export const productReports = [
+  { label: 'Google Analytics', detail: 'כניסה, רכב ראשון, שמירה מקומית וסנכרון', href: 'https://analytics.google.com/analytics/web/#/p552217232/realtime/overview' },
+  { label: 'Firebase Performance', detail: 'זמן שמירה מקומית וביצועי האפליקציה', href: TANK_FIREBASE + '/performance' },
+  { label: 'Crashlytics', detail: 'קריסות בגרסאות המובייל המחוברות', href: TANK_FIREBASE + '/crashlytics' },
+] as const;
+
 export const JOBS = [
   { file: 'fuel-prices.yml', title: 'מחירי דלק', cadence: 'כל שעתיים' },
   { file: 'push-notifications.yml', title: 'התראות לטלפון', cadence: 'פעם ביום' },
@@ -20,7 +26,7 @@ export type Source<T> =
   | { status: 'empty' | 'forbidden' | 'limited' | 'unavailable' | 'disabled' };
 
 interface Metric {
-  status: 'ok' | 'empty' | 'forbidden' | 'unavailable';
+  status: 'billing_required' | 'ok' | 'empty' | 'forbidden' | 'unavailable';
   days?: (number | null)[];
   http?: number;
 }
@@ -132,6 +138,21 @@ function finiteTime(value: unknown) {
   return typeof time === 'number' && Number.isFinite(time) && time > 0 && time < 8.64e15 ? time : null;
 }
 
+type JourneyReport = { status: 'ok' | 'empty' | 'limited' | 'forbidden' | 'unavailable'; counts?: Record<string, number>; limited?: boolean };
+export interface JourneySnapshot { collectedAt: number; funnel: JourneyReport; operations: JourneyReport; recent?: JourneyReport }
+
+export async function loadJourney(parent: AbortSignal): Promise<Source<JourneySnapshot>> {
+  const result = await source(async () => {
+    const snapshot = await serverDoc(['adminOperations', 'journey'], withDeadline(parent));
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    if (!finiteTime(data?.collectedAt) || !data?.funnel?.status || !data?.operations?.status) throw new Error('Invalid journey report');
+    return data as JourneySnapshot;
+  });
+  if (result.status !== 'ok') return result;
+  return result.value ? { status: 'ok', value: result.value } : { status: 'empty' };
+}
+
 export async function loadOperations(parent: AbortSignal): Promise<Source<OperationsSnapshot>> {
   const result = await source(async () => {
     const snapshot = await serverDoc(['adminOperations', 'latest'], withDeadline(parent));
@@ -139,7 +160,7 @@ export async function loadOperations(parent: AbortSignal): Promise<Source<Operat
     const data = snapshot.data();
     const keys = ['calls', 'reads', 'writes', 'deletes', 'bandwidth'];
     if (data?.version !== 1 || !finiteTime(data.end) || !finiteTime(data.collectedAt) ||
-        keys.some(key => !['ok', 'empty', 'forbidden', 'unavailable'].includes(data.metrics?.[key]?.status))) {
+        keys.some(key => !['billing_required', 'ok', 'empty', 'forbidden', 'unavailable'].includes(data.metrics?.[key]?.status))) {
       throw new Error('Invalid monitoring snapshot');
     }
     return data as OperationsSnapshot;

@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: tank-malle-admin-operations
@@ -33,4 +32,4 @@ jobs:
       - name: Publish aggregate monitoring snapshot
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node scripts/collectAdminOperations.mjs ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: node scripts/collectAdminOperations.mjs --spark ${{ inputs.dry_run && '--dry-run' || '' }}

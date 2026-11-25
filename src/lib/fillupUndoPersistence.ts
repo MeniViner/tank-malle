@@ -32,7 +32,7 @@ async function retireOrigin(outbox: Outbox, deletion: OutboxOperation, stillCurr
   assertMutationScope(stillCurrent);
   if (state === 'missing' || !original) return;
   if (!await currentDeletion(outbox, deletion, respectConflict)) throw changedOrigin();
-  if (!await outbox.acknowledge(original.opId, original.version)) {
+  if (!await outbox.acknowledge(original.opId, original.version, false)) {
     // Another ACK is harmless; a replacement/claimed retry is not.
     const after = await outbox.get(original.opId);
     if (after) throw changedOrigin();

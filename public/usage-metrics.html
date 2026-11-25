@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="referrer" content="no-referrer"><title>Tank Malle</title></head><body>
+<script>
+  // The tag runs in a document with a fixed URL and no links, form fields or
+  // routing history. Enhanced measurement cannot inspect the app's records.
+  const measurementId = 'G-GK14SYZWT7';
+  const names = new Set(['usage_open', 'fillup_started', 'fillup_submitted', 'fillup_queued', 'fillup_save_failed',
+    'signin_viewed', 'signin_started', 'signin_completed', 'vehicle_wizard_open', 'vehicle_created',
+    'first_action_saved', 'write_local', 'write_synced', 'write_synced_after_minute']);
+  let initialized = false;
+  window.dataLayer = [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.addEventListener('message', event => {
+    if (window === parent || event.source !== parent || event.origin !== location.origin || !names.has(event.data)) return;
+    if (localStorage.getItem('tm.measurement.enabled.v1') !== '1') return;
+    if (!initialized) {
+      initialized = true;
+      gtag('consent', 'default', { analytics_storage: 'granted', ad_storage: 'denied',
+        ad_user_data: 'denied', ad_personalization: 'denied' });
+      gtag('js', new Date());
+      gtag('config', measurementId, { send_page_view: false, allow_google_signals: false,
+        allow_ad_personalization_signals: false, page_location: location.origin + '/', page_referrer: '' });
+      const tag = document.createElement('script');
+      tag.async = true;
+      tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
+      document.head.appendChild(tag);
+    }
+    gtag('event', event.data, { send_to: measurementId });
+  });
+</script></body></html>

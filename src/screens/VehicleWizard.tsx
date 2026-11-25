@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { trackUsage } from "../lib/monitoring/usage";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useData, type VehicleCreationSubmission, type VehicleSelectionResult } from "../context/DataContext";
@@ -36,6 +37,10 @@ export function VehicleWizard({ firstRun = false }: { firstRun?: boolean }) {
   const captureScope = useAccountScope(uid);
   const root = useRef<HTMLElement>(null);
   const [step, setStep] = useState<WizardStep>("plate");
+  const wizardReported = useRef(false);
+  useEffect(() => {
+    if (uid && !wizardReported.current) { wizardReported.current = true; trackUsage('vehicle_wizard_open'); }
+  }, [uid]);
   const [plate, setPlate] = useState("");
   const [draft, setDraft] = useState<WizardDraft>(EMPTY_WIZARD_DRAFT);
   const [editing, setEditing] = useState(false);
