@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: tank-malle-admin-operations
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   collect:
-    if: github.repository == 'MeniViner/tank-malle' && (github.ref == 'refs/heads/main' || inputs.dry_run)
+    if: github.repository == 'MeniViner/tank-malle' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
