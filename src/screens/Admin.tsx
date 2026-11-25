@@ -115,13 +115,15 @@ const ADMIN_TABS = [
   { value: "github", label: "GitHub" },
 ] as const;
 
-export function Admin() {
+export type AdminSection = typeof ADMIN_TABS[number]['value'] | 'costs';
+
+export function Admin({ section }: { section?: AdminSection }) {
   const { user, isAdmin, claimsLoaded } = useAuth();
   // Account/claim changes retire all selected profiles, drafts and local markers.
-  return <AdminSession key={`${user?.uid ?? 'signed-out'}:${claimsLoaded && isAdmin ? 'admin' : 'limited'}`} />;
+  return <AdminSession key={`${user?.uid ?? 'signed-out'}:${claimsLoaded && isAdmin ? 'admin' : 'limited'}`} section={section} />;
 }
 
-function AdminSession() {
+function AdminSession({ section }: { section?: AdminSection }) {
   const navigate = useNavigate();
   const { user, isAdmin, claimsLoaded } = useAuth();
   const captureScope = useAccountScope(user?.uid);
@@ -132,7 +134,7 @@ function AdminSession() {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [params, setParams] = useSearchParams();
-  const tab = ADMIN_TABS.find(entry => entry.value === params.get('tab'))?.value ?? 'overview';
+  const tab = section ?? ADMIN_TABS.find(entry => entry.value === params.get('tab'))?.value ?? 'overview';
   const [operationsRevision, setOperationsRevision] = useState(0);
   const operations = tab === 'system' || tab === 'api' || tab === 'github';
   const [profileCounts, setProfileCounts] = useState<{ all: number | null; recent: number | null }>();
@@ -295,8 +297,10 @@ function AdminSession() {
     );
   }
 
+  const Container = section ? 'div' : 'main';
   return (
-    <main className="tm-admin flex min-w-0 flex-1 flex-col pb-safe pt-safe">
+    <Container className="tm-admin flex min-w-0 flex-1 flex-col pb-safe pt-safe">
+      {section ? null : <>
       <header className="admin-header">
         <button type="button" aria-label="חזרה להגדרות" onClick={() => navigate('/settings')}>
           <ChevronStart size={22} className="rotate-180" />
@@ -328,6 +332,7 @@ function AdminSession() {
           </button>
         ))}
       </nav>
+      </>}
       <div className="admin-page">
         {tab === 'system' ? <AdminSystem revision={operationsRevision} /> : null}
         {tab === 'api' ? <AdminApi revision={operationsRevision} /> : null}
@@ -349,6 +354,10 @@ function AdminSession() {
             </section>
             <AdminSpendChart data={ledger} />
             <BenchmarkPool />
+          </> : null}
+          {tab === 'costs' ? <>
+            <AdminSpendChart data={ledger} />
+            <p className="helper">{exhausted ? 'מבוסס על הסיכומים שפורסמו מכל הפרופילים' : `מבוסס על הסיכומים של ${users.length} הפרופילים שנטענו`}</p>
           </> : null}
           {tab === 'users' ? <>
             <label className="admin-search"><SearchIcon size={18} /><input type="search" aria-label="חיפוש משתמשים" placeholder="חיפוש לפי שם או מייל" value={search} onChange={e => setSearch(e.target.value)} /></label>
@@ -378,7 +387,7 @@ function AdminSession() {
           ].map(([label, value]) => <div className="admin-data-row" key={label}><span>{label}</span><span><NumericText>{value}</NumericText></span></div>)}
         </div><p className="helper">{selectedUser.summary ? 'הנתונים הם סיכומים שהחשבון פרסם. סיכום ישן עשוי לכלול תדלוקים בלבד.' : 'לא זמין סיכום תקין לחשבון הזה, ולכן אין עדיין ספירה מאומתת.'} אין אפשרות לערוך או למחוק נתונים של משתמש אחר.</p></div> : null}
       </Sheet>
-    </main>
+    </Container>
   );
 }
 

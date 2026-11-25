@@ -2,6 +2,7 @@
 import { pathToFileURL } from 'node:url';
 import { applicationDefault, cert, deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { publishOwnerTelemetry } from './collectOwnerTelemetry.mjs';
 
 const PROJECT = 'tank-malle';
 const HOUR = 3_600_000;
@@ -110,7 +111,11 @@ async function main() {
     const { access_token: token } = await credential.getAccessToken();
     const snapshot = await collectOperations(token);
     if (!dryRun) {
-      await getFirestore(app).doc('adminOperations/latest').set(snapshot);
+      const db = getFirestore(app);
+      await Promise.all([
+        db.doc('adminOperations/latest').set(snapshot),
+        publishOwnerTelemetry(db, token, snapshot.collectedAt, snapshot.end),
+      ]);
     }
     for (const [key, value] of Object.entries(snapshot.metrics)) {
       console.log(`${key}: ${value.status}${value.http ? ` (HTTP ${value.http})` : ''}`);

@@ -62,7 +62,7 @@ test('admin operations deep links, service probes, API filtering and GitHub in b
   await expect(page.getByText('Release check')).toBeVisible();
   expect(unauthorizedRequests).toBe(0);
 
-  for (const [width, colorScheme] of [[320, 'light'], [390, 'dark'], [1440, 'light']] as const) {
+  for (const [width, colorScheme] of [[320, 'light'], [390, 'dark'], [768, 'light']] as const) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ colorScheme });
     for (const tab of ['שרתים', 'קריאות API', 'GitHub']) {

@@ -8,7 +8,7 @@ import { RouteScroll } from "./components/RouteScroll";
 import { AndroidBackNavigation } from "./components/AndroidBackNavigation";
 import { isAccountDeletionEntry } from "./lib/accountDeletion";
 import { useFirstVehicleSkipped } from "./lib/firstVehicleSkip";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useSyncExternalStore } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useData } from "./context/DataContext";
@@ -16,6 +16,7 @@ import { Toaster } from "./components/Toaster";
 import { TabBar } from "./components/TabBar";
 import { UpdatePrompt } from "./components/UpdatePrompt";
 import { nativeBuild } from "./lib/native/platform";
+import { isDesktopConsole, subscribeDesktopConsole } from "./lib/ownerConsole";
 import { Skeleton } from "./components/Card";
 import OpenNotification from "./screens/OpenNotification";
 import { Splash } from "./screens/Splash";
@@ -44,6 +45,7 @@ const Statistics = lazy(() =>
 // Admin is a rarely used, read-heavy screen — no reason to ship it to
 // everyone's first paint.
 const Admin = lazy(() => import("./screens/Admin").then((m) => ({ default: m.Admin })));
+const OwnerConsole = lazy(() => import("./screens/OwnerConsole").then(m => ({ default: m.OwnerConsole })));
 const NativeShell = lazy(() => import("./components/NativeShell"));
 
 const ONBOARDING_KEY = "tm.onboarded";
@@ -86,6 +88,8 @@ function Shell() {
   const { ready, activeVehicles, vehicles, accountDeletionPending } = useData();
   const firstVehicleSkipped = useFirstVehicleSkipped(user?.uid);
   const location = useLocation();
+  const desktopConsole = useSyncExternalStore(subscribeDesktopConsole, isDesktopConsole) &&
+    location.pathname.replace(/\/+$/, "") === "/admin";
   const stats = useStats();
   usePublishSummary(stats);
 
@@ -111,6 +115,11 @@ function Shell() {
   }
 
   if (loading || signingOut) return <Splash />;
+
+  if (desktopConsole) {
+    if (accountDeletionPending) return <Navigate to="/account" replace />;
+    return <OwnerConsole key={user?.uid ?? 'signed-out'} />;
+  }
 
   if (!user) {
     if (!onboarded && !isAccountDeletionEntry(location)) {
