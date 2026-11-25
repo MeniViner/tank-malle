@@ -16,7 +16,9 @@ test.use({ viewport: { width: 390, height: 844 } });
 
 async function fixture(page: Page) {
   const scope = await signedInWithData(page, {
-    vehicle: { make: "מאזדה", model: "3", year: 2020, tankLiters: 50, tankLitersSource: "user" },
+    // Navigation expects an idle outbox even across full-page reloads. A complete
+    // spec keeps automatic catalog enrichment from creating a concurrent write.
+    vehicle: { make: "מאזדה", model: "3", year: 2020, tankLiters: 50, tankLitersSource: "user", declaredKmPerLiter: 14 },
     regulatedPrice: 7.77,
     fillups: [
       { id: "first", date: new Date("2026-10-01T09:00:00Z"), odometer: 100000, liters: 40, pricePerLiter: 7 },
