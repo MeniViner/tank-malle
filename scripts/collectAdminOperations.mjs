@@ -5,6 +5,8 @@ import { applicationDefault, cert, deleteApp, initializeApp } from 'firebase-adm
 import { getFirestore } from 'firebase-admin/firestore';
 import { publishOwnerTelemetry } from './collectOwnerTelemetry.mjs';
 
+import { collectProductJourney } from './collectProductJourney.mjs';
+
 const PROJECT = 'tank-malle';
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -115,12 +117,14 @@ async function main() {
   try {
     const { access_token: token } = await credential.getAccessToken();
     const monitoring = process.env.GITHUB_ACTIONS === 'true' ? await monitoringToken() : token;
-    const snapshot = await collectOperations(monitoring);
+    const [snapshot, journey] = await Promise.all([collectOperations(monitoring), collectProductJourney(monitoring)]);
+    console.log(`Product journey: funnel ${journey.funnel.status}, writes ${journey.operations.status}`);
     if (!dryRun) {
       const db = getFirestore(app);
       const unavailable = Object.values(snapshot.metrics).some(metric => ['forbidden', 'unavailable'].includes(metric.status));
       await Promise.all([
         unavailable ? Promise.resolve() : db.doc('adminOperations/latest').set(snapshot),
+        db.doc('adminOperations/journey').set(journey),
         publishOwnerTelemetry(db, token, snapshot.collectedAt, snapshot.end, monitoring),
       ]);
     }

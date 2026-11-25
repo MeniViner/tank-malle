@@ -3,7 +3,7 @@
  * Drafts, caches, scan labels and every other per-account key go with the Firestore cache,
  * so the next person on this device starts clean.
  */
-const DEVICE_KEYS = new Set(["tm.theme", "tm.accent", "tm.onboarded"]);
+const DEVICE_KEYS = new Set(["tm.theme", "tm.accent", "tm.onboarded", "tm.measurement.enabled.v1", "tm.measurement.enabled.v1.session"]);
 
 export function clearSignedOutLocalStorage(storage: Pick<Storage, "length" | "key" | "removeItem"> = localStorage): void {
   try {

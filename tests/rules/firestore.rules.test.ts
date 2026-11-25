@@ -866,8 +866,9 @@ describe("operational summaries", () => {
 });
 
 describe('admin operations monitoring', () => {
-  it('lets a claimed admin read only the published snapshot', async () => {
-    const ref = (db: ReturnType<typeof admin>) => doc(db, 'adminOperations', 'latest');
+  it.each(['latest', 'journey'])('lets a claimed admin read only published report %s', async report => {
+    const ref = (db: ReturnType<typeof admin>) => doc(db, 'adminOperations', report);
+    await assertFails(getDoc(doc(admin(), 'adminOperations', 'other')));
     await testEnv.withSecurityRulesDisabled(context => setDoc(ref(context.firestore()), { version: 1 }));
     await assertSucceeds(getDoc(ref(admin())));
     await assertFails(getDoc(ref(alice())));

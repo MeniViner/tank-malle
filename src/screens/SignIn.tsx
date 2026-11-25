@@ -1,10 +1,12 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Spinner } from "../components/Button";
 import { NumericText } from "../components/Fmt";
 import { CheckIcon, GoogleMark, TabPumpIcon } from "../components/icons";
 import "../entry-design.css";
+
+import { measurementAvailable, measurementEnabled, setMeasurement, subscribeMeasurement, trackUsage } from "../lib/monitoring/usage";
 
 export function SignIn() {
   const { signIn, signInEmail, signingIn, error } = useAuth();
@@ -20,6 +22,13 @@ export function SignIn() {
   const consentId = useId();
   const invalidConsent = attempted && !consent;
 
+  const measuring = useSyncExternalStore(subscribeMeasurement, measurementEnabled, () => false);
+  const viewReported = useRef(false);
+  useEffect(() => {
+    if (measuring && !viewReported.current) trackUsage('signin_viewed');
+    viewReported.current = measuring;
+  }, [measuring]);
+
   function submit(withEmail = false) {
     if (submitting.current || signingIn) return;
     if (!consent) {
@@ -34,6 +43,7 @@ export function SignIn() {
     }
     // Keep the actual popup call in this user gesture, including installed Safari.
     submitting.current = true;
+    trackUsage('signin_started');
     void (withEmail ? signInEmail(email, password) : signIn()).finally(() => {
       submitting.current = false;
       setPassword("");
@@ -62,6 +72,10 @@ export function SignIn() {
           <Link to="/legal/privacy">ולמדיניות הפרטיות</Link>
         </div>
       </div>
+      {measurementAvailable && <label className="entry-consent-copy">
+        <input type="checkbox" checked={measuring} onChange={e => setMeasurement(e.currentTarget.checked)} />
+        שיתוף נתוני שימוש וביצועים עם Google מהמכשיר הזה (רשות)
+      </label>}
       {invalidConsent ? <p id={consentId + "-error"} data-testid="signin-consent-error" className="entry-error" role="alert">
         צריך לסמן את התיבה כדי להמשיך
       </p> : null}

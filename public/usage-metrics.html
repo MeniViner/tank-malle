@@ -4,7 +4,9 @@
   // The tag runs in a document with a fixed URL and no links, form fields or
   // routing history. Enhanced measurement cannot inspect the app's records.
   const measurementId = 'G-GK14SYZWT7';
-  const names = new Set(['usage_open', 'fillup_started', 'fillup_submitted', 'fillup_queued', 'fillup_save_failed']);
+  const names = new Set(['usage_open', 'fillup_started', 'fillup_submitted', 'fillup_queued', 'fillup_save_failed',
+    'signin_viewed', 'signin_started', 'signin_completed', 'vehicle_wizard_open', 'vehicle_created',
+    'first_action_saved', 'write_local', 'write_synced', 'write_synced_after_minute']);
   let initialized = false;
   window.dataLayer = [];
   function gtag() { window.dataLayer.push(arguments); }

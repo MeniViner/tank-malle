@@ -87,7 +87,7 @@ export function AccountPreferences() {
       <div className="tm-group"><GroupRow title="שיתוף נתוני שימוש מהמכשיר הזה">
         <Toggle checked={measuring} ariaLabel="שיתוף נתוני שימוש מהמכשיר הזה" onChange={setMeasurement} />
       </GroupRow></div>
-      <p className="account-note">עוזר לנו לזהות היכן תדלוק נתקע. נשלחים ל־Google אירועי פתיחה ושמירה, זמני ביצוע ופרטי מכשיר טכניים. אפשר לכבות בכל עת.</p>
+      <p className="account-note">נשלחים ל־Google שלבי כניסה, הוספת רכב, שמירה וסנכרון, זמני ביצוע ופרטי מכשיר טכניים. אפשר לכבות בכל עת.</p>
     </section>}
     <section className="account-section" aria-labelledby="account-community-heading">
       <h2 id="account-community-heading" className="account-section-title">השוואה לנהגים</h2>

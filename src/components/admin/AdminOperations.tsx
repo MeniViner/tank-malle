@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import journey from '../../lib/monitoring/journey.json';
+import { loadJourney, type JourneySnapshot } from '../../lib/adminOperations';
 import { num } from '../../lib/format';
 import {
   JOBS, productReports, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
@@ -167,6 +169,35 @@ function SnapshotMessage({ result }: { result: Exclude<Source<OperationsSnapshot
 async function readOperations(signal: AbortSignal) {
   const result = await loadOperations(signal);
   return { result, checkedAt: Date.now() };
+}
+
+function JourneyRows({ labels, report }: { labels: Record<string, string>; report: JourneySnapshot['funnel'] }) {
+  if (report.status !== 'ok') return <SourceNote status={report.status} />;
+  return <>
+    {Object.entries(labels).map(([name, label]) => <Row key={name} title={label}
+      value={<Num>{report.counts?.[name] == null ? '—' : num(report.counts[name], 0)}</Num>} />)}
+    {report.limited && <p className="helper">Google החילה דגימה או סף דיווח על התוצאות.</p>}
+  </>;
+}
+
+async function readJourney(signal: AbortSignal) {
+  return { result: await loadJourney(signal), checkedAt: Date.now() };
+}
+
+export function AdminJourney({ revision }: { revision: number }) {
+  const { value, loading } = useLoad(readJourney, revision);
+  const result = value?.result;
+  const data = result?.status === 'ok' ? result.value : null;
+  return <AdminPanel title="מהכניסה לפעולה הראשונה" note="שבעת הימים המלאים האחרונים לפי GA4 · מכשירים שהפעילו מדידה">
+    {data ? <>
+      <p className="helper">עודכן {date(data.collectedAt)} {value && value.checkedAt - data.collectedAt > 12 * 3600000 && <Badge tone="warn">הנתונים ישנים</Badge>}</p>
+      <h3>משתמשים שהגיעו לכל שלב לפי הסדר</h3>
+      <JourneyRows labels={journey.steps} report={data.funnel} />
+      <h3>שמירה וסנכרון בכל המסלולים הנמדדים</h3>
+      <p className="helper">כל רשומת יומן נספרת כשהיא נשמרת במכשיר וכשהשרת מאשר אותה. בייבוא נספרת כל רשומה בנפרד. האישור עשוי להגיע ביום אחר.</p>
+      <JourneyRows labels={journey.writes} report={data.operations} />
+    </> : loading ? <Pending loading /> : <SourceNote status={result?.status === 'ok' ? 'unavailable' : result?.status ?? 'unavailable'} />}
+  </AdminPanel>;
 }
 
 export function AdminApi({ revision }: { revision: number }) {

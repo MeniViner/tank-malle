@@ -9,7 +9,7 @@ export const TANK_CLOUD = 'https://console.cloud.google.com';
 export const TANK_HOSTING = 'https://tank-malle.web.app';
 
 export const productReports = [
-  { label: 'Google Analytics', detail: 'פתיחת טופס תדלוק, ניסיון שמירה וקבלה בתור המקומי', href: 'https://analytics.google.com/analytics/web/#/p552217232/realtime/overview' },
+  { label: 'Google Analytics', detail: 'כניסה, רכב ראשון, שמירה מקומית וסנכרון', href: 'https://analytics.google.com/analytics/web/#/p552217232/realtime/overview' },
   { label: 'Firebase Performance', detail: 'זמן שמירה מקומית וביצועי האפליקציה', href: TANK_FIREBASE + '/performance' },
   { label: 'Crashlytics', detail: 'קריסות בגרסאות המובייל המחוברות', href: TANK_FIREBASE + '/crashlytics' },
 ] as const;
@@ -136,6 +136,21 @@ function finiteTime(value: unknown) {
   const time = typeof (value as { toMillis?: unknown })?.toMillis === 'function'
     ? (value as { toMillis(): number }).toMillis() : value;
   return typeof time === 'number' && Number.isFinite(time) && time > 0 && time < 8.64e15 ? time : null;
+}
+
+type JourneyReport = { status: 'ok' | 'empty' | 'limited' | 'forbidden' | 'unavailable'; counts?: Record<string, number>; limited?: boolean };
+export interface JourneySnapshot { collectedAt: number; funnel: JourneyReport; operations: JourneyReport }
+
+export async function loadJourney(parent: AbortSignal): Promise<Source<JourneySnapshot>> {
+  const result = await source(async () => {
+    const snapshot = await serverDoc(['adminOperations', 'journey'], withDeadline(parent));
+    if (!snapshot.exists()) return null;
+    const data = snapshot.data();
+    if (!finiteTime(data?.collectedAt) || !data?.funnel?.status || !data?.operations?.status) throw new Error('Invalid journey report');
+    return data as JourneySnapshot;
+  });
+  if (result.status !== 'ok') return result;
+  return result.value ? { status: 'ok', value: result.value } : { status: 'empty' };
 }
 
 export async function loadOperations(parent: AbortSignal): Promise<Source<OperationsSnapshot>> {

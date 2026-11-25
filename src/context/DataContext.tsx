@@ -1,3 +1,4 @@
+import { outboxMeasurement } from "../lib/monitoring/usage";
 import { backupPath, type BackupEntry } from "../lib/vehicle/backup";
 import { writeWithLocalAcceptance } from "../lib/localWriteAcceptance";
 import { receiptDocumentId } from "../lib/import/receiptText";
@@ -661,7 +662,7 @@ function settleOrphans(outbox: Outbox, stillCurrent: () => boolean): () => void 
             applyVerdicts(outbox, newest.kind.startsWith('priceRule.') ? encodePrivateConflicts(verdicts) : verdicts);
             // The inputs this one replaced are settled with it.
             for (const older of superseded) {
-              if (verdict.verdict === "synced") void outbox.acknowledge(older.opId, older.version);
+              if (verdict.verdict === "synced") void outbox.acknowledge(older.opId, older.version, false);
               else {
                 void outbox.fail(older.opId, older.version, {
                   code: "superseded",
@@ -980,7 +981,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     let stopOrphans: (() => void) | null = null;
     const generation = generationRef.current;
     outboxPromiseRef.current = uid
-      ? Outbox.open(uid, APP_VERSION)
+      ? Outbox.open(uid, APP_VERSION, { measurement: outboxMeasurement })
           .then((outbox) => {
             if (generation !== generationRef.current) {
               outbox.close();

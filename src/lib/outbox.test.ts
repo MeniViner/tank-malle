@@ -656,3 +656,29 @@ describe("orphaned pending entries after a reload", () => {
     );
   });
 });
+
+it('measures committed writes and one first action across tabs, retry, reload and consent periods', async () => {
+  const measurement = { session: vi.fn((): string | null => 'period-a'), saved: vi.fn(), synced: vi.fn() };
+  const env = { ...fresh(), measurement, now: () => 123 };
+  const box = await Outbox.open('alice', 'test', env);
+  const other = await Outbox.open('alice', 'test', env);
+  await box.enqueue(add({ kind: 'vehicle.add', path: 'users/alice/vehicles/v1' }));
+  const [one, two] = await Promise.all([box.enqueue(add()), other.enqueue(add({ path: PATH + '2' }))]);
+  expect(measurement.saved.mock.calls.filter(call => call[0])).toHaveLength(1);
+  expect(measurement.saved.mock.calls.filter(call => call[1])).toHaveLength(1);
+  await box.fail(one.opId, one.version, { code: 'denied', message: '', at: 123 });
+  const retry = await other.claimRetry(one.opId);
+  expect(await box.acknowledge(one.opId, one.version)).toBe(false);
+  box.close();
+  const resumed = await Outbox.open('alice', 'test', env);
+  await Promise.all([other.acknowledge(one.opId, retry!.version), resumed.acknowledge(one.opId, retry!.version)]);
+  expect(measurement.synced.mock.calls).toEqual([[123]]);
+  measurement.session.mockReturnValue('period-b');
+  await resumed.acknowledge(two.opId, two.version);
+  const canceled = await resumed.enqueue(add());
+  await resumed.acknowledge(canceled.opId, canceled.version, false);
+  expect(measurement.synced).toHaveBeenCalledTimes(1);
+  expect(measurement.saved.mock.calls.filter(call => call[1])).toHaveLength(1);
+  other.close();
+  resumed.close();
+});

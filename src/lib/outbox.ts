@@ -61,7 +61,15 @@ export interface OutboxError {
   at: number;
 }
 
+export interface OutboxMeasurement {
+  session(): string | null;
+  saved(firstVehicle: boolean, firstAction: boolean): void;
+  synced(createdAt: number): void;
+}
+
 export interface OutboxOperation {
+  /** Local consent period at creation. Never included in a server write. */
+  measurementSession?: string;
   /** Stable operation id. Survives retries and edits; a retry never mints a new one. */
   opId: string;
   uid: string;
@@ -325,6 +333,7 @@ export interface EnqueueInput {
 }
 
 export interface OutboxOptions {
+  measurement?: OutboxMeasurement;
   indexedDB?: IDBFactoryLike | null;
   /** localStorage, for the one-time legacy migration and quarantine. */
   storage?: KeyValueStorage | null;
@@ -343,6 +352,7 @@ export class Outbox {
   private readonly listeners = new Set<(snapshot: OutboxSnapshot) => void>();
   private healthState: OutboxHealth;
   private closed = false;
+  private readonly measurement?: OutboxMeasurement;
 
   private constructor(
     uid: string,
@@ -351,8 +361,10 @@ export class Outbox {
     now: () => number,
     channel: BroadcastChannel | null,
     health: OutboxHealth,
+    measurement?: OutboxMeasurement,
   ) {
     this.uid = uid;
+    this.measurement = measurement;
     this.db = db;
     this.clientVersion = clientVersion;
     this.now = now;
@@ -400,7 +412,7 @@ export class Outbox {
           : null;
 
     const health = await migrateLegacy(uid, db, options.storage ?? defaultStorage(), clientVersion, now);
-    return new Outbox(uid, db, clientVersion, now, channel, health);
+    return new Outbox(uid, db, clientVersion, now, channel, health, options.measurement);
   }
 
   health(): OutboxHealth {
@@ -479,9 +491,14 @@ export class Outbox {
   async enqueueMany(inputs: EnqueueInput[]): Promise<OutboxOperation[]> {
     const now = this.now();
     let result: OutboxOperation[];
+    const session = this.measurement?.session();
+    let firstVehicle: OutboxOperation | undefined;
+    let firstAction: OutboxOperation | undefined;
     try {
       result = await transact(this.db, "readwrite", async (ops, docs) => {
         const out: OutboxOperation[] = [];
+        const marker = "journey:" + this.uid;
+        let journey: { session: string; completed: boolean } | null | undefined;
         for (const input of inputs) {
           const docKey = docKeyFor(this.uid, input.path);
           const docRow = ((await request(docs.get(docKey))) ?? { docKey, revision: 0 }) as DocumentRow;
@@ -513,6 +530,29 @@ export class Outbox {
             serverImage: null,
             batchId: input.batchId ?? existing?.batchId ?? null,
           };
+          // Count each imported data record independently: the metadata write can
+          // reach the server even if a different chunk fails.
+          const measured = op.kind.startsWith("import.")
+            ? !collectionOf(op.path).endsWith("/importBatches")
+            : !["settings.update", "adminPrice.update"].includes(op.kind);
+          if (existing?.measurementSession) op.measurementSession = existing.measurementSession;
+          if (!existing && session && measured) {
+            op.measurementSession = session;
+            const eligible = op.kind === "fillup.add" || op.kind === "import.batch" || op.kind === "tank.observation" || op.kind === "tank.plan" ||
+              op.kind === "maintenance.save" && op.opType === "set" && !op.beforeImage;
+            if (op.kind === "vehicle.add" || eligible) {
+              if (journey === undefined) journey = (await request(docs.get(marker))) ?? null;
+              if (op.kind === "vehicle.add" && journey?.session !== session) {
+                journey = { session, completed: false };
+                await request(docs.put({ docKey: marker, ...journey }));
+                firstVehicle = op;
+              } else if (eligible && journey?.session === session && !journey.completed) {
+                journey = { session, completed: true };
+                await request(docs.put({ docKey: marker, ...journey }));
+                firstAction = op;
+              }
+            }
+          }
           await request(ops.put(op));
           out.push(op);
         }
@@ -522,6 +562,11 @@ export class Outbox {
       throw new OutboxStorageError("האחסון המקומי מלא או אינו זמין — הרשומה לא נשמרה", error);
     }
     this.broadcast();
+    for (const op of result) {
+      if (op.version === 1 && session && op.measurementSession === session && this.measurement?.session() === session) {
+        this.measurement.saved(op === firstVehicle, op === firstAction);
+      }
+    }
     return result;
   }
 
@@ -530,8 +575,14 @@ export class Outbox {
    * nothing — when the entry has since been edited or retried (its version
    * moved on), or was already removed.
    */
-  async acknowledge(opId: string, version: number): Promise<boolean> {
-    const done = await this.transition(opId, version, () => null);
+  async acknowledge(opId: string, version: number, serverConfirmed = true): Promise<boolean> {
+    const session = this.measurement?.session();
+    let measuredAt: number | undefined;
+    const done = await this.transition(opId, version, op => {
+      if (serverConfirmed && op.measurementSession && op.measurementSession === session) measuredAt = op.createdAt;
+      return null;
+    });
+    if (done && measuredAt !== undefined && this.measurement?.session() === session) this.measurement?.synced(measuredAt);
     if (done) this.broadcast();
     return done;
   }

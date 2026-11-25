@@ -42,6 +42,15 @@ test('admin operations deep links, service probes, API filtering and GitHub in b
     return route.fulfill({ json });
   });
 
+  await setDocument('adminOperations/journey', { collectedAt: now,
+    funnel: { status: 'ok', counts: { signin_viewed: 12, first_action_saved: 3 } },
+    operations: { status: 'forbidden' },
+  });
+  await page.goto('/admin');
+  const panel = page.getByRole('heading', { name: 'מהכניסה לפעולה הראשונה' }).locator('..').locator('..');
+  await expect(panel.getByText('12', { exact: true })).toBeVisible();
+  await expect(panel.getByText('אין הרשאה', { exact: true })).toBeVisible();
+
   await page.goto('/admin?tab=api');
   await expect(page.getByRole('heading', { name: 'קריאות API ותעבורה' })).toBeVisible();
   await expect(page.getByText('google.firestore.v1.Firestore.Commit')).toBeVisible();
