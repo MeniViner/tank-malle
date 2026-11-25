@@ -628,12 +628,24 @@ service cloud.firestore {
           && request.resource.data.keys().hasOnly(['endpoint', 'p256dh', 'auth', 'platform', 'createdAt'])
           && isString(request.resource.data.endpoint, 1000)
           // Only the browsers' push services: the daily sender posts to this address.
-          && request.resource.data.endpoint.matches('https://(fcm[.]googleapis[.]com|android[.]googleapis[.]com|updates[.]push[.]services[.]mozilla[.]com|web[.]push[.]apple[.]com|[a-z0-9-]+[.]notify[.]windows[.]com)/.+')
+          && request.resource.data.endpoint.matches('https://(fcm[.]googleapis[.]com|android[.]googleapis[.]com|updates[.]push[.]services[.]mozilla[.]com|[a-z0-9-]+[.]push[.]apple[.]com|[a-z0-9-]+[.]notify[.]windows[.]com)/.+')
           && isString(request.resource.data.p256dh, 200)
           && request.resource.data.p256dh.matches('[A-Za-z0-9_-]{60,120}=*')
           && isString(request.resource.data.auth, 100)
           && request.resource.data.auth.matches('[A-Za-z0-9_-]{16,40}=*')
           && request.resource.data.platform in ['ios', 'android', 'desktop']
+          && optionalEpochMillis(request.resource.data, 'createdAt');
+      }
+
+      // FCM tokens are device addresses scoped to the account that opted in.
+      match /nativePushDevices/{deviceId} {
+        allow read, delete: if isOwner(uid);
+        allow create, update: if isOwner(uid) && accountWritable(uid)
+          && deviceId.matches('[a-f0-9-]{36}')
+          && request.resource.data.keys().hasOnly(['token', 'platform', 'createdAt'])
+          && request.resource.data.token is string
+          && request.resource.data.token.matches('[A-Za-z0-9_:-]{40,512}')
+          && request.resource.data.platform == 'android'
           && optionalEpochMillis(request.resource.data, 'createdAt');
       }
 
@@ -994,8 +1006,8 @@ service cloud.firestore {
       allow get: if verifiedGoogleAdmin() && request.auth.uid == resource.data.uid;
     }
 
-    match /ownerConsole/telemetry {
-      allow get: if verifiedGoogleAdmin()
+    match /ownerConsole/{snapshot} {
+      allow get: if snapshot in ['telemetry', 'delivery'] && verifiedGoogleAdmin()
         && request.auth.uid == get(/databases/$(database)/documents/ownerConsole/access).data.uid;
     }
 

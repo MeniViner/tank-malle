@@ -171,6 +171,7 @@ export function Notifications() {
     <header className="notes-header"><button type="button" aria-label="חזרה לבית" onClick={() => navigate('/')}>
       <ChevronStart size={22} className="rotate-180" /></button><div><span className="notes-eyebrow">עדכונים ותזכורות לרכב</span><h1>התראות</h1></div></header>
     <div className="notes-content">
+      <button type="button" className="notes-text-action" onClick={() => navigate('/account#device-notifications')}>הגדרת התראות למכשיר</button>
       {unread.length ? <button type="button" className="notes-mark-read" disabled={busy || !unreadReady}
         onClick={() => void markRead()}>סימון כנקרא <bdi dir="ltr">({unread.length})</bdi></button> : null}
       {group(unread, 'חדש')}{group(read, 'נקרא')}{group(deferred, 'להמשך')}

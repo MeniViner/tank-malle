@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { notificationId } from '../vehicle/model';
-import { runPush, type PushMessage, type PushStore, type PushSubscriptionRow, type RawDoc, type SendResult } from './run';
+import { runPush, type PushMessage, type PushStore, type RegisteredPushDevice, type RawDoc, type SendResult } from './run';
 
 const plan = (id: string, dueDay: string): RawDoc => ({ id, schemaVersion: 1, version: 1, title: `טיפול ${id}`, job: 'periodic', dueDay, dueOdometer: null,
   intervalMonths: null, intervalKm: null, basis: 'manual', source: 'owner', notes: '', active: true });
 
 function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Record<string, unknown> | null; devices?: string[]; states?: RawDoc[]; fillups?: RawDoc[]; observations?: RawDoc[]; users?: string[]; broken?: string; plansByVehicle?: Record<string, RawDoc[]>; createdAt?: Record<string, number> } = {}) {
   const sent = new Map<string, string>(), removed: string[] = [], reads: string[] = [];
-  const subs: PushSubscriptionRow[] = (over.users ?? ['alice']).flatMap(uid => (over.devices ?? ['d1']).map(id => ({ uid, id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a', createdAt: over.createdAt?.[id] ?? null })));
+  const subs: RegisteredPushDevice[] = (over.users ?? ['alice']).flatMap(uid => (over.devices ?? ['d1']).map(id => ({ uid, id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a', createdAt: over.createdAt?.[id] ?? null })));
   const store: PushStore = {
     subscriptions: async () => subs.filter(s => !removed.includes(s.id)),
     profile: async uid => { if (uid === over.broken) throw new Error('quota'); return over.profile === undefined ? { settings: {} } : over.profile; },
@@ -26,7 +26,7 @@ function fakeStore(over: { plans?: RawDoc[]; vehicles?: RawDoc[]; profile?: Reco
 }
 const sender = (results: Record<string, SendResult> | ((device: string, message: PushMessage) => SendResult) = {}) => {
   const calls: { device: string; message: PushMessage }[] = [];
-  return { calls, send: async (device: PushSubscriptionRow, message: PushMessage) => { calls.push({ device: device.id, message });
+  return { calls, send: async (device: RegisteredPushDevice, message: PushMessage) => { calls.push({ device: device.id, message });
     return typeof results === 'function' ? results(device.id, message) : results[device.id] ?? 'sent'; } };
 };
 const at = { today: '2026-11-11', now: 1 };
@@ -182,4 +182,16 @@ describe('runPush', () => {
     await runPush(store, s.send, at);
     expect(s.calls[0].message.body).toBe('המשפחתית · הטיפול מתקרב');
   });
+});
+
+it('routes a native FCM device through the sender and cleans up expired registration', async () => {
+  const uid = 'alice';
+  const { store } = fakeStore();
+  store.subscriptions = async () => [{ uid, id: 'android-install', transport: 'fcm', token: 'test-android-token' }];
+  const remove = vi.fn().mockResolvedValue(undefined);
+  store.removeSubscription = remove;
+  const tx = sender(() => 'gone');
+  await expect(runPush(store, tx.send, at)).resolves.toMatchObject({ devices: 1, removed: 1 });
+  expect(tx.calls[0]?.device).toBe('android-install');
+  expect(remove).toHaveBeenCalledWith(uid, 'android-install', 'fcm');
 });

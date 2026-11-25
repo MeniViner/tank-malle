@@ -12,6 +12,7 @@ import { lazy, Suspense, useState, useSyncExternalStore } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { useData } from "./context/DataContext";
+import { PushNotificationsInvite } from "./components/PushNotificationsSection";
 import { Toaster } from "./components/Toaster";
 import { TabBar } from "./components/TabBar";
 import { UpdatePrompt } from "./components/UpdatePrompt";
@@ -193,6 +194,9 @@ function Shell() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
+      {location.pathname === "/" && import.meta.env.PROD && import.meta.env.VITE_USE_EMULATORS !== '1' &&
+        import.meta.env.MODE !== 'unified-preview' && !accountDeletionPending
+        ? <PushNotificationsInvite key={user.uid} uid={user.uid} /> : null}
       {showTabBar ? <TabBar canAddFillup={activeVehicles.length > 0} /> : null}
     </div>
   );

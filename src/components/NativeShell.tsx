@@ -10,6 +10,7 @@ import { localDay } from '../lib/maintenance/model';
 import { loadReminderInputs } from '../lib/native/reminderSource';
 import { planReminders } from '../lib/native/reminderPlan';
 import { clearNativeReminders, reconcileNativeReminders, reminderCleanupPending, reminderOwner, REMINDERS_CHANGED } from '../lib/native/reminders';
+import { TankRemotePush, remotePushConfigured, refreshRemotePush, releaseRemotePush, type RemoteTap } from '../lib/native/remotePush';
 import { parseNotificationLink } from '../lib/push/link';
 
 export default function NativeShell() {
@@ -19,7 +20,37 @@ export default function NativeShell() {
   const navigate = useNavigate();
   const uid = user?.uid;
   const [revision, setRevision] = useState(0);
-  const pendingTap = useRef<{ uid: string; route: string } | null>(null);
+  const pendingTap = useRef<{ uid: string; route: string; remote?: boolean } | null>(null);
+
+  useEffect(() => {
+    if (loading || !uid || signingOut) return;
+    if (data.accountDeletionPending) {
+      void releaseRemotePush(uid).catch(() => {});
+      return;
+    }
+    let active = true;
+    const refresh = () => { void refreshRemotePush(uid, () => active).catch(() => {}); };
+    let handle: PluginListenerHandle | undefined;
+    const onTap = ({ uid: owner, route }: RemoteTap) => {
+      if (!active || owner !== uid || !route ||
+        (route !== '/notifications' && (!route.startsWith('/open?') || !parseNotificationLink(new URLSearchParams(route.slice(6)))))) return;
+      pendingTap.current = { uid, route, remote: true };
+      setRevision(value => value + 1);
+    };
+    window.addEventListener('online', refresh);
+    void remotePushConfigured().then(async supported => {
+      if (!active || !supported) return;
+      refresh();
+      handle = await TankRemotePush.addListener('tap', onTap);
+      if (!active) { await handle.remove(); return; }
+      onTap(await TankRemotePush.takeTap());
+    }).catch(() => {});
+    return () => {
+      active = false;
+      window.removeEventListener('online', refresh);
+      void handle?.remove();
+    };
+  }, [uid, loading, signingOut, data.accountDeletionPending]);
 
   useEffect(() => {
     const refresh = () => setRevision(value => value + 1);
@@ -52,7 +83,7 @@ export default function NativeShell() {
   useEffect(() => {
     const tap = pendingTap.current;
     if (loading || !tap) return;
-    if (tap.uid !== uid || reminderOwner() !== uid || data.accountDeletionPending) pendingTap.current = null;
+    if (tap.uid !== uid || (!tap.remote && reminderOwner() !== uid) || data.accountDeletionPending) pendingTap.current = null;
     else if (data.ready) {
       pendingTap.current = null;
       navigate(tap.route);

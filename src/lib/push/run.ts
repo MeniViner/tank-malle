@@ -9,8 +9,11 @@ import { notificationLink } from './link';
 /** Raw documents as the scheduled sender reads them (Firestore Admin SDK, `id` added). */
 export type RawDoc = Record<string, unknown> & { id: string };
 export interface PushSubscriptionRow { uid: string; id: string; endpoint: string; p256dh: string; auth: string; createdAt?: number | null }
+export interface NativePushRow { uid: string; id: string; token: string; transport: 'fcm'; createdAt?: number | null }
+export type RegisteredPushDevice = PushSubscriptionRow | NativePushRow;
+
 export interface PushStore {
-  subscriptions(): Promise<PushSubscriptionRow[]>;
+  subscriptions(): Promise<RegisteredPushDevice[]>;
   profile(uid: string): Promise<Record<string, unknown> | null>;
   vehicles(uid: string): Promise<RawDoc[]>;
   collection(uid: string, vehicleId: string, name: string): Promise<RawDoc[]>;
@@ -23,11 +26,11 @@ export interface PushStore {
   /** Which of these ids were already pushed. */
   sentIds(uid: string, ids: string[]): Promise<Set<string>>;
   markSent(uid: string, items: { id: string; occurrence: string }[], sentAt: number): Promise<void>;
-  removeSubscription(uid: string, id: string): Promise<void>;
+  removeSubscription(uid: string, id: string, transport?: 'fcm'): Promise<void>;
 }
 export interface PushMessage { title: string; body: string; url: string; tag: string; urgent: boolean }
 export type SendResult = 'sent' | 'gone' | 'failed';
-export type PushSender = (subscription: PushSubscriptionRow, message: PushMessage) => Promise<SendResult>;
+export type PushSender = (subscription: RegisteredPushDevice, message: PushMessage) => Promise<SendResult>;
 /** `errors`: accounts whose run stopped on an unexpected error; the others were still served. */
 export interface PushRunReport { users: number; devices: number; messages: number; occurrences: number; removed: number; failed: number; errors: number }
 
@@ -102,7 +105,7 @@ function messagesFor(items: PushItem[]): { message: PushMessage; items: PushItem
  */
 export async function runPush(store: PushStore, send: PushSender, { today, now, dryRun = false, warn = () => {} }: { today: string; now: number; dryRun?: boolean; warn?: (message: string) => void }): Promise<PushRunReport> {
   const report: PushRunReport = { users: 0, devices: 0, messages: 0, occurrences: 0, removed: 0, failed: 0, errors: 0 };
-  const byUser = new Map<string, PushSubscriptionRow[]>();
+  const byUser = new Map<string, RegisteredPushDevice[]>();
   for (const sub of await store.subscriptions()) byUser.set(sub.uid, [...byUser.get(sub.uid) ?? [], sub]);
   // One account's failure (a refused read, a quota error) must not cost the others their reminders.
   for (const [uid, all] of byUser) {
@@ -113,7 +116,7 @@ export async function runPush(store: PushStore, send: PushSender, { today, now, 
   return report;
 }
 
-async function runUser(store: PushStore, send: PushSender, uid: string, devices: PushSubscriptionRow[], report: PushRunReport, { today, now, dryRun }: { today: string; now: number; dryRun: boolean }): Promise<void> {
+async function runUser(store: PushStore, send: PushSender, uid: string, devices: RegisteredPushDevice[], report: PushRunReport, { today, now, dryRun }: { today: string; now: number; dryRun: boolean }): Promise<void> {
   const profile = await store.profile(uid);
   if (!profile || profile.deletionPending === true) return;
   report.users += 1; report.devices += devices.length;
@@ -138,7 +141,7 @@ async function runUser(store: PushStore, send: PushSender, uid: string, devices:
         if (result === 'gone') { gone = true; break; }
         if (result === 'sent') { for (const item of items) delivered.add(item); report.messages += 1; } else report.failed += 1;
       }
-      if (gone) { await store.removeSubscription(uid, device.id); report.removed += 1; }
+      if (gone) { await store.removeSubscription(uid, device.id, 'transport' in device ? device.transport : undefined); report.removed += 1; }
     }
   } finally {
     // Whatever interrupted the loop, record what a device already accepted, so it is not pushed twice.

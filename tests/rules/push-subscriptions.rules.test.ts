@@ -56,3 +56,18 @@ describe('push sent log', () => {
     await assertSucceeds(deleteDoc(doc(as('alice'), 'users/alice/pushSent/s1')));
   });
 });
+
+describe('Android remote push devices', () => {
+  it('allows the registering account and protects the FCM token from all other clients', async () => {
+    const path = 'users/alice/nativePushDevices/aaaaaaaa-0000-1111-2222-bbbbbbbbbbbb';
+    const token = { token: 'A'.repeat(64), platform: 'android', createdAt: 1_795_000_000_000 };
+    const owned = doc(as('alice'), path);
+    await assertSucceeds(setDoc(owned, token));
+    await assertSucceeds(getDoc(owned));
+    await assertFails(getDoc(doc(as('bob'), path)));
+    await assertFails(getDoc(doc(env.authenticatedContext('admin', { admin: true }).firestore(), path)));
+    await assertFails(setDoc(doc(as('bob'), path), token));
+    await assertFails(setDoc(owned, { ...token, token: 'https://example.test' }));
+    await assertSucceeds(deleteDoc(owned));
+  });
+});

@@ -103,7 +103,7 @@ export function accountDataDeletionSteps(db: Firestore, uid: string) {
       }
       if (!(await getDocsFromServer(collection(db, "users", uid, "vehicles"))).empty) throw new Error("vehicles-remain");
     } },
-    ...["stationPriceReports", "personalPriceRules", "importBatches", "pushSubscriptions", "pushSent"].map((name) => ({
+    ...["stationPriceReports", "personalPriceRules", "importBatches", "pushSubscriptions", "nativePushDevices", "pushSent"].map((name) => ({
       label: name, run: () => eraseQuery(db, collection(db, "users", uid, name)),
     })),
     { label: "benchmark", run: () => withdrawBenchmark(uid, [], db) },
