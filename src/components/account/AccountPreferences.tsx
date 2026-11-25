@@ -10,6 +10,7 @@ import { ChoiceList } from "../ChoiceList";
 import { GroupRow } from "../DesignPrimitives";
 import { NumericText } from "../Fmt";
 import { BellIcon, CameraIcon, CheckIcon, GaugeIcon, InfoIcon, MoonIcon, PaletteIcon, SlidersIcon, UsersIcon } from "../icons";
+import { PushNotificationsSection } from "../PushNotificationsSection";
 import { NotificationPreferences } from "../NotificationPreferences";
 import { Toggle } from "../Segmented";
 import { Sheet } from "../Sheet";
@@ -65,6 +66,7 @@ export function AccountPreferences() {
 
     <section className="account-section" aria-labelledby="account-notifications-heading">
       <h2 id="account-notifications-heading" className="account-section-title">התראות</h2>
+      <PushNotificationsSection />
       <div className="tm-group">
         <GroupRow testId="account-all-notifications" icon={<BellIcon />} title="כל ההתראות" onClick={() => navigate("/notifications")} />
         <GroupRow testId="account-reminder-notifications" title="טסט, ביטוח וטיפולים">

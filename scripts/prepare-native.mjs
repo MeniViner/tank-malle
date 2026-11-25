@@ -38,6 +38,23 @@ execFileSync('node', ['scripts/generate-app-icons.mjs'], { stdio: 'inherit' });
 execFileSync('npm', ['run', 'build', '--', '--mode', mode], { env, stdio: 'inherit' });
 execFileSync('npx', ['--no-install', 'cap', 'sync', platform], { env, stdio: 'inherit' });
 
+if (platform === 'android') {
+  const source = process.env.TANK_MALLE_ANDROID_GOOGLE_SERVICES;
+  const target = 'android/app/google-services.json';
+  if (source) {
+    const config = JSON.parse(readFileSync(source, 'utf8'));
+    const packageName = profile === 'qa' ? 'com.meniviner.tankmalle.qa' : 'com.meniviner.tankmalle';
+    if (config.project_info?.project_id !== project ||
+      !config.client?.some(client => client.client_info?.android_client_info?.package_name === packageName)) {
+      throw new Error('The Android FCM configuration must match the selected Firebase project and package.');
+    }
+    writeFileSync(target, JSON.stringify(config));
+  } else {
+    const { rmSync } = await import('node:fs');
+    rmSync(target, { force: true });
+  }
+}
+
 if (platform === 'ios') {
   // The Capacitor 8 SPM template still declares Swift tools 5.9, which
   // understands the string platform form for iOS 18.

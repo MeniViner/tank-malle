@@ -11,7 +11,7 @@ import {
   JOBS, loadGithub, loadOperations, loadSystem, TANK_CLOUD, TANK_FIREBASE, TANK_GITHUB, TANK_HOSTING,
   type GithubRun, type OperationsSnapshot,
 } from '../lib/adminOperations';
-import { getConsoleAccess, getConsoleTelemetry, type ConsoleProbe, type ConsoleTelemetry } from '../lib/ownerConsole';
+import { getConsoleAccess, getConsoleTelemetry, getDeliveryReport, type ConsoleProbe, type ConsoleTelemetry } from '../lib/ownerConsole';
 import { num } from '../lib/format';
 import { Admin, type AdminSection } from './Admin';
 import '../owner-console.css';
@@ -271,6 +271,23 @@ function Latency({ telemetry }: { telemetry: ConsoleTelemetry | null | undefined
   </>;
 }
 
+function DeliverySummary({ revision }: { revision: number }) {
+  const [report, setReport] = useState<Awaited<ReturnType<typeof getDeliveryReport>>>();
+  useEffect(() => {
+    let current = true;
+    void getDeliveryReport().then(value => { if (current) setReport(value); }, () => { if (current) setReport(null); });
+    return () => { current = false; };
+  }, [revision]);
+  return <Panel title="תוצאות מסירה" meta={date(report?.checkedAt)}>
+    <div className="oc-figures oc-figures--wide">
+      <Figure label="מכשירים שנבדקו" value={numeric(report?.devices)} />
+      <Figure label="הודעות התקבלו אצל ספק השליחה" value={numeric(report?.messages)} />
+      <Figure label="ניסיונות שליחה שנכשלו" value={numeric(report?.failed)} />
+      <Figure label="כתובות לא תקפות שהוסרו" value={numeric(report?.removed)} />
+    </div>
+  </Panel>;
+}
+
 function Jobs({ revision, onlyPush }: { revision: number; onlyPush: boolean }) {
   const [runs, setRuns] = useState<GithubRun[] | null>();
   useEffect(() => {
@@ -322,7 +339,9 @@ function ConsoleView({ tab, revision }: { tab: Tab; revision: number }) {
     </Panel>;
     case 'delivery': return <>
       <Jobs revision={revision} onlyPush />
+      <DeliverySummary revision={revision} />
       <Panel title="ערוצי התראות"><Rows rows={[
+        { label: 'Android · Firebase Cloud Messaging', detail: 'הודעות מערכת למכשירים שנרשמו באפליקציית Android' },
         { label: 'Web Push', detail: 'מועדי טסט, ביטוח וטיפולים נשלחים לדפדפנים רשומים דרך משימת השליחה', value: <Link className="oc-link" to="/notifications">להתראות באפליקציה</Link> },
         { label: 'הגדרות במכשיר', detail: 'הסכמה לקבלת התראות והעדפות תזכורות', value: <Link className="oc-link" to="/account">להגדרות חשבון</Link> },
       ]} /></Panel>

@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '23 */6 * * *'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Read metrics without publishing a snapshot
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,7 +19,7 @@ concurrency:
 
 jobs:
   collect:
-    if: github.repository == 'MeniViner/tank-malle' && github.ref == 'refs/heads/main'
+    if: github.repository == 'MeniViner/tank-malle' && (github.ref == 'refs/heads/main' || inputs.dry_run)
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -27,4 +32,4 @@ jobs:
       - name: Publish aggregate monitoring snapshot
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node scripts/collectAdminOperations.mjs
+        run: node scripts/collectAdminOperations.mjs ${{ inputs.dry_run && '--dry-run' || '' }}

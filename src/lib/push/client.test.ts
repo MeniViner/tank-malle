@@ -56,3 +56,22 @@ describe('phone notifications on a shared browser', () => {
     expect(current).toBeNull();
   });
 });
+
+it('requests Web Push permission in the tap before looking up the service worker', async () => {
+  vi.stubGlobal('Notification', { permission: 'default', requestPermission: async () => { calls.push('permission'); return 'granted'; } });
+  const pushManager = { getSubscription: async () => current, subscribe };
+  vi.stubGlobal('navigator', { userAgent: 'Chrome', maxTouchPoints: 0,
+    serviceWorker: { getRegistration: async () => { calls.push('worker'); return { pushManager }; } } });
+  const pending = enablePush('alice');
+  expect(calls).toEqual(['permission']);
+  await expect(pending).resolves.toBe('on');
+  expect(calls).toEqual(['permission', 'worker', 'set alice']);
+});
+
+it('on iPhone Safari, provides installation guidance without asking for browser permission', async () => {
+  const prompt = vi.fn();
+  vi.stubGlobal('navigator', { userAgent: 'iPhone', maxTouchPoints: 1 });
+  vi.stubGlobal('Notification', { permission: 'default', requestPermission: prompt });
+  await expect(enablePush('alice')).resolves.toBe('needsInstall');
+  expect(prompt).not.toHaveBeenCalled();
+});

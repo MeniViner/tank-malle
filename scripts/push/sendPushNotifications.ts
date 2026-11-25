@@ -16,6 +16,7 @@
 import { readFile } from 'node:fs/promises';
 import { cert, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
+import { getMessaging } from 'firebase-admin/messaging';
 import webpush from 'web-push';
 import { WEB_PUSH_PUBLIC_KEY } from '../../src/lib/push/config';
 import { runPush, type PushStore, type RawDoc } from '../../src/lib/push/run';
@@ -39,12 +40,21 @@ async function main() {
   const rows = (snapshot: FirebaseFirestore.QuerySnapshot): RawDoc[] => snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
   const store: PushStore = {
     async subscriptions() {
-      const snapshot = await db.collectionGroup('pushSubscriptions').get();
-      return snapshot.docs.flatMap(doc => {
+      const [snapshot, native] = await Promise.all([
+        db.collectionGroup('pushSubscriptions').get(), db.collectionGroup('nativePushDevices').get(),
+      ]);
+      const web = snapshot.docs.flatMap(doc => {
         const uid = doc.ref.parent.parent?.id, data = doc.data();
         return uid && typeof data.endpoint === 'string' && typeof data.p256dh === 'string' && typeof data.auth === 'string'
           ? [{ uid, id: doc.id, endpoint: data.endpoint, p256dh: data.p256dh, auth: data.auth, createdAt: typeof data.createdAt === 'number' ? data.createdAt : null }] : [];
       });
+      const android = native.docs.flatMap(doc => {
+        const uid = doc.ref.parent.parent?.id, data = doc.data();
+        return uid && typeof data.token === 'string' && /^[A-Za-z0-9_:-]{40,512}$/.test(data.token)
+          ? [{ uid, id: doc.id, token: data.token, transport: 'fcm' as const, createdAt: typeof data.createdAt === 'number' ? data.createdAt : null }]
+          : [];
+      });
+      return [...web, ...android];
     },
     profile: async uid => (await db.doc(`users/${uid}`).get()).data() ?? null,
     vehicles: async uid => rows(await db.collection(`users/${uid}/vehicles`).get()),
@@ -71,7 +81,7 @@ async function main() {
       for (const item of items) batch.set(db.doc(`users/${uid}/pushSent/${item.id}`), { occurrence: item.occurrence, sentAt });
       await batch.commit();
     },
-    removeSubscription: async (uid, id) => { await db.doc(`users/${uid}/pushSubscriptions/${id}`).delete(); },
+    removeSubscription: async (uid, id, transport) => { await db.doc(`users/${uid}/${transport === 'fcm' ? 'nativePushDevices' : 'pushSubscriptions'}/${id}`).delete(); },
   };
 
   const privateKey = process.env.WEB_PUSH_PRIVATE_KEY;
@@ -82,18 +92,28 @@ async function main() {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE }).format(now);
   const report = await runPush(store, async (subscription, message) => {
     try {
+      if ('transport' in subscription) {
+        await getMessaging().send({
+          token: subscription.token,
+          data: { uid: subscription.uid, route: message.url, event: message.tag },
+          android: { priority: 'high', ttl: 12 * 3_600_000 },
+        });
+        return 'sent';
+      }
       await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } },
         JSON.stringify({ title: message.title, body: message.body, url: message.url, tag: message.tag }),
         // The timeout keeps one unanswering address from holding up everyone after it.
         { TTL: 24 * 60 * 60, urgency: message.urgent ? 'high' : 'normal', timeout: 10_000 });
       return 'sent';
     } catch (error) {
-      const status = (error as { statusCode?: number }).statusCode;
-      if (status === 404 || status === 410) return 'gone';
-      console.warn(`push failed (${status ?? 'network'}) for one device`);
+      const failure = error as { statusCode?: number; code?: string };
+      if (failure.statusCode === 404 || failure.statusCode === 410 ||
+          failure.code === 'messaging/registration-token-not-registered' || failure.code === 'messaging/invalid-registration-token') return 'gone';
+      console.warn(`push failed (${failure.statusCode ?? failure.code ?? 'network'}) for one device`);
       return 'failed';
     }
   }, { today, now, dryRun, warn: message => console.warn(message) });
+  if (!dryRun) await db.doc('ownerConsole/delivery').set({ checkedAt: now, ...report });
   console.log(`${dryRun ? 'dry run' : 'sent'} ${today} · project ${projectId} · ${JSON.stringify(report)}`);
   // The other accounts were served; the failed run still shows red so it gets looked at.
   if (report.errors) process.exitCode = 1;

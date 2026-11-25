@@ -250,6 +250,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // While still signed in: this device stops receiving the account's phone notifications.
     const leaving = auth.currentUser?.uid;
     if (nativeBuild) {
+      if (leaving) {
+        const { releaseRemotePush } = await import("../lib/native/remotePush");
+        await releaseRemotePush(leaving).catch(() => {});
+      }
       const { clearNativeReminders } = await import("../lib/native/reminders");
       await clearNativeReminders().catch(() => {});
       const { clearNativeExports } = await import("../lib/native/files");

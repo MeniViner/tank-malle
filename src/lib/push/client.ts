@@ -8,7 +8,7 @@ export type PushPlatform = 'ios' | 'android' | 'desktop';
  * web push only to an app added to the home screen. denied: blocked in the system or browser
  * settings. unsupported: this browser (or a development build without a service worker) cannot.
  */
-export type PushStatus = 'on' | 'off' | 'needsInstall' | 'denied' | 'unsupported';
+export type PushStatus = 'on' | 'off' | 'needsInstall' | 'denied' | 'unsupported' | 'unavailable';
 
 export function pushPlatform(nav: Navigator = navigator): PushPlatform {
   const ua = nav.userAgent;
@@ -43,8 +43,8 @@ export async function pushStatus(uid?: string | null): Promise<PushStatus> {
   const subscription = Notification.permission === 'granted' ? await reg.pushManager.getSubscription() : null;
   if (!subscription || !uid) return 'off';
   // Offline with nothing cached the document cannot be checked; the subscription alone is the best evidence.
-  const mine = await getDoc(doc(db, 'users', uid, 'pushSubscriptions', await subscriptionId(subscription.endpoint))).then(snapshot => snapshot.exists(), () => true);
-  return mine ? 'on' : 'off';
+  const mine = await getDoc(doc(db, 'users', uid, 'pushSubscriptions', await subscriptionId(subscription.endpoint))).then(snapshot => snapshot.exists(), () => null);
+  return mine === null ? 'unavailable' : mine ? 'on' : 'off';
 }
 
 /** A stable document id per push endpoint, so the same phone never registers twice. */
@@ -62,21 +62,32 @@ function keyBytes(base64url: string): Uint8Array<ArrayBuffer> {
 }
 
 /** Must run from a tap: the permission prompt needs a user gesture (always on iOS). */
-export async function enablePush(uid: string): Promise<PushStatus> {
-  const reg = await registration();
-  if (!reg) return pushPlatform() === 'ios' && !standalone() ? 'needsInstall' : 'unsupported';
-  const permission = await Notification.requestPermission();
+export async function enablePush(uid: string, current = () => true): Promise<PushStatus> {
+  if (pushPlatform() === 'ios' && !standalone()) return 'needsInstall';
+  if (!pushCapable()) return 'unsupported';
+  // Call it before any asynchronous registration lookup so WebKit still has the tap.
+  const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   if (permission !== 'granted') return permission === 'denied' ? 'denied' : 'off';
+  if (!current()) return 'off';
+  const reg = await registration();
+  if (!reg) return 'unsupported';
+  if (!current()) return 'off';
   // Enabling starts from `off`, so a subscription still held here belongs to another account or
   // lost its document. Replace it: the old address stops working and the sender drops its record.
   await (await reg.pushManager.getSubscription())?.unsubscribe();
   const subscription = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(WEB_PUSH_PUBLIC_KEY) });
-  const json = subscription.toJSON();
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) throw new Error('push-subscription-incomplete');
-  await setDoc(doc(db, 'users', uid, 'pushSubscriptions', await subscriptionId(json.endpoint)), {
-    endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, platform: pushPlatform(), createdAt: Date.now(),
-  });
-  return 'on';
+  try {
+    const json = subscription.toJSON();
+    if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) throw new Error('push-subscription-incomplete');
+    const ref = doc(db, 'users', uid, 'pushSubscriptions', await subscriptionId(json.endpoint));
+    if (!current()) { await subscription.unsubscribe(); return 'off'; }
+    await setDoc(ref, { endpoint: json.endpoint, p256dh: json.keys.p256dh, auth: json.keys.auth, platform: pushPlatform(), createdAt: Date.now() });
+    if (!current()) { await subscription.unsubscribe(); return 'off'; }
+    return 'on';
+  } catch (error) {
+    await subscription.unsubscribe().catch(() => false);
+    throw error;
+  }
 }
 
 export async function disablePush(uid: string): Promise<PushStatus> {

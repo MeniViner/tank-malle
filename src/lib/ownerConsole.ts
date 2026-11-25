@@ -39,3 +39,9 @@ export async function getConsoleTelemetry(): Promise<ConsoleTelemetry | null> {
   const info = (await getDocFromServer(doc(db, 'ownerConsole', 'telemetry'))).data();
   return info?.version === 1 && Array.isArray(info.probes) ? info as ConsoleTelemetry : null;
 }
+
+export async function getDeliveryReport() {
+  const data = (await getDocFromServer(doc(db, 'ownerConsole', 'delivery'))).data();
+  if (!data || typeof data.checkedAt !== 'number') return null;
+  return data as { checkedAt: number; devices: number; messages: number; failed: number; removed: number };
+}
