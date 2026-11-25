@@ -21,3 +21,7 @@
   save does not silently change the user's data.
 - Decimal precision for litres, fuel consumption, distances and percentages is
   independent of the currency display policy and must not change with it.
+
+## Admin visibility
+
+When adding a user-facing capability, update the relevant owner console view so the owner can see its usage and outcomes. Reuse the existing metrics and distinguish reader and display type for scanner changes.

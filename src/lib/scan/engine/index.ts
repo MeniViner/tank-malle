@@ -3,6 +3,7 @@
  * It answers only when it is confident; otherwise the person types the number.
  */
 import { sameRowOf, scanPhoto, stripOf, type ScanContext, type ScanKind, type Word } from './read';
+import { displayCloudCrop } from './cloudCrop';
 import type { Gray, RGBA } from './image';
 
 export type DisplayKind = ScanKind;
@@ -25,8 +26,8 @@ export type DisplaySample = {
 };
 /** Where a row that was read sits in the picture, as fractions of its width and height (for showing it). */
 export type FoundRegion = { cx: number; cy: number; angle: number; width: number; height: number };
-export type DisplayResult = ({ status: 'read'; values: DisplayReading; confidence: number; regions?: FoundRegion[] } | { status: 'unreadable' }) & { sample?: DisplaySample };
-export type DisplayOptions = { sample?: boolean; accept?: Partial<Accept> | null };
+export type DisplayResult = ({ status: 'read'; values: DisplayReading; confidence: number; regions?: FoundRegion[] } | { status: 'unreadable' }) & { sample?: DisplaySample; cloudCrop?: Gray };
+export type DisplayOptions = { sample?: boolean; cloudCrop?: boolean; accept?: Partial<Accept> | null };
 
 /** Largest picture the engine is given, in pixels. */
 export const MAX_PIXELS = 16_000_000;
@@ -58,6 +59,10 @@ export function recognizeDisplay(image: RGBA, kind: DisplayKind, context: ScanCo
       // No coherent sale: keep the rows that look most like prices, so a person can see what was there.
       for (const w of result.words.filter(w => w.dot != null).sort((a, b) => b.fit * b.digits.length - a.fit * a.digits.length)) if (rows.length < 3 && !rows.some(r => sameRowOf(r.word, w))) rows.push({ role: 'total', word: w, text: w.text, confidence: w.fit });
     }
+  }
+  // Derive one display crop from digit geometry. Never send a thumbnail or a whole frame.
+  if (options.cloudCrop && answer.status === 'unreadable') {
+    answer.cloudCrop = displayCloudCrop(image, result, rows[0]?.word);
   }
   if (!options.sample) return answer;
   const strips = rows.map(r => { const g = stripOf(result.levels, r.word); return { role: r.role, text: r.text, confidence: r.confidence, width: g.width, height: g.height, data: g.data }; });

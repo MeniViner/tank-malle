@@ -9,6 +9,10 @@ export default {
   webDir: 'dist-native',
   server: { hostname: 'localhost', androidScheme: 'https', iosScheme: 'capacitor' },
   ios: { contentInset: 'never' },
+  experimental: { ios: { spm: { packageOptions: {
+    '@capacitor-firebase/app-check': { symlink: true },
+    '@capacitor-firebase/crashlytics': { symlink: true },
+  } } } },
   plugins: {
     App: { disableBackButtonHandler: false },
     SystemBars: { insetsHandling: 'css', initialViewportFitValueHint: 'cover' },

@@ -161,3 +161,55 @@ corrected counts as right.
 Earlier readers (v1 `automaticDisplay`, the flagged v2 pipeline and its
 Account switch) were removed in this release; `legacyCorrections.ts` deletes
 what v2 may have stored on a device.
+
+## Automatic cloud fallback in the internal pilot
+
+The personal pilot build enables `VITE_SCAN_AI_PILOT=1`. A web pilot also needs
+`VITE_SCAN_RECAPTCHA_SITE_KEY` (the registered public Enterprise site key).
+Distribute this build only to adult testers in a free-tier eligible region.
+Public builds keep the local reader. The public app currently admits drivers
+aged 16 and above; review audience and regional eligibility before wider rollout.
+
+A local miss with a detected display region can trigger one request for that
+photo, or one per live session after at least three local frames. The worker locates a candidate display and cuts a grayscale region. For a backlit dashboard it can locate tilted illuminated digits against the dark instrument panel. For a pump it prioritizes large digit rows over small instruction text. No region means no upload. Only its re-encoded
+JPEG and a fixed transcription prompt go to Firebase AI Logic. The journal
+context stays on-device. Validated suggestions use the ordinary review form.
+A failed request, an unavailable attestation or an exhausted quota leaves manual
+entry available. Cloud suggestions have no local confidence score and never
+feed the local threshold tuner. In Admin → סריקה, the fallback breakdown compares
+suggestions with what users saved. The pilot also records a Firebase Performance
+trace per processed photo/camera session with timing and categorical attributes.
+
+The provider is the Gemini Developer API on Spark, using `gemini-3.5-flash-lite`.
+On 2026-11-25 the project's free quotas were 15 requests/min and 500/day for
+both 3.5 and 3.1 Flash-Lite, and 5/min and 20/day for 3.8 Flash. The AI Logic
+proxy limit is 4 generation requests/min/user. Firebase applies this setting to every user, including the owner, and offers no per-account override. All apps share model
+quotas. Check live limits before expanding the pilot.
+
+Use the existing native preparation commands. Supply the matching Firebase
+Android JSON with `TANK_MALLE_ANDROID_GOOGLE_SERVICES`, or the iOS plist with
+`TANK_MALLE_IOS_GOOGLE_SERVICES`. These profile-specific files stay out of Git.
+Configured builds initialize native Crashlytics. Android uses Play Integrity
+and needs its Play signing SHA-256 and linked Play project. iOS uses App Attest
+and needs a matching team and signed entitlement. Web uses reCAPTCHA Enterprise.
+Local emulator tests never contact Gemini.
+
+In the live Web pilot on November 25, the local reader declined two synthetic
+printed displays. Through the normal photo picker, the fallback returned
+287.60 shekels and 40.000 L for the pump, and 128450 km for the odometer.
+A separate direct model check returned no number for a blank crop. The probe
+used an ephemeral registered App Check development token, revoked after testing.
+These checks establish the pipeline, not accuracy on field photos.
+
+
+### Real-photo check, 2026-11-25
+
+Three original photos from the owner’s album went through the Web pilot’s file
+picker with no journal context. One odometer photo was accepted locally
+(168053 km, zero model requests). The worker declined the second odometer photo
+and the pump photo. Each automatically triggered exactly one successful
+`gemini-3.5-flash-lite` request. The UI returned 169358 km and a pump sale of
+64.32 shekels for 5.637 L. The model also returned the displayed unit price of
+11.41 shekels/L, used to validate the pump reading. All matched the existing
+human labels. The UI probe used a temporary App Check development registration,
+revoked after the check. These examples cover one vehicle and one pump.

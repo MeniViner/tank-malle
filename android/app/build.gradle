@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 if (file('google-services.json').exists()) {
     apply plugin: 'com.google.gms.google-services'
+    apply plugin: 'com.google.firebase.crashlytics'
 }
 
 def signingDir = System.getenv('TANK_MALLE_SIGNING_DIR')

@@ -69,3 +69,5 @@ design/v3/evidence/**/*-768-*.png
 
 # Per-Firebase-project Android configuration generated for native packaging.
 /android/app/google-services.json
+
+/ios/App/App/GoogleService-Info.plist

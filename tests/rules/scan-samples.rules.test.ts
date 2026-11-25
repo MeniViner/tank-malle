@@ -32,6 +32,11 @@ describe('scanSamples', () => {
     await assertSucceeds(setDoc(doc(alice(), 'scanSamples/b'), { ...sample, kind: 'pump', source: 'file', guess: '287.60|40.000', journal: false }));
     await assertSucceeds(setDoc(doc(alice(), 'scanSamples/c'), { ...sample, outcome: 'unreadable', guess: null, confidence: null, width: 0, height: 0 }));
   });
+  it('accepts AI suggestions without attributing a local confidence score', async () => {
+    await assertSucceeds(setDoc(doc(alice(), 'scanSamples/ai'), { ...sample, confidence: null, fallback: 'read' }));
+    await assertSucceeds(setDoc(doc(alice(), 'scanSamples/miss'), { ...sample, outcome: 'unreadable', fallback: 'miss' }));
+    await assertFails(setDoc(doc(alice(), 'scanSamples/bad'), { ...sample, fallback: 'read' }));
+  });
   it('rejects another uid, extra keys, bad enums and a pre-filled label', async () => {
     await assertFails(setDoc(doc(bob(), 'scanSamples/a'), sample));
     await assertFails(setDoc(doc(env.unauthenticatedContext().firestore(), 'scanSamples/a'), sample));

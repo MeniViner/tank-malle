@@ -11,13 +11,14 @@ import { doc, collection, getDoc, updateDoc, writeBatch } from 'firebase/firesto
 import { auth, db } from '../firebase';
 import { APP_VERSION } from '../version';
 import { ENGINE_VERSION } from './engine/version';
-import type { Accept, DisplayKind, DisplayResult } from './engine';
+import type { Accept, DisplayKind, DisplayReading, DisplayResult } from './engine';
 import { labelOf, readingKey, type ScanFinal } from './sampleStats';
 export type { ScanFinal };
 
 export type ScanSource = 'camera' | 'file';
 export type ScanAttempt = {
   kind: DisplayKind; source: ScanSource;
+  cloudReading?: DisplayReading | null;
   /** The engine's answer, or null when it never answered (time limit, unreadable file). */
   result: DisplayResult | null;
   /** Camera frames looked at (1 for a file) and seconds from opening to the answer. */
@@ -69,13 +70,14 @@ const size = (n: number | undefined) => Number.isFinite(n) ? Math.min(20_000, Ma
 export function recordScanSample(meta: ScanSampleMeta, attempt: ScanAttempt): ScanSampleEntry | null {
   try {
     const ref = doc(collection(db, 'scanSamples')), sample = attempt.result?.sample, now = Date.now();
-    const outcome = attempt.result?.status === 'read' ? 'read' as const : 'unreadable' as const;
-    const guess = readingKey(attempt.kind, attempt.result?.status === 'read' ? attempt.result.values : sample?.guess ?? null);
-    const confidence = attempt.result?.status === 'read' ? attempt.result.confidence : sample?.confidence ?? null;
+    const outcome = attempt.cloudReading || attempt.result?.status === 'read' ? 'read' as const : 'unreadable' as const;
+    const guess = readingKey(attempt.kind, attempt.cloudReading ?? (attempt.result?.status === 'read' ? attempt.result.values : sample?.guess ?? null));
+    const confidence = attempt.cloudReading ? null : attempt.result?.status === 'read' ? attempt.result.confidence : sample?.confidence ?? null;
     const batch = writeBatch(db);
     batch.set(ref, {
       uid: meta.uid, createdAt: now, day: new Date(now).toISOString().slice(0, 10), appVersion: APP_VERSION, engine: ENGINE_VERSION,
       kind: attempt.kind, source: attempt.source, session: meta.session, attempt: Math.min(99, Math.max(1, Math.round(meta.attempt))),
+      ...(attempt.cloudReading !== undefined ? { fallback: attempt.cloudReading ? 'read' : 'miss' } : {}),
       outcome, guess, confidence: confidence == null || !Number.isFinite(confidence) ? null : round(Math.min(1, Math.max(0, confidence)), 3),
       ms: Math.min(600_000, Math.max(0, Math.round(sample?.ms ?? 0))), frames: Math.min(100_000, Math.max(0, Math.round(attempt.frames))),
       seconds: round(Math.min(3600, Math.max(0, Number.isFinite(attempt.seconds) ? attempt.seconds : 0)), 1), width: size(sample?.width), height: size(sample?.height),

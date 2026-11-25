@@ -22,9 +22,10 @@ export type ScanKind = 'odometer' | 'pump';
 export type ScanContext = { lastOdometer?: number | null; pricePerLiter?: number | null; tankCapacity?: number | null };
 export type OdometerRead = { text: string; value: number; confidence: number; word: Word };
 export type PumpRead = { total: string; liters: string; price: string | null; confidence: number; words: { total: Word; liters: Word; price: Word | null } };
-export type EngineResult = { kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number; levels: Gray[] };
+export type EngineResult = { candidateLine?: LineProposal; kind: ScanKind; odometer: OdometerRead[]; pump: PumpRead[]; words: Word[]; ms: number; levels: Gray[] };
 
-const MIN_FIT = .55, PRICE_MIN = 4.5, PRICE_MAX = 14;
+const MIN_FIT = .55;
+export const PRICE_MIN = 4.5, PRICE_MAX = 14;
 
 /** Splits a row into runs of well-read digits on one regular pitch. */
 export function wordsOf(cells: Cell[], dots: number[], line: LineProposal, flipped: boolean): Word[] {
@@ -90,7 +91,7 @@ export function stackedRows(levels: Gray[], words: Word[]): Word[] {
   return out;
 }
 
-export function readWords(levels: Gray[], options: ProposalOptions = {}): { words: Word[]; lines: number } {
+export function readWords(levels: Gray[], options: ProposalOptions = {}): { words: Word[]; lines: number; candidateLine?: LineProposal } {
   const lines = proposeLines(levels, options), first: { word: Word; refined: LineProposal }[] = [], words: Word[] = [];
   for (const line of lines) {
     // A steep row may be upside down; a gently sloped one is read left to right only.
@@ -125,7 +126,7 @@ export function readWords(levels: Gray[], options: ProposalOptions = {}): { word
     if (read) for (const word of wordsOf(read.cells, read.dots, seed.refined, false)) words.push({ ...word, refined: true });
   }
   for (const f of first) words.push(f.word);
-  return { words, lines: lines.length };
+  return { words, lines: lines.length, candidateLine: lines[0] };
 }
 
 /** The upright strip a word was read from, as the decoder saw it (at most `maxWidth` wide, around the word). */
@@ -301,10 +302,10 @@ const FAINT: ProposalOptions = { offset: 6 };
 export function scanPhoto(image: RGBA, kind: ScanKind, context: ScanContext = {}): EngineResult {
   const started = Date.now(), levels = pyramid(luma(image));
   const choose = (words: Word[]) => ({ odometer: kind === 'odometer' ? chooseOdometer(words, context) : [], pump: kind === 'pump' ? choosePump(words, context) : [] });
-  let { words } = readWords(levels), chosen = choose(words);
+  let { words, candidateLine } = readWords(levels), chosen = choose(words);
   const sure = kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
   const sureNow = () => kind === 'odometer' ? (chosen.odometer[0]?.confidence ?? 0) >= .6 : !!chosen.pump[0]?.price && chosen.pump[0].confidence >= .5;
   if (!sure && kind === 'pump') { words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
-  if (!sureNow()) { words = [...words, ...readWords(levels, FAINT).words]; if (kind === 'pump') words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
-  return { kind, words, ...chosen, ms: Date.now() - started, levels };
+  if (!sureNow()) { const faint = readWords(levels, FAINT); candidateLine ??= faint.candidateLine; words = [...words, ...faint.words]; if (kind === 'pump') words = [...words, ...stackedRows(levels, words)]; chosen = choose(words); }
+  return { kind, words, candidateLine, ...chosen, ms: Date.now() - started, levels };
 }

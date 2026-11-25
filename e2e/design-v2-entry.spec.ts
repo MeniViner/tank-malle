@@ -164,7 +164,7 @@ test("login initializes a profile before queued writes and live recovery fills o
     await sdkGate.wait;
     await route.continue();
   });
-  await page.route("**/documents:batchGet", async route => {
+  await page.route(/\/documents:batchGet(?:\?|$)/, async route => {
     const body = route.request().postDataJSON() as { documents?: string[] };
     if ((body.documents ?? []).some(profileDocument)) {
       initialProfileReads += 1;
@@ -172,7 +172,7 @@ test("login initializes a profile before queued writes and live recovery fills o
     }
     await route.continue();
   });
-  await page.route("**/documents:commit", async route => {
+  await page.route(/\/documents:commit(?:\?|$)/, async route => {
     const body = route.request().postDataJSON() as { writes?: Commit[] };
     const writes = (body.writes ?? []).filter(write => profileDocument(write.update?.name ?? write.verify));
     if (writes.length) {
@@ -338,7 +338,7 @@ test("an offline preference with a missing profile survives reload and reaches t
   await context.route(firestore, async route => {
     const url = route.request().url();
     if (connection === "all-unavailable" || (connection === "writes-unavailable" &&
-      (url.includes("/google.firestore.v1.Firestore/Write/") || url.endsWith("/documents:commit")))) {
+      (url.includes("/google.firestore.v1.Firestore/Write/") || new URL(url).pathname.endsWith("/documents:commit")))) {
       await route.abort("connectionfailed");
     } else await route.continue();
   });
