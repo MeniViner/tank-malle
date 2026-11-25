@@ -517,10 +517,12 @@ external providers are outside this measurement.
 
 To activate the snapshot in production, deploy the Firestore rules alongside
 the Hosting build. The existing `FIREBASE_SERVICE_ACCOUNT` repository secret
-must identify a principal with Firestore write access and
-`monitoring.timeSeries.list` in project `tank-malle`. For a principal that
-lacks Monitoring access, the predefined Monitoring Viewer role grants the
-read permission. After merging, run **Admin operations** on `main` once
+identifies the Firestore writer. Cloud Monitoring reads use the auditing
+workflow's short-lived GitHub identity mapped to the project Monitoring
+Viewer role through the `tank-malle-ops` workload identity pool. The
+provider restricts that identity to this repository and the
+`admin-operations.yml` workflow on `main`. After merging, run **Admin
+operations** on `main` once
 from Actions for immediate verification. The workflow runs every six hours.
 Its logs report each source's status. It also writes
 `ownerConsole/telemetry` with sampled health checks, managed backup metadata,

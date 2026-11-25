@@ -5,12 +5,9 @@ const HOST = 'https://tank-malle.web.app';
 const REGISTRY = 'https://data.gov.il/api/3/action/datastore_search?resource_id=053cea08-09bc-40ec-8f7a-156f0677aff3&limit=0';
 const COLLECTIONS = ['users', 'userSummaries', 'feedback', 'scanSamples', 'benchmarks', 'costBenchmarks', 'stationPriceAggregates', 'appConfig'];
 
-async function request(url, token, quotaProject) {
+async function request(url, token) {
   const response = await fetch(url, {
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(quotaProject ? { 'x-goog-user-project': quotaProject } : {}),
-    },
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
     signal: AbortSignal.timeout(10_000),
     redirect: 'error',
   });
@@ -53,7 +50,7 @@ async function percentile(token, end, reducer) {
     'aggregation.crossSeriesReducer': reducer,
     view: 'FULL',
   });
-  const result = await request(`https://monitoring.googleapis.com/v3/projects/${PROJECT}/timeSeries?${params}`, token, PROJECT);
+  const result = await request(`https://monitoring.googleapis.com/v3/projects/${PROJECT}/timeSeries?${params}`, token);
   if (result.executionErrors?.length || result.unreachable?.length || result.nextPageToken || result.timeSeries?.length !== 1) return null;
   const days = Array(7).fill(null);
   for (const point of result.timeSeries[0].points ?? []) {

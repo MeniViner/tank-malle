@@ -1,6 +1,5 @@
 /** Collect project-wide service counts without exporting request bodies or identities. */
 import { pathToFileURL } from 'node:url';
-import { createHash } from 'node:crypto';
 import { monitoringToken } from './monitoringToken.mjs';
 import { applicationDefault, cert, deleteApp, initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -40,7 +39,7 @@ async function series(token, metric, end) {
   const rows = [];
   for (let page = 0; page < 10; page += 1) {
     const response = await fetch(`https://monitoring.googleapis.com/v3/projects/${PROJECT}/timeSeries?${params}`, {
-      headers: { Authorization: `Bearer ${token}`, 'x-goog-user-project': PROJECT },
+      headers: { Authorization: `Bearer ${token}` },
       signal: AbortSignal.timeout(15_000),
       redirect: 'error',
     });
@@ -110,23 +109,18 @@ async function main() {
   const inline = process.env.FIREBASE_SERVICE_ACCOUNT;
   const key = inline ? JSON.parse(inline) : null;
   if (key && key.project_id !== PROJECT) throw new Error('Unexpected monitoring project.');
-  if (dryRun && key) {
-    const identity = key.client_email;
-    const configured = identity === 'firebase-adminsdk-fbsvc@tank-malle.iam.gserviceaccount.com'
-      ? 'Firebase Admin SDK' : identity === 'fuel-price-bot@tank-malle.iam.gserviceaccount.com' ? 'fuel price bot' : 'another existing service account';
-    console.log(`Configured credential: ${configured} (${createHash('sha256').update(identity).digest('hex').slice(0, 12)})`);
-  }
   if (!dryRun && !key) throw new Error('The repository service account is required to publish.');
   const credential = key ? cert(key) : applicationDefault();
   const app = initializeApp({ projectId: PROJECT, credential });
   try {
     const { access_token: token } = await credential.getAccessToken();
-    const monitoring = key ? await monitoringToken(key) : token;
+    const monitoring = process.env.GITHUB_ACTIONS === 'true' ? await monitoringToken() : token;
     const snapshot = await collectOperations(monitoring);
     if (!dryRun) {
       const db = getFirestore(app);
+      const unavailable = Object.values(snapshot.metrics).some(metric => ['forbidden', 'unavailable'].includes(metric.status));
       await Promise.all([
-        db.doc('adminOperations/latest').set(snapshot),
+        unavailable ? Promise.resolve() : db.doc('adminOperations/latest').set(snapshot),
         publishOwnerTelemetry(db, token, snapshot.collectedAt, snapshot.end, monitoring),
       ]);
     }
@@ -140,5 +134,10 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch(() => { console.error('Admin operations snapshot could not be published.'); process.exitCode = 1; });
+  main().catch(error => {
+    const diagnostic = typeof error?.message === 'string' && /^(GitHub|Cloud Monitoring workload) token unavailable \(HTTP [1-5][0-9]{2}\)$/.test(error.message)
+      ? error.message : 'Admin operations snapshot could not be published.';
+    console.error(diagnostic);
+    process.exitCode = 1;
+  });
 }
