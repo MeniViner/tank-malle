@@ -111,3 +111,27 @@
 .admin-scan-problem .admin-link { justify-self: start; }
 .admin-scan-pictures { display: grid; gap: 6px; direction: ltr; }
 .admin-scan-pictures img { max-width: 100%; height: auto; border: 1px solid var(--line); border-radius: 4px; background: #000; }
+
+/* Operations views use the same section, row and brand tokens as the admin. */
+.admin-ops-view { display: grid; min-width: 0; gap: 26px; font-variant-numeric: tabular-nums; }
+.admin-ops-view h2 { text-wrap: balance; }
+.admin-ops-view .admin-ops-row { align-items: center; gap: 8px 14px; min-height: 56px; padding: 8px 0; }
+.admin-ops-row > div { min-width: 0; }
+.admin-ops-row strong, .admin-ops-row small { display: block; overflow-wrap: anywhere; }
+.admin-ops-row strong { font-weight: 600; }
+.admin-ops-row small { margin-top: 2px; color: var(--ink-2); line-height: 1.55; }
+.admin-ops-row-value { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 2px 8px; flex: 0 0 auto; max-width: 46%; text-align: end; }
+.admin-ops-link { display: inline-flex; align-items: center; }
+.admin-ops-state { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-size: 12px; }
+.admin-ops-state[data-tone="good"] { background: var(--better-soft); color: var(--better); }
+.admin-ops-state[data-tone="warn"] { background: var(--accent-soft); color: var(--ink); }
+.admin-ops-state[data-tone="bad"] { background: var(--danger-soft); color: var(--danger-ink); }
+.admin-ops-view .admin-search:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.admin-ops-view .admin-search input { padding-inline: 12px; }
+.admin-ops-check { display: flex; align-items: center; gap: 8px; min-height: 44px; width: fit-content; cursor: pointer; font-size: 14px; }
+.admin-ops-check input { accent-color: var(--accent); }
+.admin-ops-history { display: grid; gap: 8px; padding: 12px 0; }
+.admin-ops-history li { display: grid; grid-template-columns: 44px minmax(0, 1fr) minmax(50px, auto); align-items: center; gap: 8px; font-size: 13px; }
+.admin-ops-history li > :last-child { text-align: end; }
+.admin-ops-bar { height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.admin-ops-bar > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }

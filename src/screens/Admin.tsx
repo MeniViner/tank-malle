@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScanAccuracy } from "../components/admin/ScanAccuracy";
-import { useNavigate } from "react-router-dom";
+import { AdminPanel as Panel } from "../components/admin/AdminPanel";
+import { AdminApi, AdminGithub, AdminSystem } from "../components/admin/AdminOperations";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   collection,
   getCountFromServer,
@@ -16,6 +18,7 @@ import {
   query,
 
   startAfter,
+  where,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
 import { useData } from "../context/DataContext";
@@ -101,23 +104,16 @@ type SortKey = "activity" | "spend" | "joined";
 const PAGE_SIZE = 25;
 
 
-/**
- * The console is four screens, not one scroll.
- *
- * Everything used to be stacked on a single page — totals, every user, the
- * feedback inbox, the price editor, the station diagnostics and the benchmark
- * pool — so nothing could be found and each block invented its own header.
- * They are tabs now, and every block is a Panel with the same chrome.
- */
-type AdminTab = "overview" | "users" | "data" | "scan" | "feedback";
-
-const ADMIN_TABS: { value: AdminTab; label: string }[] = [
+const ADMIN_TABS = [
   { value: "overview", label: "סקירה" },
   { value: "users", label: "משתמשים" },
   { value: "data", label: "נתונים" },
   { value: "scan", label: "סריקה" },
   { value: "feedback", label: "משוב" },
-];
+  { value: "system", label: "שרתים" },
+  { value: "api", label: "קריאות API" },
+  { value: "github", label: "GitHub" },
+] as const;
 
 export function Admin() {
   const { user, isAdmin, claimsLoaded } = useAuth();
@@ -135,7 +131,12 @@ function AdminSession() {
   const [sort, setSort] = useState<SortKey>("activity");
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
-  const [tab, setTab] = useState<AdminTab>("overview");
+  const [params, setParams] = useSearchParams();
+  const tab = ADMIN_TABS.find(entry => entry.value === params.get('tab'))?.value ?? 'overview';
+  const [operationsRevision, setOperationsRevision] = useState(0);
+  const operations = tab === 'system' || tab === 'api' || tab === 'github';
+  const [profileCounts, setProfileCounts] = useState<{ all: number | null; recent: number | null }>();
+  const [profileRevision, setProfileRevision] = useState(0);
   const [pageCursor, setPageCursor] = useState<QueryDocumentSnapshot | null>(null);
   const [exhausted, setExhausted] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -221,8 +222,21 @@ function AdminSession() {
   );
 
   useEffect(() => {
-    if (claimsLoaded && isAdmin) void load(null);
-  }, [claimsLoaded, isAdmin, load]);
+    if (claimsLoaded && isAdmin && !operations && users === null && !loadingMore) void load(null);
+  }, [claimsLoaded, isAdmin, load, operations, users, loadingMore]);
+
+  useEffect(() => {
+    if (!claimsLoaded || !isAdmin || tab !== 'overview') return;
+    const current = captureScope();
+    let mounted = true;
+    const profiles = collection(db, 'users');
+    const recentlySignedIn = query(profiles, where('lastProcessedAuthTime', '>=', Date.now() - 7 * 86_400_000));
+    const count = (target: typeof recentlySignedIn) => getCountFromServer(target).then(result => result.data().count).catch(() => null);
+    void Promise.all([count(profiles), count(recentlySignedIn)]).then(([all, recent]) => {
+      if (mounted && current()) setProfileCounts({ all, recent });
+    });
+    return () => { mounted = false; };
+  }, [tab, claimsLoaded, isAdmin, captureScope, profileRevision]);
 
   const sorted = useMemo(() => {
     if (!users) return [];
@@ -283,22 +297,53 @@ function AdminSession() {
 
   return (
     <main className="tm-admin flex min-w-0 flex-1 flex-col pb-safe pt-safe">
-      <header className="admin-header"><button type="button" aria-label="חזרה להגדרות" onClick={() => navigate('/settings')}><ChevronStart size={22} className="rotate-180" /></button><div><span className="admin-eyebrow">טנק מלא · ניהול</span><h1>לוח בקרה</h1></div><button type="button" aria-label="רענון נתוני ניהול" disabled={loadingMore} onClick={() => void load(null)}><RefreshIcon size={20} /></button></header>
+      <header className="admin-header">
+        <button type="button" aria-label="חזרה להגדרות" onClick={() => navigate('/settings')}>
+          <ChevronStart size={22} className="rotate-180" />
+        </button>
+        <div><span className="admin-eyebrow">טנק מלא · ניהול</span><h1>לוח בקרה</h1></div>
+        <button type="button" aria-label="רענון נתוני ניהול" disabled={!operations && loadingMore} onClick={() => {
+          if (operations) {
+            setOperationsRevision(n => n + 1);
+            return;
+          }
+          if (tab === 'overview') setProfileRevision(n => n + 1);
+          void load(null);
+        }}>
+          <RefreshIcon size={20} />
+        </button>
+      </header>
       <nav aria-label="מדורי ניהול" className="admin-tabs">
-        {ADMIN_TABS.map(entry => <button key={entry.value} type="button" aria-current={tab === entry.value ? 'page' : undefined} aria-pressed={tab === entry.value} onClick={() => { setTab(entry.value); setSelectedUser(null); }}>{entry.label}</button>)}
+        {ADMIN_TABS.map(entry => (
+          <button key={entry.value} type="button" aria-current={tab === entry.value ? 'page' : undefined} aria-pressed={tab === entry.value} onClick={() => {
+            setParams(previous => {
+              const next = new URLSearchParams(previous);
+              if (entry.value === 'overview') next.delete('tab');
+              else next.set('tab', entry.value);
+              return next;
+            });
+            setSelectedUser(null);
+          }}>
+            {entry.label}
+          </button>
+        ))}
       </nav>
       <div className="admin-page">
-        {error ? <div role="alert" className="admin-alert"><WarningIcon size={18} /><span>{error}</span><button type="button" onClick={() => void load(null)} className="admin-link">ניסיון נוסף</button></div> : null}
-        {!users ? <><Skeleton className="h-[170px] rounded-card" /><Skeleton className="h-[210px] rounded-card" /></> : <>
+        {tab === 'system' ? <AdminSystem revision={operationsRevision} /> : null}
+        {tab === 'api' ? <AdminApi revision={operationsRevision} /> : null}
+        {tab === 'github' ? <AdminGithub revision={operationsRevision} /> : null}
+        {!operations && error ? <div role="alert" className="admin-alert"><WarningIcon size={18} /><span>{error}</span><button type="button" onClick={() => void load(null)} className="admin-link">ניסיון נוסף</button></div> : null}
+        {operations ? null : !users ? <><Skeleton className="h-[170px] rounded-card" /><Skeleton className="h-[210px] rounded-card" /></> : <>
           {tab === 'overview' ? <>
             <section aria-label="סיכום המערכת">
-              <div className="admin-group-head"><h2>תמונת מצב</h2><InfoTip label="על נתוני הניהול"><p>הספירות מבוססות על סיכומים שהחשבונות פרסמו. הצריכה משוקללת לפי מרחק; חלק מהסיכומים עשויים לכלול תדלוקים בלבד. לא נקראים כאן פרטי היומן האישיים.</p></InfoTip></div>
+              <div className="admin-group-head"><h2>תמונת מצב</h2><InfoTip label="על נתוני הניהול"><p>מספר המשתמשים הוא ספירת פרופילים מהשרת. נתוני הרכב מבוססים על סיכומים שהחשבונות שנטענו פרסמו. הצריכה משוקללת לפי מרחק, וחלק מהסיכומים כוללים תדלוקים בלבד.</p></InfoTip></div>
               <div className="admin-tiles">
-                <StatTile label="משתמשים" value={num(totals?.users ?? 0, 0)} />
+                <StatTile label="משתמשים" value={profileCounts?.all == null ? '—' : num(profileCounts.all, 0)} />
                 <StatTile label="רכבים" value={num(totals?.vehicles ?? 0, 0)} />
                 <StatTile label="רשומות יומן" value={num(ledger.records, 0)} />
                 <StatTile label="צריכה ממוצעת · קמ״ל" value={totals?.kmPerLiter ? num(totals.kmPerLiter, 1) : '—'} />
               </div>
+              <p className="helper admin-coverage"><Num>{profileCounts?.recent == null ? '—' : num(profileCounts.recent, 0)}</Num> חשבונות עם כניסה מתועדת בשבעת הימים האחרונים</p>
               <div className="admin-kinds" aria-label="פילוח רשומות">{([['fuel', 'תדלוקים'], ['expense', 'הוצאות'], ['service', 'טיפולים'], ['odometer', 'עדכוני ק״מ']] as const).map(([kind, title]) => <span key={kind}>{title} <Num>{kind === 'fuel' || ledger.ledgerVehicles ? num(ledger.counts[kind], 0) : '—'}</Num></span>)}</div>
               <p className="helper admin-coverage"><NumericText>{`${exhausted ? 'כל החשבונות נטענו' : `נתונים חלקיים · ${users.length} חשבונות נטענו`}${totals?.withoutSummary ? ` · ${totals.withoutSummary} ללא סיכום` : ''}${ledger.missingLedgers || ledger.missingVehicles ? ' · חלק מהרכבים ללא סיכום יומן מלא' : ''}`}</NumericText></p>
             </section>
@@ -334,36 +379,6 @@ function AdminSession() {
         </div><p className="helper">{selectedUser.summary ? 'הנתונים הם סיכומים שהחשבון פרסם. סיכום ישן עשוי לכלול תדלוקים בלבד.' : 'לא זמין סיכום תקין לחשבון הזה, ולכן אין עדיין ספירה מאומתת.'} אין אפשרות לערוך או למחוק נתונים של משתמש אחר.</p></div> : null}
       </Sheet>
     </main>
-  );
-}
-
-/**
- * The one section shell every panel on this screen uses: a title, an optional
- * control opposite it, an optional note under it, and a card for the body.
- * `bare` is for a body that is already made of cards.
- */
-function Panel({
-  title,
-  note,
-  trailing,
-  bare = false,
-  children,
-}: {
-  title: string;
-  note?: string;
-  trailing?: React.ReactNode;
-  bare?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="flex min-w-0 flex-col gap-2">
-      <div className="admin-group-head">
-        <h2>{title}</h2>
-        {trailing}
-      </div>
-      {note ? <p className="-mt-1 text-[13px] text-muted">{note}</p> : null}
-      {bare ? children : <div className="admin-group">{children}</div>}
-    </section>
   );
 }
 

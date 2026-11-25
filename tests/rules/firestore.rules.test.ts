@@ -864,3 +864,16 @@ describe("operational summaries", () => {
     );
   });
 });
+
+describe('admin operations monitoring', () => {
+  it('lets a claimed admin read only the published snapshot', async () => {
+    const ref = (db: ReturnType<typeof admin>) => doc(db, 'adminOperations', 'latest');
+    await testEnv.withSecurityRulesDisabled(context => setDoc(ref(context.firestore()), { version: 1 }));
+    await assertSucceeds(getDoc(ref(admin())));
+    await assertFails(getDoc(ref(alice())));
+    await assertFails(getDoc(ref(anon())));
+    await assertFails(getDocs(collection(admin(), 'adminOperations')));
+    await assertFails(setDoc(ref(admin()), { version: 2 }));
+    await assertFails(deleteDoc(ref(admin())));
+  });
+});

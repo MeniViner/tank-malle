@@ -983,6 +983,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // A single aggregate snapshot published by the scheduled Admin SDK job.
+    match /adminOperations/latest {
+      allow get: if isAdmin();
+      allow list, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

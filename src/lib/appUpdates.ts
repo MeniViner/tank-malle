@@ -39,7 +39,7 @@ export interface BuildIdentity { version: string; commit: string; dirty: boolean
 export type UpdateCheck = 'available' | 'current' | 'offline' | 'error';
 export interface UpdateCheckResult { status: UpdateCheck; release?: BuildIdentity }
 
-function buildIdentity(value: unknown): BuildIdentity {
+export function parseBuildIdentity(value: unknown): BuildIdentity {
   const info = value as Partial<BuildIdentity> | null;
   if (!info || typeof info.version !== 'string' || !info.version.trim() ||
       typeof info.commit !== 'string' || !/^[a-f0-9]{40}$/.test(info.commit) ||
@@ -92,7 +92,7 @@ export async function checkAppUpdate(current: BuildIdentity): Promise<UpdateChec
       cache: 'no-store', headers: { 'Cache-Control': 'no-cache' }, signal: controller.signal,
     }), controller.signal);
     if (!response.ok) throw new Error('Release identity unavailable');
-    release = buildIdentity(await bounded(response.json(), controller.signal));
+    release = parseBuildIdentity(await bounded(response.json(), controller.signal));
     const registration = 'serviceWorker' in navigator
       ? await bounded(navigator.serviceWorker.getRegistration(), controller.signal) : undefined;
     if (registration) {
