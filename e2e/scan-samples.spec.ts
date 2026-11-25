@@ -139,3 +139,34 @@ test('one fill-up is one scan session; labels survive a reload, skip an undone s
   const latestSession = samples.find(s => s.kind === 'pump' && s.final === null && s.attempt === 1 && samples.filter(o => o.session === s.session).length === 2 && samples.some(o => o.session === s.session && o.kind === 'odometer' && o.final !== null));
   expect(latestSession).toBeTruthy();
 });
+
+test('one automatic fallback per unreadable photo, followed by review in the form', async ({ page }) => {
+  const sharp = (await import('sharp')).default;
+  const { demoPhoto } = await import('../src/lib/scan/fixtures');
+  // Emulate the provider at the module boundary. The real worker must reject these
+  // printed numbers and extract a crop before the fallback can see them.
+  await page.route('**/src/lib/scan/cloudPilot.ts*', route => route.fulfill({
+    contentType: 'application/javascript', body: 'export const cloudPilot = true;',
+  }));
+  await page.route('**/src/lib/scan/cloudScan.ts*', route => route.fulfill({
+    contentType: 'application/javascript',
+    body: `export async function cloudScan(kind,crop) {
+      if (crop.width * crop.height >= 640 * 400) throw Error('Expected a crop');
+      window.probeRequests = (window.probeRequests || 0) + 1;
+      return { total:'287.60', liters:'40.000' };
+    }`,
+  }));
+  const scope = await signedInWithData(page, { fillups: [] });
+  await page.goto('/fillup/new');
+  await page.getByTestId('fillup-camera').click();
+  const image = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400"><rect width="640" height="400" fill="white"/><g font-family="Arial" font-size="58"><text x="135" y="140">287.60</text><text x="130" y="220">40.000</text><text x="186" y="300">7.19</text></g></svg>');
+  await page.getByLabel('תמונת משאבה').setInputFiles({ name:'pump.png', mimeType:'image/png', buffer:await sharp(image).png().toBuffer() });
+  await expect(page.getByText('המשאבה נקראה', { exact:true })).toBeVisible();
+  const odo = demoPhoto('odometer');
+  await page.getByLabel('תמונת קילומטראז׳').setInputFiles({ name:'odometer.png', mimeType:'image/png',
+    buffer:await sharp(Buffer.from(odo.data), {raw:{width:odo.width,height:odo.height,channels:4}}).png().toBuffer() });
+  await expect(page.getByTestId('fillup-total')).toHaveValue('287.60');
+  await expect(page.getByTestId('fillup-odometer')).toHaveValue('128450');
+  expect(await page.evaluate(() => (window as Window & {probeRequests?:number}).probeRequests)).toBe(1);
+  await expect.poll(async () => (await listDocuments('scanSamples')).filter(row => row.data.uid === scope.uid && row.data.fallback === 'read').length).toBe(1);
+});

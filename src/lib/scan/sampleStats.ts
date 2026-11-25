@@ -4,6 +4,7 @@ export type ScanSampleRow = {
   id: string; uid: string; createdAt: number; day: string; appVersion: string; engine: number;
   kind: 'pump' | 'odometer'; source: 'camera' | 'file'; session: string; attempt: number;
   outcome: 'read' | 'unreadable'; guess: string | null; confidence: number | null;
+  fallback?: 'read' | 'miss';
   ms: number; frames: number; seconds: number; journal: boolean; platform: string;
   final: string | null; result: 'match' | 'corrected' | 'manual' | null;
 };
@@ -16,6 +17,7 @@ export function toSampleRow(id: string, d: Record<string, unknown>): ScanSampleR
     id, uid: text(d.uid, 128), createdAt: number(d.createdAt), day: text(d.day, 10) || new Date(number(d.createdAt)).toISOString().slice(0, 10),
     appVersion: text(d.appVersion, 20) || '?', engine: number(d.engine), kind: d.kind, source: d.source === 'file' ? 'file' : 'camera',
     session: text(d.session) || id, attempt: Math.max(1, number(d.attempt)), outcome: d.outcome, guess: text(d.guess, 40) || null,
+    fallback: d.fallback === 'read' || d.fallback === 'miss' ? d.fallback : undefined,
     confidence: typeof d.confidence === 'number' && Number.isFinite(d.confidence) ? d.confidence : null,
     ms: number(d.ms), frames: number(d.frames), seconds: number(d.seconds), journal: d.journal === true, platform: text(d.platform, 12) || 'other',
     final: text(d.final, 40) || null, result: d.result === 'match' || d.result === 'corrected' || d.result === 'manual' ? d.result : null,
@@ -101,7 +103,7 @@ export function tuneThreshold(rows: readonly ScanSampleRow[], current: number, r
   // Evidence is a guess the threshold alone decided on: one that was shown, or one from a single
   // picture. A camera session that ended without a reading keeps the guess of its most confident
   // frame, which was never shown (the camera needs two frames that agree) and is often a stray misread.
-  const known = rows.filter(r => r.final && r.guess && r.confidence != null && (r.outcome === 'read' || r.source === 'file'));
+  const known = rows.filter(r => r.fallback !== 'read' && r.final && r.guess && r.confidence != null && (r.outcome === 'read' || r.source === 'file'));
   // Few attempts cannot show that a lower threshold is safe, but two wrong readings shown are
   // reason enough to raise it: with little evidence the threshold only moves up.
   const few = known.length < minLabeled;

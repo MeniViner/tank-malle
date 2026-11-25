@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useId, useLayoutEffect } from 'react';
+import { cloudPilot } from '../../lib/scan/cloudPilot';
 import { Sheet } from '../Sheet';
 import { Button } from '../Button';
 import { CheckIcon, InfoIcon } from '../icons';
@@ -67,6 +68,7 @@ export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onA
       <ol className="scan-steps" aria-label="שלבי הוספת תדלוק">{['משאבה','קילומטראז׳'].map((name,i)=><li key={name} aria-current={step===i?'step':undefined}><span>{i<step?<CheckIcon size={16}/>:i+1}</span>{name}</li>)}</ol>
       {pump?<div className="scan-success" role="status"><CheckIcon size={20}/><span><b>המשאבה נקראה</b><span><Money value={Number(pump.total)}/> · <span className="tm-number-with-unit"><NumRun>{pump.liters}</NumRun><span className="unit">ליטר</span></span></span></span></div>:null}
       <p ref={heading} tabIndex={-1} className="text-sm leading-relaxed text-muted outline-none">{step===0?'פותחים מצלמה, מכוונים לצג — ואנחנו קוראים את הספרות. פעלו לפי הנחיות התחנה לשימוש בטלפון.':'עוד צילום אחד, והנתונים יעברו לטופס לבדיקה. אפשר גם לסגור ולהשלים בטופס; מה שכבר נקרא יישאר.'}</p>
+      {cloudPilot && <p className="text-xs text-muted">אם הזיהוי המקומי נכשל, חיתוך הצג נשלח אוטומטית ל־Google Gemini. צלמו רק את הספרות. אפשר גם להזין ידנית.</p>}
       <PhotoReader key={step} kind={step===0?'pump':'odometer'} autoOpen={live} onRead={read} onPhotoMetadata={onPhotoMetadata} context={context} onAttempt={onAttempt ? attempt : undefined} accept={accept} controlsRef={reader}/>
       {step===0?<Button variant="ghost" onClick={()=>setStep(1)}>דילוג לקילומטראז׳</Button>:<Button variant="ghost" onClick={backToPump}>צילום המשאבה מחדש</Button>}
       <div className="flex items-start justify-center gap-1">

@@ -940,13 +940,14 @@ service cloud.firestore {
     // measure the reader; scripts/scan-learn (Admin SDK) re-tunes its thresholds from them.
     function scanKey(value) { return value == null || (value is string && value.size() <= 40 && value.matches('^[0-9.|]+$')); }
     function validScanSample(d) {
-      return d.keys().hasOnly(['uid','createdAt','day','appVersion','engine','kind','source','session','attempt','outcome','guess',
+      return d.keys().hasOnly(['uid','createdAt','day','appVersion','engine','kind','source','session','attempt','outcome','guess','fallback',
                                'confidence','ms','frames','seconds','width','height','journal','platform','final','result','labeledAt'])
         && d.uid == request.auth.uid
         && d.createdAt is number && d.createdAt > 1700000000000 && d.createdAt < 4102444800000
         && careDay(d.day) && isString(d.appVersion, 20) && careInt(d.engine, 100000)
         && d.kind in ['pump','odometer'] && d.source in ['camera','file']
         && isString(d.session, 64) && d.session.size() > 0 && d.attempt is int && d.attempt >= 1 && d.attempt <= 99
+        && (!('fallback' in d) || d.fallback == 'miss' || (d.fallback == 'read' && d.outcome == 'read' && d.confidence == null))
         && d.outcome in ['read','unreadable'] && scanKey(d.guess)
         && (d.confidence == null || (isNonNaNNumber(d.confidence) && d.confidence >= 0 && d.confidence <= 1))
         && careInt(d.ms, 600000) && careInt(d.frames, 100000)

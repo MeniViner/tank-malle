@@ -26,6 +26,8 @@
     "native:icons": "node scripts/generate-app-icons.mjs"
   },
   "dependencies": {
+    "@capacitor-firebase/app-check": "8.6.0",
+    "@capacitor-firebase/crashlytics": "8.6.0",
     "@capacitor/android": "8.6.2",
     "@capacitor/app": "8.1.2",
     "@capacitor/camera": "8.2.6",
@@ -37,7 +39,7 @@
     "@capacitor/share": "8.0.3",
     "@capgo/capacitor-printer": "8.1.10",
     "@capgo/capacitor-social-login": "8.7.9",
-    "firebase": "^11.10.0",
+    "firebase": "^12.19.0",
     "pdfjs-dist": "6.4.299",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -46,7 +48,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "8.6.2",
-    "@firebase/rules-unit-testing": "^4.0.1",
+    "@firebase/rules-unit-testing": "^5.0.0",
     "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",

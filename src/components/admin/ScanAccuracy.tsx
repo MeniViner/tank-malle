@@ -57,6 +57,7 @@ export function ScanAccuracy() {
     const all = tally(rows), tries = triesToRead(rows), cameraReads = rows.filter(r => r.source === 'camera' && r.outcome === 'read');
     return { all, tries, bars: byDay(rows, Number(days), now), users: new Set(rows.map(r => r.uid)).size,
       seconds: median(cameraReads.map(r => r.seconds)), fileMs: median(rows.filter(r => r.source === 'file' && r.ms > 0).map(r => r.ms)),
+      byReader: groupBy(rows, r => r.fallback === 'read' ? 'הצעה מ־Gemini' : r.fallback === 'miss' ? 'Gemini לא הציע קריאה' : 'זיהוי מקומי בלבד'),
       byKind: groupBy(rows, r => r.kind), bySource: groupBy(rows, r => r.source), byPlatform: groupBy(rows, r => r.platform),
       byVersion: groupBy(rows, r => `${r.appVersion} · מנוע ${r.engine}`), byAttempt: groupBy(rows, r => r.attempt >= 3 ? '3' : String(r.attempt) as '1' | '2' | '3').sort((a, b) => a.key.localeCompare(b.key)),
       problems: rows.filter(r => r.final && (r.outcome === 'unreadable' || r.guess !== r.final)).slice(0, 30) };
@@ -106,6 +107,7 @@ export function ScanAccuracy() {
       </section>
 
       <Breakdown title="לפי סוג צג" groups={stats.byKind.map(g => ({ label: KIND[g.key], tally: g.tally }))} />
+      {rows?.some(r => r.fallback) && <Breakdown title="לפי שימוש ב־Gemini" groups={stats.byReader.map(g => ({ label: g.key, tally: g.tally }))} />}
       <Breakdown title="לפי מקור" groups={stats.bySource.map(g => ({ label: SOURCE[g.key], tally: g.tally }))} />
       <Breakdown title="לפי מכשיר" groups={stats.byPlatform.map(g => ({ label: PLATFORM[g.key] ?? g.key, tally: g.tally }))} />
       <Breakdown title="לפי גרסה" groups={stats.byVersion.map(g => ({ label: g.key, tally: g.tally }))} />

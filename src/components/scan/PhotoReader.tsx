@@ -1,3 +1,5 @@
+import { recordScanTiming } from '../../lib/scan/scanTiming';
+import { cloudPilot } from '../../lib/scan/cloudPilot';
 import { LiveCamera } from './LiveCamera';
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
 import { Button } from '../Button';
@@ -20,6 +22,8 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
   const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[preview,setPreview]=useState<string|null>(null),[aspect,setAspect]=useState<number|null>(null),[found,setFound]=useState<FoundRegion[]|null>(null),[message,setMessage]=useState('');
   const generation=useRef(0),worker=useRef<Worker|null>(null),pending=useRef<((result:DisplayResult)=>void)|null>(null),lastFrame=useRef('');
   const journal=(context?.lastOdometer??0)>0,report=useRef(onAttempt),finish=useRef(()=>{});
+  const cloudRequest = useRef<AbortController | null>(null);
+  const [readingCloud, setReadingCloud] = useState(false);
   const sharingRevision = useRef(0);
   useLayoutEffect(() => {
     if (Boolean(report.current) !== Boolean(onAttempt)) sharingRevision.current++;
@@ -27,14 +31,15 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     finish.current = () => endCamera();
   });
   // One camera session is one attempt: its frames are counted and the most confident one is kept.
-  const camera=useRef<{start:number;frames:number;best:DisplayResult|null;sharingRevision:number}|null>(null);
+  const camera=useRef<{start:number;frames:number;best:DisplayResult|null;cloudTried:boolean;cloudReading?:DisplayReading|null;sharingRevision:number}|null>(null);
   function endCamera(read:DisplayResult|null=null){
     const session=camera.current;camera.current=null;
     if(!session||!session.frames||session.sharingRevision!==sharingRevision.current)return;
     const result:DisplayResult|null=read??(session.best?{status:'unreadable',sample:session.best.sample}:null);
-    report.current?.({kind,source:'camera',result,frames:session.frames,seconds:(Date.now()-session.start)/1000,journal});
+    recordScanTiming(session.start, 'camera', kind, result?.status === 'read' || !!session.cloudReading, session.cloudTried);
+    report.current?.({kind,source:'camera',result,cloudReading:session.cloudReading,frames:session.frames,seconds:(Date.now()-session.start)/1000,journal});
   }
-  function cancel(){worker.current?.terminate();worker.current=null;pending.current?.({status:'unreadable'});pending.current=null;}
+  function cancel(){cloudRequest.current?.abort();worker.current?.terminate();worker.current=null;pending.current?.({status:'unreadable'});pending.current=null;}
   function closeCamera() {
     if (!cameraOpen) return false;
     generation.current++;
@@ -53,11 +58,42 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       pending.current=result=>{clearTimeout(timeout);resolve(result);};
       worker.current.onmessage=(event:MessageEvent<DisplayResult>)=>{pending.current?.(event.data);pending.current=null;};
       worker.current.onerror=()=>cancel();
-      worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample,accept}},[image.data.buffer]);
+      worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample,accept,cloudCrop:cloudPilot}},[image.data.buffer]);
     });
   }
+  async function fallback(result: DisplayResult, active: () => boolean) {
+    const crop = result.cloudCrop;
+    if (!cloudPilot || !crop || !navigator.onLine || !active()) return undefined;
+    const controller = new AbortController();
+    cloudRequest.current = controller;
+    setReadingCloud(true);
+    const abort = () => controller.abort();
+    const visibility = () => { if (document.hidden) abort(); };
+    window.addEventListener('pagehide', abort);
+    document.addEventListener('visibilitychange', visibility);
+    const timeout = setTimeout(abort, 15000);
+    const aborted = new Promise<undefined>(resolve => controller.signal.addEventListener('abort', () => resolve(undefined), { once: true }));
+    try {
+      const request = async () => {
+        const { cloudScan } = await import('../../lib/scan/cloudScan');
+        if (!active() || controller.signal.aborted) return undefined;
+        return cloudScan(kind, crop, context ?? {}, controller.signal);
+      };
+      return await Promise.race([request(), aborted]);
+    } catch {
+      return undefined;
+    } finally {
+      clearTimeout(timeout);
+      window.removeEventListener('pagehide', abort);
+      document.removeEventListener('visibilitychange', visibility);
+      if (cloudRequest.current === controller) {
+        cloudRequest.current = null;
+        setReadingCloud(false);
+      }
+    }
+  }
   async function frame(image:ImageData,isActive:()=>boolean) {
-    camera.current??={start:Date.now(),frames:0,best:null,sharingRevision:sharingRevision.current};
+    camera.current??={start:Date.now(),frames:0,best:null,cloudTried:false,sharingRevision:sharingRevision.current};
     const sample = Boolean(report.current) && camera.current.sharingRevision === sharingRevision.current;
     const token=generation.current,result=await scan(image,sample);
     if(token!==generation.current||!isActive()){lastFrame.current='';return false;}
@@ -65,10 +101,25 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
     if(session){session.frames++;if(result.sample&&(result.sample.confidence??-1)>=(session.best?.sample?.confidence??-1))session.best=result;}
     const signature=result.status==='read'?JSON.stringify(result.values):'';
     if(signature && signature===lastFrame.current && result.status==='read'){endCamera(result);onPhotoMetadata?.({takenAt:null,position:null},kind,true);onRead(result.values,true);return true;}
-    lastFrame.current=signature;return false;
+    lastFrame.current=signature;
+    if (session && !session.cloudTried && session.frames >= 3 && result.status === 'unreadable' && result.cloudCrop) {
+      session.cloudTried = true;
+      const active = () => token === generation.current && isActive();
+      const reading = await fallback(result, active);
+      if (!active()) return false;
+      session.cloudReading = reading;
+      if (reading) {
+        endCamera(result);
+        onPhotoMetadata?.({takenAt:null,position:null},kind,true);
+        onRead(reading,true);
+        return true;
+      }
+    }
+    return false;
   }
   async function load(file?:File) {
     if(!file)return;
+    const fileStarted = Date.now();
     const sharingAtStart = sharingRevision.current;
     const token=++generation.current;cancel();endCamera();setCameraOpen(false);setBusy(false);setMessage('');setFound(null);setAspect(null);lastFrame.current='';
     if(file.size>20_000_000 || !(/^image\/(jpeg|png|webp|heic|heif|avif)$/.test(file.type)||(!file.type&&/\.(jpe?g|png|webp|heic|heif|avif)$/i.test(file.name)))){setMessage('בחרו תמונה בגודל עד 20 MB.');return;}
@@ -92,14 +143,19 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       const started=Date.now(),result=await scan(ctx.getImageData(0,0,canvas.width,canvas.height),sample,45000);
       canvas.width=canvas.height=0;
       if(token!==generation.current)return;
+      const active = () => token === generation.current && document.visibilityState !== 'hidden';
+      const cloudReading = result.status === 'unreadable' ? await fallback(result, active) : undefined;
+      if (token !== generation.current) return;
+      recordScanTiming(fileStarted, 'file', kind, result.status === 'read' || !!cloudReading, cloudReading !== undefined);
       if (sharingAtStart === sharingRevision.current) {
-        report.current?.({kind,source:'file',result,frames:1,seconds:(Date.now()-started)/1000,journal});
+        report.current?.({kind,source:'file',result,cloudReading,frames:1,seconds:(Date.now()-started)/1000,journal});
       }
       if(result.status==='read'){
         // A beat to show where the numbers were found before moving on.
         if(result.regions?.length){setFound(result.regions);await new Promise(resolve=>setTimeout(resolve,1100));if(token!==generation.current)return;}
         onRead(result.values,false);return;
       }
+      if (cloudReading && active()) { onRead(cloudReading,false); return; }
       setMessage('הספרות עדיין לא ברורות מספיק. נסו צילום קרוב יותר בלי סנוור, או סגרו את הצילום והשלימו בטופס.');
     }catch{if(token===generation.current)setMessage('התמונה לא נפתחה. נסו JPEG, או סגרו את הצילום והשלימו בטופס.');}
     finally{if(token===generation.current){setBusy(false);setPreview(null);setFound(null);}URL.revokeObjectURL(url);}
@@ -134,7 +190,8 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       <div className="scan-start"><span className="scan-start-icon"><Icon size={38}/></span><h3>{kind==='pump'?'מצלמים את המשאבה':'עוברים למד הקילומטרים'}</h3><p>{kind==='pump'?'הסכום והליטרים ייקראו יחד, אוטומטית.':'כוונו אל מד המרחק המצטבר כשהרכב עומד.'}</p><Button full onClick={()=>{setMessage('');setCameraOpen(true);}}>פתיחת מצלמה</Button></div>}
     {nativeBuild ? <Button variant="secondary" disabled={busy} onClick={() => void takeSystemPhoto()}>צילום דרך מצלמת המכשיר</Button> : null}
     <label className="scan-photo-choice"><UploadIcon size={18}/>{busy?'קוראים את התמונה…':'בחירת תמונה מהמכשיר'}<input className="sr-only" type="file" accept="image/*" aria-label={kind==='pump'?'תמונת משאבה':'תמונת קילומטראז׳'} onChange={e=>{void load(e.target.files?.[0]);e.target.value='';}}/></label>
+    {readingCloud && <p role="status" className="text-sm text-muted">קוראים את חיתוך הצג בעזרת Gemini…</p>}
     {message?<p role="status" className="text-sm leading-relaxed text-muted">{message}</p>:null}
-    {busy?<p role="status" className="sr-only">מזהים את הספרות במכשיר…</p>:null}
+    {busy&&!readingCloud?<p role="status" className="sr-only">מזהים את הספרות במכשיר…</p>:null}
   </div>;
 }

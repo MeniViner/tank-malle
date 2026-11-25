@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { parseEnv } from 'node:util';
 
 const [profile, platform] = process.argv.slice(2);
@@ -34,6 +34,10 @@ const env = {
   TANK_MALLE_NATIVE_PROFILE: profile,
   TANK_MALLE_NATIVE_PLATFORM: platform,
 };
+const scanPilot = env.VITE_SCAN_AI_PILOT === '1';
+if (scanPilot && !(platform === 'android' ? env.TANK_MALLE_ANDROID_GOOGLE_SERVICES : env.TANK_MALLE_IOS_GOOGLE_SERVICES)) {
+  throw new Error('Supply the matching native Firebase configuration for the attested scan pilot.');
+}
 execFileSync('node', ['scripts/generate-app-icons.mjs'], { stdio: 'inherit' });
 execFileSync('npm', ['run', 'build', '--', '--mode', mode], { env, stdio: 'inherit' });
 execFileSync('npx', ['--no-install', 'cap', 'sync', platform], { env, stdio: 'inherit' });
@@ -50,7 +54,6 @@ if (platform === 'android') {
     }
     writeFileSync(target, JSON.stringify(config));
   } else {
-    const { rmSync } = await import('node:fs');
     rmSync(target, { force: true });
   }
 }
@@ -64,9 +67,21 @@ if (platform === 'ios') {
   if (compatible !== manifest) writeFileSync(packagePath, compatible);
 
   const identifier = profile === 'qa' ? 'com.meniviner.tankmalle.qa' : 'com.meniviner.tankmalle';
+  const plist = process.env.TANK_MALLE_IOS_GOOGLE_SERVICES;
+  const destination = 'ios/App/App/GoogleService-Info.plist';
+  if (plist) {
+    const field = name => execFileSync('plutil', ['-extract', name, 'raw', '-o', '-', plist], { encoding: 'utf8' }).trim();
+    if (field('BUNDLE_ID') !== identifier || field('PROJECT_ID') !== project) {
+      throw new Error('The iOS Firebase configuration must match the selected profile.');
+    }
+    copyFileSync(plist, destination);
+  } else {
+    rmSync(destination, { force: true });
+  }
   const reversedClient = iosClient.split('.').reverse().join('.');
   writeFileSync('ios/App/App/TankMalle.generated.xcconfig', [
     'PRODUCT_BUNDLE_IDENTIFIER = ' + identifier,
+    ...(scanPilot && plist ? ['CODE_SIGN_ENTITLEMENTS = App/AppAttest.entitlements'] : []),
     'TANK_MALLE_GOOGLE_SCHEME = ' + reversedClient,
     'TANK_MALLE_DISPLAY_NAME = ' + (profile === 'qa' ? 'טנק מלא QA' : identity.displayName),
     'MARKETING_VERSION = ' + version,
