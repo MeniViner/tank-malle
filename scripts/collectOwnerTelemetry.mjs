@@ -56,7 +56,7 @@ async function percentile(token, end, reducer) {
   for (const point of result.timeSeries[0].points ?? []) {
     const index = 6 - Math.round((end - Date.parse(point.interval?.endTime)) / DAY);
     const value = point.value?.doubleValue;
-    if (index >= 0 && index < 7 && typeof value === 'number' && Number.isFinite(value) && value >= 0) days[index] = Math.round(value);
+    if (index >= 0 && index < 7 && typeof value === 'number' && Number.isFinite(value) && value >= 0) days[index] = Math.round(value * 1000);
   }
   return days;
 }
