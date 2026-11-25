@@ -68,7 +68,7 @@ test('admin operations deep links, service probes, API filtering and GitHub in b
     for (const tab of ['שרתים', 'קריאות API', 'GitHub']) {
       const button = page.getByRole('button', { name: tab, exact: true });
       await button.click();
-      await expect(button).toBeVisible();
+      await expect(button).toHaveAttribute('aria-current', 'page');
       await expect(page.locator('.admin-ops-view')).toBeVisible();
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     }
