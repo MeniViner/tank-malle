@@ -63,6 +63,8 @@ test('scan attempts are recorded, labelled by the saved fill-up, and measured in
   await getAuth(adminApp).setCustomUserClaims(scope.uid, { admin: true }); await deleteApp(adminApp);
   await signOut(page); await signIn(page, ALICE);
   await page.goto('/admin'); await page.getByRole('button', { name: 'סריקה', exact: true }).click();
+  await expect(page.getByText('משאבה · זיהוי מקומי בלבד', { exact: true })).toBeVisible();
+  await expect(page.getByText('קילומטראז׳ · זיהוי מקומי בלבד', { exact: true })).toBeVisible();
   const summary = page.getByRole('region', { name: 'דיוק הסריקה', exact: true });
   await expect(summary.locator('.admin-tile').nth(0)).toContainText('3');
   await expect(summary.locator('.admin-tile').nth(1)).toContainText('67%');   // 2 of 3 attempts showed a reading
@@ -150,8 +152,9 @@ test('one automatic fallback per unreadable photo, followed by review in the for
   }));
   await page.route('**/src/lib/scan/cloudScan.ts*', route => route.fulfill({
     contentType: 'application/javascript',
-    body: `export async function cloudScan(kind,crop) {
+    body: `export async function cloudScan(kind,crop,context,signal,onGenerate) {
       if (crop.width * crop.height >= 640 * 400) throw Error('Expected a crop');
+      onGenerate();
       window.probeRequests = (window.probeRequests || 0) + 1;
       return { total:'287.60', liters:'40.000' };
     }`,
