@@ -11,7 +11,7 @@
   position: sticky;
   top: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   height: 100dvh;
   padding: 18px 12px 12px;
   border-inline-end: 1px solid var(--line);
@@ -162,3 +162,23 @@
 @media (prefers-reduced-motion: reduce) {
   .oc-button { transition: none; }
 }
+
+/* Owner console palette from the desktop design. The report canvas follows the app theme. */
+.oc-side { --ink: #eef1f1; --ink-2: #c6cdd1; --line: #4b555e; --bg: #232b30; --surface-2: #303a42; --accent: #f4c34b; --accent-contrast: #27241c; color: var(--ink); background: #1a2025; }
+.oc-side input::placeholder { color: var(--ink-2); }
+.oc-side-footer > a { color: var(--ink); }
+.oc-topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: -24px calc(-1 * clamp(20px, 2.5vw, 42px)) 24px; padding: 0 clamp(20px, 2.5vw, 42px); min-height: 58px; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 13px; }
+.oc-nav-search { padding: 4px 8px; }
+.oc-nav-search label, .oc-tools summary { font-size: 13px; font-weight: 650; }
+.oc-nav-search input { display: block; width: 100%; margin-top: 4px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink); }
+.oc-tools { margin-block-start: 12px; }
+.oc-tools summary { padding: 8px; cursor: pointer; }
+.oc-reports { display: flex; flex-wrap: wrap; gap: 4px 16px; border-bottom: 1px solid var(--line); }
+.oc-reports a { padding: 8px 3px; text-decoration: none; color: var(--ink-2); border-bottom: 3px solid transparent; }
+.oc-reports a[aria-current="page"] { color: var(--ink); border-color: var(--accent); font-weight: 700; }
+.oc-content--stats > .oc-reports { grid-column: 1 / -1; }
+.oc-gemini-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 12px; }
+.oc-gemini-tiles > div { display: grid; gap: 5px; padding: 10px; background: var(--surface-2); border-radius: 7px; }
+.oc-report-count { justify-self: start; min-width: 36px; padding: 4px 6px; border-radius: 5px; font-weight: 700; text-decoration: underline; }
+.oc-report-count[aria-pressed=true] { background: var(--accent); color: var(--accent-contrast); }
+.oc-report-count:disabled { text-decoration: none; }

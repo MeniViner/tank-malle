@@ -9,6 +9,7 @@ import { Num } from '../Num';
 import { NumericText } from '../Fmt';
 import { InfoTip } from '../InfoTip';
 import { Segmented } from '../Segmented';
+import '../../owner-console.css';
 
 const LIMIT = 3000;
 const rate = (value: number | null, digits = 0) => value == null ? '—' : percentPlain(value * 100, digits);
@@ -20,8 +21,8 @@ type Tuning = { engine: number; accept: Record<string, number>; updatedAt: numbe
 type Picture = { w: number; h: number; jpeg: string; role?: string; text?: string };
 
 /** How well the photo reader does in people's hands: every attempt, and what they finally saved. */
-export function ScanAccuracy() {
-  const [days, setDays] = useState<'7' | '30' | '90'>('30');
+export function ScanAccuracy({ gemini = false }: { gemini?: boolean }) {
+  const [days, setDays] = useState<'7' | '30' | '90'>(gemini ? '7' : '30');
   const [loaded, setLoaded] = useState<{ days: string; rows: ScanSampleRow[] | null } | null>(null), [tuning, setTuning] = useState<Tuning>(null);
   const [now] = useState(() => Date.now());
   // Rows belong to the period they were loaded for; while another period loads there are none.
@@ -45,15 +46,16 @@ export function ScanAccuracy() {
   }, [days, now]);
   useEffect(() => {
     let live = true;
+    if (gemini) return;
     void getDoc(doc(db, 'appConfig', 'scanTuning')).then(s => {
       const d = s.data(); if (!live || !d) return;
       setTuning({ engine: Number(d.engine) || 0, accept: (d.accept ?? {}) as Record<string, number>, updatedAt: typeof d.updatedAt === 'number' ? d.updatedAt : null, labeled: (d.labeled ?? {}) as Record<string, number> });
     }).catch(() => {});
     return () => { live = false; };
-  }, []);
+  }, [gemini]);
 
   const stats = useMemo(() => {
-    if (!rows) return null;
+    if (!rows || gemini) return null;
     const all = tally(rows), tries = triesToRead(rows), cameraReads = rows.filter(r => r.source === 'camera' && r.outcome === 'read');
     return { all, tries, bars: byDay(rows, Number(days), now), users: new Set(rows.map(r => r.uid)).size,
       seconds: median(cameraReads.map(r => r.seconds)), fileMs: median(rows.filter(r => r.source === 'file' && r.ms > 0).map(r => r.ms)),
@@ -61,13 +63,20 @@ export function ScanAccuracy() {
       byKind: groupBy(rows, r => r.kind), bySource: groupBy(rows, r => r.source), byPlatform: groupBy(rows, r => r.platform),
       byVersion: groupBy(rows, r => `${r.appVersion} · מנוע ${r.engine}`), byAttempt: groupBy(rows, r => r.attempt >= 3 ? '3' : String(r.attempt) as '1' | '2' | '3').sort((a, b) => a.key.localeCompare(b.key)),
       problems: rows.filter(r => r.final && (r.outcome === 'unreadable' || r.guess !== r.final)).slice(0, 30) };
-  }, [rows, days, now]);
+  }, [rows, days, now, gemini]);
+
+  const period = (<Segmented size="sm" value={days} onChange={setDays} ariaLabel="תקופה" options={[{ value: '7', label: '7 ימים' }, { value: '30', label: '30 ימים' }, { value: '90', label: '90 ימים' }]} />);
+  if (gemini) return <>
+    {period}
+    {error ? <p role="alert">נתוני הסריקה לא נטענו. נסו לרענן.</p> : !rows ? <p role="status">טוענים…</p> :
+      <GeminiReport key={days} rows={rows} truncated={!cache.current.get(days)?.complete && rows.length >= LIMIT} />}
+  </>;
 
   const active = tunedAccept(tuning && tuning.engine === ENGINE_VERSION ? tuning.accept : null);
   return <>
     <section aria-label="דיוק הסריקה" className="flex min-w-0 flex-col gap-2">
       <div className="admin-group-head"><h2>דיוק הסריקה</h2><InfoTip label="על מדדי הסריקה"><p>כל ניסיון סריקה (פתיחת מצלמה או בחירת תמונה) נרשם. כשהתדלוק נשמר, המספרים שנשמרו מצורפים לניסיון, וכך יודעים אם הקריאה הייתה נכונה.</p><p>„נקרא נכון״ ו„נקרא ותוקן״ נמדדים רק על ניסיונות שהתדלוק שלהם נשמר. ניסיון שהטופס שלו ננטש נספר כ„לא נשמר״.</p></InfoTip></div>
-      <Segmented size="sm" value={days} onChange={setDays} ariaLabel="תקופה" options={[{ value: '7', label: '7 ימים' }, { value: '30', label: '30 ימים' }, { value: '90', label: '90 ימים' }]} />
+      {period}
       {error ? <p role="alert" className="admin-empty">נתוני הסריקה לא נטענו. נסו לרענן.</p> : !stats ? <p className="admin-empty" role="status">טוענים…</p> : !stats.all.attempts ? <p className="admin-empty">עדיין אין סריקות בתקופה הזו. הנתונים יופיעו אחרי הסריקה הראשונה בגרסה שאוספת אותם.</p> : <>
         <div className="admin-tiles">
           <Tile label="ניסיונות סריקה" value={int(stats.all.attempts)} />
@@ -127,6 +136,42 @@ export function ScanAccuracy() {
         {stats.problems.length ? <div className="admin-group">{stats.problems.map(r => <Problem key={r.id} row={r} />)}</div> : <p className="admin-empty">אין בתקופה הזו קריאה שגויה או ניסיון שנכשל ונשמר.</p>}
       </section>
     </> : null}
+  </>;
+}
+
+function GeminiReport({ rows, truncated }: { rows: ScanSampleRow[]; truncated: boolean }) {
+  const [filter, setFilter] = useState<{ label: string; matches: ScanSampleRow[] } | null>(null);
+  const cloud = rows.filter(row => row.fallback);
+  const suggestions = cloud.filter(row => row.fallback === 'read');
+  const outcomes: [string, ScanSampleRow[]][] = [
+    ['הצעה שנשמרה כפי שהוצעה', suggestions.filter(row => row.final && row.guess === row.final)],
+    ['הצעה שתוקנה', suggestions.filter(row => row.final && row.guess !== row.final)],
+    ['קריאה ללא הצעה', cloud.filter(row => row.fallback === 'miss')],
+    ['הצעה שטרם שויכה לשמירה', suggestions.filter(row => !row.final)],
+  ];
+  function count(label: string, matches: ScanSampleRow[]) {
+    return <button type="button" className="oc-report-count" aria-label={label + ' · ' + int(matches.length)}
+      aria-pressed={filter?.label === label} disabled={!matches.length} onClick={() => setFilter({ label, matches })}>
+      <Num>{int(matches.length)}</Num></button>;
+  }
+  return <>
+    <section className="oc-panel"><header><h2>מה קרה להצעות הסריקה?</h2></header>
+      <p className="oc-note"><NumericText>{`${int(cloud.length)} ניסיונות Gemini מתוך ${int(rows.length)} דגימות סריקה ששותפו בתקופה`}</NumericText></p>
+      {truncated && <p className="helper"><NumericText>{`מוצגות עד ${int(LIMIT)} הדגימות האחרונות.`}</NumericText></p>}
+      <div className="oc-gemini-tiles">{outcomes.map(([label, matches]) => <div key={label}><span>{label}</span>{count(label, matches)}</div>)}</div>
+    </section>
+    <section className="oc-panel"><header><h2>ניסיונות לפי צג</h2></header><table className="oc-table">
+      <thead><tr><th scope="col">צג</th><th scope="col">התקבלה הצעה</th><th scope="col">ללא הצעה</th><th scope="col">זיהוי מקומי בלבד</th></tr></thead>
+      <tbody>{(['odometer', 'pump'] as const).map(kind => <tr key={kind}><th scope="row">{KIND[kind]}</th>
+        {([['read', 'התקבלה הצעה'], ['miss', 'ללא הצעה'], [undefined, 'זיהוי מקומי בלבד']] as const).map(([reader, label]) =>
+          <td key={label}>{count(KIND[kind] + ' · ' + label, rows.filter(row => row.kind === kind && row.fallback === reader))}</td>)}
+      </tr>)}</tbody></table></section>
+    {filter && <section className="oc-panel"><header><h2>{filter.label}</h2></header><table className="oc-table">
+      <caption>עד 30 הניסיונות האחרונים בבחירה</caption>
+      <thead><tr><th scope="col">תאריך</th><th scope="col">צג</th><th scope="col">מקור</th><th scope="col">תוצאה</th></tr></thead>
+      <tbody>{filter.matches.slice(0, 30).map(row => <tr key={row.id}><td>{dayMonthShort(row.createdAt)}</td>
+        <td>{KIND[row.kind]}</td><td>{SOURCE[row.source]}</td><td>{row.outcome === 'read' ? 'הוצגה קריאה' : 'לא הוצגה קריאה'}</td></tr>)}</tbody>
+    </table></section>}
   </>;
 }
 

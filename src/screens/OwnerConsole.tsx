@@ -13,7 +13,9 @@ import {
 } from '../lib/adminOperations';
 import { getConsoleAccess, getConsoleTelemetry, getDeliveryReport, type ConsoleProbe, type ConsoleTelemetry } from '../lib/ownerConsole';
 import { num } from '../lib/format';
-import { Admin, type AdminSection } from './Admin';
+import { AdminJourney } from '../components/admin/AdminOperations';
+import { ScanAccuracy } from '../components/admin/ScanAccuracy';
+import { Admin, OwnerFeedbackSummary, type AdminSection } from './Admin';
 import '../owner-console.css';
 
 const groups = [
@@ -23,6 +25,7 @@ const groups = [
     { id: 'speed', label: 'מהירות', icon: GaugeIcon, intro: 'זמני תגובה של השירותים וביצועי Firestore' },
   ] },
   { name: 'טנק מלא במספרים', links: [
+    { id: 'journey', label: 'הצטרפות וסנכרון', icon: ChartIcon, intro: 'הדרך מהכניסה לפעולה הראשונה ושמירת רשומות במכשיר ובשרת' },
     { id: 'stats', label: 'סטטיסטיקות', icon: ChartIcon, intro: 'חשבונות, רכבים, רשומות יומן וצריכת דלק' },
     { id: 'api', label: 'קריאות API ותעבורה', icon: ListIcon, intro: 'קריאות לשירותי Google, קודי תשובה ותעבורת האתר' },
     { id: 'costs', label: 'הוצאות רכב', icon: CoinIcon, intro: 'סיכומי הוצאות חודשיים שפורסמו באפליקציה' },
@@ -31,6 +34,7 @@ const groups = [
     { id: 'inventory', label: 'דפדוף בנתונים', icon: DocumentIcon, intro: 'אוספי המערכת ומספר הרשומות בכל אוסף' },
     { id: 'users', label: 'אנשים והרשאות', icon: UsersIcon, intro: 'חיפוש חשבונות ועיון בפרופילים ובסיכומים שפורסמו' },
     { id: 'data', label: 'מחירי דלק ותחנות', icon: TabPumpIcon, intro: 'מחירים מפוקחים, מקורות ותקינות קטלוג התחנות' },
+    { id: 'gemini', label: 'תוצאות Gemini', icon: GaugeIcon, intro: 'הצעות קריאה של מד הקילומטרים והמשאבה מתוך דגימות הסריקה ששותפו' },
     { id: 'scan', label: 'דיוק סריקות', icon: GaugeIcon, intro: 'דגימות קלט, תוצאות סריקה ושיפורים' },
     { id: 'feedback', label: 'משוב משתמשים', icon: MessageIcon, intro: 'הודעות מהאפליקציה ומעקב אחר הטיפול' },
     { id: 'import', label: 'ייבוא וייצוא', icon: UploadIcon, intro: 'כלי העברת הנתונים לחשבון באפליקציה' },
@@ -51,6 +55,19 @@ const groups = [
 
 type Tab = typeof groups[number]['links'][number]['id'];
 const tabs = groups.flatMap(group => group.links.map(link => ({ ...link, group: group.name })));
+const primaryNav: { name: string; items: [Tab, string][] }[] = [
+  { name: 'סקירה', items: [['overview', 'מצב כללי'], ['monitor', 'שירותים ותשתית'], ['stats', 'שימוש במוצר']] },
+  { name: 'עבודה שוטפת', items: [['scan', 'סריקות'], ['data', 'מחירים ותחנות'], ['feedback', 'משוב'], ['users', 'חשבונות']] },
+  { name: 'ניהול', items: [['jobs', 'תפעול'], ['security', 'גישה ואבטחה']] },
+];
+const workspaces: { main: Tab; name: string; links: [Tab, string][] }[] = [
+  { main: 'monitor', name: 'שירותים ותשתית', links: [['monitor', 'זמינות וביצועים'], ['speed', 'מהירות'], ['api', 'קריאות API ותעבורה'], ['actions', 'בדיקות תפעול']] },
+  { main: 'stats', name: 'שימוש במוצר', links: [['stats', 'פעילות וסיכומים'], ['journey', 'הצטרפות וסנכרון'], ['costs', 'הוצאות רכב']] },
+  { main: 'scan', name: 'סריקות', links: [['scan', 'ניסיונות ודיוק'], ['gemini', 'תוצאות Gemini']] },
+  { main: 'jobs', name: 'תפעול', links: [['jobs', 'משימות וריצות'], ['delivery', 'שליחת התראות'], ['backups', 'גיבויים'], ['github', 'GitHub ופריסות']] },
+  { main: 'security', name: 'גישה ואבטחה', links: [['security', 'אבטחה ויומנים'], ['keys', 'גישה ל־API']] },
+];
+const href = (id: Tab) => id === 'overview' ? '/admin' : `/admin?tab=${id}`;
 const product: Partial<Record<Tab, AdminSection>> = {
   stats: 'overview', costs: 'costs', users: 'users', data: 'data', scan: 'scan', feedback: 'feedback', api: 'api', github: 'github',
 };
@@ -109,31 +126,57 @@ function Console({ operator, onSignOut }: { operator: string; onSignOut: () => v
   const tab = tabs.find(item => item.id === requested) ?? tabs[0];
   const section = product[tab.id];
   const [revision, setRevision] = useState(0);
-  const href = (id: Tab) => id === 'overview' ? '/admin' : `/admin?tab=${id}`;
+  const [search, setSearch] = useState('');
+  const query = search.trim().toLocaleLowerCase();
+  const workspace = workspaces.find(area => area.links.some(([id]) => id === tab.id));
+  const matches = tabs.filter(item => {
+    const labels = [...primaryNav.flatMap(group => group.items), ...workspaces.flatMap(area => area.links)]
+      .filter(([id]) => item.id === id).map(([, label]) => label);
+    return [item.label, item.id, item.intro, ...labels].join(' ').toLocaleLowerCase().includes(query);
+  });
+  function navLink(id: Tab, label: string, active: boolean) {
+    const item = tabs.find(entry => entry.id === id)!;
+    return <Link key={id} to={href(id)} aria-current={active ? 'page' : undefined} onClick={() => setSearch('')}>
+      <item.icon size={17} />{label}
+    </Link>;
+  }
 
   return <div className="oc-layout" dir="rtl">
     <aside className="oc-side">
       <Link to="/admin" className="oc-brand-link"><Brand /></Link>
-      <nav className="oc-nav" aria-label="מדורי הקונסולה">
-        {groups.map(group => <div key={group.name} className="oc-nav-group">
-          <span>{group.name}</span>
-          {group.links.map(({ id, label, icon: Icon }) => <Link key={id} to={href(id)} aria-current={id === tab.id ? 'page' : undefined}>
-            <Icon size={17} />{label}
-          </Link>)}
-        </div>)}
+      <div className="oc-nav-search"><label htmlFor="oc-search">חיפוש מדור</label>
+        <input id="oc-search" type="search" placeholder="שם או נושא" autoComplete="off" value={search} onChange={event => setSearch(event.target.value)} />
+      </div>
+      <nav className="oc-nav" aria-label={query ? 'תוצאות חיפוש במדורים' : 'מדורי הקונסולה'}>
+        {query ? <div className="oc-nav-group">{matches.map(item => navLink(item.id, item.label, item.id === tab.id))}
+          {matches.length === 0 && <p role="status">לא נמצא מדור מתאים.</p>}</div> : <>
+          {primaryNav.map(group => <div key={group.name} className="oc-nav-group"><span>{group.name}</span>
+            {group.items.map(([id, label]) => navLink(id, label, id === (workspace?.main ?? tab.id)))}
+          </div>)}
+          <details className="oc-tools" key={tab.id} open={tab.id === 'inventory' || tab.id === 'services'}><summary>כלי עזר</summary>
+            {navLink('inventory', 'קטלוג האוספים', tab.id === 'inventory')}
+            {navLink('services', 'מדריך השירותים', tab.id === 'services')}
+          </details>
+        </>}
       </nav>
       <footer className="oc-side-footer">
-        <Link to="/">לאפליקציה</Link>
+        <Link to={href('import')}>החשבון שלי · ייבוא וייצוא</Link><Link to="/">לאפליקציה</Link>
         <div><span className="oc-avatar"><ShieldIcon size={17} /></span><span><strong>{operator}</strong><small>בעלים מאומת</small></span><button type="button" aria-label="יציאה מחשבון הבעלים" onClick={onSignOut}><LogoutIcon size={18} /></button></div>
       </footer>
     </aside>
     <main className="oc-main">
+      <div className="oc-topbar"><span>קונסולת הבעלים / {workspace?.name ?? tab.group}</span>
+        <time>{new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jerusalem' }).format(new Date())}</time>
+      </div>
       <header className="oc-header">
-        <div><span className="oc-crumb">{tab.group}</span><h1>{tab.label}</h1><p>{tab.intro}</p></div>
+        <div><h1>{tab.label}</h1><p>{tab.intro}</p></div>
         <button type="button" className="oc-button" onClick={() => setRevision(n => n + 1)}><RefreshIcon size={16} /> רענון</button>
       </header>
       <div key={tab.id} className={`oc-content oc-content--${tab.id}`}>
-        {section ? <Admin key={revision} section={section} /> : <ConsoleView tab={tab.id} revision={revision} />}
+        {workspace && <nav className="oc-reports" aria-label={workspace.name}>{workspace.links.map(([id, label]) =>
+          <Link key={id} to={href(id)} aria-current={tab.id === id ? 'page' : undefined}>{label}</Link>)}</nav>}
+        {tab.id === 'journey' ? <div className="tm-admin"><div className="admin-page"><AdminJourney revision={revision} dedicated /></div></div> :
+          tab.id === 'gemini' ? <ScanAccuracy key={revision} gemini /> : section ? <Admin key={revision} section={section} /> : <ConsoleView tab={tab.id} revision={revision} />}
       </div>
     </main>
   </div>;
@@ -224,7 +267,36 @@ function Health({ telemetry, checks, operations }: ReturnType<typeof useDiagnost
   const core = checks && [checks.hosting, checks.firestore];
   const ok = core?.every(source => source.status === 'ok');
   const callCount = operations?.metrics.calls.days?.at(-1);
+  const problems: { label: string; target: Tab }[] = [];
+  if (checks) {
+    for (const [id, label] of [['hosting', 'אתר האפליקציה'], ['firestore', 'תצורת Firestore'], ['registry', 'מרשם הרכב']] as const) {
+      if (checks[id].status !== 'ok' && checks[id].status !== 'disabled')
+        problems.push({ label: label + ' · הבדיקה מהמכשיר לא הושלמה', target: 'monitor' });
+    }
+  }
+  if (telemetry === null) problems.push({ label: 'דגימת השרת אינה זמינה', target: 'monitor' });
+  else if (now && Date.now() - now > 12 * HOUR) problems.push({ label: 'דגימת השרת האחרונה בת יותר מ־12 שעות', target: 'monitor' });
+  const config = checks?.firestore.status === 'ok' ? checks.firestore.value.value : null;
+  if (config?.lastFailure && config.lastFailure >= (config.lastSuccess ?? 0))
+    problems.push({ label: 'עדכון מחירי הדלק האחרון נכשל', target: 'jobs' });
   return <>
+    <Panel title="דורש בדיקה" meta={checks && telemetry !== undefined ? `${problems.length} חריגות בבדיקות` : undefined}>
+      {problems.length > 0 ? <Rows rows={problems.map(({ label, target }) => ({ label, value: <Link className="oc-link" to={href(target)}>לפרטים</Link> }))} />
+        : <p className="oc-note" role="status">{checks && telemetry !== undefined ? 'לא נמצאו חריגות בבדיקות השירותים האחרונות.' : 'בודקים את מצב השירותים…'}</p>}
+    </Panel>
+    <div className="oc-overview">
+      <Panel title="פעילות אחרונה">
+        <Rows rows={[
+          { label: 'בדיקת שירותים מהשרת', at: telemetry?.checkedAt, target: 'monitor' as const },
+          { label: 'איסוף מדדי שימוש', at: operations?.collectedAt, target: 'journey' as const },
+          { label: 'עדכון מחירי הדלק', at: config?.lastSuccess, target: 'data' as const },
+        ].filter(item => item.at).sort((a,b) => Number(b.at) - Number(a.at)).map(item => ({
+          label: item.label, detail: date(item.at), value: <Link className="oc-link" to={href(item.target)}>לפרטים</Link>,
+        }))} />
+        {!telemetry?.checkedAt && !operations?.collectedAt && !config?.lastSuccess && <p className="oc-note">טרם התקבלה פעילות להצגה.</p>}
+      </Panel>
+      <OwnerFeedbackSummary />
+    </div>
     <section className="oc-health" data-health={core ? (ok ? 'ok' : 'bad') : 'pending'}>
       <div className="oc-health-title"><span>{ok ? <CheckIcon size={24} /> : <WifiIcon size={24} />}</span><div><h2>{core ? (ok ? 'השירותים המרכזיים זמינים' : 'נדרשת בדיקה') : 'בודקים זמינות'}</h2><p>{main?.status === 'ok' ? <>גרסה <bdi>{main.value.value.version}</bdi> · <bdi>{main.value.value.commit.slice(0, 8)}</bdi></> : 'Firebase Hosting ו־Firestore'}</p></div></div>
       <div className="oc-uptime">
