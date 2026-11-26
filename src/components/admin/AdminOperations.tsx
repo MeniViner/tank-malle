@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { Segmented } from '../Segmented';
 import journey from '../../lib/monitoring/journey.json';
 import { loadJourney, type JourneySnapshot } from '../../lib/adminOperations';
 import { num } from '../../lib/format';
@@ -184,21 +185,24 @@ async function readJourney(signal: AbortSignal) {
   return { result: await loadJourney(signal), checkedAt: Date.now() };
 }
 
-export function AdminJourney({ revision }: { revision: number }) {
+export function AdminJourney({ revision, dedicated = false }: { revision: number; dedicated?: boolean }) {
+  const [report, setReport] = useState<'funnel' | 'writes'>('funnel');
   const { value, loading } = useLoad(readJourney, revision);
   const result = value?.result;
   const data = result?.status === 'ok' ? result.value : null;
-  return <AdminPanel title="מהכניסה לפעולה הראשונה" note="שבעת הימים המלאים האחרונים לפי GA4 · מכשירים שהפעילו מדידה">
+  return <AdminPanel title={dedicated && report === 'writes' ? 'שמירות ואישורי שרת' : 'מהכניסה לפעולה הראשונה'} note="שבעת הימים המלאים האחרונים לפי GA4 · מכשירים שהפעילו מדידה">
+    {dedicated && <Segmented value={report} onChange={setReport} size="sm" ariaLabel="סוג דוח"
+      options={[{ value: 'funnel', label: 'שלבי ההצטרפות' }, { value: 'writes', label: 'שמירה וסנכרון' }]} />}
     {data ? <>
       <p className="helper">עודכן {date(data.collectedAt)} {value && value.checkedAt - data.collectedAt > 12 * 3600000 && <Badge tone="warn">הנתונים ישנים</Badge>}</p>
-      <h3>משתמשים שהגיעו לכל שלב לפי הסדר</h3>
-      <JourneyRows labels={journey.steps} report={data.funnel} />
-      <h3>שמירה וסנכרון בכל המסלולים הנמדדים</h3>
+      {(!dedicated || report === 'funnel') && <><h3>משתמשים שהגיעו לכל שלב לפי הסדר</h3>
+      <JourneyRows labels={journey.steps} report={data.funnel} /></>}
+      {(!dedicated || report === 'writes') && <><h3>שמירה וסנכרון בכל המסלולים הנמדדים</h3>
       <p className="helper">כל רשומת יומן נספרת כשהיא נשמרת במכשיר וכשהשרת מאשר אותה. בייבוא נספרת כל רשומה בנפרד. האישור עשוי להגיע ביום אחר.</p>
       <JourneyRows labels={journey.writes} report={data.operations} />
       {data.recent && <><h3>פעילות בחצי השעה שלפני הדגימה</h3>
         <p className="helper">אירועי GA4 שנקלטו עד {date(data.collectedAt)}</p>
-        <JourneyRows labels={journey.writes} report={data.recent} /></>}
+        <JourneyRows labels={journey.writes} report={data.recent} /></>}</>}
     </> : loading ? <Pending loading /> : <SourceNote status={result?.status === 'ok' ? 'unavailable' : result?.status ?? 'unavailable'} />}
   </AdminPanel>;
 }

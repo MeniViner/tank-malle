@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ScanAccuracy } from "../components/admin/ScanAccuracy";
 import { AdminPanel as Panel } from "../components/admin/AdminPanel";
 import { AdminJourney, AdminApi, AdminGithub, AdminSystem } from "../components/admin/AdminOperations";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   collection,
   getCountFromServer,
@@ -109,6 +109,8 @@ const ADMIN_TABS = [
   { value: "users", label: "משתמשים" },
   { value: "data", label: "נתונים" },
   { value: "scan", label: "סריקה" },
+  { value: "gemini", label: "תוצאות Gemini" },
+  { value: "journey", label: "הצטרפות וסנכרון" },
   { value: "feedback", label: "משוב" },
   { value: "system", label: "שרתים" },
   { value: "api", label: "קריאות API" },
@@ -136,7 +138,7 @@ function AdminSession({ section }: { section?: AdminSection }) {
   const [params, setParams] = useSearchParams();
   const tab = section ?? ADMIN_TABS.find(entry => entry.value === params.get('tab'))?.value ?? 'overview';
   const [operationsRevision, setOperationsRevision] = useState(0);
-  const operations = tab === 'system' || tab === 'api' || tab === 'github';
+  const operations = tab === 'system' || tab === 'api' || tab === 'github' || tab === 'journey' || tab === 'gemini';
   const [profileCounts, setProfileCounts] = useState<{ all: number | null; recent: number | null }>();
   const [profileRevision, setProfileRevision] = useState(0);
   const [pageCursor, setPageCursor] = useState<QueryDocumentSnapshot | null>(null);
@@ -334,10 +336,12 @@ function AdminSession({ section }: { section?: AdminSection }) {
       </nav>
       </>}
       <div className="admin-page">
+        {tab === 'journey' ? <AdminJourney revision={operationsRevision} dedicated /> : null}
+        {tab === 'gemini' ? <ScanAccuracy key={operationsRevision} gemini /> : null}
         {tab === 'system' ? <AdminSystem revision={operationsRevision} /> : null}
         {tab === 'api' ? <AdminApi revision={operationsRevision} /> : null}
         {tab === 'github' ? <AdminGithub revision={operationsRevision} /> : null}
-        {tab === 'overview' ? <AdminJourney revision={profileRevision} /> : null}
+        {tab === 'overview' && !section ? <AdminJourney revision={profileRevision} /> : null}
         {!operations && error ? <div role="alert" className="admin-alert"><WarningIcon size={18} /><span>{error}</span><button type="button" onClick={() => void load(null)} className="admin-link">ניסיון נוסף</button></div> : null}
         {operations ? null : !users ? <><Skeleton className="h-[170px] rounded-card" /><Skeleton className="h-[210px] rounded-card" /></> : <>
           {tab === 'overview' ? <>
@@ -408,6 +412,41 @@ const SENTIMENT = {
   bug: { label: "תקלה", Icon: WarningIcon, tone: "danger" as const },
 };
 
+async function loadFeedbackPage(maximum: number) {
+  const feedback = collection(db, 'feedback');
+  try { return await getDocs(query(feedback, orderBy('createdAt', 'desc'), limit(maximum))); }
+  catch { return getDocs(query(feedback, limit(maximum))); }
+}
+
+export function OwnerFeedbackSummary() {
+  const { user } = useAuth();
+  const uid = user?.uid;
+  const [counts, setCounts] = useState<Record<string, number> | null>();
+  useEffect(() => {
+    let active = true;
+    if (!uid) return;
+    void loadFeedbackPage(25).then(page => {
+      let handled = new Set<string>();
+      try { handled = readHandledFeedback(localStorage.getItem(adminFeedbackStorageKey(uid))); } catch { /* Storage can be disabled. */ }
+      const totals = { good: 0, idea: 0, bug: 0, other: 0 };
+      for (const entry of page.docs) {
+        if (handled.has(entry.id)) continue;
+        const kind = entry.get('sentiment');
+        totals[kind === 'good' || kind === 'idea' || kind === 'bug' ? kind as keyof typeof totals : 'other']++;
+      }
+      if (active) setCounts(totals);
+    }).catch(() => { if (active) setCounts(null); });
+    return () => { active = false; };
+  }, [uid]);
+  return <section className="oc-panel"><header><h2>משוב שטרם טופל במכשיר הזה</h2></header>
+    {counts ? <><p className="oc-note">מתוך עד 25 פניות שנטענו</p><dl className="oc-rows">
+      {Object.entries({ bug: 'תקלות', idea: 'רעיונות', good: 'מחמאות', other: 'ללא סיווג' }).map(([key, label]) =>
+        <div key={key}><dt>{label}</dt><dd><Num>{num(counts[key], 0)}</Num></dd></div>)}</dl></>
+      : <p className="oc-note">{counts === null ? 'המשוב אינו זמין כרגע.' : 'טוענים משוב…'}</p>}
+    <Link className="oc-link" to="/admin?tab=feedback">לתיבת המשוב</Link>
+  </section>;
+}
+
 /** Everything users sent through Settings → משוב, newest first. */
 function FeedbackInbox({ uid }: { uid: string }) {
   const { showToast } = useToast();
@@ -424,14 +463,7 @@ function FeedbackInbox({ uid }: { uid: string }) {
 
   useEffect(() => {
     let active = true;
-    const load = async () => {
-      try {
-        return await getDocs(query(collection(db, "feedback"), orderBy("createdAt", "desc"), limit(200)));
-      } catch {
-        return getDocs(query(collection(db, "feedback"), limit(200)));
-      }
-    };
-    void load().then(snapshot => {
+    void loadFeedbackPage(200).then(snapshot => {
       if (!active) return;
       const rows = snapshot.docs.map(entry => {
         const data = entry.data();
