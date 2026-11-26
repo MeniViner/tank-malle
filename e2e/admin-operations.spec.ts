@@ -45,6 +45,8 @@ test('admin operations deep links, service probes, API filtering and GitHub in b
   await setDocument('adminOperations/journey', { collectedAt: now,
     funnel: { status: 'ok', counts: { signin_viewed: 12, first_action_saved: 3 } },
     operations: { status: 'forbidden' },
+    opens: { status: 'ok', counts: { usage_open: 37 } },
+    traffic: { status: 'ok', counts: { web_hosting_bytes: 0 } },
   });
   await page.goto('/admin');
   const panel = page.getByRole('heading', { name: 'מהכניסה לפעולה הראשונה' }).locator('..').locator('..');
@@ -53,6 +55,10 @@ test('admin operations deep links, service probes, API filtering and GitHub in b
 
   await page.goto('/admin?tab=api');
   await expect(page.getByRole('heading', { name: 'קריאות API ותעבורה' })).toBeVisible();
+  const traffic = page.getByRole('heading', { name: 'שימוש באתר הציבורי' }).locator('../..');
+  await expect(traffic.getByText('37', { exact: true })).toBeVisible();
+  await expect(traffic.getByText('0 B', { exact: true })).toBeVisible();
+  await expect(traffic.getByText('אין דגימה', { exact: true })).toHaveCount(5);
   await expect(page.getByText('google.firestore.v1.Firestore.Commit')).toBeVisible();
   await page.getByRole('checkbox', { name: /רק תשובות/ }).check();
   await expect(page.getByText('google.firestore.v1.Firestore.Commit')).toHaveCount(0);

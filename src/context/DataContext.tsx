@@ -1,4 +1,5 @@
-import { outboxMeasurement } from "../lib/monitoring/usage";
+import { documentCounter } from "../lib/monitoring/webCounters";
+import { countWeb, publicWebMeasurement, outboxMeasurement } from "../lib/monitoring/usage";
 import { backupPath, type BackupEntry } from "../lib/vehicle/backup";
 import { writeWithLocalAcceptance } from "../lib/localWriteAcceptance";
 import { receiptDocumentId } from "../lib/import/receiptText";
@@ -1151,6 +1152,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!uid) return;
     const generation = generationRef.current;
 
+    const countDocuments = documentCounter(countWeb);
     return subscribeResilient<QuerySnapshot<DocumentData>>(
       (onNext, onError) =>
         onSnapshot(
@@ -1160,6 +1162,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           onError,
         ),
       (snapshot) => {
+        if (publicWebMeasurement()) countDocuments(snapshot);
         const documentImages = new Map<string, VehicleDocumentImages>();
         const identities = new Map<string, OutboxPayload>();
         const pendingIds = new Set<string>();
@@ -1297,6 +1300,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
     const path = collection(db, "users", uid, "vehicles", vehicleId, "fillups");
 
+    const countDocuments = documentCounter(countWeb);
     return subscribeResilient<QuerySnapshot<DocumentData>>(
       (onNext, onError) =>
         onSnapshot(path, { includeMetadataChanges: true }, onNext, onError),
@@ -1304,6 +1308,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // A late snapshot for a vehicle the user already left.
         if (fillupVehicleRef.current !== vehicleId) return;
 
+        if (publicWebMeasurement()) countDocuments(snapshot);
         const list: Fillup[] = [];
         const malformed: { id: string; reason: string; raw: Record<string, unknown> }[] = [];
         const pending = new Set<string>();

@@ -7,12 +7,16 @@
   const names = new Set(['usage_open', 'fillup_started', 'fillup_submitted', 'fillup_queued', 'fillup_save_failed',
     'signin_viewed', 'signin_started', 'signin_completed', 'vehicle_wizard_open', 'vehicle_created',
     'first_action_saved', 'write_local', 'write_synced', 'write_synced_after_minute']);
+  const counters = new Set(['web_firestore_docs', 'web_firestore_http', 'web_firebase_http', 'web_scan_http', 'web_lookup_http', 'web_hosting_bytes']);
   let initialized = false;
   window.dataLayer = [];
   function gtag() { window.dataLayer.push(arguments); }
   window.addEventListener('message', event => {
-    if (window === parent || event.source !== parent || event.origin !== location.origin || !names.has(event.data)) return;
+    if (window === parent || event.source !== parent || event.origin !== location.origin) return;
     if (localStorage.getItem('tm.measurement.enabled.v1') !== '1') return;
+    const data = event.data;
+    const counter = data && counters.has(data.name) && Number.isSafeInteger(data.value) && data.value >= 0;
+    if (!counter && !names.has(data)) return;
     if (!initialized) {
       initialized = true;
       gtag('consent', 'default', { analytics_storage: 'granted', ad_storage: 'denied',
@@ -25,6 +29,6 @@
       tag.src = 'https://www.googletagmanager.com/gtag/js?id=' + measurementId;
       document.head.appendChild(tag);
     }
-    gtag('event', event.data, { send_to: measurementId });
+    gtag('event', counter ? data.name : data, { send_to: measurementId, ...(counter ? { value: data.value } : {}) });
   });
 </script></body></html>

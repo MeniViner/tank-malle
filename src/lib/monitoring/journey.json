@@ -11,5 +11,13 @@
     "write_local": "פעולות שנשמרו במכשיר",
     "write_synced": "פעולות שאושרו בשרת",
     "write_synced_after_minute": "מתוכן, אושרו אחרי דקה ומעלה"
+  },
+  "traffic": {
+    "web_firestore_docs": "מסמכי Firestore במאזיני רכבים ותדלוקים · אומדן",
+    "web_firestore_http": "בקשות רשת ל־Firestore שנצפו בדפדפן",
+    "web_firebase_http": "בקשות לשירותי אימות, התקנה ו־App Check",
+    "web_scan_http": "בקשות לנקודות הקצה של Gemini ושירות הסריקה",
+    "web_lookup_http": "בקשות למקורות מידע ציבוריים ולמתווך הקריאה",
+    "web_hosting_bytes": "נפח שהתקבל מהאתר · אומדן"
   }
 }

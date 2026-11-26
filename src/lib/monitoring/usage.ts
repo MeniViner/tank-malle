@@ -1,3 +1,4 @@
+import { observeWebTraffic, type WebCounter } from './webCounters';
 import { nativeBuild } from '../native/platform';
 import type { OutboxMeasurement } from '../outbox';
 import type { FirebasePerformance } from 'firebase/performance';
@@ -14,7 +15,8 @@ export function measurementEnabled() {
 }
 
 let frame: HTMLIFrameElement | undefined;
-let pending: UsageEvent[] = [];
+type WebEvent = UsageEvent | { name: WebCounter; value: number };
+let pending: WebEvent[] = [];
 let frameReady = false;
 let revision = 0;
 let nativeSettings = Promise.resolve();
@@ -45,8 +47,9 @@ function flushOfflineEvents() {
   else flush();
 }
 
-function webEvent(name: UsageEvent) {
+function webEvent(name: WebEvent) {
   if (navigator.onLine === false) {
+    if (typeof name !== 'string') return;
     // Bound storage during long outages. Analytics is best effort.
     if (Object.keys(localStorage).filter(k => k.startsWith(deferredPrefix)).length < 256)
       localStorage.setItem(deferredPrefix + Date.now() + '.' + String(++sequence).padStart(8, '0') + '.' + crypto.randomUUID(), name);
@@ -91,7 +94,45 @@ export function trackUsage(name: UsageEvent, syncDuration?: number) {
   }).catch(() => {});
 }
 
-function applyPreference() {
+let stopCounters: (() => void) | undefined;
+const totals = new Map<WebCounter, number>();
+
+export function publicWebMeasurement() {
+  return !nativeBuild && measurementEnabled() && ['https://tank-malle.web.app', 'https://tank-malle.firebaseapp.com'].includes(location.origin);
+}
+
+export function countWeb(name: WebCounter, value: number) {
+  if (stopCounters && publicWebMeasurement()) totals.set(name, (totals.get(name) ?? 0) + value);
+}
+
+function configureCounters(initial: boolean) {
+  if (!publicWebMeasurement()) {
+    stopCounters?.();
+    stopCounters = undefined;
+    totals.clear();
+    return;
+  }
+  if (stopCounters) return;
+  const flush = () => {
+    try {
+      if (publicWebMeasurement()) for (const [name, value] of totals) webEvent({ name, value });
+    } catch { /* Reporting is best effort. */ }
+    totals.clear();
+  };
+  const hidden = () => { if (document.visibilityState === 'hidden') flush(); };
+  const disconnect = observeWebTraffic(initial ? 0 : performance.now(), countWeb);
+  const timer = window.setInterval(flush, 30000);
+  document.addEventListener('visibilitychange', hidden);
+  window.addEventListener('pagehide', flush);
+  stopCounters = () => {
+    disconnect();
+    clearInterval(timer);
+    document.removeEventListener('visibilitychange', hidden);
+    window.removeEventListener('pagehide', flush);
+  };
+}
+
+function applyPreference(initial = false) {
   revision++;
   const enabled = measurementEnabled();
   if (nativeBuild && measurementAvailable) {
@@ -102,6 +143,7 @@ function applyPreference() {
       await Promise.allSettled([FirebaseAnalytics.setEnabled({ enabled }), FirebasePerformance.setEnabled({ enabled })]);
     }).catch(() => {});
   }
+  configureCounters(initial);
   if (perf) perf.dataCollectionEnabled = enabled;
   if (!enabled) { frame?.remove(); frame = undefined; frameReady = false; pending = []; }
   window.dispatchEvent(new Event('tm-measurement-change'));
@@ -125,7 +167,7 @@ export function initializeMeasurement() {
     else if (Object.keys(localStorage).some(k => k.startsWith(deferredPrefix))) ensureWebFrame();
   });
   window.addEventListener('storage', e => { if (e.key === key || e.key === null) applyPreference(); });
-  applyPreference();
+  applyPreference(true);
   trackUsage('usage_open');
 }
 

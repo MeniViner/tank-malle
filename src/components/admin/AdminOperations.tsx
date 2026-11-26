@@ -207,6 +207,34 @@ export function AdminJourney({ revision, dedicated = false }: { revision: number
   </AdminPanel>;
 }
 
+function WebsiteUsage({ revision }: { revision: number }) {
+  const { value, loading } = useLoad(readJourney, revision);
+  const result = value?.result;
+  const report = result?.status === 'ok' ? result.value : undefined;
+  function counter(group: JourneySnapshot['traffic'], key: string) {
+    if (group && !['ok', 'empty'].includes(group.status)) return <SourceNote status={group.status} />;
+    const amount = group?.counts?.[key];
+    if (amount == null) return <Badge>אין דגימה</Badge>;
+    if (key === 'web_hosting_bytes') {
+      if (amount >= 1_000_000) return <Num>{num(amount / 1_000_000, 2)} MB</Num>;
+      if (amount >= 1_000) return <Num>{num(amount / 1_000, 1)} kB</Num>;
+      return <Num>{num(amount, 0)} B</Num>;
+    }
+    return <Num>{num(amount, 0)}</Num>;
+  }
+  return <AdminPanel title="שימוש באתר הציבורי" note="מקור: GA4 · שבעה ימים מלאים עד אתמול · רק דפדפנים שהפעילו מדידה">
+    {report ? <>
+      <p className="helper">עודכן {date(report.collectedAt)} · הדוח מתעדכן כל שש שעות {value && value.checkedAt - report.collectedAt > DAY / 2 && <Badge tone="warn">הנתונים ישנים</Badge>}</p>
+      <Row title="פתיחות אתר שנמדדו" detail="טעינה או הפעלת מדידה. אותו אדם יכול להיספר כמה פעמים." value={counter(report.opens, 'usage_open')} />
+      {Object.entries(journey.traffic).map(([key, title]) => <Row key={key} title={title} value={counter(report.traffic, key)} />)}
+      <p className="helper">אומדן המסמכים כולל את תוצאת השרת הראשונה ושינויים שנצפו במאזינים. חיבור מחדש עשוי לספור מסמכים שוב. בקשת רשת אחת יכולה לשאת כמה פעולות Firestore.</p>
+      <p className="helper">נפח ההורדה מבוסס על גודל ההעברה שהדפדפן דיווח עבור האתר וקבציו. מטמון עשוי לדווח אפס. הכיסוי חלקי ואינו משקף את מלוא תעבורת ה־CDN או את מכסת הפרויקט.</p>
+      {(report.traffic?.limited || report.opens?.limited) && <p className="helper">Google החילה דגימה או סף דיווח.</p>}
+    </> : loading ? <Pending loading /> : <SourceNote status={result?.status === 'ok' ? 'unavailable' : result?.status ?? 'unavailable'} />}
+    <Row title="שימוש בפרויקט לפי Firebase" value={<><Link href={TANK_FIREBASE + '/firestore/usage'}>Firestore</Link> · <Link href={TANK_FIREBASE + '/hosting/usage'}>Hosting</Link></>} />
+  </AdminPanel>;
+}
+
 export function AdminApi({ revision }: { revision: number }) {
   const { value, loading } = useLoad(readOperations, revision);
   if (!value) return <Skeleton className="h-[210px] rounded-card" />;
@@ -216,11 +244,11 @@ export function AdminApi({ revision }: { revision: number }) {
   const calls = data?.metrics.calls;
   return <div className="admin-ops-view" aria-busy={loading}>
     <Pending loading={loading} />
+    <WebsiteUsage revision={revision} />
     <AdminPanel title="קריאות API ותעבורה" bare note="מדדים מצטברים של טנק מלא מ־Google Cloud Monitoring. זמני התצוגה לפי שעון ישראל.">
       {data ? <>
         <p className="helper">עודכן {date(data.collectedAt)} · סוף חלון המדידה {date(data.end)} {stale ? <Badge tone="warn">הנתונים ישנים</Badge> : null}</p>
         {calls?.status === 'billing_required' ? <p className="helper">מדדי התעבורה של Cloud Monitoring דורשים חשבון חיוב. בדיקות הזמינות ממשיכות לפעול ב־Spark.</p> : <MetricBoard data={data} />}
-        {calls?.status === 'billing_required' && <Link href={TANK_FIREBASE + '/firestore/usage'}>שימוש ב־Firestore בקונסולת Firebase</Link>}
       </> : result.status !== 'ok' ? <SnapshotMessage result={result} /> : null}
     </AdminPanel>
     {data && calls?.days ? <AdminPanel title="בקשות ב־7 היממות האחרונות" note="כל תאריך מציין את סוף חלון המדידה. מקף מציין יממה ללא דגימה.">
@@ -231,7 +259,7 @@ export function AdminApi({ revision }: { revision: number }) {
         title={<bdi>{code}</bdi>} value={<Num>{num(count, 0)}</Num>} />)}
     </AdminPanel> : null}
     {calls?.calls ? <ApiBreakdown data={calls} /> : null}
-    <AdminPanel title="מקורות המדידה" note="הספירה מכסה את ממשקי Google שנמדדים בפרויקט. קריאות דפדפן ישירות ל־data.gov.il, ‏gov.il ו־Jina אינן נספרות כאן.">
+    <AdminPanel title="מקורות המדידה בענן" note="מדדי הפרויקט מכסים את ממשקי Google. בקשות למקורות חיצוניים מופיעות במדידת הדפדפן בראש המסך.">
       <Row title="Cloud Monitoring" detail="מדדים, גרפים ותקופות נוספות" value={<Link href={`${TANK_CLOUD}/monitoring/metrics-explorer?project=tank-malle`}>פתיחה</Link>} />
       <Row title="יומן ענן" detail="לוגים הזמינים בהרשאת Google Cloud" value={<Link href={`${TANK_CLOUD}/logs/query?project=tank-malle`}>פתיחה</Link>} />
     </AdminPanel>
