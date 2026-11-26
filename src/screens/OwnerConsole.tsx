@@ -126,6 +126,7 @@ function Console({ operator, onSignOut }: { operator: string; onSignOut: () => v
   const tab = tabs.find(item => item.id === requested) ?? tabs[0];
   const section = product[tab.id];
   const [revision, setRevision] = useState(0);
+  const [viewedAt, setViewedAt] = useState(() => Date.now());
   const [search, setSearch] = useState('');
   const query = search.trim().toLocaleLowerCase();
   const workspace = workspaces.find(area => area.links.some(([id]) => id === tab.id));
@@ -166,11 +167,11 @@ function Console({ operator, onSignOut }: { operator: string; onSignOut: () => v
     </aside>
     <main className="oc-main">
       <div className="oc-topbar"><span>קונסולת הבעלים / {workspace?.name ?? tab.group}</span>
-        <time>{new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jerusalem' }).format(new Date())}</time>
+        <time>{new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Jerusalem' }).format(viewedAt)}</time>
       </div>
       <header className="oc-header">
         <div><h1>{tab.label}</h1><p>{tab.intro}</p></div>
-        <button type="button" className="oc-button" onClick={() => setRevision(n => n + 1)}><RefreshIcon size={16} /> רענון</button>
+        <button type="button" className="oc-button" onClick={() => { setViewedAt(Date.now()); setRevision(n => n + 1); }}><RefreshIcon size={16} /> רענון</button>
       </header>
       <div key={tab.id} className={`oc-content oc-content--${tab.id}`}>
         {workspace && <nav className="oc-reports" aria-label={workspace.name}>{workspace.links.map(([id, label]) =>
@@ -260,6 +261,7 @@ function LiveRows({ checks }: { checks: LiveChecks | undefined }) {
 }
 
 function Health({ telemetry, checks, operations }: ReturnType<typeof useDiagnostics>) {
+  const [openedAt] = useState(() => Date.now());
   const now = telemetry?.checkedAt ?? 0;
   const recent = (telemetry?.probes ?? []).filter(probe => probe.at >= now - 24 * HOUR);
   const passed = recent.filter(probe => probe.hostingMs !== null).length;
@@ -275,7 +277,7 @@ function Health({ telemetry, checks, operations }: ReturnType<typeof useDiagnost
     }
   }
   if (telemetry === null) problems.push({ label: 'דגימת השרת אינה זמינה', target: 'monitor' });
-  else if (now && Date.now() - now > 12 * HOUR) problems.push({ label: 'דגימת השרת האחרונה בת יותר מ־12 שעות', target: 'monitor' });
+  else if (now && openedAt - now > 12 * HOUR) problems.push({ label: 'דגימת השרת האחרונה בת יותר מ־12 שעות', target: 'monitor' });
   const config = checks?.firestore.status === 'ok' ? checks.firestore.value.value : null;
   if (config?.lastFailure && config.lastFailure >= (config.lastSuccess ?? 0))
     problems.push({ label: 'עדכון מחירי הדלק האחרון נכשל', target: 'jobs' });

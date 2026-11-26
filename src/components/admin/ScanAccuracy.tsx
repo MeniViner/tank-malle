@@ -23,7 +23,7 @@ type Picture = { w: number; h: number; jpeg: string; role?: string; text?: strin
 /** How well the photo reader does in people's hands: every attempt, and what they finally saved. */
 export function ScanAccuracy({ gemini = false }: { gemini?: boolean }) {
   const [days, setDays] = useState<'7' | '30' | '90'>(gemini ? '7' : '30');
-  const [loaded, setLoaded] = useState<{ days: string; rows: ScanSampleRow[] | null } | null>(null), [tuning, setTuning] = useState<Tuning>(null);
+  const [loaded, setLoaded] = useState<{ days: string; rows: ScanSampleRow[] | null; truncated: boolean } | null>(null), [tuning, setTuning] = useState<Tuning>(null);
   const [now] = useState(() => Date.now());
   // Rows belong to the period they were loaded for; while another period loads there are none.
   const rows = loaded?.days === days ? loaded.rows : null, error = loaded?.days === days && loaded.rows === null;
@@ -34,14 +34,14 @@ export function ScanAccuracy({ gemini = false }: { gemini?: boolean }) {
     const from = now - Number(days) * 86_400_000;
     // A longer period that was read in full already holds this one.
     const wider = [...cache.current].find(([period, entry]) => Number(period) >= Number(days) && (period === days || entry.complete));
-    if (wider) { queueMicrotask(() => { if (live) setLoaded({ days, rows: wider[1].rows.filter(r => r.createdAt >= from) }); }); return () => { live = false; }; }
+    if (wider) { queueMicrotask(() => { if (live) setLoaded({ days, rows: wider[1].rows.filter(r => r.createdAt >= from), truncated: !wider[1].complete }); }); return () => { live = false; }; }
     void getDocs(query(collection(db, 'scanSamples'), where('createdAt', '>=', from), orderBy('createdAt', 'desc'), limit(LIMIT)))
       .then(snapshot => {
         const list = snapshot.docs.flatMap(d => { const r = toSampleRow(d.id, d.data()); return r ? [r] : []; });
         cache.current.set(days, { rows: list, complete: snapshot.size < LIMIT });
-        if (live) setLoaded({ days, rows: list });
+        if (live) setLoaded({ days, rows: list, truncated: snapshot.size >= LIMIT });
       })
-      .catch(() => { if (live) setLoaded({ days, rows: null }); });
+      .catch(() => { if (live) setLoaded({ days, rows: null, truncated: false }); });
     return () => { live = false; };
   }, [days, now]);
   useEffect(() => {
@@ -69,7 +69,7 @@ export function ScanAccuracy({ gemini = false }: { gemini?: boolean }) {
   if (gemini) return <>
     {period}
     {error ? <p role="alert">נתוני הסריקה לא נטענו. נסו לרענן.</p> : !rows ? <p role="status">טוענים…</p> :
-      <GeminiReport key={days} rows={rows} truncated={!cache.current.get(days)?.complete && rows.length >= LIMIT} />}
+      <GeminiReport key={days} rows={rows} truncated={loaded?.truncated === true} />}
   </>;
 
   const active = tunedAccept(tuning && tuning.engine === ENGINE_VERSION ? tuning.accept : null);
