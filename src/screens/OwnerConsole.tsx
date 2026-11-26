@@ -388,7 +388,7 @@ function ConsoleView({ tab, revision }: { tab: Tab; revision: number }) {
     ['overview', 'monitor', 'speed', 'inventory', 'backups'].includes(tab), tab === 'overview');
   const { telemetry, checks } = diagnostics;
   switch (tab) {
-    case 'overview': return <Health {...diagnostics} />;
+    case 'overview': return <Health key={revision} {...diagnostics} />;
     case 'monitor': return <>
       <Panel title="שימוש ובריאות האפליקציה"><Rows rows={productReports.map(({ label, detail, href }) =>
         ({ label, detail, value: <External href={href}>פתיחת הדוח</External> }))} /></Panel>
