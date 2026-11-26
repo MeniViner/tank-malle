@@ -19,7 +19,7 @@ it('keeps counts of ordered users separate from permission errors for event tota
     return new Response(null, { status: 403 });
   });
   const result = await readJourney('fixture');
-  expect(requests).toHaveLength(3);
+  expect(requests).toHaveLength(5);
   expect(result.funnel).toMatchObject({ status: 'ok', counts: { signin_viewed: 9, first_action_saved: 2 } });
   expect(result.operations).toEqual({ status: 'forbidden' });
 });
@@ -32,4 +32,19 @@ it('shows the Spark billing restriction without issuing a Cloud Monitoring reque
   expect(Object.keys(result.metrics)).toHaveLength(5);
   expect(Object.values(result.metrics)).toEqual(Array(5).fill({ status: 'billing_required' }));
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it('preserves observed zero bytes and distinguishes absent counters from HTTP failures', async () => {
+  vi.stubGlobal('fetch', async (_url: string, options: RequestInit) => {
+    const report = JSON.parse(String(options.body));
+    if (report.metrics?.[0].name === 'eventValue') {
+      expect(report.dimensionFilter.andGroup.expressions[0].filter.fieldName).toBe('hostName');
+      return Response.json({ rows: [{ dimensionValues: [{ value: 'web_hosting_bytes' }],
+        metricValues: [{ value: '0' }, { value: '2' }] }], metadata: { subjectToThresholding: true } });
+    }
+    return new Response(null, { status: 429 });
+  });
+  const report = await readJourney('fixture');
+  expect(report.traffic).toEqual({ status: 'ok', counts: { web_hosting_bytes: 0 }, limited: true });
+  expect(report.opens.status).toBe('limited');
 });

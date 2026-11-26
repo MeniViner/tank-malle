@@ -121,11 +121,11 @@ async function main() {
     const spark = process.argv.includes('--spark');
     const monitoring = spark ? null : process.env.GITHUB_ACTIONS === 'true' ? await monitoringToken() : token;
     const [snapshot, journey] = await Promise.all([collectOperations(monitoring), collectProductJourney(key ?? undefined)]);
-    console.log(`Product journey: funnel ${journey.funnel.status}, writes ${journey.operations.status}`);
+    console.log(`Product journey: funnel ${journey.funnel.status}, writes ${journey.operations.status}, website opens ${journey.opens.status}, traffic ${journey.traffic.status}`);
     const db = getFirestore(app);
     const check = await probe(db, snapshot.collectedAt);
     console.log(`Availability: Hosting ${check.hostingMs ?? 'failed'} ms, Firestore ${check.firestoreMs ?? 'failed'} ms`);
-    if ([journey.funnel, journey.operations, journey.recent].some(r => !['ok', 'empty'].includes(r.status)) ||
+    if ([journey.funnel, journey.operations, journey.recent, journey.opens, journey.traffic].some(r => !['ok', 'empty'].includes(r.status)) ||
         check.hostingMs === null || check.firestoreMs === null) process.exitCode = 1;
     if (!dryRun) {
       const unavailable = Object.values(snapshot.metrics).some(metric => ['forbidden', 'unavailable'].includes(metric.status));

@@ -139,7 +139,7 @@ function finiteTime(value: unknown) {
 }
 
 type JourneyReport = { status: 'ok' | 'empty' | 'limited' | 'forbidden' | 'unavailable'; counts?: Record<string, number>; limited?: boolean };
-export interface JourneySnapshot { collectedAt: number; funnel: JourneyReport; operations: JourneyReport; recent?: JourneyReport }
+export interface JourneySnapshot { collectedAt: number; funnel: JourneyReport; operations: JourneyReport; recent?: JourneyReport; opens?: JourneyReport; traffic?: JourneyReport }
 
 export async function loadJourney(parent: AbortSignal): Promise<Source<JourneySnapshot>> {
   const result = await source(async () => {
