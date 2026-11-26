@@ -786,7 +786,7 @@ function FuelPriceRow({
 
   const parsed = parseDecimal(draft);
   const valid = Number.isFinite(parsed) && parsed > 0 && parsed < 20;
-  const changed = valid && (parsed !== lookup.price || series?.source !== "manual");
+  const changed = valid && parsed !== lookup.price;
 
   const [now] = useState(() => Date.now());
   const thisMonth = monthKey(now);
