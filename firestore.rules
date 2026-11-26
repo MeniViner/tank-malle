@@ -991,6 +991,28 @@ service cloud.firestore {
 
     // Global config: readable by any signed-in user; written by the scheduled
     // function, the admin seed script (both bypass rules), or a signed-in admin.
+    match /priceChanges/{id} {
+      allow read: if isAdmin();
+      // Checking both sides of the atomic write prevents a stale offline edit
+      // from recording another device's price as its own previous value.
+      function validChange() {
+        let path = /databases/$(database)/documents/appConfig/fuelPrices;
+        let d = request.resource.data;
+        let prior = get(path).data;
+        let old = prior.get('byFuelType', {}).get(d.fuel, {}).get('self', {});
+        let legacy = d.fuel == '95' && prior.get('current', null) != null;
+        let current = old.get('current', null);
+        let before = current != null ? current.pricePerLiter : legacy ? prior.current.pricePerLiter : null;
+        let source = old.get('source', legacy ? (prior.get('source', '') == 'gov.il' ? 'scheduled' : 'manual') : null);
+        let next = getAfter(path).data;
+        return d.fuel in ['95','98','diesel','other'] && d.newSource in ['manual','scheduled'] && isEpochMillis(d.at)
+          && d.id == id && d.recordedAt == request.time && d.before == before && d.oldSource == source
+          && d.after == next.byFuelType[d.fuel].self.current.pricePerLiter
+          && d.newSource == next.byFuelType[d.fuel].self.source && next.lastPriceChange.id == id;
+      }
+      allow create: if isAdmin() && validChange();
+    }
+
     match /appConfig/{document=**} {
       allow read: if isSignedIn();
       allow write: if isAdmin();

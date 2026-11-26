@@ -53,6 +53,7 @@ import { pathToFileURL } from "node:url";
 
 const DRY_RUN = process.argv.includes("--dry-run");
 
+import { priceChange } from '../src/lib/prices/priceChange.ts';
 import { readPublicPrices, parsePublicAnnouncement, priceTimeline, noticeFromReading, israelMidnight, NOTICE_FRESHNESS_MS } from '../src/lib/prices/publicSource.ts';
 function monthKey(date) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).format(date).slice(0, 7); }
 export function parseAnnouncement(raw) {
@@ -298,11 +299,22 @@ async function main() {
   const db = getFirestore();
   const ref = db.doc("appConfig/fuelPrices");
 
-  const snapshot = await ref.get();
-  const existing = snapshot.exists ? snapshot.data() : undefined;
-
-  const plan = planWrite(existing, reading, now, projectId);
-  await ref.set(plan.payload, { merge: true });
+  const changeRef = db.collection('priceChanges').doc();
+  const plan = await db.runTransaction(async tx => {
+    const snapshot = await tx.get(ref);
+    const existing = snapshot.data();
+    const decision = planWrite(existing, reading, now, projectId);
+    const next = decision.payload.byFuelType?.['95']?.self;
+    if (next?.current && next.source) {
+      const typed = existing?.byFuelType?.['95']?.self;
+      const previous = { current: typed?.current ?? existing?.current,
+        source: typed?.source ?? (existing?.current ? existing.source === 'gov.il' ? 'scheduled' : 'manual' : undefined) };
+      const change = priceChange('95', previous, next.current.pricePerLiter, next.source, now.getTime());
+      if (change) tx.set(changeRef, { ...change, recordedAt: now });
+    }
+    tx.set(ref, decision.payload, { merge: true });
+    return decision;
+  });
   console.log(`${plan.summary} → appConfig/fuelPrices in ${projectId}`);
 
   if (!reading.ok) {

@@ -1,5 +1,7 @@
 import { useRef, useState, useEffect, useId, useLayoutEffect } from 'react';
-import { cloudPilot } from '../../lib/scan/cloudPilot';
+import { useAuth } from '../../context/AuthContext';
+import { getConsoleAccess } from '../../lib/ownerConsole';
+import { cloudPilot, ownerCloudBuild } from '../../lib/scan/cloudPilot';
 import { Sheet } from '../Sheet';
 import { Button } from '../Button';
 import { CheckIcon, InfoIcon } from '../icons';
@@ -27,6 +29,17 @@ type ScanWizardProps = {
 const FIELDS:Record<ScanAttempt['kind'],readonly ScanField[]>={pump:['total','liters'],odometer:['odometer']};
 
 export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onAttempt,onPhotoMetadata }: ScanWizardProps) {
+  const { user, isAdmin } = useAuth();
+  const [ownerUid, setOwnerUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ownerCloudBuild || !user?.emailVerified || !isAdmin) return;
+    let live = true;
+    void user.getIdTokenResult().then(async token => {
+      if (token.signInProvider === 'google.com' && await getConsoleAccess(user.uid) && live) setOwnerUid(user.uid);
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [user, isAdmin]);
+  const cloudEnabled = cloudPilot || Boolean(ownerCloudBuild && user && isAdmin && user.uid === ownerUid);
   const [accept,setAccept]=useState<Partial<Accept>|null>(null);
   // Scanning always shares samples (terms §3, privacy §6): there is no switch. Someone who does not
   // want that types the numbers in the form instead. The explanation sits behind a small icon.
@@ -68,8 +81,8 @@ export function ScanWizard({ initial,protectedFields,onClose,onApply,context,onA
       <ol className="scan-steps" aria-label="שלבי הוספת תדלוק">{['משאבה','קילומטראז׳'].map((name,i)=><li key={name} aria-current={step===i?'step':undefined}><span>{i<step?<CheckIcon size={16}/>:i+1}</span>{name}</li>)}</ol>
       {pump?<div className="scan-success" role="status"><CheckIcon size={20}/><span><b>המשאבה נקראה</b><span><Money value={Number(pump.total)}/> · <span className="tm-number-with-unit"><NumRun>{pump.liters}</NumRun><span className="unit">ליטר</span></span></span></span></div>:null}
       <p ref={heading} tabIndex={-1} className="text-sm leading-relaxed text-muted outline-none">{step===0?'פותחים מצלמה, מכוונים לצג — ואנחנו קוראים את הספרות. פעלו לפי הנחיות התחנה לשימוש בטלפון.':'עוד צילום אחד, והנתונים יעברו לטופס לבדיקה. אפשר גם לסגור ולהשלים בטופס; מה שכבר נקרא יישאר.'}</p>
-      {cloudPilot && <p className="text-xs text-muted">אם הזיהוי המקומי נכשל, חיתוך הצג נשלח אוטומטית ל־Google Gemini. צלמו רק את הספרות. אפשר גם להזין ידנית.</p>}
-      <PhotoReader key={step} kind={step===0?'pump':'odometer'} autoOpen={live} onRead={read} onPhotoMetadata={onPhotoMetadata} context={context} onAttempt={onAttempt ? attempt : undefined} accept={accept} controlsRef={reader}/>
+      {cloudEnabled && <p className="text-xs text-muted">אם הזיהוי המקומי נכשל, חיתוך הצג נשלח אוטומטית ל־Google Gemini. צלמו רק את הספרות. אפשר גם להזין ידנית.</p>}
+      <PhotoReader cloudEnabled={cloudEnabled} key={step} kind={step===0?'pump':'odometer'} autoOpen={live} onRead={read} onPhotoMetadata={onPhotoMetadata} context={context} onAttempt={onAttempt ? attempt : undefined} accept={accept} controlsRef={reader}/>
       {step===0?<Button variant="ghost" onClick={()=>setStep(1)}>דילוג לקילומטראז׳</Button>:<Button variant="ghost" onClick={backToPump}>צילום המשאבה מחדש</Button>}
       <div className="flex items-start justify-center gap-1">
         <p className="text-center text-xs leading-relaxed text-muted">לפני השמירה בדקו את הסכום ששולם ואת קריאת ODO בק״מ.</p>

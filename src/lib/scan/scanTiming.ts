@@ -1,9 +1,9 @@
-import { cloudPilot } from './cloudPilot';
+import { cloudPilot, ownerCloudBuild } from './cloudPilot';
 import type { DisplayKind } from './engine';
 import type { ScanSource } from './samples';
 
 export function recordScanTiming(start: number, source: ScanSource, kind: DisplayKind, read: boolean, fallback: boolean) {
-  if (!cloudPilot || import.meta.env.VITE_USE_EMULATORS === '1') return;
+  if (!(cloudPilot || (ownerCloudBuild && fallback)) || import.meta.env.VITE_USE_EMULATORS === '1') return;
   const duration = Date.now() - start;
   if (duration <= 0) return;
   // Loading and submitting telemetry never delays filling in the form.

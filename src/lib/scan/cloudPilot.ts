@@ -4,3 +4,8 @@ import { nativeBuild } from '../native/platform';
 export const cloudPilot = import.meta.env.VITE_SCAN_AI_PILOT === '1' &&
   import.meta.env.VITE_USE_EMULATORS !== '1' && import.meta.env.VITE_FIREBASE_PROJECT_ID === 'tank-malle' &&
   (nativeBuild || Boolean(import.meta.env.VITE_SCAN_RECAPTCHA_SITE_KEY));
+
+// Public Hosting exposes only the separately authorized owner service.
+export const ownerCloudBuild = !nativeBuild && !cloudPilot &&
+  import.meta.env.VITE_USE_EMULATORS !== '1' && import.meta.env.VITE_FIREBASE_PROJECT_ID === 'tank-malle' &&
+  Boolean(import.meta.env.VITE_SCAN_RECAPTCHA_SITE_KEY);

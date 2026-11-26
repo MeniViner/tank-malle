@@ -1,5 +1,6 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema, ThinkingLevel } from 'firebase/ai';
 import { CustomProvider, getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import { cloudPilot, ownerCloudBuild } from './cloudPilot';
 import { app, auth } from '../firebase';
 import prompt from './cloudPrompt.json';
 import { getConsoleAccess } from '../ownerConsole';
@@ -68,6 +69,7 @@ export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanCont
       if (result.status === 429) cooldowns.set(uid, Date.now() + 60_000);
       return result.ok ? parseCloudReading(kind, await result.text(), context) : null;
     }
+    if (ownerCloudBuild || !cloudPilot) return undefined;
     const digitString = () => Schema.string({ nullable: true });
     const properties: Record<string, ReturnType<typeof digitString>> = kind === 'odometer'
       ? { odometer: digitString() } : { total: digitString(), liters: digitString(), price: digitString() };
