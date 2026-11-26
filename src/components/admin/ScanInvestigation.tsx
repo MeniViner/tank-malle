@@ -45,14 +45,14 @@ export function ScanInvestigation({ rows, detail }: { rows: ScanSampleRow[]; det
     setCopied(''); setPageSize(30); setParams(next);
   }
   const select = (label: string, key: string, value: string, options: Record<string, string>) =>
-    <label>{label}<select value={value} onChange={e => update(key, e.target.value)}>
+    <label>{label}<select aria-label={label} value={value} onChange={e => update(key, e.target.value)}>
       <option value="">הכול</option>{Object.entries(options).map(([id, text]) => <option key={id} value={id}>{text}</option>)}</select></label>;
   return <section className="oc-panel oc-investigation"><header><h2>חקירת ניסיונות סריקה</h2></header>
     <div className="oc-filter-grid">{select('סוג צג', 'kind', kind, kinds)}{select('אופן הקריאה', 'reader', reader, readers)}
       {select('תוצאת הסריקה', 'outcome', outcome, outcomes)}{select('פילוח ניסיונות', 'facet', facet, facets)}</div>
     {facet && <div className="oc-filter-actions" aria-label={facets[facet]}>{[...counts].map(([value, count]) =>
       <button type="button" key={value} aria-pressed={value === slice} onClick={() => update('slice', value === slice ? '' : value)}>{value} · {int(count)}</button>)}</div>}
-    <div className="oc-filter-actions"><strong>{int(matches.length)} ניסיונות</strong><button type="button" onClick={() => update()}>איפוס מסננים</button>
+    <div className="oc-filter-actions"><strong>{matches.length === 1 ? "ניסיון אחד" : int(matches.length) + " ניסיונות"}</strong><button type="button" onClick={() => update()}>איפוס מסננים</button>
       <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied('הקישור הועתק'); } catch { setCopied('אפשר להעתיק את הכתובת משורת הכתובת'); } }}>העתקת קישור לחקירה</button>
       <span role="status">{copied}</span></div>
     {matches.length ? <div className="oc-table-scroll"><table className="oc-table"><thead><tr>{['תאריך','צג','אופן הקריאה','תוצאה','פרטים'].map(h => <th key={h}>{h}</th>)}</tr></thead>

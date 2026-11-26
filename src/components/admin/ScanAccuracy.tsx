@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ScanInvestigation } from './ScanInvestigation';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -164,7 +164,7 @@ function GeminiReport({ rows, truncated }: { rows: ScanSampleRow[]; truncated: b
       <Num>{int(matches.length)}</Num></button>;
   }
   return <>
-    <section className="oc-panel"><header><h2>מה קרה להצעות הסריקה?</h2></header>
+    <section className="oc-panel"><header><h2>מה קרה להצעות הסריקה?</h2><Link className="oc-link" to="/fillup/new?scan=1">פתיחת סורק התדלוק</Link></header>
       <p className="oc-note"><NumericText>{`${int(cloud.length)} ניסיונות Gemini מתוך ${int(rows.length)} דגימות סריקה ששותפו בתקופה`}</NumericText></p>
       {truncated && <p className="helper"><NumericText>{`מוצגות עד ${int(LIMIT)} הדגימות האחרונות.`}</NumericText></p>}
       <div className="oc-gemini-tiles">{outcomes.map(([label, matches]) => <div key={label}><span>{label}</span>{count(label, matches)}</div>)}</div>
