@@ -1,5 +1,4 @@
 import { recordScanTiming } from '../../lib/scan/scanTiming';
-import { cloudPilot } from '../../lib/scan/cloudPilot';
 import { LiveCamera } from './LiveCamera';
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react';
 import { Button } from '../Button';
@@ -16,7 +15,7 @@ import { readPhotoMetadata, type PhotoMetadata } from '../../lib/scan/photoMetad
  */
 export type PhotoReaderControls = { closeCamera: () => boolean };
 
-export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context,onAttempt,accept,controlsRef }: { kind:DisplayKind;autoOpen?:boolean;onRead:(values:DisplayReading,live:boolean)=>void;
+export function PhotoReader({ cloudEnabled,kind,autoOpen=false,onRead,onPhotoMetadata,context,onAttempt,accept,controlsRef }: { cloudEnabled:boolean;kind:DisplayKind;autoOpen?:boolean;onRead:(values:DisplayReading,live:boolean)=>void;
   /** Where and when a chosen photo was taken (EXIF), read on the device; not called for camera frames. */
   onPhotoMetadata?:(metadata:PhotoMetadata,kind:DisplayKind,live?:boolean)=>void;context?:ScanContext;onAttempt?:(attempt:ScanAttempt)=>void;accept?:Partial<Accept>|null;controlsRef?:Ref<PhotoReaderControls> }) {
   const [cameraOpen,setCameraOpen]=useState(autoOpen),[busy,setBusy]=useState(false),[preview,setPreview]=useState<string|null>(null),[aspect,setAspect]=useState<number|null>(null),[found,setFound]=useState<FoundRegion[]|null>(null),[message,setMessage]=useState('');
@@ -58,12 +57,12 @@ export function PhotoReader({ kind,autoOpen=false,onRead,onPhotoMetadata,context
       pending.current=result=>{clearTimeout(timeout);resolve(result);};
       worker.current.onmessage=(event:MessageEvent<DisplayResult>)=>{pending.current?.(event.data);pending.current=null;};
       worker.current.onerror=()=>cancel();
-      worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample,accept,cloudCrop:cloudPilot}},[image.data.buffer]);
+      worker.current.postMessage({width:image.width,height:image.height,data:image.data,kind,context,options:{sample,accept,cloudCrop:cloudEnabled}},[image.data.buffer]);
     });
   }
   async function fallback(result: DisplayResult, active: () => boolean, onGenerate: () => void) {
     const crop = result.cloudCrop;
-    if (!cloudPilot || !crop || !navigator.onLine || !active()) return undefined;
+    if (!cloudEnabled || !crop || !navigator.onLine || !active()) return undefined;
     const controller = new AbortController();
     cloudRequest.current = controller;
     setReadingCloud(true);

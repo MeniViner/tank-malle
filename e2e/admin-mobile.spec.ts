@@ -147,6 +147,10 @@ test('an ordinary connected client receives the admin price through stored confi
     const config = await getDocument('appConfig/fuelPrices');
     expect((((config?.byFuelType as Record<string,Record<string,Record<string,unknown>>>)?.['95']?.self?.current) as Record<string,unknown>)?.pricePerLiter).toBe(8.17);
   }).toPass();
+  await page.getByRole('dialog').getByRole('button', { name: 'סגירה' }).click();
+  await page.getByText('היסטוריית שינויי מחיר', { exact: true }).click();
+  const journal = page.getByRole('table', { name: 'עד 50 שינויי המחיר האחרונים' });
+  await expect(journal.getByRole('row', { name: /בנזין 95.*7.31.*8.17.*רשמי.*ידני/ })).toBeVisible();
   const context = await browser.newContext({baseURL:'http://127.0.0.1:5273',locale:'he-IL',timezoneId:'Asia/Jerusalem'});
   try {
     const ordinary = await context.newPage();

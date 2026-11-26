@@ -164,10 +164,10 @@ what v2 may have stored on a device.
 
 ## Automatic cloud fallback in the internal pilot
 
-The personal pilot build enables `VITE_SCAN_AI_PILOT=1`. A web pilot also needs
-`VITE_SCAN_RECAPTCHA_SITE_KEY` (the registered public Enterprise site key).
+The personal pilot build enables `VITE_SCAN_AI_PILOT=1`. The web build uses the registered public Enterprise site identifier, overridable through
+`VITE_SCAN_RECAPTCHA_SITE_KEY`.
 Distribute this build only to adult testers in a free-tier eligible region.
-Public builds keep the local reader. The public app currently admits drivers
+Public Hosting uses the local reader for the general audience. When built with the registered web App Check site key, the verified, enrolled Google owner also has automatic fallback through the owner Worker. The public build never sends a non-owner request to Gemini. The public app currently admits drivers
 aged 16 and above; review audience and regional eligibility before wider rollout.
 
 A local miss with a detected display region can trigger one request for that

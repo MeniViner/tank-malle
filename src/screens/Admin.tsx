@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { PriceJournal } from "../components/admin/PriceJournal";
+import { priceChange, type ChangeSource } from "../lib/prices/priceChange";
 import { ScanAccuracy } from "../components/admin/ScanAccuracy";
 import { AdminPanel as Panel } from "../components/admin/AdminPanel";
 import { AdminJourney, AdminApi, AdminGithub, AdminSystem } from "../components/admin/AdminOperations";
@@ -545,6 +547,11 @@ function daysAgoText(at: number, now: number): string {
   return `רץ לפני ${days} ימים`;
 }
 
+function journal(config: RegulatedPriceConfig | null, fuel: FuelType, after: number, source: ChangeSource) {
+    const change = priceChange(fuel, config?.byFuelType?.[fuel]?.self, after, source, Date.now());
+    return change ? { lastPriceChange: { ...change, id: crypto.randomUUID() } } : {};
+  }
+
 function FuelPriceEditor() {
   const { showToast } = useToast();
   const { user, isAdmin, claimsLoaded } = useAuth();
@@ -606,6 +613,7 @@ function FuelPriceEditor() {
     const old = config?.byFuelType?.['95']?.self;
     if ((old?.current?.effectiveFrom ?? 0) > read.effectiveFrom) throw new Error('נמצא פרסום ישן יותר. המחיר הקיים נשמר.');
     await updateAdminPrices({
+      ...journal(config, '95', read.price, 'scheduled'),
       [`${prefix}.current`]: { pricePerLiter: read.price, effectiveFrom: read.effectiveFrom, updatedAt: read.readAt },
       [`${prefix}.history.${read.month}`]: read.price,
       [`${prefix}.scheduledHistory.${read.month}`]: read.price,
@@ -633,6 +641,7 @@ function FuelPriceEditor() {
     const month = monthKey(now.getTime());
     const prefix = `byFuelType.${fuelType}.${REGULATED_SERVICE_MODE}`;
     await updateAdminPrices({
+      ...journal(config, fuelType, value, "manual"),
       [`${prefix}.current.pricePerLiter`]: value,
       [`${prefix}.current.effectiveFrom`]: new Date(now.getFullYear(), now.getMonth(), 1).getTime(),
       [`${prefix}.current.updatedAt`]: SERVER_TIMESTAMP,
@@ -648,6 +657,7 @@ function FuelPriceEditor() {
     await updateAdminPrices({
       [`${prefix}.manualOverride`]: null,
       [`${prefix}.history.${month}`]: scheduled,
+      ...journal(config, fuelType, scheduled, "scheduled"),
       [`${prefix}.current.pricePerLiter`]: scheduled,
       [`${prefix}.current.effectiveFrom`]: new Date(year, monthNumber - 1, 1).getTime(),
       [`${prefix}.current.updatedAt`]: SERVER_TIMESTAMP,
@@ -710,6 +720,7 @@ function FuelPriceEditor() {
       {reading ? <p className="helper">נקרא פרסום משרד האנרגיה לחודש {priceMonthLabel(reading.month, now)}. {latest95Op ? 'אישור השמירה מוצג ליד המחיר.' : readSource === 'server' ? 'המחיר מאושר בשרת.' : 'ממתינים לאישור השרת.'}</p> : null}
       {config?.byFuelType?.['95']?.self?.sourceUrl ? <a href={config.byFuelType['95'].self.sourceUrl} target="_blank" rel="noopener noreferrer" className="admin-link self-start">מקור: משרד האנרגיה</a> : null}
     </Panel>
+    <PriceJournal config={config} />
     <Panel title="הרשאות ועדכונים">
       <DiagnosticRow title="הרשאת כתיבה למחירים" ok={isAdmin} value={!claimsLoaded ? 'בודקים…' : isAdmin ? 'מותרת' : 'חסרה'} detail={isAdmin ? 'אפשר לשמור מחירים. אישור השרת מוצג ליד הערך שנשמר.' : 'שמירה זמינה למנהלי מערכת בלבד.'} />
       <DiagnosticRow title="עדכון אוטומטי (95)" ok={automatic.ok} value={automatic.value} detail={automatic.detail} />

@@ -54,6 +54,16 @@ test('desktop console is exclusive to the enrolled Google account and keeps the 
   const nav = page.getByRole('navigation', { name: 'מדורי הקונסולה' });
   await expect(page.getByRole('heading', { name: 'דורש בדיקה' })).toBeVisible();
   await nav.getByRole('link', { name: 'סריקות', exact: true }).click();
+  await page.getByLabel('סוג צג', { exact: true }).selectOption('odometer');
+  await page.getByLabel('אופן הקריאה', { exact: true }).selectOption('read');
+  await page.getByLabel('תוצאת הסריקה').selectOption('corrected');
+  await page.getByLabel('פילוח ניסיונות').selectOption('source');
+  await page.getByRole('button', { name: 'תמונה מהמכשיר · 1' }).click();
+  await page.getByRole('button', { name: 'פרטים', exact: true }).click();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'פרטי ניסיון · נקרא ותוקן' })).toBeVisible();
+  await page.getByRole('button', { name: 'איפוס מסננים' }).click();
+  await expect(page.getByLabel('סוג צג', { exact: true })).toHaveValue('');
   await page.getByRole('link', { name: 'תוצאות Gemini' }).click();
   await expect(page.getByRole('heading', { name: 'מה קרה להצעות הסריקה?' })).toBeVisible();
   await expect(page.getByRole('row', { name: /קילומטראז׳/ })).toBeVisible();

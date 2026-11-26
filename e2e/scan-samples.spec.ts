@@ -148,7 +148,7 @@ test('one automatic fallback per unreadable photo, followed by review in the for
   // Emulate the provider at the module boundary. The real worker must reject these
   // printed numbers and extract a crop before the fallback can see them.
   await page.route('**/src/lib/scan/cloudPilot.ts*', route => route.fulfill({
-    contentType: 'application/javascript', body: 'export const cloudPilot = true;',
+    contentType: 'application/javascript', body: 'export const cloudPilot = true, ownerCloudBuild = false, webAttestationKey = "";',
   }));
   await page.route('**/src/lib/scan/cloudScan.ts*', route => route.fulfill({
     contentType: 'application/javascript',

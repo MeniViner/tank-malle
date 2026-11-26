@@ -1,5 +1,6 @@
 import { getAI, getGenerativeModel, GoogleAIBackend, Schema, ThinkingLevel } from 'firebase/ai';
 import { CustomProvider, getToken, initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
+import { cloudPilot, ownerCloudBuild, webAttestationKey } from './cloudPilot';
 import { app, auth } from '../firebase';
 import prompt from './cloudPrompt.json';
 import { getConsoleAccess } from '../ownerConsole';
@@ -19,7 +20,7 @@ async function configureAttestation() {
       return { token, expireTimeMillis };
     } });
   } else {
-    provider = new ReCaptchaEnterpriseProvider(import.meta.env.VITE_SCAN_RECAPTCHA_SITE_KEY);
+    provider = new ReCaptchaEnterpriseProvider(webAttestationKey);
   }
   return initializeAppCheck(app, { provider });
 }
@@ -48,16 +49,17 @@ export async function cloudScan(kind: DisplayKind, crop: Gray, context: ScanCont
   const uid = user?.uid ?? '';
   if (signal.aborted || !navigator.onLine || Date.now() < (cooldowns.get(uid) ?? 0)) return undefined;
   try {
-    attestation ??= configureAttestation().catch(error => { attestation = undefined; throw error; });
-    // Fail closed before passing any image to AI Logic if attestation is unavailable.
-    const { token: appToken } = await getToken(await attestation);
-    if (signal.aborted) return undefined;
-    const data = cropJpeg(crop);
-    if (!data) return undefined;
     const identity = user?.emailVerified ? await user.getIdTokenResult() : undefined;
     const owner = user && identity?.claims.admin === true && identity.signInProvider === 'google.com' &&
       await getConsoleAccess(uid).catch(() => false);
     if (auth.currentUser !== user || signal.aborted) return undefined;
+    if (!cloudPilot && !(ownerCloudBuild && owner)) return undefined;
+    attestation ??= configureAttestation().catch(error => { attestation = undefined; throw error; });
+    // Fail closed before passing any image to AI Logic if attestation is unavailable.
+    const { token: appToken } = await getToken(await attestation);
+    if (signal.aborted || auth.currentUser !== user) return undefined;
+    const data = cropJpeg(crop);
+    if (!data) return undefined;
     if (owner && identity) {
       const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0));
       onGenerate();

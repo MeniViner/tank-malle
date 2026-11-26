@@ -45,7 +45,7 @@ jobs:
           runtime_dir="$RUNNER_TEMP/tank-fuel"
           mkdir -p "$runtime_dir/scripts" "$runtime_dir/src/lib/prices"
           cp scripts/updateFuelPrices.mjs "$runtime_dir/scripts/"
-          cp src/lib/prices/publicSource.ts "$runtime_dir/src/lib/prices/"
+          cp src/lib/prices/publicSource.ts src/lib/prices/priceChange.ts "$runtime_dir/src/lib/prices/"
           npm install --prefix "$runtime_dir" --no-save --no-audit --no-fund firebase-admin@14
 
       - name: Update the regulated price

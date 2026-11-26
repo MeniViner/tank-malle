@@ -321,7 +321,8 @@ function FillupEditor({
     }
   }, [measureNewFillup]);
   const draftCleared = useRef(false);
-  const [scanOpen, setScanOpen] = useState(() => mode === "new" && !operation && !initial && settings.quickEntry === true);
+  const [scanParams] = useSearchParams();
+  const [scanOpen, setScanOpen] = useState(() => mode === "new" && !operation && !initial && (settings.quickEntry === true || scanParams.get("scan") === "1"));
   const [scanCompleted,setScanCompleted] = useState(false);
   const [importOpen,setImportOpen] = useState(false);
   const [receiptImport,setReceiptImport] = useState<ImportIdentity|null>(restoredDraft?.receiptImport ?? null);

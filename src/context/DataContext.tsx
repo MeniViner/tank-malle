@@ -444,6 +444,17 @@ function toFirestoreData(payload: OutboxPayload): Record<string, unknown> {
   return out;
 }
 
+/** Both records use the SDK's offline queue, so price and journal settle together. */
+function writeAdminPrice(path: string, payload: OutboxPayload) {
+  const ref = doc(db, path);
+  const entry = payload.lastPriceChange as { id: string } | undefined;
+  if (!entry) return updateDoc(ref, toFirestoreData(payload));
+  const batch = writeBatch(db);
+  batch.update(ref, toFirestoreData(payload));
+  batch.set(doc(db, 'priceChanges', entry.id), { ...entry, recordedAt: serverTimestamp() });
+  return batch.commit();
+}
+
 /**
  * The per-write marker for a fill-up write: unique for every journal version,
  * so a retry (new version) changes it too. The rules apply the version check
@@ -1595,9 +1606,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     assertMutationScope(stillCurrent);
     const path = "appConfig/fuelPrices";
     await submit({ kind: "adminPrice.update", path, vehicleId: null, payload, opType: "update" },
-      () => { assertMutationScope(stillCurrent); return updateDoc(refFor(path), toFirestoreData(payload)); },
+      () => { assertMutationScope(stillCurrent); return writeAdminPrice(path, payload); },
       (operation, data) => genericPayloadMatches(operation.payload ?? {}, data), stillCurrent);
-  }, [user, isAdmin, captureAccountScope, submit, refFor]);
+  }, [user, isAdmin, captureAccountScope, submit]);
 
   const updateSettings = useCallback(
     async (patch: Partial<UserSettings>) => {
@@ -2231,7 +2242,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (claimed.kind === "adminPrice.update") {
         const payload = claimed.payload ?? {};
         if (server && same(payload, server)) await outbox.acknowledge(opId, version);
-        else await settle(updateDoc(refFor(claimed.path), outgoing(payload)));
+        else {
+          const entry = payload.lastPriceChange as { id: string } | undefined;
+          if (entry && (await getDocFromServer(doc(db, 'priceChanges', entry.id))).exists()) {
+            await outbox.acknowledge(opId, version);
+          } else if (stillCurrent()) await settle(writeAdminPrice(claimed.path, payload));
+        }
         return;
       }
 

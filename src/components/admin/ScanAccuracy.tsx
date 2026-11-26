@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ScanInvestigation } from './ScanInvestigation';
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where } from 'firebase/firestore';
 import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { db } from '../../lib/firebase';
@@ -22,7 +24,13 @@ type Picture = { w: number; h: number; jpeg: string; role?: string; text?: strin
 
 /** How well the photo reader does in people's hands: every attempt, and what they finally saved. */
 export function ScanAccuracy({ gemini = false }: { gemini?: boolean }) {
-  const [days, setDays] = useState<'7' | '30' | '90'>(gemini ? '7' : '30');
+  const [params, setParams] = useSearchParams();
+  const periodParam = params.get('days');
+  const days = periodParam === '7' || periodParam === '30' || periodParam === '90' ? periodParam : gemini ? '7' : '30';
+  function setDays(value: '7' | '30' | '90') {
+    const next = new URLSearchParams(params);
+    next.set('days', value); next.delete('sample'); setParams(next);
+  }
   const [loaded, setLoaded] = useState<{ days: string; rows: ScanSampleRow[] | null; truncated: boolean } | null>(null), [tuning, setTuning] = useState<Tuning>(null);
   const [now] = useState(() => Date.now());
   // Rows belong to the period they were loaded for; while another period loads there are none.
@@ -89,6 +97,7 @@ export function ScanAccuracy({ gemini = false }: { gemini?: boolean }) {
       </>}
     </section>
 
+    {rows && <ScanInvestigation rows={rows} detail={row => <Problem row={row} investigation />} />}
     {stats?.all.attempts ? <>
       <section className="admin-spend-card" aria-label="סריקות לפי יום">
         <div className="admin-group-head"><h2>לפי יום</h2></div>
@@ -155,7 +164,7 @@ function GeminiReport({ rows, truncated }: { rows: ScanSampleRow[]; truncated: b
       <Num>{int(matches.length)}</Num></button>;
   }
   return <>
-    <section className="oc-panel"><header><h2>מה קרה להצעות הסריקה?</h2></header>
+    <section className="oc-panel"><header><h2>מה קרה להצעות הסריקה?</h2><Link className="oc-link" to="/fillup/new?scan=1">פתיחת סורק התדלוק</Link></header>
       <p className="oc-note"><NumericText>{`${int(cloud.length)} ניסיונות Gemini מתוך ${int(rows.length)} דגימות סריקה ששותפו בתקופה`}</NumericText></p>
       {truncated && <p className="helper"><NumericText>{`מוצגות עד ${int(LIMIT)} הדגימות האחרונות.`}</NumericText></p>}
       <div className="oc-gemini-tiles">{outcomes.map(([label, matches]) => <div key={label}><span>{label}</span>{count(label, matches)}</div>)}</div>
@@ -192,7 +201,7 @@ function Breakdown({ title, groups }: { title: string; groups: { label: string; 
 }
 
 /** One failed attempt: what was read, what was saved, and (on request) the rows the engine saw. */
-function Problem({ row }: { row: ScanSampleRow }) {
+function Problem({ row, investigation = false }: { row: ScanSampleRow; investigation?: boolean }) {
   const [pictures, setPictures] = useState<Picture[] | null | 'none'>(null), [loading, setLoading] = useState(false);
   function show() {
     setLoading(true);
@@ -203,7 +212,7 @@ function Problem({ row }: { row: ScanSampleRow }) {
     }).catch(() => setPictures('none')).finally(() => setLoading(false));
   }
   return <div className="admin-scan-problem">
-    <div><strong>{row.outcome === 'read' ? 'נקרא ותוקן' : 'לא נקרא'} · {KIND[row.kind]}</strong><small><NumericText>{`${dayMonthShort(row.createdAt)} · ${SOURCE[row.source]} · ניסיון ${row.attempt} · ${row.appVersion}`}</NumericText></small></div>
+    <div><strong>{investigation ? (PLATFORM[row.platform] ?? row.platform) : row.outcome === 'read' ? 'נקרא ותוקן' : 'לא נקרא'} · {KIND[row.kind]}</strong><small><NumericText>{`${dayMonthShort(row.createdAt)} · ${SOURCE[row.source]} · ניסיון ${row.attempt} · ${row.appVersion}`}</NumericText></small></div>
     <p>נשמר <Num>{row.final ?? '—'}</Num>{row.guess ? <> · {row.outcome === 'read' ? 'הוצג' : 'ניחוש'} <Num>{row.guess}</Num></> : null}{row.confidence != null ? <> · ביטחון <Num>{num(row.confidence, 2)}</Num></> : null}</p>
     {pictures === null ? <button type="button" className="admin-link" disabled={loading} onClick={show}>{loading ? 'טוענים…' : 'הצגת מה שהמנוע ראה'}</button>
       : pictures === 'none' ? <small>לא נשמרו קטעים לניסיון הזה.</small>
