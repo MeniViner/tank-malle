@@ -2,7 +2,8 @@ import { doc, getDocFromServer } from 'firebase/firestore';
 import { db } from './firebase';
 import { nativeBuild } from './native/platform';
 
-const DESKTOP_CONSOLE = '(min-width: 1024px) and (display-mode: browser)';
+// Fullscreen Chrome is still a desktop browser. Keep the installed standalone app on its own layout.
+const DESKTOP_CONSOLE = '(min-width: 1024px) and (display-mode: browser), (min-width: 1024px) and (display-mode: fullscreen)';
 
 export function isDesktopConsole() {
   return !nativeBuild && window.matchMedia(DESKTOP_CONSOLE).matches;
